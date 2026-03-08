@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://pypi.org/project/aigiscode/"><img src="https://img.shields.io/pypi/v/aigiscode?color=blue&label=PyPI" alt="PyPI version" /></a>
   <a href="https://pypi.org/project/aigiscode/"><img src="https://img.shields.io/pypi/pyversions/aigiscode" alt="Python 3.12+" /></a>
-  <a href="https://github.com/davidstrejc/aigiscode/actions"><img src="https://img.shields.io/github/actions/workflow/status/davidstrejc/aigiscode/ci.yml?label=CI" alt="CI status" /></a>
+  <a href="https://github.com/david-strejc/aigiscode/actions"><img src="https://img.shields.io/github/actions/workflow/status/david-strejc/aigiscode/ci.yml?label=CI" alt="CI status" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
 </p>
 

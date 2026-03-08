@@ -13,7 +13,7 @@ Thank you for your interest in contributing to AigisCode! This guide will help y
 
 ```bash
 # Fork and clone the repository
-git clone https://github.com/YOUR_USERNAME/aigiscode.git
+git clone https://github.com/david-strejc/aigiscode.git
 cd aigiscode
 
 # Create a virtual environment and install dependencies
@@ -100,7 +100,7 @@ AigisCode has an extensible plugin system. If you want to create a new analyzer 
 
 ## Reporting Bugs
 
-Use the [Bug Report](https://github.com/aigiscode/aigiscode/issues/new?template=bug_report.md) issue template. Include:
+Use the [Bug Report](https://github.com/david-strejc/aigiscode/issues/new?template=bug_report.md) issue template. Include:
 
 - Steps to reproduce the issue
 - Expected vs. actual behavior
@@ -109,7 +109,7 @@ Use the [Bug Report](https://github.com/aigiscode/aigiscode/issues/new?template=
 
 ## Requesting Features
 
-Use the [Feature Request](https://github.com/aigiscode/aigiscode/issues/new?template=feature_request.md) issue template. Describe the problem you are trying to solve and your proposed solution.
+Use the [Feature Request](https://github.com/david-strejc/aigiscode/issues/new?template=feature_request.md) issue template. Describe the problem you are trying to solve and your proposed solution.
 
 ## Code of Conduct
 
@@ -117,7 +117,7 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 
 ## Questions?
 
-Open a [Discussion](https://github.com/aigiscode/aigiscode/discussions) if you have questions about contributing or the codebase architecture.
+Open a [Discussion](https://github.com/david-strejc/aigiscode/discussions) if you have questions about contributing or the codebase architecture.
 
 ---
 

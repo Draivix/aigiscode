@@ -10,3 +10,4 @@ website/dist/
 uv.lock
 .memories/
 website/.memories/
+docs/plans/
