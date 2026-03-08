@@ -8,3 +8,5 @@ node_modules/
 website/dist/
 .env
 uv.lock
+.memories/
+website/.memories/
