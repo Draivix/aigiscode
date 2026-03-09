@@ -8,7 +8,7 @@ Designed for AI coding agents. The primary output is machine-readable JSON at `.
 
 ## Key Links
 
-- [Documentation](https://aigiscode.dev)
+- [Documentation](https://aigiscode.com)
 - [GitHub Repository](https://github.com/david-strejc/aigiscode)
 - [AI Agent Usage Guide](https://github.com/david-strejc/aigiscode/blob/main/docs/AI_AGENT_USAGE.md)
 - [Architecture](https://github.com/david-strejc/aigiscode/blob/main/docs/ARCHITECTURE.md)

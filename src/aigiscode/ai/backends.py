@@ -19,6 +19,11 @@ def _has_openai_key() -> bool:
     return bool(os.environ.get("OPENAI_API_KEY"))
 
 
+def _has_codex_cli() -> bool:
+    """Check if Codex CLI is installed (supports logged-in auth without API key)."""
+    return shutil.which("codex") is not None
+
+
 def _has_anthropic_key() -> bool:
     return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
@@ -29,7 +34,7 @@ def has_any_backend(
     """Return True when at least one configured backend is available."""
     if _has_openai_key():
         return True
-    if allow_codex_cli_fallback and shutil.which("codex") is not None:
+    if allow_codex_cli_fallback and _has_codex_cli():
         return True
     if allow_claude_fallback and _has_anthropic_key():
         return True
@@ -42,7 +47,7 @@ async def call_codex_sdk(
     model: str,
     reasoning_effort: str = "medium",
 ) -> str | None:
-    """Call Codex/OpenAI via Responses API."""
+    """Call Codex/OpenAI via Responses API (requires OPENAI_API_KEY)."""
     if not _has_openai_key():
         return None
 
@@ -157,16 +162,21 @@ async def generate_text(
 ) -> tuple[str | None, str]:
     """Generate text with ordered fallbacks.
 
-    Order:
-    1) Codex SDK (Responses API)
-    2) Codex CLI (optional)
-    3) Claude (optional)
+    When OPENAI_API_KEY is set:
+      1) Codex SDK (Responses API)
+      2) Codex CLI (optional fallback)
+      3) Claude (optional fallback)
+
+    When no API key but Codex CLI is installed (logged-in auth):
+      1) Codex CLI (primary — uses logged-in session, no API key needed)
+      2) Claude (optional fallback)
     """
-    text = await call_codex_sdk(
-        system, user, model=model, reasoning_effort=reasoning_effort
-    )
-    if text:
-        return text, "codex_sdk"
+    if _has_openai_key():
+        text = await call_codex_sdk(
+            system, user, model=model, reasoning_effort=reasoning_effort
+        )
+        if text:
+            return text, "codex_sdk"
 
     if allow_codex_cli_fallback:
         prompt = f"{system}\n\n{user}"
