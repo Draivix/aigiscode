@@ -48,6 +48,15 @@ The machine-readable report is at:
 .aigiscode/aigiscode-report.json
 ```
 
+Each run also writes timestamped archives under:
+
+```
+.aigiscode/reports/
+```
+
+If you want agents to write into a dedicated folder such as `reports/aigiscode`,
+use `--output-dir reports/aigiscode`.
+
 ## Real-World Evaluation Results
 
 AigisCode has been tested on major open-source codebases. These are real numbers
@@ -141,6 +150,7 @@ Key flags:
 --skip-ai                     Run without AI backends (deterministic only)
 --analytical-mode             Ask AI to propose a policy patch
 --reset                       Full re-index (ignore incremental cache)
+--output-dir <path>          Store the DB, rules, policies, and reports outside `.aigiscode/`
 -P <plugin>                   Select a built-in plugin profile
 --plugin-module <path.py>     Load an external Python plugin module
 --policy-file <path.json>     Override policy from a JSON file
@@ -177,6 +187,7 @@ without parsing prose.
 | `graph_analysis.circular_dependencies` | Broader runtime context |
 | `dead_code` | Unused imports, methods, properties, classes |
 | `hardwiring` | Magic strings, repeated literals, hardcoded network |
+| `security` | Security-focused summary of hardcoded network/env findings |
 | `extensions.contract_inventory` | Routes, hooks, env keys, config keys |
 
 See [docs/AI_AGENT_USAGE.md](docs/AI_AGENT_USAGE.md) for the full agent

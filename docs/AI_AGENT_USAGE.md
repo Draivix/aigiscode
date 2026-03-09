@@ -47,6 +47,15 @@ Primary machine interface:
 /repo/.aigiscode/aigiscode-report.json
 ```
 
+Each run also archives a timestamped copy under:
+
+```text
+/repo/.aigiscode/reports/
+```
+
+If a repository wants agent outputs under a conventional reports path, invoke
+commands with `--output-dir /repo/reports/aigiscode`.
+
 An agent should prefer the JSON report over Markdown for:
 - category counts
 - per-finding sampling

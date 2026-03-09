@@ -10,7 +10,7 @@ AigisCode analyzes entire codebases to find structural issues that single-file l
 - Hardwired values (magic strings, repeated literals, hardcoded IPs and URLs, env access outside config)
 - Layer violations, god classes, bottleneck files, orphan modules
 
-It runs a six-stage pipeline: Index, Graph, Detect, Rules, AI Review, Report. Output is machine-readable JSON at `.aigiscode/aigiscode-report.json`.
+It runs a six-stage pipeline: Index, Graph, Detect, Rules, AI Review, Report. Output is machine-readable JSON at `.aigiscode/aigiscode-report.json`. Timestamped archives are also written under `.aigiscode/reports/`.
 
 ## For AI Agents Using AigisCode
 

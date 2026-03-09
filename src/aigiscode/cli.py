@@ -303,6 +303,11 @@ def _is_candidate_improvement(
 @app.command()
 def index(
     project_path: str = typer.Argument(..., help="Path to the project to index"),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory for aigiscode.db, rules, policies, and reports",
+    ),
     reset: bool = typer.Option(
         False, "--reset", "-r", help="Reset the index before indexing"
     ),
@@ -315,7 +320,7 @@ def index(
     """
     _configure_logging(verbose)
     path = _resolve_project(project_path)
-    config = AigisCodeConfig(project_path=path)
+    config = AigisCodeConfig(project_path=path, output_dir=output_dir)
 
     _print_header(f"Indexing: {path}")
 
@@ -374,6 +379,11 @@ def index(
 @app.command()
 def analyze(
     project_path: str = typer.Argument(..., help="Path to the project to analyze"),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory for aigiscode.db, rules, policies, and reports",
+    ),
     skip_ai: bool = typer.Option(
         False, "--skip-ai", help="Skip AI workers (Codex/OpenAI)"
     ),
@@ -446,6 +456,7 @@ def analyze(
     )
     config = AigisCodeConfig(
         project_path=path,
+        output_dir=output_dir,
         max_workers=max_workers,
         skip_ai=skip_ai,
         skip_review=skip_review,
@@ -683,7 +694,9 @@ def analyze(
         allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback,
         allow_claude_fallback=policy.ai.allow_claude_fallback,
     ):
-        console.print(f"  Reviewing {remaining} findings with Codex SDK + fallbacks...")
+        console.print(
+            f"  Reviewing {remaining} findings with OpenAI Responses API/Codex CLI + fallbacks..."
+        )
 
         from aigiscode.review.ai_reviewer import review_findings
 
@@ -718,7 +731,7 @@ def analyze(
         console.print("  [green]All findings pre-filtered by existing rules[/green]")
     else:
         console.print(
-            "  [yellow]Skipped:[/yellow] No Codex SDK key (or Claude fallback) available"
+            "  [yellow]Skipped:[/yellow] No OpenAI API key, Codex CLI session, or Claude fallback available"
         )
 
     # --- Phase 3: AI Workers (Semantic Envelopes) ---
@@ -733,7 +746,7 @@ def analyze(
             allow_claude_fallback=False,
         ):
             console.print(
-                f"  Backend order: Codex SDK -> Codex CLI ({policy.ai.codex_model})"
+                f"  Backend order: OpenAI Responses API -> Codex CLI ({policy.ai.codex_model})"
             )
 
             from aigiscode.workers.codex import process_files
@@ -749,7 +762,7 @@ def analyze(
             console.print(f"  Generated {envelopes_count} semantic envelopes")
         else:
             console.print(
-                "  [yellow]Skipped:[/yellow] No Codex SDK key (or CLI fallback) available"
+                "  [yellow]Skipped:[/yellow] No OpenAI API key or Codex CLI session available"
             )
     else:
         console.print(
@@ -782,7 +795,7 @@ def analyze(
                 console.print("  [yellow]Synthesis returned empty result[/yellow]")
         else:
             console.print(
-                "  [yellow]Skipped:[/yellow] No Codex SDK key (or Claude fallback) available"
+                "  [yellow]Skipped:[/yellow] No OpenAI API key, Codex CLI session, or Claude fallback available"
             )
     else:
         console.print(
@@ -887,6 +900,11 @@ def analyze(
 @app.command()
 def report(
     project_path: str = typer.Argument(..., help="Path to the project"),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory for aigiscode.db, rules, policies, and reports",
+    ),
     plugins: list[str] = typer.Option(
         None,
         "--plugin",
@@ -937,7 +955,7 @@ def report(
         min_hardwiring_confidence,
         "--min-hardwiring-confidence",
     )
-    config = AigisCodeConfig(project_path=path)
+    config = AigisCodeConfig(project_path=path, output_dir=output_dir)
 
     _print_header(f"Generating report for: {path}")
 
@@ -1108,6 +1126,11 @@ def report(
 @app.command()
 def tune(
     project_path: str = typer.Argument(..., help="Path to the project"),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory for aigiscode.db, rules, policies, and reports",
+    ),
     plugins: list[str] = typer.Option(
         None,
         "--plugin",
@@ -1135,7 +1158,7 @@ def tune(
     """Run AI-assisted trial-and-error policy tuning against existing index."""
     _configure_logging(verbose)
     path = _resolve_project(project_path)
-    config = AigisCodeConfig(project_path=path)
+    config = AigisCodeConfig(project_path=path, output_dir=output_dir)
 
     _print_header(f"Tuning policy for: {path}")
 
@@ -1281,10 +1304,15 @@ def tune(
 @app.command()
 def info(
     project_path: str = typer.Argument(..., help="Path to the project"),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        help="Directory for aigiscode.db, rules, policies, and reports",
+    ),
 ) -> None:
     """Show information about an existing index."""
     path = _resolve_project(project_path)
-    config = AigisCodeConfig(project_path=path)
+    config = AigisCodeConfig(project_path=path, output_dir=output_dir)
 
     if not config.db_path.exists():
         console.print("[red]No index found.[/red] Run `aigiscode index` first.")

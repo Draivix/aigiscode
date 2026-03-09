@@ -283,6 +283,40 @@ def generate_markdown_report(report: ReportData) -> str:
             lines.append("No hardwiring issues detected.")
             lines.append("")
 
+    security_summary = _generate_security_summary(report)
+    if security_summary["total_findings"] > 0:
+        lines.append("## Security Analysis")
+        lines.append("")
+        lines.append("| Signal | Count |")
+        lines.append("|--------|-------|")
+        lines.append(
+            f"| Hardcoded network endpoints | {security_summary['hardcoded_network']} |"
+        )
+        lines.append(
+            f"| Environment reads outside config | {security_summary['env_outside_config']} |"
+        )
+        lines.append(
+            f"| High-severity security signals | {security_summary['high_severity']} |"
+        )
+        if security_summary["ai_confirmed"]:
+            lines.append(
+                f"| AI-confirmed security findings | {security_summary['ai_confirmed']} |"
+            )
+        lines.append("")
+
+        top_findings = security_summary["top_findings"]
+        if top_findings:
+            lines.append("### Highest-Signal Findings")
+            lines.append("")
+            lines.append("| File | Category | Value | Severity | Confidence |")
+            lines.append("|------|----------|-------|----------|------------|")
+            for finding in top_findings:
+                lines.append(
+                    f"| `{finding['file']}:{finding['line']}` | {finding['category']} | "
+                    f"`{finding['value']}` | {finding['severity']} | {finding['confidence']} |"
+                )
+            lines.append("")
+
     # --- AI Finding Review ---
     if report.review:
         rv = report.review
@@ -366,6 +400,7 @@ def generate_markdown_report(report: ReportData) -> str:
 def generate_json_report(report: ReportData) -> dict:
     """Generate a structured JSON report from the analysis data."""
     ga = report.graph_analysis
+    graph_analysis = _serialize_graph_analysis(ga)
 
     return {
         "version": "0.1.0",
@@ -381,11 +416,71 @@ def generate_json_report(report: ReportData) -> dict:
             "unsupported_language_breakdown": report.unsupported_language_breakdown,
             "detector_coverage": report.detector_coverage,
         },
+        "graph_analysis": graph_analysis,
         "graph": {
-            "nodes": ga.node_count,
-            "edges": ga.edge_count,
-            "density": ga.density,
+            "nodes": graph_analysis["node_count"],
+            "edges": graph_analysis["edge_count"],
+            "density": graph_analysis["density"],
         },
+        "circular_dependencies": graph_analysis["circular_dependencies"],
+        "strong_circular_dependencies": graph_analysis["strong_circular_dependencies"],
+        "coupling_metrics": graph_analysis["coupling_metrics"],
+        "god_classes": graph_analysis["god_classes"],
+        "bottlenecks": graph_analysis["bottleneck_files"],
+        "layer_violations": graph_analysis["layer_violations"],
+        "orphan_files": graph_analysis["orphan_files"],
+        "runtime_entry_candidates": graph_analysis["runtime_entry_candidates"],
+        "dead_code": _serialize_dead_code(report.dead_code)
+        if report.dead_code
+        else None,
+        "hardwiring": _serialize_hardwiring(report.hardwiring)
+        if report.hardwiring
+        else None,
+        "security": _generate_security_summary(report),
+        "review": _serialize_review(report.review) if report.review else None,
+        "extensions": report.extensions,
+        "recommendations": _generate_recommendations(report),
+    }
+
+
+def write_reports(report: ReportData, output_dir: Path) -> tuple[Path, Path]:
+    """Write both Markdown and JSON reports to the output directory.
+
+    Returns (markdown_path, json_path).
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    md_path = output_dir / "aigiscode-report.md"
+    json_path = output_dir / "aigiscode-report.json"
+    archive_dir = output_dir / "reports"
+    timestamp = report.generated_at.strftime("%Y%m%d_%H%M%S")
+    archive_md_path = archive_dir / f"{timestamp}-aigiscode-report.md"
+    archive_json_path = archive_dir / f"{timestamp}-aigiscode-report.json"
+
+    md_content = generate_markdown_report(report)
+    md_path.write_text(md_content, encoding="utf-8")
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    archive_md_path.write_text(md_content, encoding="utf-8")
+
+    json_content = generate_json_report(report)
+    json_path.write_text(
+        json.dumps(json_content, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    archive_json_path.write_text(
+        json.dumps(json_content, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    return md_path, json_path
+
+
+def _serialize_graph_analysis(ga) -> dict:
+    """Serialize GraphAnalysisResult for JSON output."""
+    return {
+        "node_count": ga.node_count,
+        "edge_count": ga.edge_count,
+        "density": ga.density,
         "circular_dependencies": [
             {"cycle": cycle} for cycle in ga.circular_dependencies
         ],
@@ -411,7 +506,7 @@ def generate_json_report(report: ReportData) -> dict:
             }
             for g in ga.god_classes
         ],
-        "bottlenecks": [
+        "bottleneck_files": [
             {"file": path, "centrality": score} for path, score in ga.bottleneck_files
         ],
         "layer_violations": [
@@ -426,38 +521,7 @@ def generate_json_report(report: ReportData) -> dict:
         ],
         "orphan_files": ga.orphan_files,
         "runtime_entry_candidates": ga.runtime_entry_candidates,
-        "dead_code": _serialize_dead_code(report.dead_code)
-        if report.dead_code
-        else None,
-        "hardwiring": _serialize_hardwiring(report.hardwiring)
-        if report.hardwiring
-        else None,
-        "review": _serialize_review(report.review) if report.review else None,
-        "extensions": report.extensions,
-        "recommendations": _generate_recommendations(report),
     }
-
-
-def write_reports(report: ReportData, output_dir: Path) -> tuple[Path, Path]:
-    """Write both Markdown and JSON reports to the output directory.
-
-    Returns (markdown_path, json_path).
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    md_path = output_dir / "aigiscode-report.md"
-    json_path = output_dir / "aigiscode-report.json"
-
-    md_content = generate_markdown_report(report)
-    md_path.write_text(md_content, encoding="utf-8")
-
-    json_content = generate_json_report(report)
-    json_path.write_text(
-        json.dumps(json_content, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-
-    return md_path, json_path
 
 
 def _serialize_dead_code(dc) -> dict:
@@ -771,6 +835,24 @@ def _generate_recommendations(report: ReportData) -> list[dict]:
             }
         )
 
+        security_summary = _generate_security_summary(report)
+        if security_summary["total_findings"]:
+            recs.append(
+                {
+                    "title": "Prioritize Security Hardwiring Cleanup",
+                    "description": (
+                        f"Found {security_summary['total_findings']} security-sensitive hardwiring findings: "
+                        f"{security_summary['hardcoded_network']} hardcoded network endpoints and "
+                        f"{security_summary['env_outside_config']} environment reads outside config. "
+                        "Move secrets, tokens, callback URLs, and environment access behind explicit "
+                        "configuration boundaries."
+                    ),
+                    "priority": "high"
+                    if security_summary["high_severity"]
+                    else "medium",
+                }
+            )
+
     # If no issues, provide a positive recommendation
     if not recs:
         recs.append(
@@ -785,3 +867,57 @@ def _generate_recommendations(report: ReportData) -> list[dict]:
         )
 
     return recs[:7]
+
+
+def _generate_security_summary(report: ReportData) -> dict:
+    if not report.hardwiring:
+        return {
+            "total_findings": 0,
+            "hardcoded_network": 0,
+            "env_outside_config": 0,
+            "high_severity": 0,
+            "ai_confirmed": 0,
+            "top_findings": [],
+        }
+
+    findings = [
+        *report.hardwiring.hardcoded_network,
+        *report.hardwiring.env_outside_config,
+    ]
+    severity_rank = {"high": 0, "medium": 1, "low": 2}
+    sorted_findings = sorted(
+        findings,
+        key=lambda finding: (
+            severity_rank.get(finding.severity, 3),
+            finding.file_path,
+            finding.line,
+        ),
+    )
+
+    ai_confirmed = 0
+    if report.review:
+        ai_confirmed = sum(
+            1
+            for verdict in report.review.verdicts
+            if verdict.verdict == "true_positive"
+            and verdict.category in {"hardcoded_ip_url", "env_outside_config"}
+        )
+
+    return {
+        "total_findings": len(findings),
+        "hardcoded_network": len(report.hardwiring.hardcoded_network),
+        "env_outside_config": len(report.hardwiring.env_outside_config),
+        "high_severity": sum(1 for finding in findings if finding.severity == "high"),
+        "ai_confirmed": ai_confirmed,
+        "top_findings": [
+            {
+                "file": finding.file_path,
+                "line": finding.line,
+                "category": finding.category,
+                "value": finding.value,
+                "severity": finding.severity,
+                "confidence": finding.confidence,
+            }
+            for finding in sorted_findings[:10]
+        ],
+    }
