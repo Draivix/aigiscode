@@ -1243,6 +1243,227 @@ def _should_collect_ruby_constant_dependency(node: Node, target_name: str) -> bo
     return target_name not in {"ENV"}
 
 
+# --- Rust Symbol Extraction ---
+
+
+def extract_rust_symbols(
+    root_node: Node,
+) -> tuple[list[SymbolInfo], list[DependencyInfo]]:
+    """Extract symbols and dependencies from a Rust parse tree."""
+    symbols: list[SymbolInfo] = []
+    dependencies: list[DependencyInfo] = []
+
+    def walk(node: Node, current_owner: str | None = None) -> None:
+        if node.type == "use_declaration":
+            for target_name in _expand_rust_use_paths(_text(node)[4:].rstrip(";").strip()):
+                dependencies.append(
+                    DependencyInfo(
+                        target_name=target_name,
+                        type=DependencyType.IMPORT,
+                        line=node.start_point[0] + 1,
+                    )
+                )
+            return
+
+        if node.type == "mod_item":
+            name_node = _find_child(node, "identifier")
+            if name_node is not None:
+                symbols.append(
+                    SymbolInfo(
+                        type=SymbolType.MODULE,
+                        name=_text(name_node),
+                        visibility=_get_visibility(node),
+                        line_start=node.start_point[0] + 1,
+                        line_end=node.end_point[0] + 1,
+                    )
+                )
+            return
+
+        if node.type == "struct_item":
+            name_node = _find_child(node, "type_identifier")
+            if name_node is None:
+                return
+            struct_name = _text(name_node)
+            symbols.append(
+                SymbolInfo(
+                    type=SymbolType.CLASS,
+                    name=struct_name,
+                    visibility=_get_visibility(node),
+                    line_start=node.start_point[0] + 1,
+                    line_end=node.end_point[0] + 1,
+                )
+            )
+            fields = _find_child(node, "field_declaration_list")
+            if fields is not None:
+                for field in _find_children(fields, "field_declaration"):
+                    field_name = _find_child(field, "field_identifier")
+                    if field_name is None:
+                        continue
+                    symbols.append(
+                        SymbolInfo(
+                            type=SymbolType.PROPERTY,
+                            name=_text(field_name),
+                            namespace=struct_name,
+                            visibility=Visibility.PUBLIC,
+                            line_start=field.start_point[0] + 1,
+                            line_end=field.end_point[0] + 1,
+                        )
+                    )
+            return
+
+        if node.type == "enum_item":
+            name_node = _find_child(node, "type_identifier")
+            if name_node is not None:
+                symbols.append(
+                    SymbolInfo(
+                        type=SymbolType.ENUM,
+                        name=_text(name_node),
+                        visibility=_get_visibility(node),
+                        line_start=node.start_point[0] + 1,
+                        line_end=node.end_point[0] + 1,
+                    )
+                )
+            return
+
+        if node.type == "trait_item":
+            name_node = _find_child(node, "type_identifier")
+            if name_node is None:
+                return
+            trait_name = _text(name_node)
+            symbols.append(
+                SymbolInfo(
+                    type=SymbolType.INTERFACE,
+                    name=trait_name,
+                    visibility=_get_visibility(node),
+                    line_start=node.start_point[0] + 1,
+                    line_end=node.end_point[0] + 1,
+                )
+            )
+            for child in node.children:
+                walk(child, current_owner=trait_name)
+            return
+
+        if node.type == "impl_item":
+            target_name = None
+            identifiers = [
+                _text(child)
+                for child in node.children
+                if child.type == "type_identifier"
+            ]
+            has_for = any(child.type == "for" for child in node.children)
+            if has_for and len(identifiers) >= 2:
+                dependencies.append(
+                    DependencyInfo(
+                        target_name=identifiers[0],
+                        type=DependencyType.IMPLEMENT,
+                        line=node.start_point[0] + 1,
+                    )
+                )
+                target_name = identifiers[1]
+            elif identifiers:
+                target_name = identifiers[0]
+            for child in node.children:
+                walk(child, current_owner=target_name)
+            return
+
+        if node.type in {"function_item", "function_signature_item"}:
+            name_node = _find_child(node, "identifier")
+            if name_node is None:
+                return
+            metadata = _extract_rust_function_metadata(node)
+            symbol_type = SymbolType.METHOD if current_owner else SymbolType.FUNCTION
+            symbols.append(
+                SymbolInfo(
+                    type=symbol_type,
+                    name=_text(name_node),
+                    namespace=current_owner or None,
+                    visibility=_get_visibility(node),
+                    line_start=node.start_point[0] + 1,
+                    line_end=node.end_point[0] + 1,
+                    metadata=metadata,
+                )
+            )
+            return
+
+        for child in node.children:
+            walk(child, current_owner=current_owner)
+
+    walk(root_node)
+    dependencies = _dedupe_dependencies(dependencies)
+    logger.debug(
+        "Rust extraction: %d symbols, %d dependencies",
+        len(symbols),
+        len(dependencies),
+    )
+    return symbols, dependencies
+
+
+def _extract_rust_function_metadata(node: Node) -> dict[str, object]:
+    metadata: dict[str, object] = {}
+    params_node = _find_child(node, "parameters")
+    if params_node is None:
+        return metadata
+
+    params: list[str] = []
+    for child in params_node.children:
+        if child.type in {"self_parameter", "parameter", "identifier"}:
+            text = _text(child).strip()
+            if text:
+                params.append(text)
+    if params:
+        metadata["params"] = params
+    return metadata
+
+
+def _expand_rust_use_paths(path: str) -> list[str]:
+    path = path.strip()
+    if not path:
+        return []
+    path = re.sub(r"\s+as\s+[A-Za-z_][A-Za-z0-9_]*$", "", path)
+    if "{" not in path:
+        return [path.replace(" ", "")]
+
+    brace_start = path.find("{")
+    brace_end = path.rfind("}")
+    if brace_start == -1 or brace_end == -1 or brace_end < brace_start:
+        return [path.replace(" ", "")]
+
+    prefix = path[:brace_start].rstrip(":")
+    inner = path[brace_start + 1 : brace_end]
+    expanded: list[str] = []
+    for item in _split_rust_use_items(inner):
+        item = item.strip()
+        if not item:
+            continue
+        if item == "self":
+            expanded.append(prefix)
+            continue
+        candidate = item
+        if prefix and not item.startswith(("crate::", "self::", "super::")):
+            candidate = f"{prefix}::{item}"
+        expanded.extend(_expand_rust_use_paths(candidate))
+    return [item for item in expanded if item]
+
+
+def _split_rust_use_items(value: str) -> list[str]:
+    items: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for char in value:
+        if char == ',' and depth == 0:
+            items.append("".join(current).strip())
+            current = []
+            continue
+        if char == '{':
+            depth += 1
+        elif char == '}':
+            depth -= 1
+        current.append(char)
+    if current:
+        items.append("".join(current).strip())
+    return items
+
+
 # --- TypeScript/JavaScript Symbol Extraction ---
 
 
@@ -1462,8 +1683,8 @@ def extract_vue_symbols(
 
             symbols.extend(ts_symbols)
             dependencies.extend(ts_deps)
-        except Exception:
-            pass  # If TS parsing fails, we still have the Vue structure
+        except Exception as exc:
+            logger.debug("Falling back to Vue-only symbol extraction: %s", exc)
 
     return symbols, dependencies
 

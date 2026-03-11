@@ -1,7 +1,7 @@
 """Source parser and indexer.
 
 Handles file discovery, language detection, parsing, and orchestrates
-symbol extraction for PHP, Python, Ruby, TypeScript, JavaScript, and Vue files.
+symbol extraction for PHP, Python, Ruby, Rust, TypeScript, JavaScript, and Vue files.
 """
 
 from __future__ import annotations
@@ -35,11 +35,21 @@ from aigiscode.indexer.symbols import (
     extract_php_symbols,
     extract_python_symbols,
     extract_ruby_symbols,
+    extract_rust_symbols,
     extract_ts_symbols,
     extract_vue_symbols,
 )
 
 logger = logging.getLogger(__name__)
+
+FILES_INDEXED_KEY = "files_indexed"
+FILES_SKIPPED_KEY = "files_skipped"
+FILES_PRUNED_KEY = "files_pruned"
+SYMBOLS_EXTRACTED_KEY = "symbols_extracted"
+DEPENDENCIES_FOUND_KEY = "dependencies_found"
+UNSUPPORTED_SOURCE_FILES_KEY = "unsupported_source_files"
+UNSUPPORTED_LANGUAGE_BREAKDOWN_KEY = "unsupported_language_breakdown"
+ERRORS_KEY = "errors"
 
 
 # Map file extensions to languages
@@ -47,6 +57,7 @@ EXTENSION_MAP: dict[str, Language] = {
     ".php": Language.PHP,
     ".py": Language.PYTHON,
     ".rb": Language.RUBY,
+    ".rs": Language.RUST,
     ".ts": Language.TYPESCRIPT,
     ".tsx": Language.TYPESCRIPT,
     ".js": Language.JAVASCRIPT,
@@ -59,6 +70,7 @@ GRAMMAR_MAP: dict[Language, str] = {
     Language.PHP: "php",
     Language.PYTHON: "python",
     Language.RUBY: "ruby",
+    Language.RUST: "rust",
     Language.TYPESCRIPT: "typescript",
     Language.JAVASCRIPT: "javascript",
     Language.VUE: "html",  # Vue SFCs are parsed as HTML first
@@ -68,7 +80,6 @@ UNSUPPORTED_SOURCE_EXTENSION_MAP: dict[str, str] = {
     ".go": "go",
     ".java": "java",
     ".kt": "kotlin",
-    ".rs": "rust",
     ".cs": "csharp",
 }
 
@@ -99,6 +110,19 @@ def discover_project_files(
             path_excludes.append(exc)
         else:
             simple_excludes.add(exc)
+
+    # When output_dir lives inside the target repo, avoid indexing generated artifacts.
+    try:
+        relative_output_dir = config.effective_output_dir.relative_to(config.project_path)
+    except ValueError:
+        relative_output_dir = None
+    if relative_output_dir is not None:
+        output_path = str(relative_output_dir)
+        if output_path and output_path != ".":
+            if "/" in output_path:
+                path_excludes.append(output_path)
+            else:
+                simple_excludes.add(output_path)
 
     logger.debug("Exclusions: simple=%s, path=%s", simple_excludes, path_excludes)
 
@@ -214,6 +238,8 @@ def parse_file(
         return symbols, dependencies
     elif language == Language.RUBY:
         return extract_ruby_symbols(root)
+    elif language == Language.RUST:
+        return extract_rust_symbols(root)
     elif language in (Language.TYPESCRIPT, Language.JAVASCRIPT):
         return extract_ts_symbols(root)
     elif language == Language.VUE:
@@ -354,12 +380,12 @@ def index_project(config: AigisCodeConfig, store: IndexStore) -> dict:
     )
 
     return {
-        "files_indexed": total_files,
-        "files_skipped": skipped,
-        "files_pruned": pruned,
-        "symbols_extracted": total_symbols,
-        "dependencies_found": total_dependencies,
-        "unsupported_source_files": sum(unsupported.values()),
-        "unsupported_language_breakdown": unsupported,
-        "errors": errors,
+        FILES_INDEXED_KEY: total_files,
+        FILES_SKIPPED_KEY: skipped,
+        FILES_PRUNED_KEY: pruned,
+        SYMBOLS_EXTRACTED_KEY: total_symbols,
+        DEPENDENCIES_FOUND_KEY: total_dependencies,
+        UNSUPPORTED_SOURCE_FILES_KEY: sum(unsupported.values()),
+        UNSUPPORTED_LANGUAGE_BREAKDOWN_KEY: unsupported,
+        ERRORS_KEY: errors,
     }

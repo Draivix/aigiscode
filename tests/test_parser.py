@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from aigiscode.indexer.parser import discover_unsupported_source_files, parse_file
+from aigiscode.indexer.parser import (
+    discover_files,
+    discover_unsupported_source_files,
+    parse_file,
+)
 from aigiscode.models import AigisCodeConfig, DependencyType, Language
 
 
-def test_discover_unsupported_source_files_excludes_supported_python(
+def test_discover_unsupported_source_files_excludes_supported_languages(
     tmp_path: Path,
 ) -> None:
     project_root = tmp_path / "project"
     project_root.mkdir()
     (project_root / "app.py").write_text("print('hi')\n", encoding="utf-8")
+    (project_root / "main.rs").write_text("fn main() {}\n", encoding="utf-8")
     (project_root / "nested").mkdir()
     (project_root / "nested" / "script.ts").write_text(
         "export const x = 1;\n", encoding="utf-8"
@@ -27,6 +32,22 @@ def test_discover_unsupported_source_files_excludes_supported_python(
     )
 
     assert breakdown == {"go": 1}
+
+
+def test_discover_files_excludes_custom_output_dir_inside_project(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    (project_root / "app.py").write_text("print('hi')\n", encoding="utf-8")
+    (project_root / "main.rs").write_text("fn main() {}\n", encoding="utf-8")
+    output_dir = project_root / "reports" / "aigiscode"
+    output_dir.mkdir(parents=True)
+    (output_dir / "generated.py").write_text("print('ignore')\n", encoding="utf-8")
+
+    files = discover_files(
+        AigisCodeConfig(project_path=project_root, output_dir=output_dir)
+    )
+
+    assert [path.name for path in files] == ["app.py", "main.rs"]
 
 
 def test_parse_file_extracts_python_symbols_and_dependencies(tmp_path: Path) -> None:
@@ -189,6 +210,44 @@ def test_parse_file_extracts_ruby_symbols_and_dependencies(tmp_path: Path) -> No
         dep.type == DependencyType.IMPORT and dep.target_name == "Spina::MediaFolder"
         for dep in dependencies
     )
+
+
+def test_parse_file_extracts_rust_symbols_and_dependencies(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    file_path = project_root / "src" / "lib.rs"
+    file_path.parent.mkdir(parents=True)
+    file_path.write_text(
+        "use crate::http::{Client, Server};\n"
+        "mod inner;\n"
+        "pub struct Service { cache: Cache }\n"
+        "enum Kind { A, B }\n"
+        "trait Runner { fn run(&self); }\n"
+        "impl Runner for Service {}\n"
+        "impl Service { pub fn run(&self) {} }\n"
+        "fn helper() { let _ = Client::new(); }\n",
+        encoding="utf-8",
+    )
+
+    symbols, dependencies = parse_file(
+        file_path,
+        Language.RUST,
+        project_root=project_root,
+    )
+
+    assert {symbol.name for symbol in symbols} >= {
+        "inner",
+        "Service",
+        "cache",
+        "Kind",
+        "Runner",
+        "run",
+        "helper",
+    }
+    assert any(symbol.name == "cache" and symbol.namespace == "Service" for symbol in symbols)
+    assert any(symbol.name == "run" and symbol.namespace == "Service" for symbol in symbols)
+    assert any(dep.target_name == "crate::http::Client" for dep in dependencies)
+    assert any(dep.target_name == "crate::http::Server" for dep in dependencies)
+    assert any(dep.type == DependencyType.IMPLEMENT and dep.target_name == "Runner" for dep in dependencies)
 
 
 def test_parse_file_extracts_ts_private_hash_members(tmp_path: Path) -> None:
