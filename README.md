@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://pypi.org/project/aigiscode/"><img src="https://img.shields.io/pypi/v/aigiscode?color=blue&label=PyPI" alt="PyPI version" /></a>
   <a href="https://pypi.org/project/aigiscode/"><img src="https://img.shields.io/pypi/pyversions/aigiscode" alt="Python 3.12+" /></a>
-  <a href="https://github.com/david-strejc/aigiscode/actions"><img src="https://img.shields.io/github/actions/workflow/status/david-strejc/aigiscode/ci.yml?label=CI" alt="CI status" /></a>
+  <a href="https://github.com/Draivix/aigiscode/actions"><img src="https://img.shields.io/github/actions/workflow/status/Draivix/aigiscode/ci.yml?label=CI" alt="CI status" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License" /></a>
 </p>
 
@@ -42,10 +42,21 @@ AigisCode indexes your source, builds a dependency graph, runs detectors,
 applies policy rules, optionally asks an AI backend to review the results,
 and generates both human-readable Markdown and machine-readable JSON reports.
 
+On Python, AigisCode does not use the TypeScript Codex SDK directly. The local
+runtime uses either an authenticated `codex` CLI session or the OpenAI
+Responses API, depending on configured backend order.
+
 The machine-readable report is at:
 
 ```
 .aigiscode/aigiscode-report.json
+```
+
+Each run also writes a resumable agent handoff artifact at:
+
+```
+.aigiscode/aigiscode-handoff.json
+.aigiscode/aigiscode-handoff.md
 ```
 
 Each run also writes timestamped archives under:
@@ -118,6 +129,28 @@ AigisCode runs a six-stage pipeline:
 
 **6. Report** --- Generates a structured JSON report and a human-readable Markdown summary. Includes a contract inventory (routes, hooks, env keys, config keys) and full metric breakdowns.
 
+When external analyzers are enabled, imported `domain=security` findings also flow through a dedicated AI security review step during `analyze`. That review emits verdicts under `security_review`, can generate durable exclusion rules, and is folded into the same feedback-loop accounting.
+
+The report also exposes a first-class **self-healing feedback loop** summary:
+- actionable visible findings that still need work
+- accepted / suppressed findings already encoded in rules or policy
+- informational findings that should not page humans like real defects
+- imported external findings that must converge into the same triage lifecycle
+- AI review counts and whether the next run should be quieter because new rules were learned
+
+Every run also writes a backend-neutral **agent handoff artifact** alongside the full report:
+- `aigiscode-handoff.json` for the next agent/tool session
+- `aigiscode-handoff.md` for human-readable resume context
+- archived copies under `.aigiscode/reports/<run-id>/`
+- structured priorities, accepted noise, needs-context items, verification commands, and coverage warnings
+
+Imported external findings follow the same high-level contract:
+- raw scanner artifacts are preserved under `.aigiscode/reports/<run-id>/raw/`
+- AigisCode normalizes them into `external_analysis`
+- saved rules can pre-filter repeated false positives before any review happens
+- `analyze` can AI-review imported security findings as the final triage step
+- `report` stays fast and deterministic: it re-runs normalization and rules, but does not perform a fresh AI review
+
 ## Supported Languages
 
 | Language | Index | Dead Code Detection | Hardwiring Detection | Parser |
@@ -128,6 +161,7 @@ AigisCode runs a six-stage pipeline:
 | JavaScript | yes | yes | yes | tree-sitter |
 | Vue | yes | yes | yes | tree-sitter |
 | Ruby | yes | -- | yes | tree-sitter |
+| Rust | yes | -- | -- | tree-sitter |
 
 Detector coverage is reported explicitly. When a language is indexed but a
 detector does not yet support it, the report flags partial coverage instead of
@@ -151,6 +185,7 @@ Key flags:
 --analytical-mode             Ask AI to propose a policy patch
 --reset                       Full re-index (ignore incremental cache)
 --output-dir <path>          Store the DB, rules, policies, and reports outside `.aigiscode/`
+--external-tool <name>       Run external analyzers (`ruff`, `gitleaks`, `pip-audit`, `osv-scanner`, `phpstan`, `composer-audit`, `npm-audit`, `cargo-deny`, `cargo-clippy`, `all`)
 -P <plugin>                   Select a built-in plugin profile
 --plugin-module <path.py>     Load an external Python plugin module
 --policy-file <path.json>     Override policy from a JSON file
@@ -170,6 +205,37 @@ It contains structured data for every finding category, metric, and contract
 inventory --- ready for downstream planning, triage, and automated remediation
 without parsing prose.
 
+Important lifecycle field:
+- `feedback_loop`
+  - `detected_total`
+  - `accepted_by_policy`
+  - `actionable_visible`
+  - `informational_visible`
+  - `external_visible`
+  - `ai_reviewed`
+  - `rules_generated`
+  - `next_run_should_improve`
+
+Important resume field:
+- `agent_handoff`
+  - `summary`
+  - `priorities`
+  - `accepted_noise`
+  - `needs_context`
+  - `next_steps`
+  - `verification_commands`
+  - `coverage_warnings`
+
+Important imported-security fields:
+- `external_analysis.tool_runs`
+  - execution status, artifact paths, and per-tool summaries
+- `external_analysis.findings`
+  - normalized findings with tool/rule provenance and stable fingerprints
+- `security_review`
+  - AI triage results for imported security findings during `analyze`
+- `review.verdicts`
+  - AI verdicts for native dead-code and hardwiring findings
+
 ### Recommended Agent Workflow
 
 1. Run `aigiscode analyze /repo` --- generate baseline report
@@ -188,6 +254,9 @@ without parsing prose.
 | `dead_code` | Unused imports, methods, properties, classes |
 | `hardwiring` | Magic strings, repeated literals, hardcoded network |
 | `security` | Security-focused summary of hardcoded network/env findings |
+| `external_analysis` | Imported findings and archived raw artifacts from external analyzers |
+| `security_review` | AI verdicts for imported external security findings reviewed during `analyze` |
+| `feedback_loop` | Self-healing lifecycle summary across rules, informational policy, external findings, and AI review |
 | `extensions.contract_inventory` | Routes, hooks, env keys, config keys |
 
 See [docs/AI_AGENT_USAGE.md](docs/AI_AGENT_USAGE.md) for the full agent
@@ -212,6 +281,9 @@ into the analyzer, express it through a JSON policy file:
   "hardwiring": {
     "repeated_literal_min_occurrences": 4,
     "skip_path_patterns": ["app/Console/*"],
+    "informational_path_patterns": ["website/src/pages/**"],
+    "informational_value_regexes": ["^https://aigiscode\\.com"],
+    "informational_context_regexes": ["canonical|og:url|schema"],
     "js_env_allow_names": ["DEV", "PROD", "MODE"]
   },
   "ai": {
@@ -219,6 +291,10 @@ into the analyzer, express it through a JSON policy file:
   }
 }
 ```
+
+Use informational hardwiring policy when a value is legitimate repository context that should remain visible but should not count as actionable debt. Use saved rules when the finding is a durable false-positive pattern that should disappear on the next run.
+
+External analyzers follow the same product direction: raw artifacts are archived, normalized findings land in `external_analysis`, and imported findings should converge into the same rules / AI-review / feedback-loop lifecycle instead of remaining a permanent side channel.
 
 Policy is merged in layers: built-in defaults, selected plugins, auto-detected
 plugins, external plugin modules, project file (`.aigiscode/policy.json`),
@@ -279,6 +355,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full design document.
 
 - Python 3.12+
 - Optional: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` for AI-assisted review
+- Optional: authenticated `codex` CLI session (`~/.codex/auth.json`) for ChatGPT-authenticated Codex usage without relying on the Python API path
 
 Core dependencies: tree-sitter, NetworkX, Pydantic, Typer, Rich.
 

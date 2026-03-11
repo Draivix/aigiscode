@@ -17,9 +17,17 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from aigiscode.ai.backends import has_any_backend
+from aigiscode.ai.backends import describe_backend_order, has_any_backend
 from aigiscode import __version__
-from aigiscode.models import AigisCodeConfig, ReportData
+from aigiscode.models import AigisCodeConfig, ReportData, ReviewResult
+from aigiscode.orchestration import (
+    build_report_data,
+    combine_runtime_plugins,
+    collect_external_analysis_for_report,
+    resolve_runtime_environment,
+    run_deterministic_analysis,
+    selected_external_tools,
+)
 
 app = typer.Typer(
     name="aigiscode",
@@ -28,27 +36,10 @@ app = typer.Typer(
 )
 console = Console()
 
-
-def _collect_detector_coverage(
-    language_breakdown: dict[str, int],
-) -> dict[str, list[str]]:
-    from aigiscode.graph.deadcode import SUPPORTED_DEAD_CODE_LANGUAGES
-    from aigiscode.graph.hardwiring import SUPPORTED_HARDWIRING_LANGUAGES
-
-    indexed_languages = {
-        language for language, count in language_breakdown.items() if count > 0
-    }
-    coverage: dict[str, list[str]] = {}
-
-    dead_code_missing = sorted(indexed_languages - set(SUPPORTED_DEAD_CODE_LANGUAGES))
-    if dead_code_missing:
-        coverage["dead_code"] = dead_code_missing
-
-    hardwiring_missing = sorted(indexed_languages - set(SUPPORTED_HARDWIRING_LANGUAGES))
-    if hardwiring_missing:
-        coverage["hardwiring"] = hardwiring_missing
-
-    return coverage
+SYMBOLS_EXTRACTED_KEY = "symbols_extracted"
+DEPENDENCIES_FOUND_KEY = "dependencies_found"
+UNSUPPORTED_SOURCE_FILES_KEY = "unsupported_source_files"
+UNSUPPORTED_LANGUAGE_BREAKDOWN_KEY = "unsupported_language_breakdown"
 
 
 def _format_detector_coverage(
@@ -61,6 +52,18 @@ def _format_detector_coverage(
         for detector, languages in sorted(detector_coverage.items())
         if languages
     )
+
+
+def _accumulate_prefiltered(
+    review_result: ReviewResult | None,
+    excluded: int,
+) -> ReviewResult | None:
+    if excluded <= 0:
+        return review_result
+    if review_result is None:
+        return ReviewResult(rules_prefiltered=excluded)
+    review_result.rules_prefiltered += excluded
+    return review_result
 
 
 def _describe_project_type(
@@ -107,22 +110,6 @@ def _describe_project_type(
     if language_labels:
         return f"{language_labels[0]} project"
     return f"Project at {project_path.name}"
-
-
-def _combine_runtime_plugins(
-    selected_plugins: list[str], external_plugins: list
-) -> list:
-    from aigiscode.builtin_runtime_plugins import load_builtin_runtime_plugins
-
-    combined = [*load_builtin_runtime_plugins(selected_plugins), *external_plugins]
-    deduped = []
-    seen: set[str] = set()
-    for plugin in combined:
-        if plugin.ref in seen:
-            continue
-        seen.add(plugin.ref)
-        deduped.append(plugin)
-    return deduped
 
 
 def _normalize_confidence_option(value: str | None, option_name: str) -> str | None:
@@ -350,8 +337,8 @@ def index(
         table.add_row("Files skipped (unchanged)", str(result["files_skipped"]))
     if result.get("files_pruned", 0) > 0:
         table.add_row("Files pruned (stale)", str(result["files_pruned"]))
-    table.add_row("Symbols extracted", str(result["symbols_extracted"]))
-    table.add_row("Dependencies found", str(result["dependencies_found"]))
+    table.add_row("Symbols extracted", str(result[SYMBOLS_EXTRACTED_KEY]))
+    table.add_row("Dependencies found", str(result[DEPENDENCIES_FOUND_KEY]))
     console.print(table)
 
     # Language breakdown
@@ -435,6 +422,19 @@ def analyze(
     max_workers: int = typer.Option(
         4, "--workers", "-w", help="Max parallel AI workers"
     ),
+    external_tools: list[str] = typer.Option(
+        None,
+        "--external-tool",
+        help=(
+            "Run external analyzer (repeatable): "
+            "ruff, gitleaks, pip-audit, osv-scanner, phpstan, composer-audit, npm-audit, cargo-deny, cargo-clippy, all"
+        ),
+    ),
+    run_ruff_security: bool = typer.Option(
+        False,
+        "--run-ruff-security",
+        help="Run Ruff S-rule security checks and archive raw JSON artifacts",
+    ),
     reset: bool = typer.Option(
         False, "--reset", "-r", help="Reset index before analysis"
     ),
@@ -466,35 +466,15 @@ def analyze(
         analytical_mode=analytical_mode,
         plugin_modules=plugin_modules or [],
     )
-
     _print_header(f"Analyzing: {path}")
 
     if config.is_laravel:
         console.print("[dim]Detected: Laravel project[/dim]")
 
-    from aigiscode.extensions import (
-        apply_dead_code_result_plugins,
-        apply_graph_result_plugins,
-        apply_hardwiring_result_plugins,
-        build_report_extensions,
-        load_external_plugins,
-    )
     from aigiscode.filters import filter_dead_code_result, filter_hardwiring_result
-    from aigiscode.policy.plugins import resolve_policy
-
-    external_plugins = load_external_plugins(config.plugin_modules)
-
-    policy = resolve_policy(
-        path,
-        plugin_names=config.plugins,
-        policy_file=config.policy_file,
-        plugin_modules=config.plugin_modules,
-        external_plugins=external_plugins,
-    )
-    runtime_plugins = _combine_runtime_plugins(
-        policy.plugins_applied,
-        external_plugins,
-    )
+    runtime_env = resolve_runtime_environment(config)
+    policy = runtime_env.policy
+    runtime_plugins = runtime_env.runtime_plugins
     console.print(f"[dim]Policy plugins: {', '.join(policy.plugins_applied)}[/dim]")
     if runtime_plugins:
         console.print(
@@ -524,16 +504,16 @@ def analyze(
         f"{index_result['symbols_extracted']} symbols, "
         f"{index_result['dependencies_found']} dependencies{pruned_msg}"
     )
-    if index_result.get("unsupported_source_files", 0):
+    if index_result.get(UNSUPPORTED_SOURCE_FILES_KEY, 0):
         breakdown = ", ".join(
             f"{lang}={count}"
             for lang, count in index_result.get(
-                "unsupported_language_breakdown", {}
+                UNSUPPORTED_LANGUAGE_BREAKDOWN_KEY, {}
             ).items()
         )
         console.print(
             "  [yellow]Coverage warning:[/yellow] "
-            f"{index_result['unsupported_source_files']} unsupported source files skipped"
+            f"{index_result[UNSUPPORTED_SOURCE_FILES_KEY]} unsupported source files skipped"
             + (f" ({breakdown})" if breakdown else "")
         )
 
@@ -544,21 +524,25 @@ def analyze(
         store.close()
         raise typer.Exit(0)
 
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    generated_at = datetime.strptime(run_timestamp, "%Y%m%d_%H%M%S")
+    from aigiscode.report.generator import allocate_archive_stem
+
+    run_id = allocate_archive_stem(config.effective_output_dir, run_timestamp)
+
+    deterministic = run_deterministic_analysis(
+        config=config,
+        store=store,
+        policy=policy,
+        runtime_plugins=runtime_plugins,
+    )
+    graph = deterministic.graph
+    graph_result = deterministic.graph_result
+    dead_code_result = deterministic.dead_code_result
+    hardwiring_result = deterministic.hardwiring_result
+
     # --- Phase 2: Graph Analysis ---
     console.print("\n[bold blue]Phase 2: Graph Analysis[/bold blue]")
-    from aigiscode.graph.builder import build_file_graph
-    from aigiscode.graph.analyzer import analyze_graph
-
-    graph = build_file_graph(store, policy=policy.graph)
-    graph_result = analyze_graph(graph, store, policy=policy.graph)
-    graph_result = apply_graph_result_plugins(
-        graph_result,
-        runtime_plugins,
-        graph=graph,
-        store=store,
-        project_path=path,
-        policy=policy,
-    )
 
     console.print(
         f"  Graph: {graph_result.node_count} nodes, {graph_result.edge_count} edges"
@@ -581,30 +565,6 @@ def analyze(
 
     # --- Phase 2b: Dead Code & Hardwiring Analysis ---
     console.print("\n[bold blue]Phase 2b: Dead Code & Hardwiring Analysis[/bold blue]")
-    from aigiscode.graph.deadcode import analyze_dead_code
-    from aigiscode.graph.hardwiring import analyze_hardwiring
-
-    dead_code_result = analyze_dead_code(store, policy=policy.dead_code)
-    hardwiring_result = analyze_hardwiring(
-        store,
-        policy=policy.hardwiring,
-        external_plugins=runtime_plugins,
-        project_path=path,
-    )
-    dead_code_result = apply_dead_code_result_plugins(
-        dead_code_result,
-        runtime_plugins,
-        store=store,
-        project_path=path,
-        policy=policy,
-    )
-    hardwiring_result = apply_hardwiring_result_plugins(
-        hardwiring_result,
-        runtime_plugins,
-        store=store,
-        project_path=path,
-        policy=policy,
-    )
 
     dc = dead_code_result
     console.print(
@@ -624,7 +584,6 @@ def analyze(
     # --- Phase 2c: Rule Filtering + AI Finding Review ---
     review_result = None
     rules_path = config.effective_output_dir / "rules.json"
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     phase_suffix = " [yellow](AI review skipped)[/yellow]" if config.skip_review else ""
     console.print(
         f"\n[bold blue]Phase 2c: Rule Filtering + AI Finding Review[/bold blue]{phase_suffix}"
@@ -686,16 +645,14 @@ def analyze(
     )
 
     if config.skip_review:
-        if excluded:
-            from aigiscode.models import ReviewResult
-
-            review_result = ReviewResult(rules_prefiltered=excluded)
+        review_result = _accumulate_prefiltered(review_result, excluded)
     elif remaining > 0 and has_any_backend(
+        primary_backend=policy.ai.primary_backend,
         allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback,
         allow_claude_fallback=policy.ai.allow_claude_fallback,
     ):
         console.print(
-            f"  Reviewing {remaining} findings with OpenAI Responses API/Codex CLI + fallbacks..."
+            f"  Reviewing {remaining} findings with {describe_backend_order(primary_backend=policy.ai.primary_backend, allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback, allow_claude_fallback=policy.ai.allow_claude_fallback)}..."
         )
 
         from aigiscode.review.ai_reviewer import review_findings
@@ -713,6 +670,7 @@ def analyze(
                 ),
                 store=store,
                 review_model=policy.ai.review_model,
+                primary_backend=policy.ai.primary_backend,
                 allow_claude_fallback=policy.ai.allow_claude_fallback,
             )
         )
@@ -721,6 +679,8 @@ def analyze(
         if new_rules:
             added = append_rules(rules_path, new_rules)
             console.print(f"  Generated {added} new exclusion rules → {rules_path}")
+            if added:
+                existing_rules = load_rules(rules_path)
 
         console.print(
             f"  Verdicts: {review_result.true_positives} true positives, "
@@ -742,11 +702,12 @@ def analyze(
         )
 
         if has_any_backend(
+            primary_backend=policy.ai.primary_backend,
             allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback,
             allow_claude_fallback=False,
         ):
             console.print(
-                f"  Backend order: OpenAI Responses API -> Codex CLI ({policy.ai.codex_model})"
+                f"  Backend order: {describe_backend_order(primary_backend=policy.ai.primary_backend, allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback, allow_claude_fallback=False)} ({policy.ai.codex_model})"
             )
 
             from aigiscode.workers.codex import process_files
@@ -757,6 +718,7 @@ def analyze(
                     config.project_path,
                     config.max_workers,
                     model=policy.ai.codex_model,
+                    primary_backend=policy.ai.primary_backend,
                 )
             )
             console.print(f"  Generated {envelopes_count} semantic envelopes")
@@ -775,6 +737,7 @@ def analyze(
         console.print("\n[bold blue]Phase 4: AI Synthesis[/bold blue]")
 
         if has_any_backend(
+            primary_backend=policy.ai.primary_backend,
             allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback,
             allow_claude_fallback=policy.ai.allow_claude_fallback,
         ):
@@ -786,6 +749,7 @@ def analyze(
                     graph_result,
                     envelopes_by_layer,
                     model=policy.ai.synthesis_model,
+                    primary_backend=policy.ai.primary_backend,
                     allow_claude_fallback=policy.ai.allow_claude_fallback,
                 )
             )
@@ -804,46 +768,108 @@ def analyze(
 
     # --- Phase 5: Report Generation ---
     console.print("\n[bold blue]Phase 5: Report Generation[/bold blue]")
-
-    # Use total DB counts (not just newly-indexed) for accurate reporting
-    language_breakdown = store.get_language_breakdown()
-    detector_coverage = _collect_detector_coverage(language_breakdown)
-
-    report_data = ReportData(
-        project_path=str(path),
-        generated_at=datetime.now(),
-        files_indexed=store.get_file_count(),
-        symbols_extracted=store.get_symbol_count(),
-        dependencies_found=store.get_dependency_count(),
-        unsupported_source_files=index_result.get("unsupported_source_files", 0),
-        unsupported_language_breakdown=index_result.get(
-            "unsupported_language_breakdown", {}
-        ),
-        detector_coverage=detector_coverage,
-        graph_analysis=graph_result,
-        envelopes_generated=envelopes_count,
-        synthesis=synthesis_text,
-        language_breakdown=language_breakdown,
-        dead_code=dead_code_result,
-        hardwiring=hardwiring_result,
-        review=review_result,
+    external_analysis = None
+    security_review_result = None
+    chosen_external_tools = selected_external_tools(
+        external_tools,
+        run_ruff_security=run_ruff_security,
     )
-    from aigiscode.report.contracts import build_contract_inventory
+    if chosen_external_tools:
+        console.print("  Running external analyzers...")
+        external_analysis, external_excluded = collect_external_analysis_for_report(
+            project_path=path,
+            output_dir=config.effective_output_dir,
+            run_id=run_id,
+            selected_tools=chosen_external_tools,
+            existing_rules=existing_rules,
+            ctx=ctx,
+        )
+        if external_excluded:
+            console.print(
+                f"  Pre-filtered {external_excluded} external findings using {len(existing_rules)} saved rules"
+            )
+            review_result = _accumulate_prefiltered(
+                review_result,
+                external_excluded,
+            )
+        console.print(
+            f"  External findings: {len(external_analysis.findings)} from {len(external_analysis.tool_runs)} tool(s)"
+        )
+        security_findings = [
+            finding
+            for finding in external_analysis.findings
+            if finding.domain == "security"
+        ]
+        if config.skip_review:
+            pass
+        elif security_findings and has_any_backend(
+            primary_backend=policy.ai.primary_backend,
+            allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback,
+            allow_claude_fallback=policy.ai.allow_claude_fallback,
+        ):
+            console.print(
+                f"  Reviewing {len(security_findings)} external security findings with {describe_backend_order(primary_backend=policy.ai.primary_backend, allow_codex_cli_fallback=policy.ai.allow_codex_cli_fallback, allow_claude_fallback=policy.ai.allow_claude_fallback)}..."
+            )
+            from aigiscode.review.security_reviewer import (
+                review_external_security_findings,
+            )
+
+            security_review_result, security_rules = asyncio.run(
+                review_external_security_findings(
+                    external_analysis,
+                    project_path=path,
+                    project_type=_describe_project_type(
+                        project_path=path,
+                        store=store,
+                        selected_plugins=policy.plugins_applied,
+                        is_laravel=config.is_laravel,
+                    ),
+                    review_model=policy.ai.review_model,
+                    primary_backend=policy.ai.primary_backend,
+                    allow_claude_fallback=policy.ai.allow_claude_fallback,
+                )
+            )
+            if security_rules:
+                added = append_rules(rules_path, security_rules)
+                console.print(
+                    f"  Generated {added} security exclusion rules → {rules_path}"
+                )
+                if added:
+                    existing_rules = load_rules(rules_path)
+            console.print(
+                f"  Security verdicts: {security_review_result.actionable} actionable, "
+                f"{security_review_result.accepted_noise} accepted noise, "
+                f"{security_review_result.needs_context} needs context"
+            )
+        elif security_findings:
+            console.print(
+                "  [yellow]Skipped external security review:[/yellow] No OpenAI API key, Codex CLI session, or Claude fallback available"
+            )
+
+    report_data = build_report_data(
+        store=store,
+        project_path=path,
+        generated_at=generated_at,
+        graph=graph,
+        graph_result=graph_result,
+        dead_code_result=dead_code_result,
+        hardwiring_result=hardwiring_result,
+        review_result=review_result,
+        security_review_result=security_review_result,
+        external_analysis=external_analysis,
+        runtime_plugins=runtime_plugins,
+        policy=policy,
+        unsupported_breakdown=deterministic.unsupported_breakdown,
+        synthesis_text=synthesis_text,
+        envelopes_generated=envelopes_count,
+    )
     from aigiscode.report.generator import write_reports
 
-    report_data.extensions = {
-        "contract_inventory": build_contract_inventory(store),
-        **build_report_extensions(
-            runtime_plugins,
-            report=report_data,
-            graph=graph,
-            store=store,
-            project_path=path,
-            policy=policy,
-        ),
-    }
-
-    md_path, json_path = write_reports(report_data, config.effective_output_dir)
+    md_path, json_path = write_reports(
+        report_data,
+        config.effective_output_dir,
+        archive_stem=run_id,
+    )
 
     # Store metrics (run_id was set in Phase 2c)
     store.insert_metric(run_id, "files_indexed", index_result["files_indexed"])
@@ -870,6 +896,12 @@ def analyze(
 
     console.print(f"  Markdown: {md_path}")
     console.print(f"  JSON: {json_path}")
+    console.print(
+        f"  Handoff: {config.effective_output_dir / 'aigiscode-handoff.md'}"
+    )
+    console.print(
+        f"  Handoff JSON: {config.effective_output_dir / 'aigiscode-handoff.json'}"
+    )
 
     if config.analytical_mode:
         from aigiscode.policy.analytical import propose_policy_patch, save_policy_patch
@@ -939,6 +971,19 @@ def report(
         "--min-hardwiring-confidence",
         help="Filter hardwiring findings below this confidence: low|medium|high",
     ),
+    external_tools: list[str] = typer.Option(
+        None,
+        "--external-tool",
+        help=(
+            "Run external analyzer (repeatable): "
+            "ruff, gitleaks, pip-audit, osv-scanner, phpstan, composer-audit, npm-audit, cargo-deny, cargo-clippy, all"
+        ),
+    ),
+    run_ruff_security: bool = typer.Option(
+        False,
+        "--run-ruff-security",
+        help="Run Ruff S-rule security checks and archive raw JSON artifacts",
+    ),
     verbose: bool = typer.Option(False, "--verbose", "-V", help="Enable debug logging"),
 ) -> None:
     """Generate a report from existing index data.
@@ -955,8 +1000,13 @@ def report(
         min_hardwiring_confidence,
         "--min-hardwiring-confidence",
     )
-    config = AigisCodeConfig(project_path=path, output_dir=output_dir)
-
+    config = AigisCodeConfig(
+        project_path=path,
+        output_dir=output_dir,
+        plugins=plugins or [],
+        policy_file=policy_file,
+        plugin_modules=plugin_modules or [],
+    )
     _print_header(f"Generating report for: {path}")
 
     if not config.db_path.exists():
@@ -965,33 +1015,17 @@ def report(
         )
         raise typer.Exit(1)
 
-    from aigiscode.extensions import (
-        apply_dead_code_result_plugins,
-        apply_graph_result_plugins,
-        apply_hardwiring_result_plugins,
-        build_report_extensions,
-        load_external_plugins,
-    )
-    from aigiscode.filters import filter_dead_code_result, filter_hardwiring_result
-    from aigiscode.indexer.parser import discover_unsupported_source_files
-    from aigiscode.indexer.store import IndexStore
-    from aigiscode.policy.plugins import resolve_policy
-    from aigiscode.graph.builder import build_file_graph
-    from aigiscode.graph.analyzer import analyze_graph
-    from aigiscode.report.generator import write_reports
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    generated_at = datetime.strptime(run_timestamp, "%Y%m%d_%H%M%S")
+    from aigiscode.report.generator import allocate_archive_stem, write_reports
 
-    external_plugins = load_external_plugins(plugin_modules or [])
-    policy = resolve_policy(
-        path,
-        plugin_names=plugins or [],
-        policy_file=policy_file,
-        plugin_modules=plugin_modules or [],
-        external_plugins=external_plugins,
-    )
-    runtime_plugins = _combine_runtime_plugins(
-        policy.plugins_applied,
-        external_plugins,
-    )
+    run_id = allocate_archive_stem(config.effective_output_dir, run_timestamp)
+
+    from aigiscode.filters import filter_dead_code_result, filter_hardwiring_result
+    from aigiscode.indexer.store import IndexStore
+    runtime_env = resolve_runtime_environment(config)
+    policy = runtime_env.policy
+    runtime_plugins = runtime_env.runtime_plugins
     console.print(f"[dim]Policy plugins: {', '.join(policy.plugins_applied)}[/dim]")
     if runtime_plugins:
         console.print(
@@ -1000,49 +1034,24 @@ def report(
 
     store = IndexStore(config.db_path)
     store.initialize()
-    unsupported_breakdown = discover_unsupported_source_files(config)
-
-    # Run graph analysis on existing data
-    graph = build_file_graph(store, policy=policy.graph)
-    graph_result = analyze_graph(graph, store, policy=policy.graph)
-    graph_result = apply_graph_result_plugins(
-        graph_result,
-        runtime_plugins,
-        graph=graph,
+    deterministic = run_deterministic_analysis(
+        config=config,
         store=store,
-        project_path=path,
         policy=policy,
+        runtime_plugins=runtime_plugins,
     )
-
-    # Run dead code & hardwiring analysis
-    from aigiscode.graph.deadcode import analyze_dead_code
-    from aigiscode.graph.hardwiring import analyze_hardwiring
-
-    dead_code_result = analyze_dead_code(store, policy=policy.dead_code)
-    hardwiring_result = analyze_hardwiring(
-        store,
-        policy=policy.hardwiring,
-        external_plugins=runtime_plugins,
-        project_path=path,
-    )
-    dead_code_result = apply_dead_code_result_plugins(
-        dead_code_result,
-        runtime_plugins,
-        store=store,
-        project_path=path,
-        policy=policy,
-    )
-    hardwiring_result = apply_hardwiring_result_plugins(
-        hardwiring_result,
-        runtime_plugins,
-        store=store,
-        project_path=path,
-        policy=policy,
-    )
+    graph = deterministic.graph
+    graph_result = deterministic.graph_result
+    dead_code_result = deterministic.dead_code_result
+    hardwiring_result = deterministic.hardwiring_result
 
     # Apply saved exclusion rules (pre-filter only, no AI review in report mode)
     from aigiscode.rules.checks import StructuralContext
-    from aigiscode.rules.engine import load_rules, filter_findings, ensure_seed_rules
+    from aigiscode.rules.engine import (
+        ensure_seed_rules,
+        filter_findings,
+        load_rules,
+    )
 
     rules_path = config.effective_output_dir / "rules.json"
     ensure_seed_rules(rules_path)
@@ -1062,9 +1071,7 @@ def report(
             console.print(
                 f"  Pre-filtered {excluded} findings using {len(existing_rules)} saved rules"
             )
-            from aigiscode.models import ReviewResult
-
-            review_result = ReviewResult(rules_prefiltered=excluded)
+            review_result = _accumulate_prefiltered(review_result, excluded)
 
     if dead_code_categories or min_dead_code_confidence:
         dead_code_result = filter_dead_code_result(
@@ -1079,45 +1086,66 @@ def report(
             categories=set(hardwiring_categories or []),
         )
 
-    language_breakdown = store.get_language_breakdown()
-    detector_coverage = _collect_detector_coverage(language_breakdown)
-
-    report_data = ReportData(
-        project_path=str(path),
-        generated_at=datetime.now(),
-        files_indexed=store.get_file_count(),
-        symbols_extracted=store.get_symbol_count(),
-        dependencies_found=store.get_dependency_count(),
-        unsupported_source_files=sum(unsupported_breakdown.values()),
-        unsupported_language_breakdown=unsupported_breakdown,
-        detector_coverage=detector_coverage,
-        graph_analysis=graph_result,
-        envelopes_generated=store.get_envelope_count(),
-        synthesis="",
-        language_breakdown=language_breakdown,
-        dead_code=dead_code_result,
-        hardwiring=hardwiring_result,
-        review=review_result,
+    external_analysis = None
+    security_review_result = None
+    chosen_external_tools = selected_external_tools(
+        external_tools,
+        run_ruff_security=run_ruff_security,
     )
-    from aigiscode.report.contracts import build_contract_inventory
-
-    report_data.extensions = {
-        "contract_inventory": build_contract_inventory(store),
-        **build_report_extensions(
-            runtime_plugins,
-            report=report_data,
-            graph=graph,
-            store=store,
+    if chosen_external_tools:
+        console.print("  Running external analyzers...")
+        external_analysis, external_excluded = collect_external_analysis_for_report(
             project_path=path,
-            policy=policy,
-        ),
-    }
+            output_dir=config.effective_output_dir,
+            run_id=run_id,
+            selected_tools=chosen_external_tools,
+            existing_rules=existing_rules,
+            ctx=ctx,
+        )
+        if external_excluded:
+            console.print(
+                f"  Pre-filtered {external_excluded} external findings using {len(existing_rules)} saved rules"
+            )
+            review_result = _accumulate_prefiltered(
+                review_result,
+                external_excluded,
+            )
+        console.print(
+            f"  External findings: {len(external_analysis.findings)} from {len(external_analysis.tool_runs)} tool(s)"
+        )
 
-    md_path, json_path = write_reports(report_data, config.effective_output_dir)
+    report_data = build_report_data(
+        store=store,
+        project_path=path,
+        generated_at=generated_at,
+        graph=graph,
+        graph_result=graph_result,
+        dead_code_result=dead_code_result,
+        hardwiring_result=hardwiring_result,
+        review_result=review_result,
+        security_review_result=security_review_result,
+        external_analysis=external_analysis,
+        runtime_plugins=runtime_plugins,
+        policy=policy,
+        unsupported_breakdown=deterministic.unsupported_breakdown,
+        synthesis_text="",
+    )
+
+    md_path, json_path = write_reports(
+        report_data,
+        config.effective_output_dir,
+        archive_stem=run_id,
+    )
     store.close()
 
     console.print(f"  Markdown: {md_path}")
     console.print(f"  JSON: {json_path}")
+    console.print(
+        f"  Handoff: {config.effective_output_dir / 'aigiscode-handoff.md'}"
+    )
+    console.print(
+        f"  Handoff JSON: {config.effective_output_dir / 'aigiscode-handoff.json'}"
+    )
 
     console.print()
     _print_final_summary(report_data)
@@ -1194,7 +1222,7 @@ def tune(
             plugin_modules=plugin_modules or [],
             external_plugins=external_plugins,
         )
-        runtime_plugins = _combine_runtime_plugins(
+        runtime_plugins = combine_runtime_plugins(
             policy.plugins_applied,
             external_plugins,
         )
@@ -1234,7 +1262,7 @@ def tune(
             plugin_modules=plugin_modules or [],
             external_plugins=external_plugins,
         )
-        candidate_runtime_plugins = _combine_runtime_plugins(
+        candidate_runtime_plugins = combine_runtime_plugins(
             candidate_policy.plugins_applied,
             external_plugins,
         )
@@ -1438,5 +1466,12 @@ def _print_final_summary(report: ReportData) -> None:
             parts.append(f"{r.false_positives} false positives")
         if parts:
             summary_lines.append(f"AI Review: {', '.join(parts)}")
+    if report.feedback_loop.detected_total:
+        summary_lines.append(
+            "Feedback Loop: "
+            f"{report.feedback_loop.actionable_visible} actionable visible, "
+            f"{report.feedback_loop.accepted_by_policy} accepted by policy, "
+            f"{report.feedback_loop.rules_generated} new rules"
+        )
 
     console.print(Panel("\n".join(summary_lines), title="Analysis Complete"))
