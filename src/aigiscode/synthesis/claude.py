@@ -173,6 +173,7 @@ async def synthesize(
     graph_result: GraphAnalysisResult,
     envelopes_by_layer: dict[str, list[dict]],
     model: str = "gpt-5.3-codex",
+    primary_backend: str = "codex",
     allow_claude_fallback: bool = True,
 ) -> str:
     """Run synthesis to generate an architectural assessment.
@@ -185,6 +186,8 @@ async def synthesize(
         system=SYNTHESIS_SYSTEM_PROMPT,
         user=user_prompt,
         model=model,
+        # Kept for API compatibility with CLI policy wiring.
+        # Current generate_text() backend ordering is controlled by fallback flags.
         allow_codex_cli_fallback=True,
         allow_claude_fallback=allow_claude_fallback,
         reasoning_effort="medium",
