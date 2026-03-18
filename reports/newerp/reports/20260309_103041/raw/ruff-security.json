@@ -1,0 +1,4133 @@
+[
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 57,
+      "row": 44
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/auth/google_auth.py",
+    "fix": null,
+    "location": {
+      "column": 20,
+      "row": 44
+    },
+    "message": "Possible hardcoded password assigned to: \"GOOGLE_TOKEN_URL\"",
+    "noqa_row": 44,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 71,
+      "row": 34
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/auth/meta_auth.py",
+    "fix": null,
+    "location": {
+      "column": 18,
+      "row": 34
+    },
+    "message": "Possible hardcoded password assigned to: \"META_TOKEN_URL\"",
+    "noqa_row": 34,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 169
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/ad_groups.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 150
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 169,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 185
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/ads.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 161
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 185,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 82
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/asset_groups.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 70
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 82,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 158
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/asset_groups.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 145
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 158,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 195
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/asset_groups.py",
+    "fix": null,
+    "location": {
+      "column": 24,
+      "row": 183
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 195,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 669
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/asset_groups.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 663
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 669,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 195
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/campaigns.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 173
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 195,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 184
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/keywords.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 158
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 184,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 182
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/reporting.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 166
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 182,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 291
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/reporting.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 271
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 291,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 391
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/reporting.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 373
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 391,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 488
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/reporting.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 472
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 488,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 12,
+      "row": 579
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/google/reporting.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 569
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 579,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 65,
+      "row": 398
+    },
+    "filename": "/home/david/Work/Programming/newerp/docker/agent/mcp/adsmcp/src/unified_ads_mcp/meta/adsets.py",
+    "fix": null,
+    "location": {
+      "column": 28,
+      "row": 398
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 398,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 11,
+      "row": 2
+    },
+    "filename": "/home/david/Work/Programming/newerp/tests_fast/test_smoke.py",
+    "fix": null,
+    "location": {
+      "column": 5,
+      "row": 2
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 2,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S110",
+    "end_location": {
+      "column": 21,
+      "row": 477
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_4user_call.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 476
+    },
+    "message": "`try`-`except`-`pass` detected, consider logging the exception",
+    "noqa_row": 476,
+    "url": "https://docs.astral.sh/ruff/rules/try-except-pass"
+  },
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 43,
+      "row": 18
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_calls_backend.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 18
+    },
+    "message": "Possible hardcoded password assigned to: \"USER1_TOKEN\"",
+    "noqa_row": 18,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 43,
+      "row": 19
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_calls_backend.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 19
+    },
+    "message": "Possible hardcoded password assigned to: \"USER2_TOKEN\"",
+    "noqa_row": 19,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S113",
+    "end_location": {
+      "column": 28,
+      "row": 38
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_calls_backend.py",
+    "fix": null,
+    "location": {
+      "column": 16,
+      "row": 38
+    },
+    "message": "Probable use of `requests` call without timeout",
+    "noqa_row": 38,
+    "url": "https://docs.astral.sh/ruff/rules/request-without-timeout"
+  },
+  {
+    "cell": null,
+    "code": "S113",
+    "end_location": {
+      "column": 29,
+      "row": 40
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_calls_backend.py",
+    "fix": null,
+    "location": {
+      "column": 16,
+      "row": 40
+    },
+    "message": "Probable use of `requests` call without timeout",
+    "noqa_row": 40,
+    "url": "https://docs.astral.sh/ruff/rules/request-without-timeout"
+  },
+  {
+    "cell": null,
+    "code": "S113",
+    "end_location": {
+      "column": 24,
+      "row": 218
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_calls_backend.py",
+    "fix": null,
+    "location": {
+      "column": 12,
+      "row": 218
+    },
+    "message": "Probable use of `requests` call without timeout",
+    "noqa_row": 218,
+    "url": "https://docs.astral.sh/ruff/rules/request-without-timeout"
+  },
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 43,
+      "row": 46
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_webrtc_full.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 46
+    },
+    "message": "Possible hardcoded password assigned to: \"USER1_TOKEN\"",
+    "noqa_row": 46,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 43,
+      "row": 47
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_webrtc_full.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 47
+    },
+    "message": "Possible hardcoded password assigned to: \"USER2_TOKEN\"",
+    "noqa_row": 47,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S105",
+    "end_location": {
+      "column": 43,
+      "row": 15
+    },
+    "filename": "/home/david/Work/Programming/newerp/tmp/mattermost-plugin-calls/test_ws_call.py",
+    "fix": null,
+    "location": {
+      "column": 15,
+      "row": 15
+    },
+    "message": "Possible hardcoded password assigned to: \"USER1_TOKEN\"",
+    "noqa_row": 15,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-password-string"
+  },
+  {
+    "cell": null,
+    "code": "S104",
+    "end_location": {
+      "column": 59,
+      "row": 15
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/_archive/server-satellite-v1/config.py",
+    "fix": null,
+    "location": {
+      "column": 50,
+      "row": 15
+    },
+    "message": "Possible binding to all interfaces",
+    "noqa_row": 15,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-bind-all-interfaces"
+  },
+  {
+    "cell": null,
+    "code": "S603",
+    "end_location": {
+      "column": 36,
+      "row": 44
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/_archive/server-satellite-v1/domain_manager.py",
+    "fix": null,
+    "location": {
+      "column": 22,
+      "row": 44
+    },
+    "message": "`subprocess` call: check for execution of untrusted input",
+    "noqa_row": 44,
+    "url": "https://docs.astral.sh/ruff/rules/subprocess-without-shell-equals-true"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 106,
+      "row": 572
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/satellite/builtins/sync_domain.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 572
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 572,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 102,
+      "row": 578
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/satellite/builtins/sync_domain.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 578
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 578,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S311",
+    "end_location": {
+      "column": 40,
+      "row": 657
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/satellite/builtins/sync_domain.py",
+    "fix": null,
+    "location": {
+      "column": 20,
+      "row": 657
+    },
+    "message": "Standard pseudo-random generators are not suitable for cryptographic purposes",
+    "noqa_row": 657,
+    "url": "https://docs.astral.sh/ruff/rules/suspicious-non-cryptographic-random-usage"
+  },
+  {
+    "cell": null,
+    "code": "S608",
+    "end_location": {
+      "column": 70,
+      "row": 232
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/satellite/queue.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 232
+    },
+    "message": "Possible SQL injection vector through string-based query construction",
+    "noqa_row": 232,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-sql-expression"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 146
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 146
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 146,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 149
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 149
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 149,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 152
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 152
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 152,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 155
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 155
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 155,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 164
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 164
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 164,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 170
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 170
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 170,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 176
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 176
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 176,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 182
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 182
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 182,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 188
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 188
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 188,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 193
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 193
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 193,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 220
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 220
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 220,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 221
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 221
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 221,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 224
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 224
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 224,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 225
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 225
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 225,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 226
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 226
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 226,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 231
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 231
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 231,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 232
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 232
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 232,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 233
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 233
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 233,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 244
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 244
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 244,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 245
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 245
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 245,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 252
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 252
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 252,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 253
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 253
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 253,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 264
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 264
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 264,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 265
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 265
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 265,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 266
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 266
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 266,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 267
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 267
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 267,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 302
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 302
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 302,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 306
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 306
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 306,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 315
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 315
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 315,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 325
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 325
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 325,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 326
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 326
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 326,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 327
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 327
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 327,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 328
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 328
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 328,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 329
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 329
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 329,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 336
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 336
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 336,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 337
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 337
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 337,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 338
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 338
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 338,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 339
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 339
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 339,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 341
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 341
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 341,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 342
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 342
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 342,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 343
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 343
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 343,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 344
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 344
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 344,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 355
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 355
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 355,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 356
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 356
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 356,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 360
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 360
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 360,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 361
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_executor.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 361
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 361,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 80
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 80
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 80,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 81
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 81
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 81,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 91
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 91
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 91,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 103
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 103
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 103,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 107
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 107
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 107,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 108
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 108
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 108,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S108",
+    "end_location": {
+      "column": 59,
+      "row": 130
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 48,
+      "row": 130
+    },
+    "message": "Probable insecure usage of temporary file or directory: \"/tmp/test\"",
+    "noqa_row": 130,
+    "url": "https://docs.astral.sh/ruff/rules/hardcoded-temp-file"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 135
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 135
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 135,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 142
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 142
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 142,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 164
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 164
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 164,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 225
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 225
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 225,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 287
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 287
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 287,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 288
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_main.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 288
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 288,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 34
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 34
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 34,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 35
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 35
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 35,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 36
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 36
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 36,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 37
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 37
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 37,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 38
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 38
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 38,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 42
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 42
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 42,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 43
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 43
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 43,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 51
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 51
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 51,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 19,
+      "row": 58
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 58
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 58,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 19,
+      "row": 64
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 13,
+      "row": 64
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 64,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 74
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 74
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 74,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 75
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 75
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 75,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 76
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 76
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 76,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 77
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 77
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 77,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 78
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 78
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 78,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 79
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 79
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 79,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 80
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 80
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 80,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 81
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 81
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 81,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 82
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 82
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 82,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 89
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 89
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 89,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 90
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 90
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 90,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 91
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 91
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 91,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 92
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 92
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 92,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 96
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 96
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 96,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 107
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 107
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 107,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 117
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 117
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 117,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 118
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 118
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 118,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 122
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 122
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 122,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 132
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 132
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 132,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 135
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 135
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 135,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 136
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 136
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 136,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 137
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 137
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 137,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 150
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 150
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 150,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 153
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 153
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 153,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 154
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 154
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 154,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 155
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 155
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 155,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 156
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 156
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 156,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 157
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 157
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 157,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 158
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 158
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 158,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 171
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 171
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 171,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 174
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 174
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 174,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 175
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 175
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 175,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 176
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 176
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 176,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 185
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 185
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 185,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 188
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 188
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 188,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 189
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 189
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 189,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 193
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 193
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 193,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 204
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 204
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 204,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 207
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 207
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 207,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 211
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 211
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 211,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 219
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 219
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 219,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 225
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 225
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 225,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 226
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 226
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 226,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 236
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 236
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 236,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 238
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 238
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 238,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 239
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 239
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 239,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 240
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 240
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 240,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 251
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 251
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 251,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 252
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 252
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 252,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 260
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 260
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 260,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 267
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 267
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 267,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 268
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 268
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 268,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 275
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 275
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 275,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 282
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 282
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 282,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 290
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 290
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 290,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 301
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 301
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 301,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 302
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 302
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 302,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 310
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 310
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 310,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 317
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 317
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 317,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 318
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 318
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 318,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 329
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 329
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 329,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 330
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 330
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 330,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 352
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 352
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 352,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 356
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 356
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 356,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 365
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 365
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 365,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 368
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 368
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 368,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 385
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 385
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 385,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 393
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 393
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 393,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 400
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 400
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 400,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 412
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 412
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 412,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 413
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 413
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 413,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 414
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 414
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 414,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 430
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 430
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 430,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 431
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 431
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 431,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 432
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 432
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 432,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 433
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 433
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 433,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 449
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 449
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 449,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 450
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 450
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 450,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 451
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 451
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 451,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 452
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 452
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 452,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 453
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 453
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 453,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 454
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 454
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 454,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 455
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_queue.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 455
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 455,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 142
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 142
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 142,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 155
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 155
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 155,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 167
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 167
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 167,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 178
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 178
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 178,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 193
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 193
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 193,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 202
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 202
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 202,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 221
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 221
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 221,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 224
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 224
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 224,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 225
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 225
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 225,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 226
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 226
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 226,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 238
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 238
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 238,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 263
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 263
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 263,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 265
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 265
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 265,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 298
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 298
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 298,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 318
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 318
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 318,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 319
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 319
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 319,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 322
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 322
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 322,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 323
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 323
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 323,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 324
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 324
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 324,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 341
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 341
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 341,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 344
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 344
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 344,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 345
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 345
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 345,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 377
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 377
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 377,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 395
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 395
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 395,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 417
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 417
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 417,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 420
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 420
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 420,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 421
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 421
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 421,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 422
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 422
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 422,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 423
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 423
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 423,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 439
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 439
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 439,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 455
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 455
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 455,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 456
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 456
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 456,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 457
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 457
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 457,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 474
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 474
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 474,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 475
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 475
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 475,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 507
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 507
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 507,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 510
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 510
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 510,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 543
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 543
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 543,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 544
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 544
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 544,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 561
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 561
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 561,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 562
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 562
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 562,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 579
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 579
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 579,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 580
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 580
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 580,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 581
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 581
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 581,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 599
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 599
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 599,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 608
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 608
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 608,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 636
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 636
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 636,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 646
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 646
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 646,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 681
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 681
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 681,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 697
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 697
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 697,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 714
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 714
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 714,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 715
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 715
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 715,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 733
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 733
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 733,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 750
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 750
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 750,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 762
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 762
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 762,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 775
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 775
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 775,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 790
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 790
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 790,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 794
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 794
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 794,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  },
+  {
+    "cell": null,
+    "code": "S101",
+    "end_location": {
+      "column": 15,
+      "row": 797
+    },
+    "filename": "/home/david/Work/Programming/newerp/tools/satellite/tests/test_websocket_client.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 797
+    },
+    "message": "Use of `assert` detected",
+    "noqa_row": 797,
+    "url": "https://docs.astral.sh/ruff/rules/assert"
+  }
+]

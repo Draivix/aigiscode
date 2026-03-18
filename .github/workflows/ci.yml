@@ -9,26 +9,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12", "3.13"]
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: ${{ matrix.python-version }}
+          toolchain: 1.77.0
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .
-          pip install pytest
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run fmt check
+        run: cargo fmt --check
 
       - name: Run tests
-        run: python -m pytest tests/ -v
+        run: cargo test
+
+      - name: Verify native CLI
+        run: cargo run --quiet --bin aigiscode -- --version
 
   website:
     runs-on: ubuntu-latest

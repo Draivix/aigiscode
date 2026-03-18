@@ -15,7 +15,7 @@ What tests were added or modified?
 
 ## Checklist
 
-- [ ] Tests pass (`python -m pytest tests/ -v`)
-- [ ] Type hints added for new code
+- [ ] Tests pass (`cargo test`)
+- [ ] Rust code is formatted (`cargo fmt --check`)
 - [ ] Documentation updated (if applicable)
 - [ ] Follows existing code patterns

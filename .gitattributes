@@ -1,0 +1,6 @@
+docs/** linguist-documentation
+devreports/** linguist-documentation
+reports/** linguist-documentation
+.plan/** linguist-documentation
+llms.txt linguist-documentation
+website/package-lock.json linguist-generated

@@ -1,21 +1,14 @@
 #!/usr/bin/env bash
 # AigisCode Installer
-# Usage: curl -fsSL https://raw.githubusercontent.com/david-strejc/aigiscode/main/install.sh | bash
-#    or: wget -qO- https://raw.githubusercontent.com/david-strejc/aigiscode/main/install.sh | bash
-#
-# Environment variables:
-#   AIGISCODE_VERSION  - version to install (default: latest)
-#   AIGISCODE_DIR      - installation directory (default: ~/.aigiscode)
-#   NO_COLOR           - disable colored output
+# Usage: curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+#    or: wget -qO- https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
 
 set -euo pipefail
 
 VERSION="${AIGISCODE_VERSION:-0.1.0}"
-INSTALL_DIR="${AIGISCODE_DIR:-$HOME/.aigiscode}"
-REPO="david-strejc/aigiscode"
-MIN_PYTHON="3.12"
+REPO="Draivix/aigiscode"
+BIN_NAME="aigiscode"
 
-# ── Colors ────────────────────────────────────────────────────────────────────
 if [ -z "${NO_COLOR:-}" ] && [ -t 1 ]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
@@ -39,12 +32,11 @@ banner() {
     printf "${PURPLE}${BOLD}"
     printf "    ╔═══════════════════════════════════════╗\n"
     printf "    ║     🛡️  AigisCode Installer  v%s   ║\n" "$VERSION"
-    printf "    ║     AI-Powered Code Guardian          ║\n"
+    printf "    ║     Native Rust CLI                  ║\n"
     printf "    ╚═══════════════════════════════════════╝\n"
     printf "${RESET}\n"
 }
 
-# ── OS / Architecture Detection ───────────────────────────────────────────────
 detect_os() {
     case "$(uname -s)" in
         Linux*)  echo "linux" ;;
@@ -62,103 +54,42 @@ detect_arch() {
     esac
 }
 
-# ── Python Detection ──────────────────────────────────────────────────────────
-find_python() {
-    local candidates=("python3.13" "python3.12" "python3" "python")
-    for cmd in "${candidates[@]}"; do
-        if command -v "$cmd" &>/dev/null; then
-            local ver
-            ver=$("$cmd" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null) || continue
-            local major minor
-            major=$(echo "$ver" | cut -d. -f1)
-            minor=$(echo "$ver" | cut -d. -f2)
-            if [ "$major" -ge 3 ] && [ "$minor" -ge 12 ]; then
-                echo "$cmd"
-                return 0
-            fi
-        fi
-    done
-    return 1
-}
-
-# ── pipx Detection ────────────────────────────────────────────────────────────
-find_pipx() {
-    if command -v pipx &>/dev/null; then
-        echo "pipx"
+find_cargo() {
+    if command -v cargo >/dev/null 2>&1; then
+        echo "cargo"
+        return 0
+    fi
+    if [ -x "$HOME/.cargo/bin/cargo" ]; then
+        echo "$HOME/.cargo/bin/cargo"
         return 0
     fi
     return 1
 }
 
-# ── uv Detection ──────────────────────────────────────────────────────────────
-find_uv() {
-    if command -v uv &>/dev/null; then
-        echo "uv"
-        return 0
-    fi
-    return 1
+install_rustup() {
+    info "Rust toolchain not found. Installing rustup..."
+    command -v curl >/dev/null 2>&1 || die "curl is required to install Rust"
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal || \
+        die "Failed to install rustup"
 }
 
-# ── Installation Methods ──────────────────────────────────────────────────────
-install_with_uv() {
-    info "Installing with uv (fastest)..."
-    uv tool install "aigiscode==$VERSION" 2>/dev/null || \
-    uv tool install "aigiscode>=$VERSION" 2>/dev/null || \
-    uv tool install "git+https://github.com/${REPO}.git@v${VERSION}" 2>/dev/null || \
-    uv tool install "git+https://github.com/${REPO}.git" || \
-    die "Failed to install with uv"
+install_with_cargo() {
+    local cargo_cmd="$1"
+    info "Installing native Rust CLI with cargo..."
+    "$cargo_cmd" install \
+        --git "https://github.com/${REPO}.git" \
+        --locked \
+        aigiscore \
+        --bin "$BIN_NAME" 2>/dev/null || \
+    "$cargo_cmd" install \
+        --git "https://github.com/${REPO}.git" \
+        aigiscore \
+        --bin "$BIN_NAME" || \
+        die "Failed to install ${BIN_NAME} with cargo"
 }
 
-install_with_pipx() {
-    info "Installing with pipx..."
-    pipx install "aigiscode==$VERSION" 2>/dev/null || \
-    pipx install "aigiscode>=$VERSION" 2>/dev/null || \
-    pipx install "git+https://github.com/${REPO}.git@v${VERSION}" 2>/dev/null || \
-    pipx install "git+https://github.com/${REPO}.git" || \
-    die "Failed to install with pipx"
-}
-
-install_with_venv() {
-    local python_cmd="$1"
-
-    info "Installing into isolated venv at ${INSTALL_DIR}..."
-    mkdir -p "$INSTALL_DIR"
-
-    # Create virtual environment
-    "$python_cmd" -m venv "$INSTALL_DIR/venv"
-    local pip="$INSTALL_DIR/venv/bin/pip"
-
-    # Upgrade pip silently
-    "$pip" install --upgrade pip --quiet 2>/dev/null
-
-    # Install aigiscode
-    "$pip" install "aigiscode==$VERSION" --quiet 2>/dev/null || \
-    "$pip" install "aigiscode>=$VERSION" --quiet 2>/dev/null || \
-    "$pip" install "git+https://github.com/${REPO}.git@v${VERSION}" --quiet 2>/dev/null || \
-    "$pip" install "git+https://github.com/${REPO}.git" --quiet || \
-    die "Failed to install aigiscode"
-
-    # Create wrapper script
-    local bin_dir
-    if [ "$(detect_os)" = "windows" ]; then
-        bin_dir="$INSTALL_DIR/venv/Scripts"
-    else
-        bin_dir="$INSTALL_DIR/venv/bin"
-    fi
-
-    # Symlink or add to PATH
-    local target_dir="$HOME/.local/bin"
-    mkdir -p "$target_dir"
-
-    if [ -f "$bin_dir/aigiscode" ]; then
-        ln -sf "$bin_dir/aigiscode" "$target_dir/aigiscode"
-        ok "Linked aigiscode to $target_dir/aigiscode"
-    fi
-}
-
-# ── PATH Setup ────────────────────────────────────────────────────────────────
 ensure_path() {
-    local target_dir="$HOME/.local/bin"
+    local target_dir="$HOME/.cargo/bin"
     if [[ ":$PATH:" != *":$target_dir:"* ]]; then
         warn "$target_dir is not in your PATH"
 
@@ -173,12 +104,12 @@ ensure_path() {
         esac
 
         if [ -n "$rc_file" ]; then
-            local path_line='export PATH="$HOME/.local/bin:$PATH"'
+            local path_line='export PATH="$HOME/.cargo/bin:$PATH"'
             if [ "$shell_name" = "fish" ]; then
-                path_line='set -gx PATH $HOME/.local/bin $PATH'
+                path_line='set -gx PATH $HOME/.cargo/bin $PATH'
             fi
 
-            if [ -f "$rc_file" ] && ! grep -q '.local/bin' "$rc_file" 2>/dev/null; then
+            if [ -f "$rc_file" ] && ! grep -q '.cargo/bin' "$rc_file" 2>/dev/null; then
                 echo "" >> "$rc_file"
                 echo "# Added by AigisCode installer" >> "$rc_file"
                 echo "$path_line" >> "$rc_file"
@@ -189,69 +120,44 @@ ensure_path() {
     fi
 }
 
-# ── Verify Installation ──────────────────────────────────────────────────────
 verify_install() {
-    # Check common locations
     local aigis_cmd=""
-    if command -v aigiscode &>/dev/null; then
-        aigis_cmd="aigiscode"
-    elif [ -f "$HOME/.local/bin/aigiscode" ]; then
-        aigis_cmd="$HOME/.local/bin/aigiscode"
-    elif [ -f "$INSTALL_DIR/venv/bin/aigiscode" ]; then
-        aigis_cmd="$INSTALL_DIR/venv/bin/aigiscode"
+    if command -v "$BIN_NAME" >/dev/null 2>&1; then
+        aigis_cmd="$BIN_NAME"
+    elif [ -x "$HOME/.cargo/bin/$BIN_NAME" ]; then
+        aigis_cmd="$HOME/.cargo/bin/$BIN_NAME"
     fi
 
     if [ -n "$aigis_cmd" ]; then
-        local installed_ver
-        installed_ver=$("$aigis_cmd" --version 2>/dev/null || echo "unknown")
-        ok "AigisCode installed successfully! (${installed_ver})"
+        ok "AigisCode installed successfully! ($("$aigis_cmd" --version 2>/dev/null || echo unknown))"
     else
         ok "AigisCode installed. You may need to restart your terminal."
     fi
 }
 
-# ── Main ──────────────────────────────────────────────────────────────────────
 main() {
     banner
 
-    local os arch
+    local os arch cargo_cmd
     os=$(detect_os)
     arch=$(detect_arch)
     info "Detected: ${os}/${arch}"
 
-    # Find Python 3.12+
-    local python_cmd
-    python_cmd=$(find_python) || die "Python ${MIN_PYTHON}+ is required but not found.
-
-Install Python:
-  macOS:   brew install python@3.12
-  Ubuntu:  sudo apt install python3.12 python3.12-venv
-  Fedora:  sudo dnf install python3.12
-  Windows: https://python.org/downloads/"
-
-    local python_ver
-    python_ver=$("$python_cmd" --version 2>&1)
-    ok "Found ${python_ver}"
-
-    # Try installers in order: uv > pipx > venv
-    local uv_cmd pipx_cmd
-    if uv_cmd=$(find_uv); then
-        ok "Found uv"
-        install_with_uv
-    elif pipx_cmd=$(find_pipx); then
-        ok "Found pipx"
-        install_with_pipx
-    else
-        info "No uv or pipx found, using venv"
-        install_with_venv "$python_cmd"
-        ensure_path
+    if ! cargo_cmd=$(find_cargo); then
+        install_rustup
+        cargo_cmd=$(find_cargo || true)
     fi
+    [ -n "${cargo_cmd:-}" ] || die "Cargo is required but was not found after rustup installation."
 
+    ok "Found $("$cargo_cmd" --version 2>&1)"
+    install_with_cargo "$cargo_cmd"
+    ensure_path
     verify_install
 
     printf "\n"
     printf "${BOLD}Get started:${RESET}\n"
-    printf "  ${GREEN}aigiscode analyze .${RESET}    # Analyze current directory\n"
+    printf "  ${GREEN}aigiscode analyze .${RESET}    # Analyze current directory and write native artifacts\n"
+    printf "  ${GREEN}aigiscode surface .${RESET}    # Generate architecture-surface.json\n"
     printf "  ${GREEN}aigiscode --help${RESET}       # See all commands\n"
     printf "\n"
     printf "  ${BLUE}Docs:${RESET}    https://aigiscode.com/docs\n"

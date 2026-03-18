@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "rules": [
+    {
+      "id": "seed-sp-inherit",
+      "category": "abandoned_class",
+      "checks": [
+        {
+          "type": "inherits",
+          "params": {
+            "ancestor": "ServiceProvider"
+          }
+        }
+      ],
+      "reason": "Laravel ServiceProviders auto-discovered at runtime",
+      "created_by": "seed",
+      "created_at": "2026-03-09T10:30:41",
+      "status": "active",
+      "hit_count": 0,
+      "last_hit_run": "",
+      "miss_streak": 2
+    },
+    {
+      "id": "seed-attr-import",
+      "category": "unused_import",
+      "checks": [
+        {
+          "type": "source_regex",
+          "params": {
+            "pattern": "#\\[{name}[\\s(]"
+          }
+        }
+      ],
+      "reason": "PHP attribute imports consumed via #[ClassName] syntax",
+      "created_by": "seed",
+      "created_at": "2026-03-09T10:30:41",
+      "status": "active",
+      "hit_count": 0,
+      "last_hit_run": "",
+      "miss_streak": 2
+    },
+    {
+      "id": "seed-di-typehint",
+      "category": "abandoned_class",
+      "checks": [
+        {
+          "type": "referenced_as_type_hint",
+          "params": {}
+        }
+      ],
+      "reason": "Class injected via constructor type hints (DI container)",
+      "created_by": "seed",
+      "created_at": "2026-03-09T10:30:41",
+      "status": "active",
+      "hit_count": 0,
+      "last_hit_run": "",
+      "miss_streak": 2
+    }
+  ]
+}

@@ -1,124 +1,54 @@
 # Contributing to AigisCode
 
-Thank you for your interest in contributing to AigisCode! This guide will help you get started.
-
 ## Development Setup
 
-### Prerequisites
+Prerequisites:
 
-- Python 3.12 or higher
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
+- Rust 1.77+
+- Node.js 22+ for the website
 
-### Getting Started
+Get started:
 
 ```bash
-# Fork and clone the repository
-git clone https://github.com/david-strejc/aigiscode.git
+git clone https://github.com/Draivix/aigiscode.git
 cd aigiscode
-
-# Create a virtual environment and install dependencies
-uv venv
-source .venv/bin/activate
-uv sync
-
-# Or with pip
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
+cargo build
 ```
 
-### Verify Your Setup
+Verify your setup:
 
 ```bash
-# Run the CLI
-aigiscode --help
-
-# Run the test suite
-python -m pytest tests/ -v
+cargo test
+cargo run --bin aigiscode -- --version
+cd website && npm ci && npm run build
 ```
 
-## Making Changes
+## Workflow
 
-### Workflow
+1. Create a branch from `main`.
+2. Make the smallest coherent change.
+3. Add or update Rust tests where behavior changed.
+4. Run `cargo fmt` and `cargo test`.
+5. Run `npm run build` in `website/` if you touched the site.
+6. Open a pull request with a clear summary and verification notes.
 
-1. **Fork** the repository on GitHub
-2. **Create a branch** from `main` for your changes:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Make your changes** following the code style guidelines below
-4. **Write or update tests** for your changes
-5. **Run the test suite** to make sure everything passes:
-   ```bash
-   python -m pytest tests/ -v
-   ```
-6. **Commit** with a clear message describing what and why
-7. **Push** your branch and open a Pull Request
+## Style
 
-### Commit Messages
-
-Use clear, descriptive commit messages:
-
-- `feat: add support for Rust analysis`
-- `fix: handle empty files in parser`
-- `docs: update plugin development guide`
-- `refactor: simplify graph traversal logic`
-
-## Code Style Guidelines
-
-### Type Hints
-
-All functions and methods must include type hints. Use modern Python typing syntax:
-
-```python
-def analyze_file(path: Path, depth: int = 3) -> AnalysisResult:
-    ...
-```
-
-### Pydantic Models
-
-Use Pydantic models for data structures and configuration. Follow existing patterns in `src/aigiscode/models/`:
-
-```python
-class PluginConfig(BaseModel):
-    name: str
-    enabled: bool = True
-    options: dict[str, Any] = {}
-```
-
-### General Guidelines
-
-- Follow existing patterns in the codebase
-- Keep functions focused and small
-- Write docstrings for public APIs
-- Prefer composition over inheritance
-- Use `Path` objects instead of string paths
-
-## Plugin Development
-
-AigisCode has an extensible plugin system. If you want to create a new analyzer or reporter, see [docs/PLUGIN_SYSTEM.md](docs/PLUGIN_SYSTEM.md) for the plugin architecture and development guide.
+- Prefer typed Rust models and explicit ownership boundaries.
+- Keep CLI code thin.
+- Keep detectors and graph logic explainable.
+- Do not reintroduce Python tooling or runtime ownership.
 
 ## Reporting Bugs
 
-Use the [Bug Report](https://github.com/david-strejc/aigiscode/issues/new?template=bug_report.md) issue template. Include:
+Use the GitHub bug report template and include:
 
-- Steps to reproduce the issue
-- Expected vs. actual behavior
-- Python version and OS
-- AigisCode version (`aigiscode --version`)
+- `aigiscode --version`
+- `cargo --version`
+- OS and repository language mix
+- Reproduction steps and expected behavior
 
-## Requesting Features
+## Questions
 
-Use the [Feature Request](https://github.com/david-strejc/aigiscode/issues/new?template=feature_request.md) issue template. Describe the problem you are trying to solve and your proposed solution.
-
-## Code of Conduct
-
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
-
-## Questions?
-
-Open a [Discussion](https://github.com/david-strejc/aigiscode/discussions) if you have questions about contributing or the codebase architecture.
-
----
-
-Thank you for helping make AigisCode better!
+Open a GitHub Discussion if you need design context or want to propose a larger
+architecture change.

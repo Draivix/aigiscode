@@ -27,7 +27,7 @@ What actually happened. Include error messages or output.
 ## Environment
 
 - **AigisCode version:** (`aigiscode --version`)
-- **Python version:** (`python --version`)
+- **Rust toolchain:** (`cargo --version`)
 - **OS:** (e.g., Ubuntu 24.04, macOS 15)
 - **Project languages:** (e.g., PHP + TypeScript)
 
