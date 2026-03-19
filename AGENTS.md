@@ -26,6 +26,9 @@
 ```bash
 aigiscode analyze /path/to/project
 aigiscode report /path/to/project
+aigiscode info /path/to/project
+aigiscode plugins
+aigiscode tune /path/to/project
 aigiscode surface /path/to/project
 aigiscode --version
 ```
@@ -36,12 +39,16 @@ aigiscode --version
 - `.aigiscode/semantic-graph.json`
 - `.aigiscode/dependency-graph.json`
 - `.aigiscode/evidence-graph.json`
+- `.aigiscode/contract-inventory.json`
 - `.aigiscode/deterministic-findings.json`
 - `.aigiscode/external-analysis.json`
 - `.aigiscode/architecture-surface.json`
 - `.aigiscode/review-surface.json`
+- `.aigiscode/convergence-history.json`
+- `.aigiscode/guard-decision.json`
 - `.aigiscode/aigiscode-handoff.json`
 - `.aigiscode/aigiscode-report.json`
+- `.aigiscode/aigiscode-report.md`
 
 ## Recommended Agent Workflow
 
@@ -50,9 +57,13 @@ aigiscode --version
 3. Read `.aigiscode/deterministic-findings.json` for raw detector output.
 4. Use `.aigiscode/dependency-graph.json` for low-noise architecture queries.
 5. Use `.aigiscode/evidence-graph.json` for detailed call-site and runtime evidence.
-6. Use `.aigiscode/architecture-surface.json` and `.aigiscode/review-surface.json` for topology and triage.
-7. Use `.aigiscode/aigiscode-handoff.json` when handing the repository to another agent.
-8. Re-run `aigiscode report /repo` after fixes.
+6. Use `.aigiscode/contract-inventory.json` for declared routes, hooks, env/config keys, and symbolic runtime contracts.
+7. Use `.aigiscode/architecture-surface.json` and `.aigiscode/review-surface.json` for topology and triage.
+8. Use `.aigiscode/convergence-history.json` to compare the current run against the previous artifact baseline in the same output directory.
+9. Use `.aigiscode/guard-decision.json` for the current allow/warn/block judgment and required review radius.
+10. Use `.aigiscode/aigiscode-handoff.json` when handing the repository to another agent.
+11. Use `aigiscode tune /repo` when you want a conservative starting patch for `.aigiscode/policy.json`.
+12. Re-run `aigiscode report /repo` after fixes.
 
 ## Project Structure
 

@@ -47,12 +47,17 @@ pub struct ReviewSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReviewFinding {
     pub id: String,
+    pub fingerprint: String,
     pub family: ReviewFindingFamily,
     pub severity: ReviewFindingSeverity,
+    pub precision: String,
+    pub confidence_millis: u16,
     pub title: String,
     pub summary: String,
     pub file_paths: Vec<String>,
     pub line: Option<usize>,
+    pub provenance: Vec<String>,
+    pub doctrine_refs: Vec<String>,
     pub review_status: ReviewStatus,
     pub policy_status: PolicyStatus,
     pub is_visible: bool,
@@ -127,8 +132,11 @@ impl ReviewFinding {
     fn from_surface_finding(finding: &SurfaceFinding, policy_status: PolicyStatus) -> Self {
         Self {
             id: finding.id.clone(),
+            fingerprint: finding.fingerprint.clone(),
             family: ReviewFindingFamily::from_surface_family(finding.family),
             severity: ReviewFindingSeverity::from_surface_severity(finding.severity),
+            precision: finding.precision.clone(),
+            confidence_millis: finding.confidence_millis,
             title: finding.title.clone(),
             summary: finding.summary.clone(),
             file_paths: finding
@@ -137,6 +145,8 @@ impl ReviewFinding {
                 .map(|path| path.display().to_string())
                 .collect(),
             line: finding.line,
+            provenance: finding.provenance.clone(),
+            doctrine_refs: finding.doctrine_refs.clone(),
             review_status: ReviewStatus::Unreviewed,
             policy_status,
             is_visible: policy_status.is_visible(),
@@ -189,6 +199,14 @@ fn suppression_by_id(
         );
     }
 
+    for finding in &analysis.security_analysis.findings {
+        let id = format!("security:native:{}", finding.fingerprint);
+        suppression.insert(
+            id,
+            PolicyStatus::from_suppression(policy_bundle.suppress_security(finding)),
+        );
+    }
+
     for finding in &analysis.external_analysis.findings {
         let id = format!("external:{}:{}", finding.tool, finding.fingerprint);
         suppression.insert(
@@ -215,6 +233,7 @@ pub enum ReviewFindingFamily {
     Graph,
     DeadCode,
     Hardwiring,
+    Security,
     External,
 }
 
@@ -224,6 +243,7 @@ impl ReviewFindingFamily {
             SurfaceFindingFamily::Graph => Self::Graph,
             SurfaceFindingFamily::DeadCode => Self::DeadCode,
             SurfaceFindingFamily::Hardwiring => Self::Hardwiring,
+            SurfaceFindingFamily::Security => Self::Security,
             SurfaceFindingFamily::External => Self::External,
         }
     }
@@ -366,6 +386,36 @@ fn load() {}
             finding.review_status == ReviewStatus::Unreviewed
                 && (finding.policy_status == PolicyStatus::None) == finding.is_visible
         }));
+        assert!(review_surface
+            .findings
+            .iter()
+            .all(|finding| !finding.fingerprint.is_empty()));
+    }
+
+    #[test]
+    fn native_security_findings_follow_policy_suppression() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::write(
+            fixture.join(".aigiscode/policy.json"),
+            br#"{
+  "security": { "allowed_categories": ["unsafe_html_output"] }
+}"#,
+        )
+        .unwrap();
+        fs::write(fixture.join("app.js"), "target.innerHTML = html;\n").unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let review_surface = load_review_surface(&analysis).unwrap();
+
+        let finding = review_surface
+            .findings
+            .iter()
+            .find(|finding| finding.family == super::ReviewFindingFamily::Security)
+            .expect("expected native security finding");
+        assert_eq!(finding.policy_status, PolicyStatus::AcceptedByPolicy);
+        assert!(!finding.is_visible);
+        assert_eq!(finding.review_status, ReviewStatus::Unreviewed);
     }
 
     fn create_fixture() -> PathBuf {

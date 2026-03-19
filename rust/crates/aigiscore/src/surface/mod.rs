@@ -1,9 +1,15 @@
+use crate::assessment::{ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind};
+use crate::contracts::ContractInventory;
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
 use crate::external::{ExternalFinding, ExternalSeverity};
-use crate::graph::analysis::{BottleneckFile, CycleClass, CycleFinding};
+use crate::graph::analysis::{
+    ArchitecturalSmell, ArchitecturalSmellKind, BottleneckFile, CycleClass, CycleFinding,
+};
 use crate::graph::{GraphLayer, Language, ReferenceKind, RelationKind, ResolutionTier};
+use crate::identity::{normalized_path, stable_fingerprint};
 use crate::ingestion::pipeline::{PhaseTiming, ProjectAnalysis};
+use crate::security::{SecurityCategory, SecurityFinding, SecuritySeverity};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -12,6 +18,7 @@ use std::path::{Path, PathBuf};
 pub struct ArchitectureSurface {
     pub root: PathBuf,
     pub overview: SurfaceOverview,
+    pub contract_inventory: ContractInventory,
     pub languages: Vec<LanguageCoverage>,
     pub hotspots: Vec<HotspotFile>,
     pub cycle_findings: Vec<SurfaceCycleFinding>,
@@ -35,9 +42,24 @@ pub struct SurfaceOverview {
     pub runtime_entry_count: usize,
     pub dead_code_count: usize,
     pub hardwiring_count: usize,
+    pub security_finding_count: usize,
     pub external_finding_count: usize,
     pub external_tool_run_count: usize,
     pub override_edge_count: usize,
+    pub architectural_smell_count: usize,
+    pub hub_like_dependency_count: usize,
+    pub unstable_dependency_count: usize,
+    pub warning_heavy_hotspot_count: usize,
+    pub split_identity_model_count: usize,
+    pub compatibility_scar_count: usize,
+    pub duplicate_mechanism_count: usize,
+    pub sanctioned_path_bypass_count: usize,
+    pub route_contract_count: usize,
+    pub hook_contract_count: usize,
+    pub registered_key_count: usize,
+    pub symbolic_literal_count: usize,
+    pub env_key_count: usize,
+    pub config_key_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -61,6 +83,7 @@ pub struct HotspotFile {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SurfaceCycleFinding {
     pub id: String,
+    pub fingerprint: String,
     pub cycle_class: String,
     pub files: Vec<PathBuf>,
     pub layers: Vec<String>,
@@ -73,6 +96,7 @@ pub enum SurfaceFindingFamily {
     Graph,
     DeadCode,
     Hardwiring,
+    Security,
     External,
 }
 
@@ -86,12 +110,17 @@ pub enum SurfaceFindingSeverity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SurfaceFinding {
     pub id: String,
+    pub fingerprint: String,
     pub family: SurfaceFindingFamily,
     pub severity: SurfaceFindingSeverity,
+    pub precision: String,
+    pub confidence_millis: u16,
     pub title: String,
     pub summary: String,
     pub file_paths: Vec<PathBuf>,
     pub line: Option<usize>,
+    pub provenance: Vec<String>,
+    pub doctrine_refs: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -218,10 +247,58 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             runtime_entry_count: analysis.graph_analysis.runtime_entry_candidates.len(),
             dead_code_count: analysis.dead_code.findings.len(),
             hardwiring_count: analysis.hardwiring.findings.len(),
+            security_finding_count: analysis.security_analysis.findings.len(),
             external_finding_count: analysis.external_analysis.findings.len(),
             external_tool_run_count: analysis.external_analysis.tool_runs.len(),
             override_edge_count: analysis.graph_analysis.override_edges,
+            architectural_smell_count: analysis.graph_analysis.architectural_smells.len(),
+            hub_like_dependency_count: analysis
+                .graph_analysis
+                .architectural_smells
+                .iter()
+                .filter(|smell| smell.kind == ArchitecturalSmellKind::HubLikeDependency)
+                .count(),
+            unstable_dependency_count: analysis
+                .graph_analysis
+                .architectural_smells
+                .iter()
+                .filter(|smell| smell.kind == ArchitecturalSmellKind::UnstableDependency)
+                .count(),
+            warning_heavy_hotspot_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::WarningHeavyHotspot),
+            split_identity_model_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::SplitIdentityModel),
+            compatibility_scar_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::CompatibilityScar),
+            duplicate_mechanism_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::DuplicateMechanism),
+            sanctioned_path_bypass_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::SanctionedPathBypass),
+            route_contract_count: analysis.contract_inventory.summary.routes.unique_values,
+            hook_contract_count: analysis.contract_inventory.summary.hooks.unique_values,
+            registered_key_count: analysis
+                .contract_inventory
+                .summary
+                .registered_keys
+                .unique_values,
+            symbolic_literal_count: analysis
+                .contract_inventory
+                .summary
+                .symbolic_literals
+                .unique_values,
+            env_key_count: analysis.contract_inventory.summary.env_keys.unique_values,
+            config_key_count: analysis
+                .contract_inventory
+                .summary
+                .config_keys
+                .unique_values,
         },
+        contract_inventory: analysis.contract_inventory.clone(),
         languages: language_coverage(
             &analysis.scan.files,
             &analysis.semantic_graph.files,
@@ -309,6 +386,9 @@ fn collect_finding_counts(analysis: &ProjectAnalysis) -> HashMap<PathBuf, usize>
     for finding in &analysis.hardwiring.findings {
         *counts.entry(finding.file_path.clone()).or_default() += 1;
     }
+    for finding in &analysis.security_analysis.findings {
+        *counts.entry(finding.file_path.clone()).or_default() += 1;
+    }
     for finding in &analysis.external_analysis.findings {
         if let Some(file_path) = &finding.file_path {
             *counts.entry(file_path.clone()).or_default() += 1;
@@ -363,8 +443,11 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
     {
         highlights.push(SurfaceFinding {
             id: format!("graph:cycle:{index}"),
+            fingerprint: cycle.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
             severity: SurfaceFindingSeverity::High,
+            precision: String::from("modeled"),
+            confidence_millis: 780,
             title: format!(
                 "{} cycle across {} files",
                 cycle_class_label(cycle.cycle_class),
@@ -393,14 +476,19 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
             ),
             file_paths: cycle.files.clone(),
             line: None,
+            provenance: vec![String::from("graph_analysis")],
+            doctrine_refs: vec![String::from("structural.coherence")],
         });
     }
 
     for path in &analysis.graph_analysis.orphan_files {
         highlights.push(SurfaceFinding {
             id: format!("graph:orphan:{}", path.display()),
+            fingerprint: stable_fingerprint(&["graph", "orphan", &normalized_path(path)]),
             family: SurfaceFindingFamily::Graph,
             severity: SurfaceFindingSeverity::Medium,
+            precision: String::from("exact"),
+            confidence_millis: 900,
             title: String::from("Orphan file"),
             summary: format!(
                 "{} has outbound dependencies but no inbound edges",
@@ -408,11 +496,21 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
             ),
             file_paths: vec![path.clone()],
             line: None,
+            provenance: vec![String::from("graph_analysis")],
+            doctrine_refs: vec![String::from("structural.coherence")],
         });
     }
 
     for bottleneck in analysis.graph_analysis.bottleneck_files.iter().take(10) {
         highlights.push(surface_finding_from_bottleneck(bottleneck));
+    }
+
+    for smell in &analysis.graph_analysis.architectural_smells {
+        highlights.push(surface_finding_from_architectural_smell(smell));
+    }
+
+    for finding in &analysis.architectural_assessment.findings {
+        highlights.push(surface_finding_from_architectural_assessment(finding));
     }
 
     for finding in &analysis.dead_code.findings {
@@ -421,6 +519,9 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
 
     for finding in &analysis.hardwiring.findings {
         highlights.push(surface_finding_from_hardwiring(finding));
+    }
+    for finding in &analysis.security_analysis.findings {
+        highlights.push(surface_finding_from_security(finding));
     }
     for finding in &analysis.external_analysis.findings {
         highlights.push(surface_finding_from_external(finding));
@@ -437,9 +538,226 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
     highlights
 }
 
+fn surface_finding_from_architectural_assessment(
+    finding: &ArchitecturalAssessmentFinding,
+) -> SurfaceFinding {
+    match finding.kind {
+        ArchitecturalAssessmentKind::WarningHeavyHotspot => SurfaceFinding {
+            id: format!("architecture:hotspot:{}", finding.file_path.display()),
+            fingerprint: finding.fingerprint.clone(),
+            family: SurfaceFindingFamily::Graph,
+            severity: SurfaceFindingSeverity::High,
+            precision: String::from("modeled"),
+            confidence_millis: finding.severity_millis,
+            title: String::from("Warning-heavy hotspot"),
+            summary: format!(
+                "{} is both architecturally central ({}) and accumulating warnings (count {}, weight {}, families: {})",
+                finding.file_path.display(),
+                finding.bottleneck_centrality_millis,
+                finding.warning_count,
+                finding.warning_weight,
+                finding.warning_families.join(", ")
+            ),
+            file_paths: vec![finding.file_path.clone()],
+            line: None,
+            provenance: vec![
+                String::from("graph_analysis"),
+                String::from("architectural_assessment"),
+            ],
+            doctrine_refs: vec![
+                String::from("structural.coherence"),
+                String::from("guardian.centralized-damage"),
+            ],
+        },
+        ArchitecturalAssessmentKind::SplitIdentityModel => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:split-identity:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::Medium,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Split identity model"),
+                summary: format!(
+                    "{} mixes object-like and scalar identity forms for the same concept (identifiers: {})",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join(", ")
+                ),
+                file_paths,
+                line: None,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("parsed_sources"),
+                ],
+                doctrine_refs: vec![
+                    String::from("pattern.coherence"),
+                    String::from("guardian.single-canonical-representation"),
+                ],
+            }
+        }
+        ArchitecturalAssessmentKind::CompatibilityScar => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:compatibility-scar:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Compatibility scar"),
+                summary: format!(
+                    "{} centralizes translation or compatibility glue for competing representations (identifiers: {})",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join(", ")
+                ),
+                file_paths,
+                line: None,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("parsed_sources"),
+                    String::from("graph_analysis"),
+                ],
+                doctrine_refs: vec![
+                    String::from("pattern.coherence"),
+                    String::from("guardian.single-canonical-representation"),
+                    String::from("guardian.translation-hotspot"),
+                ],
+            }
+        }
+        ArchitecturalAssessmentKind::DuplicateMechanism => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:duplicate-mechanism:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Duplicate mechanism"),
+                summary: format!(
+                    "{} appears to route the same concern through multiple orchestration mechanisms ({})",
+                    finding.file_path.display(),
+                    finding.warning_families.join(", ")
+                ),
+                file_paths,
+                line: None,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("parsed_sources"),
+                    String::from("graph_analysis"),
+                ],
+                doctrine_refs: vec![
+                    String::from("mechanism.coherence"),
+                    String::from("guardian.single-solution-path"),
+                ],
+            }
+        }
+        ArchitecturalAssessmentKind::SanctionedPathBypass => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:sanctioned-path-bypass:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Sanctioned path bypass"),
+                summary: format!(
+                    "{} mixes raw environment access with sanctioned configuration access ({})",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join(", ")
+                ),
+                file_paths,
+                line: None,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("hardwiring_detector"),
+                    String::from("parsed_sources"),
+                ],
+                doctrine_refs: vec![
+                    String::from("configuration.coherence"),
+                    String::from("guardian.sanctioned-paths"),
+                ],
+            }
+        }
+    }
+}
+
+fn surface_finding_from_architectural_smell(smell: &ArchitecturalSmell) -> SurfaceFinding {
+    match smell.kind {
+        ArchitecturalSmellKind::HubLikeDependency => SurfaceFinding {
+            id: format!("graph:smell:hub:{}", smell.subject),
+            fingerprint: smell.fingerprint.clone(),
+            family: SurfaceFindingFamily::Graph,
+            severity: SurfaceFindingSeverity::High,
+            precision: String::from("modeled"),
+            confidence_millis: 820,
+            title: String::from("Hub-like dependency"),
+            summary: format!(
+                "Module `{}` has high incoming and outgoing dependency pressure ({} cross-module links)",
+                smell.subject, smell.evidence_count
+            ),
+            file_paths: Vec::new(),
+            line: None,
+            provenance: vec![String::from("graph_analysis")],
+            doctrine_refs: vec![
+                String::from("structural.coherence"),
+                String::from("guardian.centralized-damage"),
+            ],
+        },
+        ArchitecturalSmellKind::UnstableDependency => SurfaceFinding {
+            id: format!(
+                "graph:smell:unstable:{}:{}",
+                smell.subject,
+                smell.related_components.join("+")
+            ),
+            fingerprint: smell.fingerprint.clone(),
+            family: SurfaceFindingFamily::Graph,
+            severity: SurfaceFindingSeverity::High,
+            precision: String::from("modeled"),
+            confidence_millis: 780,
+            title: String::from("Unstable dependency"),
+            summary: format!(
+                "More stable module `{}` depends on more volatile module(s): {}",
+                smell.subject,
+                smell.related_components.join(", ")
+            ),
+            file_paths: Vec::new(),
+            line: None,
+            provenance: vec![String::from("graph_analysis")],
+            doctrine_refs: vec![
+                String::from("structural.coherence"),
+                String::from("guardian.boundary-stability"),
+            ],
+        },
+    }
+}
+
 fn surface_cycle_finding(index: usize, finding: &CycleFinding) -> SurfaceCycleFinding {
     SurfaceCycleFinding {
         id: format!("graph:cycle:{index}"),
+        fingerprint: finding.fingerprint.clone(),
         cycle_class: cycle_class_label(finding.cycle_class).to_owned(),
         files: finding.files.clone(),
         layers: finding
@@ -494,8 +812,11 @@ fn relation_kind_label(relation: &RelationKind) -> &'static str {
 fn surface_finding_from_bottleneck(bottleneck: &BottleneckFile) -> SurfaceFinding {
     SurfaceFinding {
         id: format!("graph:bottleneck:{}", bottleneck.file_path.display()),
+        fingerprint: bottleneck.fingerprint.clone(),
         family: SurfaceFindingFamily::Graph,
         severity: SurfaceFindingSeverity::Medium,
+        precision: String::from("modeled"),
+        confidence_millis: 760,
         title: String::from("Bottleneck file"),
         summary: format!(
             "{} concentrates dependency flow (centrality {})",
@@ -504,6 +825,11 @@ fn surface_finding_from_bottleneck(bottleneck: &BottleneckFile) -> SurfaceFindin
         ),
         file_paths: vec![bottleneck.file_path.clone()],
         line: None,
+        provenance: vec![String::from("graph_analysis")],
+        doctrine_refs: vec![
+            String::from("structural.coherence"),
+            String::from("guardian.centralized-damage"),
+        ],
     }
 }
 
@@ -515,8 +841,11 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
             finding.line,
             finding.name
         ),
+        fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::DeadCode,
         severity: SurfaceFindingSeverity::Medium,
+        precision: String::from("exact"),
+        confidence_millis: 900,
         title: match finding.category {
             DeadCodeCategory::UnusedPrivateFunction => String::from("Unused private function"),
             DeadCodeCategory::UnusedImport => String::from("Unused import"),
@@ -524,6 +853,11 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         summary: format!("{} appears unused", finding.name),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
+        provenance: vec![
+            String::from("dead_code_detector"),
+            String::from("graph_analysis"),
+        ],
+        doctrine_refs: vec![String::from("maintainability.remove-dead-code")],
     }
 }
 
@@ -535,8 +869,14 @@ fn surface_finding_from_hardwiring(finding: &HardwiringFinding) -> SurfaceFindin
             finding.line,
             finding.value
         ),
+        fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::Hardwiring,
         severity: hardwiring_severity(finding.category),
+        precision: String::from("heuristic"),
+        confidence_millis: match finding.category {
+            HardwiringCategory::HardcodedNetwork | HardwiringCategory::EnvOutsideConfig => 760,
+            HardwiringCategory::MagicString | HardwiringCategory::RepeatedLiteral => 620,
+        },
         title: match finding.category {
             HardwiringCategory::MagicString => String::from("Magic string"),
             HardwiringCategory::RepeatedLiteral => String::from("Repeated literal"),
@@ -548,6 +888,8 @@ fn surface_finding_from_hardwiring(finding: &HardwiringFinding) -> SurfaceFindin
         summary: format!("{} in `{}`", finding.value, finding.context),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
+        provenance: vec![String::from("hardwiring_detector")],
+        doctrine_refs: vec![String::from("configuration.coherence")],
     }
 }
 
@@ -571,12 +913,60 @@ fn surface_finding_from_external(finding: &ExternalFinding) -> SurfaceFinding {
     let title = format!("{} {}", finding.tool, finding.category.replace('_', " "));
     SurfaceFinding {
         id: format!("external:{}:{}", finding.tool, finding.fingerprint),
+        fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::External,
         severity: external_severity(finding.severity),
+        precision: String::from("imported"),
+        confidence_millis: match finding.confidence {
+            crate::external::ExternalConfidence::High => 900,
+            crate::external::ExternalConfidence::Medium => 700,
+            crate::external::ExternalConfidence::Low => 500,
+        },
         title,
         summary: finding.message.clone(),
         file_paths,
         line: finding.line,
+        provenance: vec![
+            String::from("external_tool"),
+            format!("tool:{}", finding.tool),
+        ],
+        doctrine_refs: vec![String::from("security.external-evidence")],
+    }
+}
+
+fn surface_finding_from_security(finding: &SecurityFinding) -> SurfaceFinding {
+    SurfaceFinding {
+        id: format!("security:native:{}", finding.fingerprint),
+        fingerprint: finding.fingerprint.clone(),
+        family: SurfaceFindingFamily::Security,
+        severity: security_severity(finding.severity),
+        precision: String::from("modeled"),
+        confidence_millis: 840,
+        title: match finding.category {
+            SecurityCategory::CommandExecution => String::from("Dangerous command execution API"),
+            SecurityCategory::CodeInjection => String::from("Dangerous code evaluation API"),
+            SecurityCategory::UnsafeDeserialization => String::from("Unsafe deserialization API"),
+            SecurityCategory::UnsafeHtmlOutput => String::from("Unsafe HTML output API"),
+        },
+        summary: finding.message.clone(),
+        file_paths: vec![finding.file_path.clone()],
+        line: Some(finding.line),
+        provenance: vec![
+            String::from("native_security"),
+            String::from("contract_inventory"),
+        ],
+        doctrine_refs: vec![
+            String::from("security.coherence"),
+            String::from("guardian.trust-boundaries"),
+        ],
+    }
+}
+
+fn security_severity(severity: SecuritySeverity) -> SurfaceFindingSeverity {
+    match severity {
+        SecuritySeverity::High => SurfaceFindingSeverity::High,
+        SecuritySeverity::Medium => SurfaceFindingSeverity::Medium,
+        SecuritySeverity::Low => SurfaceFindingSeverity::Low,
     }
 }
 
@@ -670,9 +1060,10 @@ fn severity_rank(severity: SurfaceFindingSeverity) -> u8 {
 fn family_rank(family: SurfaceFindingFamily) -> u8 {
     match family {
         SurfaceFindingFamily::Graph => 0,
-        SurfaceFindingFamily::External => 1,
-        SurfaceFindingFamily::DeadCode => 2,
-        SurfaceFindingFamily::Hardwiring => 3,
+        SurfaceFindingFamily::Security => 1,
+        SurfaceFindingFamily::External => 2,
+        SurfaceFindingFamily::DeadCode => 3,
+        SurfaceFindingFamily::Hardwiring => 4,
     }
 }
 
@@ -782,6 +1173,7 @@ def execute():
 
         assert_eq!(surface.overview.scanned_files, 4);
         assert!(surface.overview.resolved_edges >= 3);
+        assert_eq!(surface.overview.route_contract_count, 0);
         assert!(surface
             .languages
             .iter()
@@ -793,6 +1185,76 @@ def execute():
         assert!(surface.atlas.edges.iter().any(|edge| edge.source_file_path
             == PathBuf::from("src/service.ts")
             && edge.target_file_path == PathBuf::from("src/factory.ts")));
+        assert!(surface
+            .highlights
+            .iter()
+            .all(|finding| !finding.fingerprint.is_empty()));
+    }
+
+    #[test]
+    fn surface_exposes_contract_inventory_summary() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("routes")).unwrap();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("routes/web.php"),
+            br#"<?php Route::get('/users', 'UserController@index'); add_action('init', 'boot');"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/runtime.ts"),
+            br#"type Status = 'draft' | 'published'; const mode = process.env.APP_MODE;"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+
+        assert_eq!(surface.overview.route_contract_count, 1);
+        assert_eq!(surface.overview.hook_contract_count, 1);
+        assert_eq!(surface.overview.env_key_count, 1);
+        assert!(surface
+            .contract_inventory
+            .symbolic_literals
+            .iter()
+            .any(|item| item.value == "draft"));
+    }
+
+    #[test]
+    fn cycle_fingerprints_are_stable_across_surface_views() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/a.ts"),
+            br#"import { runB } from "./b";
+export function runA() { runB(); }
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/b.ts"),
+            br#"import { runA } from "./a";
+export function runB() { runA(); }
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+
+        let cycle = surface
+            .cycle_findings
+            .first()
+            .expect("expected cycle finding");
+        let highlight = surface
+            .highlights
+            .iter()
+            .find(|finding| finding.id == cycle.id)
+            .expect("expected cycle highlight");
+
+        assert_eq!(cycle.fingerprint, highlight.fingerprint);
+        assert!(!cycle.fingerprint.is_empty());
+        assert_ne!(cycle.fingerprint, cycle.id);
     }
 
     fn create_fixture() -> PathBuf {

@@ -342,6 +342,31 @@ The research supports the Zeus Shield direction:
 - classify regressions versus accepted behavior
 - feed results into guard decisions for AI and human workflows
 
+## Architectural Smell Research
+
+The strongest architecture-focused tools and studies do not stop at raw graphs. They consistently elevate a small set of dependency-level smells into first-class findings:
+
+- cyclic dependency
+- hub-like dependency
+- unstable dependency
+- warning-prone architectural hotspots
+
+This matters for AigisCode because the product goal is not "produce a graph" but "protect architectural quality and security". The graph is only the substrate.
+
+Practical implications:
+
+- AigisCode should convert graph structure into explicit architecture-smell findings instead of expecting users or agents to infer them from raw edges.
+- Existing warning families like dead code, hardwiring, and security findings should be correlated with graph-central components to prioritize remediation effort.
+- Dependency governance should become a first-class layer: forbidden dependencies, unstable dependencies, and duplicate mechanisms are better modeled as doctrine violations than as isolated low-level findings.
+- Duplicate mechanisms are a higher-order smell. They usually emerge from multiple contract systems, multiple dependency acquisition paths, or multiple ways to model the same business concept. That suggests a future AigisCode layer that compares capability surfaces and contract registries, not only AST or call edges.
+
+For the current roadmap, the most evidence-backed generic architecture smells to prioritize are:
+
+1. hub-like dependency
+2. unstable dependency
+3. cyclic dependency
+4. warning-heavy hotspots where static-analysis noise and graph centrality co-occur
+
 ## Specific Next Steps
 
 Based on this research, the highest-value next steps are:
@@ -391,3 +416,4 @@ Research papers:
 - Code Graph Model (CGM), 2025: https://arxiv.org/abs/2505.16901
 - RANGER, 2025: https://arxiv.org/abs/2509.25257
 - Team Insight / tracking static analysis violations over time: https://codeql.github.com/publications/tracking-analysis-violations.pdf
+- Architectural smells and warnings correlation study (2025): https://link.springer.com/article/10.1007/s11219-025-09730-7

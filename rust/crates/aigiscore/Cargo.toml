@@ -10,6 +10,7 @@ globset.workspace = true
 petgraph.workspace = true
 regex.workspace = true
 rmcp.workspace = true
+sarif_rust.workspace = true
 schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true

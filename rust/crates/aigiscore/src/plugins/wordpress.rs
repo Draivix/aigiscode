@@ -165,12 +165,23 @@ fn parse_registration(
         let hook_name = captures.name("hook")?.as_str().to_owned();
         let callback = captures.name("callback")?.as_str();
         let target = if let Some((owner, method)) = callback.split_once("::") {
-            methods_by_owner_and_name
-                .get(&(owner.to_owned(), method.to_owned()))
-                .cloned()
+            resolve_method_target(owner, method, methods_by_owner_and_name)
         } else {
             functions_by_name.get(callback).cloned()
         }?;
+        return Some((hook_name, target));
+    }
+
+    if let Some(captures) = registration_array_class_callback_regex()
+        .captures(snippet)
+        .or_else(|| registration_short_array_class_callback_regex().captures(snippet))
+        .or_else(|| registration_array_class_const_callback_regex().captures(snippet))
+        .or_else(|| registration_short_array_class_const_callback_regex().captures(snippet))
+    {
+        let hook_name = captures.name("hook")?.as_str().to_owned();
+        let owner = captures.name("owner")?.as_str();
+        let method = captures.name("method")?.as_str();
+        let target = resolve_method_target(owner, method, methods_by_owner_and_name)?;
         return Some((hook_name, target));
     }
 
@@ -194,6 +205,16 @@ fn parse_registration(
         return Some((hook_name, target));
     }
     None
+}
+
+fn resolve_method_target(
+    owner: &str,
+    method: &str,
+    methods_by_owner_and_name: &HashMap<(String, String), HookCallbackTarget>,
+) -> Option<HookCallbackTarget> {
+    methods_by_owner_and_name
+        .get(&(owner.to_owned(), method.to_owned()))
+        .cloned()
 }
 
 fn parse_dispatch_hook_name(snippet: &str) -> Option<String> {
@@ -299,6 +320,46 @@ fn registration_short_array_this_callback_regex() -> &'static Regex {
     })
 }
 
+fn registration_array_class_callback_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        Regex::new(
+            r"add_(?:action|filter)\s*\(\s*'(?P<hook>[^']+)'\s*,\s*array\s*\(\s*'(?P<owner>[^']+)'\s*,\s*'(?P<method>[^']+)'\s*\)",
+        )
+        .expect("valid wordpress class-array callback regex")
+    })
+}
+
+fn registration_short_array_class_callback_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        Regex::new(
+            r"add_(?:action|filter)\s*\(\s*'(?P<hook>[^']+)'\s*,\s*\[\s*'(?P<owner>[^']+)'\s*,\s*'(?P<method>[^']+)'\s*\]",
+        )
+        .expect("valid wordpress short class-array callback regex")
+    })
+}
+
+fn registration_array_class_const_callback_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        Regex::new(
+            r"add_(?:action|filter)\s*\(\s*'(?P<hook>[^']+)'\s*,\s*array\s*\(\s*(?P<owner>[A-Za-z_][A-Za-z0-9_]*)::class\s*,\s*'(?P<method>[^']+)'\s*\)",
+        )
+        .expect("valid wordpress class-const array callback regex")
+    })
+}
+
+fn registration_short_array_class_const_callback_regex() -> &'static Regex {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+    REGEX.get_or_init(|| {
+        Regex::new(
+            r"add_(?:action|filter)\s*\(\s*'(?P<hook>[^']+)'\s*,\s*\[\s*(?P<owner>[A-Za-z_][A-Za-z0-9_]*)::class\s*,\s*'(?P<method>[^']+)'\s*\]",
+        )
+        .expect("valid wordpress short class-const callback regex")
+    })
+}
+
 fn dispatch_hook_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
@@ -390,6 +451,76 @@ final class WP_Customize_Manager {
         assert_eq!(hook_edges.len(), 2);
         assert!(hook_edges.iter().any(|edge| edge.line == 4));
         assert!(hook_edges.iter().any(|edge| edge.line == 5));
+    }
+
+    #[test]
+    fn emits_hook_edges_for_class_array_callbacks_from_wordpress_source_shape() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src/wp-admin")).unwrap();
+        fs::write(
+            fixture.join("src/wp-admin/admin-ajax.php"),
+            r#"<?php
+final class WP_Plugin_Dependencies {
+    public static function check_plugin_dependencies_during_ajax() {}
+}
+
+add_action( 'wp_ajax_check_plugin_dependencies', array( 'WP_Plugin_Dependencies', 'check_plugin_dependencies_during_ajax' ) );
+do_action( 'wp_ajax_check_plugin_dependencies' );
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let hook_edges = analysis
+            .semantic_graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                matches!(
+                    edge.relation_kind,
+                    RelationKind::EventSubscribe | RelationKind::EventPublish
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(hook_edges.len(), 2);
+        assert!(hook_edges.iter().any(|edge| edge.line == 6));
+        assert!(hook_edges.iter().any(|edge| edge.line == 7));
+    }
+
+    #[test]
+    fn emits_hook_edges_for_class_const_short_array_callbacks() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src/wp-includes")).unwrap();
+        fs::write(
+            fixture.join("src/wp-includes/default-filters.php"),
+            r#"<?php
+final class WP_Block_Supports {
+    public static function init() {}
+}
+
+add_action( 'init', [ WP_Block_Supports::class, 'init' ], 22 );
+do_action( 'init' );
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let hook_edges = analysis
+            .semantic_graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                matches!(
+                    edge.relation_kind,
+                    RelationKind::EventSubscribe | RelationKind::EventPublish
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(hook_edges.len(), 2);
+        assert!(hook_edges.iter().any(|edge| edge.line == 6));
+        assert!(hook_edges.iter().any(|edge| edge.line == 7));
     }
 
     fn create_fixture() -> PathBuf {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -9,9 +9,15 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
+use sarif_rust::types::{
+    ArtifactLocation as SarifArtifactLocation, Level as SarifLevel, ReportingDescriptor,
+    ReportingDescriptorReference, Result as SarifResult, Run as SarifRun,
+};
+
 const REPORTS_DIR: &str = "reports";
 const RAW_DIR: &str = "raw";
 const GITLEAKS_TOOL: &str = "gitleaks";
+const OPENGREP_TOOL: &str = "opengrep";
 const PIP_AUDIT_TOOL: &str = "pip-audit";
 const OSV_SCANNER_TOOL: &str = "osv-scanner";
 const COMPOSER_AUDIT_TOOL: &str = "composer-audit";
@@ -19,8 +25,13 @@ const NPM_AUDIT_TOOL: &str = "npm-audit";
 const CARGO_DENY_TOOL: &str = "cargo-deny";
 const CARGO_CLIPPY_TOOL: &str = "cargo-clippy";
 const RUFF_TOOL: &str = "ruff";
+const TRIVY_TOOL: &str = "trivy";
+const GRYPE_TOOL: &str = "grype";
 
 const SUPPORTED_EXTERNAL_TOOLS: &[&str] = &[
+    OPENGREP_TOOL,
+    TRIVY_TOOL,
+    GRYPE_TOOL,
     RUFF_TOOL,
     GITLEAKS_TOOL,
     PIP_AUDIT_TOOL,
@@ -129,6 +140,9 @@ pub fn collect_external_analysis(
 
     for tool in normalized_tools {
         let (tool_run, findings) = match tool.as_str() {
+            OPENGREP_TOOL => run_opengrep(project_path, &raw_dir),
+            TRIVY_TOOL => run_trivy(project_path, &raw_dir),
+            GRYPE_TOOL => run_grype(project_path, &raw_dir),
             RUFF_TOOL => run_ruff(project_path, &raw_dir),
             GITLEAKS_TOOL => run_gitleaks(project_path, &raw_dir),
             PIP_AUDIT_TOOL => run_pip_audit(project_path, &raw_dir),
@@ -196,6 +210,127 @@ fn current_run_id() -> String {
         .expect("system clock before epoch")
         .as_millis()
         .to_string()
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SarifFallback {
+    domain: &'static str,
+    category: &'static str,
+}
+
+#[derive(Debug, Clone, Default)]
+struct SarifRuleInfo {
+    name: Option<String>,
+    short_description: Option<String>,
+    full_description: Option<String>,
+    help_uri: Option<String>,
+    tags: Vec<String>,
+}
+
+fn run_sarif_tool(
+    tool: &str,
+    command: Vec<String>,
+    artifact_name: &str,
+    project_path: &Path,
+    raw_dir: &Path,
+    fallback: SarifFallback,
+) -> (ExternalToolRun, Vec<ExternalFinding>) {
+    let artifact_path = raw_dir.join(artifact_name);
+    let executable = command[0].clone();
+    if which(&command[0]).is_none() {
+        return unavailable_run(
+            tool,
+            command,
+            &artifact_path,
+            &format!("{executable} executable not found on PATH"),
+        );
+    }
+
+    match run_command(&command, Some(project_path), Duration::from_secs(300)) {
+        Err(error) => failed_run(tool, command, &artifact_path, None, error),
+        Ok(output) => {
+            if let Err(error) = fs::write(&artifact_path, &output.stdout) {
+                return failed_run(
+                    tool,
+                    command,
+                    &artifact_path,
+                    output.exit_code,
+                    format!("failed to write raw artifact: {error}"),
+                );
+            }
+            let findings = parse_sarif_output(tool, project_path, &output.stdout, fallback);
+            completed_run(
+                tool,
+                command,
+                &artifact_path,
+                output.exit_code,
+                findings,
+                summary_map(&stderr_summary(output.stderr)),
+            )
+        }
+    }
+}
+
+fn run_opengrep(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
+    run_sarif_tool(
+        OPENGREP_TOOL,
+        vec![
+            String::from(OPENGREP_TOOL),
+            String::from("scan"),
+            String::from("--config"),
+            String::from("auto"),
+            String::from("--sarif"),
+            project_path.display().to_string(),
+        ],
+        "opengrep.sarif",
+        project_path,
+        raw_dir,
+        SarifFallback {
+            domain: "security",
+            category: "sast",
+        },
+    )
+}
+
+fn run_trivy(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
+    run_sarif_tool(
+        TRIVY_TOOL,
+        vec![
+            String::from(TRIVY_TOOL),
+            String::from("fs"),
+            String::from("--format"),
+            String::from("sarif"),
+            String::from("--scanners"),
+            String::from("vuln,secret,misconfig,license"),
+            project_path.display().to_string(),
+        ],
+        "trivy.sarif",
+        project_path,
+        raw_dir,
+        SarifFallback {
+            domain: "security",
+            category: "sca",
+        },
+    )
+}
+
+fn run_grype(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
+    run_sarif_tool(
+        GRYPE_TOOL,
+        vec![
+            String::from(GRYPE_TOOL),
+            format!("dir:{}", project_path.display()),
+            String::from("-o"),
+            String::from("sarif"),
+        ],
+        "grype.sarif",
+        project_path,
+        raw_dir,
+        SarifFallback {
+            domain: "security",
+            category: "sca",
+        },
+    )
 }
 
 fn run_ruff(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
@@ -817,6 +952,320 @@ fn which(binary: &str) -> Option<PathBuf> {
         }
     }
     None
+}
+
+fn parse_sarif_output(
+    tool: &str,
+    project_path: &Path,
+    payload: &str,
+    fallback: SarifFallback,
+) -> Vec<ExternalFinding> {
+    if payload.trim().is_empty() {
+        return Vec::new();
+    }
+    let Ok(sarif) = sarif_rust::from_str(payload) else {
+        return Vec::new();
+    };
+
+    let mut findings = Vec::new();
+    for run in sarif.runs {
+        let rule_lookup = build_sarif_rule_lookup(&run);
+        findings.extend(parse_sarif_run(
+            tool,
+            project_path,
+            &run,
+            &rule_lookup,
+            fallback,
+        ));
+    }
+    findings
+}
+
+fn parse_sarif_run(
+    tool: &str,
+    project_path: &Path,
+    run: &SarifRun,
+    rule_lookup: &HashMap<String, SarifRuleInfo>,
+    fallback: SarifFallback,
+) -> Vec<ExternalFinding> {
+    let mut findings = Vec::new();
+    let tool_name = if run.tool.driver.name.trim().is_empty() {
+        tool.to_string()
+    } else {
+        run.tool.driver.name.clone()
+    };
+
+    for result in run.results.as_ref().into_iter().flatten() {
+        let rule_id = sarif_rule_id(result, rule_lookup).unwrap_or_else(|| String::from("sarif"));
+        let rule_info = rule_lookup.get(&rule_id);
+        let (file_path, line) = sarif_primary_location(project_path, result);
+        let message = sarif_message_text(result).unwrap_or_else(|| rule_id.clone());
+        let (domain, category) =
+            infer_sarif_domain_category(tool, &rule_id, &message, rule_info, fallback);
+        let severity = sarif_severity(result, rule_info);
+        let confidence = sarif_confidence(tool, category.as_str());
+        let fingerprint = sarif_fingerprint(tool, &rule_id, &file_path, line, &message, result);
+        findings.push(ExternalFinding {
+            tool: tool_name.clone(),
+            domain,
+            category,
+            rule_id,
+            severity,
+            confidence,
+            file_path,
+            line,
+            message,
+            fingerprint,
+            extras: sarif_extras(result, rule_info),
+        });
+    }
+
+    findings
+}
+
+fn build_sarif_rule_lookup(run: &SarifRun) -> HashMap<String, SarifRuleInfo> {
+    let mut lookup = HashMap::new();
+    if let Some(rules) = run.tool.driver.rules.as_ref() {
+        for rule in rules {
+            lookup.insert(rule.id.clone(), sarif_rule_info(rule));
+        }
+    }
+    lookup
+}
+
+fn sarif_rule_info(rule: &ReportingDescriptor) -> SarifRuleInfo {
+    let tags = rule
+        .properties
+        .as_ref()
+        .and_then(|properties| properties.get("tags"))
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(|value| value.to_ascii_lowercase())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    SarifRuleInfo {
+        name: rule.name.clone(),
+        short_description: rule
+            .short_description
+            .as_ref()
+            .map(|value| value.text.clone()),
+        full_description: rule
+            .full_description
+            .as_ref()
+            .map(|value| value.text.clone()),
+        help_uri: rule.help_uri.clone(),
+        tags,
+    }
+}
+
+fn sarif_rule_id(
+    result: &SarifResult,
+    _rule_lookup: &HashMap<String, SarifRuleInfo>,
+) -> Option<String> {
+    result
+        .rule_id
+        .clone()
+        .or_else(|| result.rule.as_ref().and_then(sarif_rule_reference_id))
+}
+
+fn sarif_rule_reference_id(reference: &ReportingDescriptorReference) -> Option<String> {
+    reference.id.clone()
+}
+
+fn infer_sarif_domain_category(
+    tool: &str,
+    rule_id: &str,
+    message: &str,
+    rule_info: Option<&SarifRuleInfo>,
+    fallback: SarifFallback,
+) -> (String, String) {
+    let mut signals = vec![
+        tool.to_ascii_lowercase(),
+        rule_id.to_ascii_lowercase(),
+        message.to_ascii_lowercase(),
+    ];
+    if let Some(rule_info) = rule_info {
+        if let Some(name) = &rule_info.name {
+            signals.push(name.to_ascii_lowercase());
+        }
+        if let Some(description) = &rule_info.short_description {
+            signals.push(description.to_ascii_lowercase());
+        }
+        if let Some(description) = &rule_info.full_description {
+            signals.push(description.to_ascii_lowercase());
+        }
+        signals.extend(rule_info.tags.iter().cloned());
+    }
+
+    if signals.iter().any(|signal| {
+        signal.contains("secret")
+            || signal.contains("access key")
+            || signal.contains("api key")
+            || signal.contains("token")
+            || signal.contains("credential")
+            || signal.contains("password")
+    }) {
+        return (String::from("security"), String::from("secrets"));
+    }
+    if signals
+        .iter()
+        .any(|signal| signal.contains("license") || signal.contains("licence"))
+    {
+        return (String::from("security"), String::from("license"));
+    }
+    if signals.iter().any(|signal| {
+        signal.contains("misconfig")
+            || signal.contains("misconfiguration")
+            || signal.contains("configuration")
+            || signal.contains("policy")
+    }) {
+        return (String::from("security"), String::from("source_policy"));
+    }
+    if signals.iter().any(|signal| {
+        signal.contains("vuln")
+            || signal.contains("advisory")
+            || signal.contains("cve")
+            || signal.contains("ghsa")
+            || signal.contains("rustsec")
+            || signal.contains("osv")
+            || signal.contains("package")
+    }) {
+        return (String::from("security"), String::from("sca"));
+    }
+
+    (
+        String::from(fallback.domain),
+        String::from(fallback.category),
+    )
+}
+
+fn sarif_primary_location(
+    project_path: &Path,
+    result: &SarifResult,
+) -> (Option<PathBuf>, Option<usize>) {
+    let location = result
+        .locations
+        .as_ref()
+        .and_then(|locations| locations.first());
+    let file_path = location
+        .and_then(|location| location.physical_location.as_ref())
+        .and_then(|physical| physical.artifact_location.as_ref())
+        .and_then(sarif_artifact_path)
+        .map(|path| project_relative_path(project_path, &path))
+        .or_else(|| {
+            result
+                .analysis_target
+                .as_ref()
+                .and_then(sarif_artifact_path)
+                .map(|path| project_relative_path(project_path, &path))
+        });
+    let line = location
+        .and_then(|location| location.physical_location.as_ref())
+        .and_then(|physical| physical.region.as_ref())
+        .and_then(|region| region.start_line)
+        .map(|value| value as usize);
+    (file_path, line)
+}
+
+fn sarif_artifact_path(location: &SarifArtifactLocation) -> Option<String> {
+    let raw = location.uri.as_ref()?;
+    Some(
+        raw.strip_prefix("file://")
+            .unwrap_or(raw)
+            .trim()
+            .to_string(),
+    )
+}
+
+fn sarif_message_text(result: &SarifResult) -> Option<String> {
+    result
+        .message
+        .text
+        .clone()
+        .or_else(|| result.message.markdown.clone())
+        .or_else(|| result.message.id.clone())
+}
+
+fn sarif_severity(result: &SarifResult, rule_info: Option<&SarifRuleInfo>) -> ExternalSeverity {
+    let _ = rule_info;
+    match result.level.clone().unwrap_or(SarifLevel::Warning) {
+        SarifLevel::Error => ExternalSeverity::High,
+        SarifLevel::Warning => ExternalSeverity::Medium,
+        SarifLevel::Note | SarifLevel::None => ExternalSeverity::Low,
+    }
+}
+
+fn sarif_confidence(tool: &str, category: &str) -> ExternalConfidence {
+    match (tool, category) {
+        (GRYPE_TOOL, _) | (TRIVY_TOOL, "sca") | (TRIVY_TOOL, "license") => ExternalConfidence::High,
+        (_, "secrets") => ExternalConfidence::High,
+        _ => ExternalConfidence::Medium,
+    }
+}
+
+fn sarif_fingerprint(
+    tool: &str,
+    rule_id: &str,
+    file_path: &Option<PathBuf>,
+    line: Option<usize>,
+    message: &str,
+    result: &SarifResult,
+) -> String {
+    if let Some(value) = result
+        .fingerprints
+        .as_ref()
+        .and_then(|fingerprints| fingerprints.values().next())
+    {
+        return value.clone();
+    }
+    if let Some(value) = result
+        .partial_fingerprints
+        .as_ref()
+        .and_then(|fingerprints| fingerprints.values().next())
+    {
+        return value.clone();
+    }
+    let file_component = file_path
+        .as_ref()
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let line_component = line.unwrap_or(1).to_string();
+    stable_fingerprint(&[tool, rule_id, &file_component, &line_component, message])
+}
+
+fn sarif_extras(result: &SarifResult, rule_info: Option<&SarifRuleInfo>) -> Map<String, Value> {
+    let mut extras = Map::new();
+    if let Some(level) = &result.level {
+        extras.insert(
+            String::from("sarif_level"),
+            Value::String(level.to_string()),
+        );
+    }
+    if let Some(rule_info) = rule_info {
+        if let Some(name) = &rule_info.name {
+            extras.insert(String::from("rule_name"), Value::String(name.clone()));
+        }
+        if let Some(help_uri) = &rule_info.help_uri {
+            extras.insert(String::from("help_uri"), Value::String(help_uri.clone()));
+        }
+        if !rule_info.tags.is_empty() {
+            extras.insert(
+                String::from("tags"),
+                Value::Array(rule_info.tags.iter().cloned().map(Value::String).collect()),
+            );
+        }
+    }
+    if let Some(value) = &result.properties {
+        extras.insert(
+            String::from("sarif_properties"),
+            Value::Object(value.clone().into_iter().collect()),
+        );
+    }
+    extras
 }
 
 fn parse_ruff_payload(project_path: &Path, payload: &Value) -> Vec<ExternalFinding> {
@@ -1529,7 +1978,7 @@ mod tests {
     use super::{
         cargo_deny_category, normalize_selected_tools, parse_cargo_deny_output,
         parse_gitleaks_payload, parse_npm_audit_payload, parse_osv_scanner_payload,
-        ExternalSeverity,
+        parse_sarif_output, ExternalConfidence, ExternalSeverity, SarifFallback,
     };
     use serde_json::json;
     use std::path::Path;
@@ -1597,6 +2046,128 @@ mod tests {
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].rule_id, "RUSTSEC-2025-0001");
         assert_eq!(findings[0].severity, ExternalSeverity::High);
+    }
+
+    #[test]
+    fn parses_sarif_output_for_opengrep_sast_findings() {
+        let payload = r#"{
+          "version": "2.1.0",
+          "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+          "runs": [
+            {
+              "tool": {
+                "driver": {
+                  "name": "OpenGrep",
+                  "rules": [
+                    {
+                      "id": "python.lang.security.audit.dangerous-subprocess-use",
+                      "name": "dangerous-subprocess-use",
+                      "shortDescription": { "text": "Dangerous subprocess usage" },
+                      "properties": { "tags": ["security", "command-injection"] }
+                    }
+                  ]
+                }
+              },
+              "results": [
+                {
+                  "ruleId": "python.lang.security.audit.dangerous-subprocess-use",
+                  "level": "error",
+                  "message": { "text": "User input reaches subprocess" },
+                  "locations": [
+                    {
+                      "physicalLocation": {
+                        "artifactLocation": { "uri": "app/views.py" },
+                        "region": { "startLine": 18 }
+                      }
+                    }
+                  ],
+                  "fingerprints": { "primary": "sarif-fp-1" }
+                }
+              ]
+            }
+          ]
+        }"#;
+
+        let findings = parse_sarif_output(
+            "opengrep",
+            Path::new("/repo"),
+            payload,
+            SarifFallback {
+                domain: "security",
+                category: "sast",
+            },
+        );
+
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].tool, "OpenGrep");
+        assert_eq!(findings[0].category, "sast");
+        assert_eq!(findings[0].severity, ExternalSeverity::High);
+        assert_eq!(findings[0].confidence, ExternalConfidence::Medium);
+        assert_eq!(
+            findings[0].file_path.as_deref(),
+            Some(Path::new("app/views.py"))
+        );
+        assert_eq!(findings[0].line, Some(18));
+        assert_eq!(findings[0].fingerprint, "sarif-fp-1");
+    }
+
+    #[test]
+    fn parses_sarif_output_and_infers_trivy_categories() {
+        let payload = r#"{
+          "version": "2.1.0",
+          "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+          "runs": [
+            {
+              "tool": {
+                "driver": {
+                  "name": "Trivy",
+                  "rules": [
+                    {
+                      "id": "aws-access-key",
+                      "name": "aws-access-key",
+                      "shortDescription": { "text": "Hardcoded AWS access key" },
+                      "properties": { "tags": ["secret", "credential"] }
+                    }
+                  ]
+                }
+              },
+              "results": [
+                {
+                  "ruleId": "aws-access-key",
+                  "level": "warning",
+                  "message": { "text": "AWS access key detected" },
+                  "locations": [
+                    {
+                      "physicalLocation": {
+                        "artifactLocation": { "uri": "config/.env" },
+                        "region": { "startLine": 4 }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }"#;
+
+        let findings = parse_sarif_output(
+            "trivy",
+            Path::new("/repo"),
+            payload,
+            SarifFallback {
+                domain: "security",
+                category: "sca",
+            },
+        );
+
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].tool, "Trivy");
+        assert_eq!(findings[0].category, "secrets");
+        assert_eq!(findings[0].confidence, ExternalConfidence::High);
+        assert_eq!(
+            findings[0].file_path.as_deref(),
+            Some(Path::new("config/.env"))
+        );
     }
 
     #[test]

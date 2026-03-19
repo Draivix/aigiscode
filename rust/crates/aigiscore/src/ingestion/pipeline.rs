@@ -1,5 +1,7 @@
+use crate::assessment::{build_architectural_assessment, ArchitecturalAssessment};
+use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code, DeadCodeResult};
-use crate::detectors::hardwiring::{analyze_hardwiring, HardwiringResult};
+use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::{analyze_semantic_graph, GraphAnalysis};
 use crate::graph::SemanticGraph;
@@ -8,6 +10,7 @@ use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::resolve::{load_resolve_config, resolve_graph_with_config};
+use crate::security::{analyze_security_findings, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -55,11 +58,17 @@ pub struct ProjectAnalysis {
     pub structure: StructureGraph,
     pub semantic_graph: SemanticGraph,
     pub graph_analysis: GraphAnalysis,
+    pub architectural_assessment: ArchitecturalAssessment,
+    pub contract_inventory: ContractInventory,
     pub dead_code: DeadCodeResult,
     pub hardwiring: HardwiringResult,
+    #[serde(default, skip_serializing_if = "SecurityAnalysisResult::is_empty")]
+    pub security_analysis: SecurityAnalysisResult,
     #[serde(default, skip_serializing_if = "ExternalAnalysisResult::is_empty")]
     pub external_analysis: ExternalAnalysisResult,
     pub timings: Vec<PhaseTiming>,
+    #[serde(skip)]
+    pub parsed_sources: Vec<(PathBuf, String)>,
 }
 
 impl ProjectAnalysis {
@@ -139,12 +148,32 @@ pub fn analyze_project(
     let analyze_started = Instant::now();
     trace("analyze start");
     let graph_analysis = analyze_semantic_graph(&semantic_graph);
+    let contract_inventory = build_contract_inventory(&parsed_sources);
+    let contract_lookup = contract_inventory.lookup();
     let dead_code = analyze_dead_code(&semantic_graph);
-    let hardwiring = analyze_hardwiring(&parsed_sources);
+    let hardwiring = analyze_hardwiring_with_contracts(&parsed_sources, &contract_lookup);
+    let security_analysis = analyze_security_findings(
+        &parsed_sources,
+        &contract_inventory,
+        &graph_analysis.runtime_entry_candidates,
+    );
+    let architectural_assessment = build_architectural_assessment(
+        &graph_analysis,
+        &dead_code,
+        &hardwiring,
+        &ExternalAnalysisResult::default(),
+        &parsed_sources,
+    );
     let analyze_elapsed = analyze_started.elapsed().as_millis();
     trace(&format!(
-        "analyze complete cycles={} dead_code={} hardwiring={} elapsed_ms={analyze_elapsed}",
+        "analyze complete cycles={} contracts={} dead_code={} hardwiring={} elapsed_ms={analyze_elapsed}",
         graph_analysis.strong_circular_dependencies.len(),
+        contract_inventory.summary.routes.unique_values
+            + contract_inventory.summary.hooks.unique_values
+            + contract_inventory.summary.registered_keys.unique_values
+            + contract_inventory.summary.symbolic_literals.unique_values
+            + contract_inventory.summary.env_keys.unique_values
+            + contract_inventory.summary.config_keys.unique_values,
         dead_code.findings.len(),
         hardwiring.findings.len()
     ));
@@ -159,10 +188,14 @@ pub fn analyze_project(
         structure,
         semantic_graph,
         graph_analysis,
+        architectural_assessment,
+        contract_inventory,
         dead_code,
         hardwiring,
+        security_analysis,
         external_analysis: ExternalAnalysisResult::default(),
         timings,
+        parsed_sources,
     })
 }
 
@@ -658,6 +691,45 @@ final class SyncAccountJob
             .strong_cycle_findings
             .iter()
             .any(|finding| finding.cycle_class == crate::graph::analysis::CycleClass::Mixed));
+    }
+
+    #[test]
+    fn builds_contract_inventory_during_project_analysis() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("routes")).unwrap();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+
+        fs::write(
+            fixture.join("routes/web.php"),
+            br#"<?php
+Route::get('/users', 'UserController@index');
+add_action('init', 'boot_users');
+config('mail.driver');
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/runtime.ts"),
+            br#"type Status = 'draft' | 'published';
+const mode = process.env.APP_MODE;
+"#,
+        )
+        .unwrap();
+
+        let result = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+
+        assert_eq!(result.contract_inventory.summary.routes.unique_values, 1);
+        assert_eq!(result.contract_inventory.summary.hooks.unique_values, 1);
+        assert_eq!(
+            result.contract_inventory.summary.config_keys.unique_values,
+            1
+        );
+        assert_eq!(result.contract_inventory.summary.env_keys.unique_values, 1);
+        assert!(result
+            .contract_inventory
+            .symbolic_literals
+            .iter()
+            .any(|item| item.value == "draft"));
     }
 
     fn count_edges_to(result: &super::ProjectAnalysis, target: &Path) -> usize {

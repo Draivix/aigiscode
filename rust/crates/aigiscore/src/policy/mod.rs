@@ -1,6 +1,9 @@
+pub mod tune;
+
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
 use crate::external::ExternalFinding;
+use crate::security::{SecurityCategory, SecurityFinding};
 use globset::{Glob, GlobMatcher};
 use serde::Deserialize;
 use serde_json::Value;
@@ -47,6 +50,8 @@ pub struct PolicyBundle {
     hardwiring_skip_path_patterns: Vec<GlobMatcher>,
     hardwiring_allowed_literals: Vec<String>,
     hardwiring_repeated_literal_min_occurrences: usize,
+    security_skip_path_patterns: Vec<GlobMatcher>,
+    security_allowed_categories: Vec<String>,
     external_skip_tools: Vec<String>,
     external_skip_categories: Vec<String>,
     external_allowed_rule_ids: Vec<String>,
@@ -79,6 +84,16 @@ impl PolicyBundle {
                 .repeated_literal_min_occurrences
                 .unwrap_or(2)
                 .max(2),
+            security_skip_path_patterns: compile_patterns(
+                &policy_path,
+                &policy.security.skip_path_patterns,
+            )?,
+            security_allowed_categories: policy
+                .security
+                .allowed_categories
+                .into_iter()
+                .map(|value| normalize_token(&value))
+                .collect(),
             external_skip_tools: policy
                 .external
                 .skip_tools
@@ -143,6 +158,23 @@ impl PolicyBundle {
         })
     }
 
+    pub fn suppress_security(&self, finding: &SecurityFinding) -> Option<SuppressionReason> {
+        let normalized = normalize_path(&finding.file_path);
+        let normalized_category = normalize_token(security_category_name(finding.category));
+        if matches_any(&self.security_skip_path_patterns, &normalized)
+            || self
+                .security_allowed_categories
+                .iter()
+                .any(|category| category == &normalized_category)
+        {
+            return Some(SuppressionReason::Policy);
+        }
+        self.exclusion_rules.iter().find_map(|rule| {
+            rule.matches_security(finding, &normalized)
+                .then_some(SuppressionReason::Rule)
+        })
+    }
+
     pub fn suppress_external(&self, finding: &ExternalFinding) -> Option<SuppressionReason> {
         let normalized_tool = normalize_token(&finding.tool);
         let normalized_category = normalize_token(&finding.category);
@@ -179,6 +211,8 @@ struct PolicyFile {
     #[serde(default)]
     hardwiring: HardwiringPolicy,
     #[serde(default)]
+    security: SecurityPolicy,
+    #[serde(default)]
     external: ExternalPolicy,
 }
 
@@ -202,6 +236,14 @@ struct HardwiringPolicy {
     skip_path_patterns: Vec<String>,
     #[serde(default)]
     allowed_literals: Vec<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct SecurityPolicy {
+    #[serde(default)]
+    skip_path_patterns: Vec<String>,
+    #[serde(default)]
+    allowed_categories: Vec<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -254,6 +296,11 @@ enum RuleFindingType {
     RepeatedLiteral,
     HardcodedNetwork,
     EnvOutsideConfig,
+    SecurityDangerousApi,
+    SecurityCommandExecution,
+    SecurityCodeInjection,
+    SecurityUnsafeDeserialization,
+    SecurityUnsafeHtmlOutput,
     ExternalAny,
     ExternalSast,
     ExternalSecrets,
@@ -276,6 +323,19 @@ impl RuleFindingType {
             "repeated_literal" => Some(Self::RepeatedLiteral),
             "hardcoded_network" | "hardcoded_ip_url" => Some(Self::HardcodedNetwork),
             "env_outside_config" => Some(Self::EnvOutsideConfig),
+            "security" | "security_dangerous_api" | "dangerous_api" => {
+                Some(Self::SecurityDangerousApi)
+            }
+            "security_command_execution" | "command_execution" => {
+                Some(Self::SecurityCommandExecution)
+            }
+            "security_code_injection" | "code_injection" => Some(Self::SecurityCodeInjection),
+            "security_unsafe_deserialization" | "unsafe_deserialization" => {
+                Some(Self::SecurityUnsafeDeserialization)
+            }
+            "security_unsafe_html_output" | "unsafe_html_output" => {
+                Some(Self::SecurityUnsafeHtmlOutput)
+            }
             "external" => Some(Self::ExternalAny),
             "sast" | "external_sast" => Some(Self::ExternalSast),
             "secrets" | "external_secrets" => Some(Self::ExternalSecrets),
@@ -354,6 +414,26 @@ impl CompiledExclusionRule {
                 .symbol_name
                 .as_ref()
                 .is_none_or(|symbol_name| symbol_name == &finding.value)
+    }
+
+    fn matches_security(&self, finding: &SecurityFinding, path: &str) -> bool {
+        let Some(finding_type) = self.finding_type else {
+            return false;
+        };
+        let expected = match finding.category {
+            SecurityCategory::CommandExecution => RuleFindingType::SecurityCommandExecution,
+            SecurityCategory::CodeInjection => RuleFindingType::SecurityCodeInjection,
+            SecurityCategory::UnsafeDeserialization => {
+                RuleFindingType::SecurityUnsafeDeserialization
+            }
+            SecurityCategory::UnsafeHtmlOutput => RuleFindingType::SecurityUnsafeHtmlOutput,
+        };
+        (finding_type == RuleFindingType::SecurityDangerousApi || finding_type == expected)
+            && self.file_matcher.is_match(path)
+            && self.symbol_name.as_ref().is_none_or(|symbol_name| {
+                symbol_name == &finding.fingerprint
+                    || symbol_name == security_category_name(finding.category)
+            })
     }
 
     fn matches_external(&self, finding: &ExternalFinding, path: &str) -> bool {
@@ -447,6 +527,15 @@ fn normalize_token(value: &str) -> String {
     value.trim().to_ascii_lowercase().replace(['-', ' '], "_")
 }
 
+fn security_category_name(category: SecurityCategory) -> &'static str {
+    match category {
+        SecurityCategory::CommandExecution => "command_execution",
+        SecurityCategory::CodeInjection => "code_injection",
+        SecurityCategory::UnsafeDeserialization => "unsafe_deserialization",
+        SecurityCategory::UnsafeHtmlOutput => "unsafe_html_output",
+    }
+}
+
 fn external_match_path(finding: &ExternalFinding) -> String {
     if let Some(path) = &finding.file_path {
         return normalize_path(path);
@@ -471,6 +560,9 @@ mod tests {
     use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
     use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
     use crate::external::{ExternalConfidence, ExternalFinding, ExternalSeverity};
+    use crate::security::{
+        SecurityCategory, SecurityFinding, SecurityFindingKind, SecuritySeverity,
+    };
     use serde_json::{Map, Value};
     use std::fs;
     use std::path::PathBuf;
@@ -489,6 +581,10 @@ mod tests {
     "repeated_literal_min_occurrences": 4,
     "skip_path_patterns": ["src/console/**"],
     "allowed_literals": ["localhost"]
+  },
+  "security": {
+    "skip_path_patterns": ["src/vendor/**"],
+    "allowed_categories": ["unsafe_html_output"]
   },
   "external": {
     "skip_tools": ["osv-scanner"],
@@ -521,6 +617,7 @@ mod tests {
                 file_path: PathBuf::from("src/contracts/user.rs"),
                 name: String::from("load"),
                 line: 4,
+                fingerprint: String::from("dead-1"),
             }),
             Some(SuppressionReason::Policy)
         );
@@ -531,6 +628,7 @@ mod tests {
                 file_path: PathBuf::from("src/lib.rs"),
                 name: String::from("RepoAlias"),
                 line: 2,
+                fingerprint: String::from("dead-2"),
             }),
             Some(SuppressionReason::Rule)
         );
@@ -542,6 +640,7 @@ mod tests {
                     line: 8,
                     value: String::from("draft"),
                     context: String::from("if status == \"draft\""),
+                    fingerprint: String::from("hard-1"),
                 },
                 1
             ),
@@ -555,6 +654,7 @@ mod tests {
                     line: 9,
                     value: String::from("shared-value"),
                     context: String::from("let _ = \"shared-value\""),
+                    fingerprint: String::from("hard-2"),
                 },
                 3
             ),
@@ -568,6 +668,7 @@ mod tests {
                     line: 3,
                     value: String::from("draft"),
                     context: String::from("if status == \"draft\""),
+                    fingerprint: String::from("hard-3"),
                 },
                 1
             ),
@@ -621,6 +722,79 @@ mod tests {
             }),
             Some(SuppressionReason::Policy)
         );
+        assert_eq!(
+            bundle.suppress_security(&SecurityFinding {
+                kind: SecurityFindingKind::DangerousApi,
+                category: SecurityCategory::UnsafeHtmlOutput,
+                severity: SecuritySeverity::Low,
+                file_path: PathBuf::from("src/ui/view.js"),
+                line: 4,
+                message: String::from("unsafe html"),
+                evidence: String::from("target.innerHTML = html"),
+                fingerprint: String::from("sec-1"),
+                contexts: Vec::new(),
+            }),
+            Some(SuppressionReason::Policy)
+        );
+        assert_eq!(
+            bundle.suppress_security(&SecurityFinding {
+                kind: SecurityFindingKind::DangerousApi,
+                category: SecurityCategory::CommandExecution,
+                severity: SecuritySeverity::High,
+                file_path: PathBuf::from("src/vendor/legacy.php"),
+                line: 12,
+                message: String::from("command exec"),
+                evidence: String::from("system($cmd)"),
+                fingerprint: String::from("sec-2"),
+                contexts: Vec::new(),
+            }),
+            Some(SuppressionReason::Policy)
+        );
+    }
+
+    #[test]
+    fn rules_can_suppress_native_security_findings() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::write(
+            fixture.join(".aigiscode/rules.json"),
+            br#"[
+  { "finding_type": "command_execution", "file_pattern": "src/ops/**", "symbol_name": "command_execution" },
+  { "finding_type": "dangerous_api", "file_pattern": "src/admin.php", "symbol_name": "sec-fp-2" }
+]"#,
+        )
+        .unwrap();
+
+        let bundle = PolicyBundle::load(&fixture).unwrap();
+
+        assert_eq!(
+            bundle.suppress_security(&SecurityFinding {
+                kind: SecurityFindingKind::DangerousApi,
+                category: SecurityCategory::CommandExecution,
+                severity: SecuritySeverity::High,
+                file_path: PathBuf::from("src/ops/run.php"),
+                line: 7,
+                message: String::from("command exec"),
+                evidence: String::from("system($cmd)"),
+                fingerprint: String::from("sec-fp-1"),
+                contexts: Vec::new(),
+            }),
+            Some(SuppressionReason::Rule)
+        );
+        assert_eq!(
+            bundle.suppress_security(&SecurityFinding {
+                kind: SecurityFindingKind::DangerousApi,
+                category: SecurityCategory::CodeInjection,
+                severity: SecuritySeverity::Medium,
+                file_path: PathBuf::from("src/admin.php"),
+                line: 5,
+                message: String::from("eval"),
+                evidence: String::from("eval($code)"),
+                fingerprint: String::from("sec-fp-2"),
+                contexts: Vec::new(),
+            }),
+            Some(SuppressionReason::Rule)
+        );
     }
 
     #[test]
@@ -658,6 +832,7 @@ mod tests {
                 file_path: PathBuf::from("src/lib.rs"),
                 name: String::from("RepoAlias"),
                 line: 2,
+                fingerprint: String::from("dead-3"),
             }),
             None
         );

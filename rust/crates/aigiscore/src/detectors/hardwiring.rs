@@ -1,3 +1,5 @@
+use crate::contracts::ContractLookup;
+use crate::identity::{normalized_path, stable_fingerprint};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -18,6 +20,8 @@ pub struct HardwiringFinding {
     pub line: usize,
     pub value: String,
     pub context: String,
+    #[serde(default)]
+    pub fingerprint: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -26,6 +30,13 @@ pub struct HardwiringResult {
 }
 
 pub fn analyze_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult {
+    analyze_hardwiring_with_contracts(files, &ContractLookup::default())
+}
+
+pub fn analyze_hardwiring_with_contracts(
+    files: &[(PathBuf, String)],
+    contract_lookup: &ContractLookup,
+) -> HardwiringResult {
     let magic_re = Regex::new(r#"(?:==|!=)\s*"([^"\n]{3,})""#).expect("magic regex");
     let url_re = Regex::new(r#""(https?://[^"\n]+)""#).expect("url regex");
     let env_re = Regex::new(
@@ -50,6 +61,11 @@ pub fn analyze_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult {
                     line: line_no,
                     value: value.to_owned(),
                     context: trimmed.to_owned(),
+                    fingerprint: hardwiring_fingerprint(
+                        HardwiringCategory::MagicString,
+                        path,
+                        value,
+                    ),
                 });
             }
 
@@ -61,6 +77,11 @@ pub fn analyze_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult {
                     line: line_no,
                     value: value.to_owned(),
                     context: trimmed.to_owned(),
+                    fingerprint: hardwiring_fingerprint(
+                        HardwiringCategory::HardcodedNetwork,
+                        path,
+                        value,
+                    ),
                 });
             }
 
@@ -71,6 +92,11 @@ pub fn analyze_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult {
                     line: line_no,
                     value: String::from("env"),
                     context: trimmed.to_owned(),
+                    fingerprint: hardwiring_fingerprint(
+                        HardwiringCategory::EnvOutsideConfig,
+                        path,
+                        "env",
+                    ),
                 });
             }
 
@@ -80,7 +106,7 @@ pub fn analyze_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult {
                 {
                     continue;
                 }
-                if should_ignore_repeated_literal(path, trimmed, value) {
+                if should_ignore_repeated_literal(path, trimmed, value, contract_lookup) {
                     continue;
                 }
                 repeated.entry(value.to_owned()).or_default().push((
@@ -97,12 +123,15 @@ pub fn analyze_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult {
             continue;
         }
         for (file_path, line, context) in occurrences {
+            let fingerprint =
+                hardwiring_fingerprint(HardwiringCategory::RepeatedLiteral, &file_path, &value);
             findings.push(HardwiringFinding {
                 category: HardwiringCategory::RepeatedLiteral,
                 file_path,
                 line,
                 value: value.clone(),
                 context,
+                fingerprint,
             });
         }
     }
@@ -121,12 +150,38 @@ pub fn analyze_rust_hardwiring(files: &[(PathBuf, String)]) -> HardwiringResult 
     analyze_hardwiring(files)
 }
 
+fn hardwiring_fingerprint(category: HardwiringCategory, file_path: &Path, value: &str) -> String {
+    stable_fingerprint(&[
+        "hardwiring",
+        hardwiring_category_label(category),
+        &normalized_path(file_path),
+        value,
+    ])
+}
+
+fn hardwiring_category_label(category: HardwiringCategory) -> &'static str {
+    match category {
+        HardwiringCategory::MagicString => "magic-string",
+        HardwiringCategory::RepeatedLiteral => "repeated-literal",
+        HardwiringCategory::HardcodedNetwork => "hardcoded-network",
+        HardwiringCategory::EnvOutsideConfig => "env-outside-config",
+    }
+}
+
 fn is_config_like_path(path: &Path) -> bool {
     let normalized = path.to_string_lossy().to_lowercase();
     normalized.contains("config") || normalized.ends_with("build.rs")
 }
 
-fn should_ignore_repeated_literal(path: &Path, context: &str, value: &str) -> bool {
+fn should_ignore_repeated_literal(
+    path: &Path,
+    context: &str,
+    value: &str,
+    contract_lookup: &ContractLookup,
+) -> bool {
+    if contract_lookup.contains_literal(value) {
+        return true;
+    }
     let normalized_path = path.to_string_lossy().replace('\\', "/");
     let is_console_command = normalized_path.contains("/Console/Commands/")
         || normalized_path.ends_with("/Console/Command.php")
@@ -154,7 +209,8 @@ fn should_ignore_repeated_literal(path: &Path, context: &str, value: &str) -> bo
 
 #[cfg(test)]
 mod tests {
-    use super::{analyze_rust_hardwiring, HardwiringCategory};
+    use super::{analyze_hardwiring_with_contracts, analyze_rust_hardwiring, HardwiringCategory};
+    use crate::contracts::ContractLookup;
     use std::path::PathBuf;
 
     #[test]
@@ -231,6 +287,33 @@ $this->info("Connected to tenant: {$tenant}");
                     || finding.value == "active"
                     || finding.value == "User {$userId} not found"
                     || finding.value == "Connected to tenant: {$tenant}")
+        }));
+    }
+
+    #[test]
+    fn ignores_declared_contract_literals_for_repeated_literal_noise() {
+        let result = analyze_hardwiring_with_contracts(
+            &[(
+                PathBuf::from("app/runtime.ts"),
+                String::from(
+                    r#"
+const first = "user.created";
+const second = "user.created";
+const route = "/users";
+const route2 = "/users";
+"#,
+                ),
+            )],
+            &ContractLookup {
+                hooks: vec![String::from("user.created")],
+                routes: vec![String::from("/users")],
+                ..ContractLookup::default()
+            },
+        );
+
+        assert!(!result.findings.iter().any(|finding| {
+            finding.category == HardwiringCategory::RepeatedLiteral
+                && (finding.value == "user.created" || finding.value == "/users")
         }));
     }
 }

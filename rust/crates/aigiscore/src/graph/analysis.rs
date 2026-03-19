@@ -1,4 +1,5 @@
 use crate::graph::{GraphLayer, ReferenceKind, RelationKind, ResolvedEdge, SemanticGraph};
+use crate::identity::{normalized_path, stable_fingerprint};
 use petgraph::algo::kosaraju_scc;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
@@ -12,6 +13,7 @@ pub struct GraphAnalysis {
     pub strong_circular_dependencies: Vec<Vec<PathBuf>>,
     pub cycle_findings: Vec<CycleFinding>,
     pub strong_cycle_findings: Vec<CycleFinding>,
+    pub architectural_smells: Vec<ArchitecturalSmell>,
     pub coupling_metrics: Vec<CouplingMetric>,
     pub bottleneck_files: Vec<BottleneckFile>,
     pub orphan_files: Vec<PathBuf>,
@@ -39,6 +41,8 @@ pub struct CycleFinding {
     pub layers: Vec<GraphLayer>,
     pub dominant_relations: Vec<RelationKind>,
     pub edge_count: usize,
+    #[serde(default)]
+    pub fingerprint: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,10 +53,29 @@ pub struct CouplingMetric {
     pub instability_millis: u16,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ArchitecturalSmellKind {
+    HubLikeDependency,
+    UnstableDependency,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchitecturalSmell {
+    pub kind: ArchitecturalSmellKind,
+    pub subject: String,
+    pub related_components: Vec<String>,
+    pub evidence_count: usize,
+    pub severity_millis: u16,
+    #[serde(default)]
+    pub fingerprint: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BottleneckFile {
     pub file_path: PathBuf,
     pub centrality_millis: u32,
+    #[serde(default)]
+    pub fingerprint: String,
 }
 
 pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
@@ -83,12 +106,16 @@ pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
     let cycle_findings = classify_cycles(graph, &circular_dependencies);
     let strong_cycle_findings = classify_cycles(graph, &strong_circular_dependencies);
 
+    let coupling_metrics = calculate_coupling(&file_graph);
+    let architectural_smells = detect_architectural_smells(&file_graph, &coupling_metrics);
+
     GraphAnalysis {
         circular_dependencies,
         strong_circular_dependencies,
         cycle_findings,
         strong_cycle_findings,
-        coupling_metrics: calculate_coupling(&file_graph),
+        architectural_smells,
+        coupling_metrics,
         bottleneck_files: find_bottlenecks(&file_graph, 20),
         orphan_files,
         runtime_entry_candidates,
@@ -101,6 +128,112 @@ pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
             .filter(|edge| edge.kind == ReferenceKind::Overrides)
             .count(),
     }
+}
+
+fn detect_architectural_smells(
+    graph: &DiGraph<PathBuf, ()>,
+    coupling_metrics: &[CouplingMetric],
+) -> Vec<ArchitecturalSmell> {
+    let mut smells = detect_hub_like_dependencies(coupling_metrics);
+    smells.extend(detect_unstable_dependencies(graph, coupling_metrics));
+    smells.sort_by(|left, right| {
+        right
+            .severity_millis
+            .cmp(&left.severity_millis)
+            .then(left.subject.cmp(&right.subject))
+            .then(left.kind.cmp(&right.kind))
+    });
+    smells
+}
+
+fn detect_hub_like_dependencies(coupling_metrics: &[CouplingMetric]) -> Vec<ArchitecturalSmell> {
+    let mut totals = coupling_metrics
+        .iter()
+        .filter(|metric| metric.afferent >= 2 && metric.efferent >= 2)
+        .map(|metric| metric.afferent + metric.efferent)
+        .collect::<Vec<_>>();
+    if totals.is_empty() {
+        return Vec::new();
+    }
+    totals.sort_unstable();
+    let threshold_index = ((totals.len() as f64 * 0.8).floor() as usize).min(totals.len() - 1);
+    let threshold = totals[threshold_index].max(6);
+    let max_total = *totals.last().unwrap_or(&threshold);
+
+    let mut smells = coupling_metrics
+        .iter()
+        .filter_map(|metric| {
+            let total = metric.afferent + metric.efferent;
+            if metric.afferent < 2 || metric.efferent < 2 || total < threshold {
+                return None;
+            }
+            let severity = ((total as f64 / max_total as f64) * 1000.0).round() as u16;
+            Some(ArchitecturalSmell {
+                kind: ArchitecturalSmellKind::HubLikeDependency,
+                subject: metric.module.clone(),
+                related_components: Vec::new(),
+                evidence_count: total,
+                severity_millis: severity,
+                fingerprint: String::new(),
+            })
+        })
+        .collect::<Vec<_>>();
+    for smell in &mut smells {
+        smell.fingerprint = architectural_smell_fingerprint(smell);
+    }
+    smells.sort_by(|left, right| left.subject.cmp(&right.subject));
+    smells
+}
+
+fn detect_unstable_dependencies(
+    graph: &DiGraph<PathBuf, ()>,
+    coupling_metrics: &[CouplingMetric],
+) -> Vec<ArchitecturalSmell> {
+    let instability_by_module = coupling_metrics
+        .iter()
+        .map(|metric| (metric.module.clone(), metric.instability_millis))
+        .collect::<HashMap<_, _>>();
+    let afferent_by_module = coupling_metrics
+        .iter()
+        .map(|metric| (metric.module.clone(), metric.afferent))
+        .collect::<HashMap<_, _>>();
+
+    let module_dependencies = graph
+        .raw_edges()
+        .iter()
+        .filter_map(|edge| {
+            let source = graph.node_weight(edge.source())?;
+            let target = graph.node_weight(edge.target())?;
+            let source_module = top_level_module(source);
+            let target_module = top_level_module(target);
+            (source_module != target_module).then_some((source_module, target_module))
+        })
+        .collect::<HashSet<_>>();
+
+    let mut smells = module_dependencies
+        .into_iter()
+        .filter_map(|(source_module, target_module)| {
+            let source_instability = *instability_by_module.get(&source_module)?;
+            let target_instability = *instability_by_module.get(&target_module)?;
+            let source_afferent = *afferent_by_module.get(&source_module).unwrap_or(&0);
+            if source_afferent < 2 || source_instability + 250 > target_instability {
+                return None;
+            }
+            Some(ArchitecturalSmell {
+                kind: ArchitecturalSmellKind::UnstableDependency,
+                subject: source_module,
+                related_components: vec![target_module],
+                evidence_count: 1,
+                severity_millis: target_instability - source_instability,
+                fingerprint: String::new(),
+            })
+        })
+        .collect::<Vec<_>>();
+    for smell in &mut smells {
+        smell.fingerprint = architectural_smell_fingerprint(smell);
+    }
+    smells.sort_by(|left, right| left.subject.cmp(&right.subject));
+    smells
 }
 
 fn build_file_dependency_graph<'a, I, F>(edges: I, include: F) -> DiGraph<PathBuf, ()>
@@ -189,13 +322,16 @@ fn classify_cycles(graph: &SemanticGraph, cycles: &[Vec<PathBuf>]) -> Vec<CycleF
                 .take(3)
                 .collect::<Vec<_>>();
 
-            CycleFinding {
+            let mut finding = CycleFinding {
                 files: files.clone(),
                 cycle_class: classify_cycle_class(files, &layers, &dominant_relations),
                 layers,
                 dominant_relations,
                 edge_count: component_edges.len(),
-            }
+                fingerprint: String::new(),
+            };
+            finding.fingerprint = cycle_fingerprint(&finding);
+            finding
         })
         .collect()
 }
@@ -365,13 +501,15 @@ fn find_bottlenecks(graph: &DiGraph<PathBuf, ()>, top_n: usize) -> Vec<Bottlenec
         .into_iter()
         .filter_map(|(index, score)| {
             (score > 0.0).then(|| {
-                graph
-                    .node_weight(index)
-                    .cloned()
-                    .map(|file_path| BottleneckFile {
+                graph.node_weight(index).cloned().map(|file_path| {
+                    let mut finding = BottleneckFile {
                         file_path,
                         centrality_millis: (score * 1000.0).round() as u32,
-                    })
+                        fingerprint: String::new(),
+                    };
+                    finding.fingerprint = bottleneck_fingerprint(&finding.file_path);
+                    finding
+                })
             })?
         })
         .collect::<Vec<_>>();
@@ -472,9 +610,94 @@ fn density_millis(graph: &DiGraph<PathBuf, ()>) -> u32 {
     ((graph.edge_count() as f64 / possible_edges) * 1000.0).round() as u32
 }
 
+fn cycle_fingerprint(finding: &CycleFinding) -> String {
+    let file_parts = sorted_paths(&finding.files);
+    let mut layer_parts = finding
+        .layers
+        .iter()
+        .map(|layer| graph_layer_label(*layer))
+        .collect::<Vec<_>>();
+    layer_parts.sort();
+    let mut relation_parts = finding
+        .dominant_relations
+        .iter()
+        .map(|relation| relation_kind_label(*relation))
+        .collect::<Vec<_>>();
+    relation_parts.sort();
+    let edge_count = finding.edge_count.to_string();
+    let mut parts = vec!["graph", "cycle", cycle_class_label(finding.cycle_class)];
+    parts.extend(file_parts.iter().map(String::as_str));
+    parts.extend(layer_parts);
+    parts.extend(relation_parts);
+    parts.push(edge_count.as_str());
+    stable_fingerprint(&parts)
+}
+
+fn architectural_smell_fingerprint(smell: &ArchitecturalSmell) -> String {
+    let kind = match smell.kind {
+        ArchitecturalSmellKind::HubLikeDependency => "hub-like-dependency",
+        ArchitecturalSmellKind::UnstableDependency => "unstable-dependency",
+    };
+    let mut related = smell.related_components.clone();
+    related.sort();
+    related.dedup();
+    let mut parts = vec!["graph", "smell", kind, smell.subject.as_str()];
+    parts.extend(related.iter().map(String::as_str));
+    stable_fingerprint(&parts)
+}
+
+fn bottleneck_fingerprint(path: &PathBuf) -> String {
+    stable_fingerprint(&["graph", "bottleneck", &normalized_path(path)])
+}
+
+fn cycle_class_label(cycle_class: CycleClass) -> &'static str {
+    match cycle_class {
+        CycleClass::Structural => "structural",
+        CycleClass::Runtime => "runtime",
+        CycleClass::Framework => "framework",
+        CycleClass::PolicyOverlay => "policy-overlay",
+        CycleClass::Mixed => "mixed",
+        CycleClass::ProbableArtifact => "probable-artifact",
+    }
+}
+
+fn graph_layer_label(layer: GraphLayer) -> &'static str {
+    match layer {
+        GraphLayer::Structural => "structural",
+        GraphLayer::Runtime => "runtime",
+        GraphLayer::Framework => "framework",
+        GraphLayer::PolicyOverlay => "policy-overlay",
+    }
+}
+
+fn relation_kind_label(kind: RelationKind) -> &'static str {
+    match kind {
+        RelationKind::Import => "import",
+        RelationKind::Call => "call",
+        RelationKind::Dispatch => "dispatch",
+        RelationKind::ContainerResolution => "container-resolution",
+        RelationKind::EventSubscribe => "event-subscribe",
+        RelationKind::EventPublish => "event-publish",
+        RelationKind::TypeUse => "type-use",
+        RelationKind::Extends => "extends",
+        RelationKind::Implements => "implements",
+        RelationKind::Overrides => "overrides",
+    }
+}
+
+fn sorted_paths(paths: &[PathBuf]) -> Vec<String> {
+    let mut parts = paths
+        .iter()
+        .map(|path| normalized_path(path))
+        .collect::<Vec<_>>();
+    parts.sort();
+    parts.dedup();
+    parts
+}
+
 #[cfg(test)]
 mod tests {
-    use super::analyze_semantic_graph;
+    use super::{analyze_semantic_graph, ArchitecturalSmellKind};
     use crate::graph::{
         EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, RelationKind, ResolutionTier,
         ResolvedEdge, SemanticGraph,
@@ -528,6 +751,53 @@ mod tests {
         assert!(modules.contains(&(String::from("domain"), 2, 0)));
         assert!(modules.contains(&(String::from("infra"), 1, 1)));
         assert_eq!(analysis.override_edges, 0);
+    }
+
+    #[test]
+    fn detects_hub_like_dependency_smells() {
+        let mut graph = SemanticGraph::default();
+        graph.add_resolved_edge(edge("domain/a.rs", "core/hub.rs", ReferenceKind::Import));
+        graph.add_resolved_edge(edge("infra/b.rs", "core/hub.rs", ReferenceKind::Import));
+        graph.add_resolved_edge(edge("ui/c.rs", "core/hub.rs", ReferenceKind::Call));
+        graph.add_resolved_edge(edge("core/hub.rs", "domain/a.rs", ReferenceKind::Call));
+        graph.add_resolved_edge(edge("core/hub.rs", "infra/b.rs", ReferenceKind::Call));
+        graph.add_resolved_edge(edge("core/hub.rs", "ui/c.rs", ReferenceKind::Import));
+
+        let analysis = analyze_semantic_graph(&graph);
+
+        assert!(analysis.architectural_smells.iter().any(|smell| {
+            smell.kind == ArchitecturalSmellKind::HubLikeDependency && smell.subject == "core"
+        }));
+    }
+
+    #[test]
+    fn detects_unstable_dependency_smells() {
+        let mut graph = SemanticGraph::default();
+        graph.add_resolved_edge(edge(
+            "app/main.rs",
+            "domain/service.rs",
+            ReferenceKind::Import,
+        ));
+        graph.add_resolved_edge(edge(
+            "infra/cache.rs",
+            "domain/service.rs",
+            ReferenceKind::Import,
+        ));
+        graph.add_resolved_edge(edge(
+            "domain/service.rs",
+            "ui/panel.rs",
+            ReferenceKind::Import,
+        ));
+        graph.add_resolved_edge(edge("ui/panel.rs", "infra/cache.rs", ReferenceKind::Call));
+        graph.add_resolved_edge(edge("ui/panel.rs", "app/main.rs", ReferenceKind::Call));
+
+        let analysis = analyze_semantic_graph(&graph);
+
+        assert!(analysis.architectural_smells.iter().any(|smell| {
+            smell.kind == ArchitecturalSmellKind::UnstableDependency
+                && smell.subject == "domain"
+                && smell.related_components == vec![String::from("ui")]
+        }));
     }
 
     #[test]

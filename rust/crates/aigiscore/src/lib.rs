@@ -1,8 +1,11 @@
 pub mod artifacts;
+pub mod assessment;
 pub mod cli;
+pub mod contracts;
 pub mod detectors;
 pub mod external;
 pub mod graph;
+pub mod identity;
 pub mod ingestion;
 pub mod kuzu_index;
 pub mod mcp;
@@ -11,4 +14,5 @@ pub mod plugins;
 pub mod policy;
 pub mod resolve;
 pub mod review;
+pub mod security;
 pub mod surface;

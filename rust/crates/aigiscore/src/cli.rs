@@ -1,8 +1,13 @@
 use crate::artifacts::{
     default_output_dir, write_architecture_surface_artifact, write_dependency_graph_artifact,
     write_evidence_graph_artifact, write_project_analysis_artifacts, write_semantic_graph_artifact,
-    ArtifactPaths,
+    ArtifactPaths, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
+    ARCHITECTURE_SURFACE_FILE, CONTRACT_INVENTORY_FILE, CONVERGENCE_HISTORY_FILE,
+    DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE,
+    EVIDENCE_GRAPH_FILE, EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE,
+    SEMANTIC_GRAPH_FILE,
 };
+use crate::assessment::build_architectural_assessment;
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
     analyze_project, analyze_rust_project, build_semantic_graph_project, PhaseTiming,
@@ -11,9 +16,14 @@ use crate::ingestion::pipeline::{
 use crate::ingestion::scan::ScanConfig;
 use crate::kuzu_index::{default_kuzu_path, query_kuzu, write_semantic_graph_kuzu_artifact};
 use crate::mcp::run_stdio_server;
+use crate::plugins::built_in_runtime_plugins;
+use crate::policy::tune::{
+    load_or_build_review_surface, suggest_policy_patch, write_policy_suggestion,
+};
 use serde::Serialize;
-use serde_json::{Map as JsonMap, Value as JsonValue};
-use std::path::PathBuf;
+use serde_json::{json, Map as JsonMap, Value as JsonValue};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub fn run_with_default_stack() -> i32 {
     const STACK_SIZE_BYTES: usize = 256 * 1024 * 1024;
@@ -131,6 +141,15 @@ where
             let (path, query, output_dir) = parse_path_query_and_output_dir(args);
             run_cypher_command(path, query, output_dir)
         }
+        "info" => {
+            let (path, output_dir) = parse_path_and_output_dir_only(args);
+            run_info_command(path, output_dir)
+        }
+        "plugins" => run_plugins_command(),
+        "tune" => {
+            let (path, output_dir) = parse_path_and_output_dir_only(args);
+            run_tune_command(path, output_dir)
+        }
         "version" | "--version" | "-V" => {
             println!("aigiscode {}", env!("CARGO_PKG_VERSION"));
             0
@@ -182,13 +201,17 @@ struct AnalyzeArtifactOutput {
     semantic_graph: PathBuf,
     dependency_graph: PathBuf,
     evidence_graph: PathBuf,
+    contract_inventory: PathBuf,
     kuzu_graph: Option<PathBuf>,
     deterministic_findings: PathBuf,
     external_analysis: PathBuf,
     architecture_surface: PathBuf,
     review_surface: PathBuf,
+    convergence_history: PathBuf,
+    guard_decision: PathBuf,
     agent_handoff: PathBuf,
     aigiscode_report: PathBuf,
+    aigiscode_report_markdown: PathBuf,
 }
 
 #[derive(Debug, Serialize)]
@@ -201,6 +224,17 @@ struct CypherCommandOutput {
 }
 
 #[derive(Debug, Serialize)]
+struct PluginsCommandOutput {
+    built_in_runtime_plugins: Vec<PluginCatalogEntry>,
+}
+
+#[derive(Debug, Serialize)]
+struct PluginCatalogEntry {
+    id: String,
+    description: String,
+}
+
+#[derive(Debug, Serialize)]
 struct AnalyzeCommandSummary {
     scanned_files: usize,
     analyzed_files: usize,
@@ -209,10 +243,60 @@ struct AnalyzeCommandSummary {
     resolved_edges: usize,
     strong_cycle_count: usize,
     total_cycle_count: usize,
+    architectural_smell_count: usize,
+    warning_heavy_hotspot_count: usize,
+    split_identity_model_count: usize,
+    compatibility_scar_count: usize,
+    duplicate_mechanism_count: usize,
     dead_code_count: usize,
     hardwiring_count: usize,
+    security_finding_count: usize,
     external_tool_count: usize,
     external_finding_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct InfoArtifactPresence {
+    deterministic_analysis: bool,
+    semantic_graph: bool,
+    dependency_graph: bool,
+    evidence_graph: bool,
+    contract_inventory: bool,
+    deterministic_findings: bool,
+    external_analysis: bool,
+    architecture_surface: bool,
+    review_surface: bool,
+    convergence_history: bool,
+    guard_decision: bool,
+    agent_handoff: bool,
+    aigiscode_report: bool,
+    aigiscode_report_markdown: bool,
+    kuzu_graph: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct TuneCommandOutput {
+    root: PathBuf,
+    suggested_policy_path: PathBuf,
+    suggested_policy: JsonValue,
+    suggestions: Vec<TuneSuggestionOutput>,
+    summary: TuneCommandSummary,
+}
+
+#[derive(Debug, Serialize)]
+struct TuneSuggestionOutput {
+    field: String,
+    value: JsonValue,
+    reason: String,
+}
+
+#[derive(Debug, Serialize)]
+struct TuneCommandSummary {
+    visible_findings: usize,
+    accepted_by_policy: usize,
+    suppressed_by_rule: usize,
+    runtime_entry_candidates: usize,
+    repeated_literal_values: usize,
 }
 
 fn parse_path_and_options<I>(args: I) -> (PathBuf, ArtifactOptions)
@@ -333,6 +417,46 @@ where
     (path, query, output_dir)
 }
 
+fn parse_path_and_output_dir_only<I>(args: I) -> (PathBuf, Option<PathBuf>)
+where
+    I: IntoIterator<Item = String>,
+{
+    let mut path: Option<PathBuf> = None;
+    let mut output_dir: Option<PathBuf> = None;
+    let mut args = args.into_iter();
+
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--output-dir" => {
+                let Some(dir) = args.next() else {
+                    eprintln!("missing value for --output-dir");
+                    print_usage_and_exit();
+                };
+                output_dir = Some(PathBuf::from(dir));
+            }
+            "--help" | "-h" => print_usage_and_exit(),
+            value if value.starts_with('-') => {
+                eprintln!("unknown option: {value}");
+                print_usage_and_exit();
+            }
+            value => {
+                if path.is_some() {
+                    eprintln!("unexpected argument: {value}");
+                    print_usage_and_exit();
+                }
+                path = Some(PathBuf::from(value));
+            }
+        }
+    }
+
+    let Some(path) = path else {
+        eprintln!("missing repository path");
+        print_usage_and_exit();
+    };
+
+    (path, output_dir)
+}
+
 fn print_usage_and_exit() -> ! {
     eprintln!(
         "usage: aigiscode <command> <path> [--output-dir <dir>] [--no-write] [--external-tool <name>]\n\
@@ -340,15 +464,18 @@ fn print_usage_and_exit() -> ! {
          analyze       run full deterministic analysis and write native artifacts\n\
           report        compatibility alias for analyze that also writes aigiscode-report.json\n\
          analyze-rust  compatibility alias for analyze\n\
-          graph         build and optionally write semantic-graph.json, dependency-graph.json, and evidence-graph.json without running detector/report phases\n\
+         graph         build and optionally write semantic-graph.json, dependency-graph.json, and evidence-graph.json without running detector/report phases\n\
           cypher        materialize/query the optional Kuzu graph index for code understanding\n\
+          info          inspect existing Rust-native artifact state for one repository\n\
+          plugins       list built-in runtime/framework overlay plugins\n\
+          tune          suggest a narrow policy patch from current analysis signals\n\
           surface       emit architecture surface JSON and write architecture-surface.json\n\
           mcp           start the native Rust stdio MCP server for one repository\n\
           version       print CLI version\n\
          graph options:\n\
           --kuzu                    materialize the optional Kuzu graph artifact beside JSON output\n\
          external tools:\n\
-          --external-tool <name>   repeatable; supported: ruff, gitleaks, pip-audit, osv-scanner, composer-audit, npm-audit, cargo-deny, cargo-clippy\n\
+          --external-tool <name>   repeatable; supported: opengrep, trivy, grype, ruff, gitleaks, pip-audit, osv-scanner, composer-audit, npm-audit, cargo-deny, cargo-clippy\n\
           --external-tools <csv>   comma-separated alias; use 'all' to run every supported adapter"
     );
     std::process::exit(2);
@@ -367,13 +494,17 @@ fn build_analysis_command_output(
             semantic_graph: paths.semantic_graph.clone(),
             dependency_graph: paths.dependency_graph.clone(),
             evidence_graph: paths.evidence_graph.clone(),
+            contract_inventory: paths.contract_inventory.clone(),
             kuzu_graph: kuzu_graph.clone(),
             deterministic_findings: paths.deterministic_findings.clone(),
             external_analysis: paths.external_analysis.clone(),
             architecture_surface: paths.architecture_surface.clone(),
             review_surface: paths.review_surface.clone(),
+            convergence_history: paths.convergence_history.clone(),
+            guard_decision: paths.guard_decision.clone(),
             agent_handoff: paths.agent_handoff.clone(),
             aigiscode_report: paths.aigiscode_report.clone(),
+            aigiscode_report_markdown: paths.aigiscode_report_markdown.clone(),
         }),
         summary: AnalyzeCommandSummary {
             scanned_files: result.scan.files.len(),
@@ -383,8 +514,22 @@ fn build_analysis_command_output(
             resolved_edges: result.semantic_graph.resolved_edges.len(),
             strong_cycle_count: result.graph_analysis.strong_circular_dependencies.len(),
             total_cycle_count: result.graph_analysis.circular_dependencies.len(),
+            architectural_smell_count: result.graph_analysis.architectural_smells.len(),
+            warning_heavy_hotspot_count: result
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::WarningHeavyHotspot),
+            split_identity_model_count: result
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::SplitIdentityModel),
+            compatibility_scar_count: result
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::CompatibilityScar),
+            duplicate_mechanism_count: result
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::DuplicateMechanism),
             dead_code_count: result.dead_code.findings.len(),
             hardwiring_count: result.hardwiring.findings.len(),
+            security_finding_count: result.security_analysis.findings.len(),
             external_tool_count: result.external_analysis.tool_runs.len(),
             external_finding_count: result.external_analysis.findings.len(),
         },
@@ -412,6 +557,13 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
                 {
                     Ok(external_analysis) => {
                         result.external_analysis = external_analysis;
+                        result.architectural_assessment = build_architectural_assessment(
+                            &result.graph_analysis,
+                            &result.dead_code,
+                            &result.hardwiring,
+                            &result.external_analysis,
+                            &result.parsed_sources,
+                        );
                     }
                     Err(error) => {
                         eprintln!("{error}");
@@ -603,5 +755,339 @@ fn run_cypher_command(path: PathBuf, query: String, output_dir: Option<PathBuf>)
             eprintln!("{error}");
             1
         }
+    }
+}
+
+fn run_info_command(path: PathBuf, output_dir: Option<PathBuf>) -> i32 {
+    match build_info_command_output(&path, output_dir.as_deref()) {
+        Ok(output) => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&output).expect("failed to serialize info output")
+            );
+            0
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+fn run_plugins_command() -> i32 {
+    let output = build_plugins_command_output();
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&output).expect("failed to serialize plugins output")
+    );
+    0
+}
+
+fn run_tune_command(path: PathBuf, output_dir: Option<PathBuf>) -> i32 {
+    match analyze_project(&path, &ScanConfig::default()) {
+        Ok(analysis) => match load_or_build_review_surface(&analysis) {
+            Ok(review_surface) => {
+                let suggestion = suggest_policy_patch(&analysis, &review_surface);
+                let suggested_policy_path =
+                    match write_policy_suggestion(&suggestion, output_dir.as_deref()) {
+                        Ok(path) => path,
+                        Err(error) => {
+                            eprintln!("{error}");
+                            return 1;
+                        }
+                    };
+                let output = TuneCommandOutput {
+                    root: analysis.root.clone(),
+                    suggested_policy_path,
+                    suggested_policy: suggestion.suggested_policy.clone(),
+                    suggestions: suggestion
+                        .suggestions
+                        .iter()
+                        .map(|suggestion| TuneSuggestionOutput {
+                            field: suggestion.field.clone(),
+                            value: suggestion.value.clone(),
+                            reason: suggestion.reason.clone(),
+                        })
+                        .collect(),
+                    summary: TuneCommandSummary {
+                        visible_findings: suggestion.summary.visible_findings,
+                        accepted_by_policy: suggestion.summary.accepted_by_policy,
+                        suppressed_by_rule: suggestion.summary.suppressed_by_rule,
+                        runtime_entry_candidates: suggestion.summary.runtime_entry_candidates,
+                        repeated_literal_values: suggestion.summary.repeated_literal_values,
+                    },
+                };
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&output).expect("failed to serialize tune output")
+                );
+                0
+            }
+            Err(error) => {
+                eprintln!("{error}");
+                1
+            }
+        },
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+fn build_plugins_command_output() -> PluginsCommandOutput {
+    PluginsCommandOutput {
+        built_in_runtime_plugins: built_in_runtime_plugins()
+            .iter()
+            .map(|plugin| PluginCatalogEntry {
+                id: String::from(plugin.id),
+                description: String::from(plugin.description),
+            })
+            .collect(),
+    }
+}
+
+fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<JsonValue, String> {
+    let artifact_paths = expected_artifact_paths(root, output_dir);
+    let kuzu_graph = default_kuzu_path(root, output_dir);
+    let report = read_json_if_exists(&artifact_paths.aigiscode_report)?;
+    let surface = read_json_if_exists(&artifact_paths.architecture_surface)?;
+    let contract_inventory = read_json_if_exists(&artifact_paths.contract_inventory)?;
+    let convergence_history = read_json_if_exists(&artifact_paths.convergence_history)?;
+    let guard_decision = read_json_if_exists(&artifact_paths.guard_decision)?;
+
+    if report.is_none()
+        && surface.is_none()
+        && contract_inventory.is_none()
+        && guard_decision.is_none()
+    {
+        return Err(format!(
+            "no analysis artifacts found under {}; run `aigiscode analyze {}` first",
+            artifact_paths.output_dir.display(),
+            root.display()
+        ));
+    }
+
+    let hotspots = surface
+        .as_ref()
+        .and_then(|payload| payload.get("hotspots"))
+        .and_then(|value| value.as_array())
+        .map(|items| JsonValue::Array(items.iter().take(10).cloned().collect()))
+        .unwrap_or(JsonValue::Array(Vec::new()));
+
+    let output = json!({
+        "root": root,
+        "output_dir": artifact_paths.output_dir,
+        "artifacts": InfoArtifactPresence {
+            deterministic_analysis: artifact_paths.deterministic_analysis.exists(),
+            semantic_graph: artifact_paths.semantic_graph.exists(),
+            dependency_graph: artifact_paths.dependency_graph.exists(),
+            evidence_graph: artifact_paths.evidence_graph.exists(),
+            contract_inventory: artifact_paths.contract_inventory.exists(),
+            deterministic_findings: artifact_paths.deterministic_findings.exists(),
+            external_analysis: artifact_paths.external_analysis.exists(),
+            architecture_surface: artifact_paths.architecture_surface.exists(),
+            review_surface: artifact_paths.review_surface.exists(),
+            convergence_history: artifact_paths.convergence_history.exists(),
+            guard_decision: artifact_paths.guard_decision.exists(),
+            agent_handoff: artifact_paths.agent_handoff.exists(),
+            aigiscode_report: artifact_paths.aigiscode_report.exists(),
+            aigiscode_report_markdown: artifact_paths.aigiscode_report_markdown.exists(),
+            kuzu_graph: kuzu_graph.exists(),
+        },
+        "summary": report.as_ref().and_then(|payload| payload.get("summary")).cloned().unwrap_or(JsonValue::Null),
+        "feedback_loop": report.as_ref().and_then(|payload| payload.get("feedback_loop")).cloned().unwrap_or(JsonValue::Null),
+        "convergence": convergence_history.as_ref().and_then(|payload| payload.get("summary")).cloned().unwrap_or(JsonValue::Null),
+        "guard_decision": guard_decision.unwrap_or(JsonValue::Null),
+        "convergence_attention": convergence_history.as_ref().map(|payload| {
+            json!({
+                "attention_items_count": payload
+                    .get("attention_items")
+                    .and_then(|value| value.as_array())
+                    .map(|items| items.len())
+                    .unwrap_or(0),
+                "required_investigation_files": payload
+                    .get("required_investigation_files")
+                    .cloned()
+                    .unwrap_or(JsonValue::Array(Vec::new())),
+                "required_radius": payload
+                    .get("required_radius")
+                    .cloned()
+                    .unwrap_or(JsonValue::Null),
+            })
+        }).unwrap_or(JsonValue::Null),
+        "contract_inventory": contract_inventory.as_ref().map(|payload| {
+            payload.get("summary").cloned().unwrap_or(JsonValue::Null)
+        }).unwrap_or_else(|| {
+            report.as_ref()
+                .and_then(|payload| payload.get("contract_inventory"))
+                .and_then(|value| value.get("summary"))
+                .cloned()
+                .unwrap_or(JsonValue::Null)
+        }),
+        "languages": surface.as_ref().and_then(|payload| payload.get("languages")).cloned().unwrap_or(JsonValue::Array(Vec::new())),
+        "top_hotspots": hotspots,
+    });
+    Ok(output)
+}
+
+fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPaths {
+    let output_dir = output_dir
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| default_output_dir(root));
+    ArtifactPaths {
+        output_dir: output_dir.clone(),
+        deterministic_analysis: output_dir.join(DETERMINISTIC_ANALYSIS_FILE),
+        semantic_graph: output_dir.join(SEMANTIC_GRAPH_FILE),
+        dependency_graph: output_dir.join(DEPENDENCY_GRAPH_FILE),
+        evidence_graph: output_dir.join(EVIDENCE_GRAPH_FILE),
+        contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
+        deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
+        external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
+        architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
+        review_surface: output_dir.join(REVIEW_SURFACE_FILE),
+        convergence_history: output_dir.join(CONVERGENCE_HISTORY_FILE),
+        guard_decision: output_dir.join(GUARD_DECISION_FILE),
+        agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
+        aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
+        aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
+    }
+}
+
+fn read_json_if_exists(path: &Path) -> Result<Option<JsonValue>, String> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let payload =
+        fs::read(path).map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    serde_json::from_slice(&payload)
+        .map(Some)
+        .map_err(|error| format!("failed to parse {}: {error}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_info_command_output, build_plugins_command_output, run, run_tune_command};
+    use crate::artifacts::write_project_analysis_artifacts;
+    use crate::ingestion::pipeline::analyze_project;
+    use crate::ingestion::scan::ScanConfig;
+    use serde_json::Value;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn plugins_command_lists_built_in_runtime_plugins() {
+        let output = build_plugins_command_output();
+        assert!(output
+            .built_in_runtime_plugins
+            .iter()
+            .any(|plugin| plugin.id == "queue_dispatch"));
+        assert!(output
+            .built_in_runtime_plugins
+            .iter()
+            .any(|plugin| plugin.id == "laravel_container"));
+        assert!(output
+            .built_in_runtime_plugins
+            .iter()
+            .any(|plugin| plugin.id == "wordpress_hooks"));
+    }
+
+    #[test]
+    fn info_command_reads_existing_artifact_state() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("routes")).unwrap();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("routes/web.php"),
+            br#"<?php Route::get('/users', 'UserController@index'); add_action('init', 'boot');"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/runtime.ts"),
+            br#"type Status = 'draft' | 'published'; const mode = process.env.APP_MODE;"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let output_dir = fixture.join(".aigiscode-test");
+        write_project_analysis_artifacts(&analysis, Some(&output_dir)).unwrap();
+
+        let output = build_info_command_output(&fixture, Some(&output_dir)).unwrap();
+        let summary = output.get("summary").and_then(Value::as_object).unwrap();
+        let contract_summary = output
+            .get("contract_inventory")
+            .and_then(Value::as_object)
+            .unwrap();
+
+        assert!(summary.get("scanned_files").is_some());
+        assert_eq!(contract_summary["routes"]["unique_values"], Value::from(1));
+        assert_eq!(output["artifacts"]["contract_inventory"], Value::Bool(true));
+    }
+
+    #[test]
+    fn tune_command_writes_suggested_policy_patch() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/app.ts"), br#"export const ready = true;"#).unwrap();
+        fs::write(
+            fixture.join("src/index.ts"),
+            br#"import { ready } from "./app";
+if (!ready) { throw new Error("boot failed"); }"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/main.ts"),
+            br#"const a = "alpha"; const b = "alpha";
+const c = "beta"; const d = "beta";
+const e = "gamma"; const f = "gamma";
+const g = "delta"; const h = "delta";
+const i = "epsilon"; const j = "epsilon";
+const k = "zeta"; const l = "zeta";
+const m = "lambda"; const n = "lambda";
+const o = "theta"; const p = "theta";
+const q = "iota"; const r = "iota";
+const s = "kappa"; const t = "kappa";"#,
+        )
+        .unwrap();
+
+        let output_dir = fixture.join(".aigiscode-out");
+        assert_eq!(
+            run_tune_command(fixture.clone(), Some(output_dir.clone())),
+            0
+        );
+        let payload: Value = serde_json::from_str(
+            &fs::read_to_string(output_dir.join("policy.suggested.json")).unwrap(),
+        )
+        .unwrap();
+        assert!(payload["graph"]["orphan_entry_patterns"].is_array());
+        assert_eq!(
+            payload["hardwiring"]["repeated_literal_min_occurrences"],
+            Value::from(3)
+        );
+    }
+
+    #[test]
+    fn command_dispatch_recognizes_plugins_and_tune() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"fn main() { let _ = "shared"; let _ = "shared"; }"#,
+        )
+        .unwrap();
+
+        assert_eq!(run(["plugins"]), 0);
+        assert_eq!(run(["tune", fixture.to_string_lossy().as_ref()]), 0);
+    }
+
+    fn create_fixture() -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock before epoch")
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!("aigiscore-cli-{nonce}"));
+        fs::create_dir_all(&path).unwrap();
+        path
     }
 }

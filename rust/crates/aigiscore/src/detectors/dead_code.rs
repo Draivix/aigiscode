@@ -1,4 +1,5 @@
 use crate::graph::{ReferenceKind, SemanticGraph, SymbolKind, Visibility};
+use crate::identity::{normalized_path, stable_fingerprint};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -16,6 +17,8 @@ pub struct DeadCodeFinding {
     pub file_path: PathBuf,
     pub name: String,
     pub line: usize,
+    #[serde(default)]
+    pub fingerprint: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -46,6 +49,11 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
             file_path: symbol.file_path.clone(),
             name: symbol.name.clone(),
             line: symbol.start_line,
+            fingerprint: dead_code_fingerprint(
+                DeadCodeCategory::UnusedPrivateFunction,
+                &symbol.file_path,
+                &symbol.name,
+            ),
         })
         .collect::<Vec<_>>();
 
@@ -179,6 +187,14 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
             file_path: reference.file_path.clone(),
             name: binding_name,
             line: reference.line,
+            fingerprint: dead_code_fingerprint(
+                DeadCodeCategory::UnusedImport,
+                &reference.file_path,
+                &reference
+                    .binding_name
+                    .clone()
+                    .unwrap_or_else(|| leaf_symbol_name(&reference.target_name)),
+            ),
         });
     }
 
@@ -190,6 +206,22 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
     });
 
     DeadCodeResult { findings }
+}
+
+fn dead_code_fingerprint(category: DeadCodeCategory, file_path: &PathBuf, name: &str) -> String {
+    stable_fingerprint(&[
+        "dead-code",
+        dead_code_category_label(category),
+        &normalized_path(file_path),
+        name,
+    ])
+}
+
+fn dead_code_category_label(category: DeadCodeCategory) -> &'static str {
+    match category {
+        DeadCodeCategory::UnusedPrivateFunction => "unused-private-function",
+        DeadCodeCategory::UnusedImport => "unused-import",
+    }
 }
 
 fn leaf_symbol_name(name: &str) -> String {

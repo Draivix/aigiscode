@@ -27,6 +27,9 @@ cargo run --bin aigiscode -- analyze .
 aigiscode analyze <path>      Run deterministic analysis and write native artifacts
 aigiscode report <path>       Compatibility alias that also writes aigiscode-report.json
 aigiscode analyze-rust <path> Compatibility alias for analyze
+aigiscode info <path>         Inspect existing Rust-native artifact state
+aigiscode plugins             List built-in runtime/framework overlay plugins
+aigiscode tune <path>         Suggest a conservative policy patch from current analysis signals
 aigiscode surface <path>      Emit architecture surface JSON
 aigiscode mcp <path>          Start the native Rust stdio MCP server for one repository
 aigiscode version             Print CLI version
@@ -46,12 +49,16 @@ external adapters alongside deterministic analysis.
 .aigiscode/semantic-graph.json
 .aigiscode/dependency-graph.json
 .aigiscode/evidence-graph.json
+.aigiscode/contract-inventory.json
 .aigiscode/deterministic-findings.json
 .aigiscode/external-analysis.json
 .aigiscode/architecture-surface.json
 .aigiscode/review-surface.json
+.aigiscode/convergence-history.json
+.aigiscode/guard-decision.json
 .aigiscode/aigiscode-handoff.json
 .aigiscode/aigiscode-report.json
+.aigiscode/aigiscode-report.md
 ```
 
 When external tools are enabled, raw scanner artifacts are archived under:
@@ -75,6 +82,7 @@ native artifact family.
 - Bottlenecks and orphan files
 - Dead code candidates
 - Hardwired values
+- Declared routes, hooks, env keys, config keys, and symbolic runtime contracts
 - Architecture-surface summaries for UI and agent workflows
 
 ## Policy And Rules

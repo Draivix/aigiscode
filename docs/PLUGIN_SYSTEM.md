@@ -43,6 +43,7 @@ Plugin-derived behavior is visible through the normal Rust artifact family:
 - `.aigiscode/semantic-graph.json`
 - `.aigiscode/dependency-graph.json`
 - `.aigiscode/evidence-graph.json`
+- `.aigiscode/contract-inventory.json`
 - `.aigiscode/architecture-surface.json`
 
 Plugin-produced edges must stay typed, layered, and explainable. New plugin

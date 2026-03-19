@@ -603,12 +603,13 @@ fn aggregate_dependency_edges(
             &edge.target_file_path,
             symbol_lookup,
         );
+        let (type_name, relation_kind) = dependency_relation_names(edge, symbol_lookup);
         let key = DependencyEdgeKey {
             from: from.clone(),
             to: to.clone(),
-            type_name: relation_type_name(edge.relation_kind),
+            type_name: type_name.clone(),
             reference_kind: reference_kind_name(edge.kind),
-            relation_kind: relation_kind_name(edge.relation_kind),
+            relation_kind: relation_kind.clone(),
             layer: layer_name(edge.layer),
         };
         let aggregate = aggregated
@@ -616,9 +617,9 @@ fn aggregate_dependency_edges(
             .or_insert_with(|| DependencyEdgeAggregate {
                 from,
                 to,
-                type_name: key.type_name.clone(),
+                type_name,
                 reference_kind: key.reference_kind.clone(),
-                relation_kind: key.relation_kind.clone(),
+                relation_kind,
                 layer: key.layer.clone(),
                 strength: strength_name(edge.strength),
                 origin: origin_name(edge.origin),
@@ -658,6 +659,34 @@ fn aggregate_dependency_edges(
             .then(left.type_name.cmp(&right.type_name))
     });
     values
+}
+
+fn dependency_relation_names(
+    edge: &crate::graph::ResolvedEdge,
+    symbol_lookup: &HashMap<String, (SymbolKind, PathBuf)>,
+) -> (String, String) {
+    let target_kind = symbol_lookup
+        .get(&edge.target_symbol_id)
+        .map(|(kind, _)| *kind);
+    if edge.relation_kind == RelationKind::Call
+        && edge.kind == ReferenceKind::Call
+        && matches!(target_kind, Some(SymbolKind::Class | SymbolKind::Struct))
+    {
+        return (String::from("INSTANTIATE"), String::from("instantiate"));
+    }
+    if edge.relation_kind == RelationKind::Call
+        && edge.kind == ReferenceKind::Call
+        && edge.source_symbol_id.is_none()
+    {
+        return (
+            String::from("TOP_LEVEL_CALL"),
+            String::from("top_level_call"),
+        );
+    }
+    (
+        relation_type_name(edge.relation_kind),
+        relation_kind_name(edge.relation_kind),
+    )
 }
 
 fn export_node_id(
@@ -914,13 +943,60 @@ mod tests {
         assert!(evidence_graph.edges.len() >= dependency_graph.edges.len());
     }
 
+    #[test]
+    fn dependency_view_projects_constructor_calls_as_instantiate_edges() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/index.php"),
+            "<?php\nclass User {}\nfunction build_user(): User { return new User(); }\n",
+        )
+        .unwrap();
+
+        let project = build_semantic_graph_project(&fixture, &ScanConfig::default()).unwrap();
+        let dependency_graph = build_dependency_graph_artifact(&project.semantic_graph);
+        let evidence_graph = build_evidence_graph_artifact(&project.semantic_graph);
+
+        assert!(dependency_graph
+            .edges
+            .iter()
+            .any(|edge| edge.type_name == "INSTANTIATE" && edge.relation_kind == "instantiate"));
+        assert!(evidence_graph
+            .edges
+            .iter()
+            .any(|edge| edge.type_name == "CALL" && edge.relation_kind == "call"));
+    }
+
+    #[test]
+    fn dependency_view_projects_file_scope_calls_as_top_level_edges() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/index.php"),
+            "<?php\nhelper();\nfunction helper() {}\n",
+        )
+        .unwrap();
+
+        let project = build_semantic_graph_project(&fixture, &ScanConfig::default()).unwrap();
+        let dependency_graph = build_dependency_graph_artifact(&project.semantic_graph);
+        let evidence_graph = build_evidence_graph_artifact(&project.semantic_graph);
+
+        assert!(dependency_graph.edges.iter().any(|edge| {
+            edge.type_name == "TOP_LEVEL_CALL" && edge.relation_kind == "top_level_call"
+        }));
+        assert!(evidence_graph
+            .edges
+            .iter()
+            .any(|edge| edge.type_name == "CALL" && edge.relation_kind == "call"));
+    }
+
     fn create_fixture() -> PathBuf {
-        let millis = SystemTime::now()
+        let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
-            .as_millis();
+            .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "aigiscode-kuzu-test-{millis}-{}",
+            "aigiscode-kuzu-test-{nanos}-{}",
             std::process::id()
         ));
         let _ = fs::remove_dir_all(&path);
