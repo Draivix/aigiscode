@@ -1,7 +1,11 @@
+use crate::semantic_models::{
+    scan_contract_semantic_model_packs, semantic_model_pack_descriptor,
+    SemanticModelContractCategory, SemanticModelPackLayer,
+};
 use regex::Regex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -11,6 +15,8 @@ const MAX_ITEMS_PER_CATEGORY: usize = 50;
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ContractInventory {
     pub summary: ContractInventorySummary,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_model_packs: Vec<ContractSemanticModelPackUsage>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub routes: Vec<ContractInventoryItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -93,6 +99,15 @@ pub struct ContractLookup {
     pub config_keys: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ContractSemanticModelPackUsage {
+    pub id: String,
+    pub description: String,
+    pub layer: SemanticModelPackLayer,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub contract_categories: Vec<String>,
+}
+
 impl ContractLookup {
     pub fn contains_literal(&self, value: &str) -> bool {
         [
@@ -122,6 +137,7 @@ enum ContractLanguage {
 
 #[derive(Debug, Default)]
 struct ContractBuckets {
+    semantic_model_pack_ids: BTreeSet<&'static str>,
     routes: HashMap<String, ContractEntryAccumulator>,
     hooks: HashMap<String, ContractEntryAccumulator>,
     registered_keys: HashMap<String, ContractEntryAccumulator>,
@@ -158,7 +174,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
         scan_pattern_bucket(&mut buckets.env_keys, env_patterns(), path, content);
         scan_pattern_bucket(&mut buckets.config_keys, config_patterns(), path, content);
         scan_symbolic_literals(&mut buckets.symbolic_literals, path, content, language);
-        scan_language_specific_contracts(&mut buckets, path, content, language);
+        scan_semantic_model_contracts(&mut buckets, path, content);
     }
 
     ContractInventory {
@@ -170,6 +186,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
             env_keys: summarize_bucket(&buckets.env_keys),
             config_keys: summarize_bucket(&buckets.config_keys),
         },
+        semantic_model_packs: serialize_semantic_model_packs(&buckets.semantic_model_pack_ids),
         routes: serialize_bucket(&buckets.routes),
         hooks: serialize_bucket(&buckets.hooks),
         registered_keys: serialize_bucket(&buckets.registered_keys),
@@ -179,25 +196,31 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
     }
 }
 
-fn scan_language_specific_contracts(
-    buckets: &mut ContractBuckets,
-    path: &Path,
-    content: &str,
-    language: ContractLanguage,
-) {
-    match language {
-        ContractLanguage::Php => {
-            scan_php_hook_map_contracts(&mut buckets.hooks, path, content);
-            scan_wordpress_rest_route_contracts(&mut buckets.routes, path, content);
+fn scan_semantic_model_contracts(buckets: &mut ContractBuckets, path: &Path, content: &str) {
+    for pack in scan_contract_semantic_model_packs(path, content) {
+        register_semantic_model_pack(buckets, pack.pack_id);
+        for contract_match in pack.matches {
+            match contract_match.category {
+                SemanticModelContractCategory::Route => add_bucket_entry(
+                    &mut buckets.routes,
+                    &contract_match.value,
+                    path,
+                    contract_match.line,
+                ),
+                SemanticModelContractCategory::Hook => add_bucket_entry(
+                    &mut buckets.hooks,
+                    &contract_match.value,
+                    path,
+                    contract_match.line,
+                ),
+                SemanticModelContractCategory::ConfigKey => add_bucket_entry(
+                    &mut buckets.config_keys,
+                    &contract_match.value,
+                    path,
+                    contract_match.line,
+                ),
+            }
         }
-        ContractLanguage::Python => {
-            scan_python_signal_contracts(&mut buckets.hooks, path, content);
-        }
-        ContractLanguage::Ruby
-        | ContractLanguage::JavaScript
-        | ContractLanguage::TypeScript
-        | ContractLanguage::Vue
-        | ContractLanguage::Rust => {}
     }
 }
 
@@ -229,12 +252,32 @@ fn serialize_bucket(
     items
 }
 
+fn serialize_semantic_model_packs(
+    pack_ids: &BTreeSet<&'static str>,
+) -> Vec<ContractSemanticModelPackUsage> {
+    pack_ids
+        .iter()
+        .filter_map(|id| semantic_model_pack_descriptor(id))
+        .map(|descriptor| ContractSemanticModelPackUsage {
+            id: String::from(descriptor.id),
+            description: String::from(descriptor.description),
+            layer: descriptor.layer,
+            contract_categories: descriptor
+                .contract_categories
+                .iter()
+                .map(|value| String::from(*value))
+                .collect(),
+        })
+        .collect()
+}
+
 fn scan_pattern_bucket(
     bucket: &mut HashMap<String, ContractEntryAccumulator>,
     patterns: Vec<&Regex>,
     path: &Path,
     content: &str,
-) {
+) -> usize {
+    let mut hits = 0usize;
     for pattern in patterns {
         for captures in pattern.captures_iter(content) {
             let Some(value_match) = captures.name("value") else {
@@ -246,8 +289,10 @@ fn scan_pattern_bucket(
             }
             let line = line_for_offset(content, value_match.start());
             add_bucket_entry(bucket, value, path, line);
+            hits += 1;
         }
     }
+    hits
 }
 
 fn scan_symbolic_literals(
@@ -440,107 +485,8 @@ fn scan_multiline_type_unions(
     }
 }
 
-fn scan_python_signal_contracts(
-    bucket: &mut HashMap<String, ContractEntryAccumulator>,
-    path: &Path,
-    content: &str,
-) {
-    for pattern in python_signal_patterns() {
-        for captures in pattern.captures_iter(content) {
-            let Some(value_match) = captures.name("value") else {
-                continue;
-            };
-            let value = value_match.as_str().trim();
-            if value.is_empty() {
-                continue;
-            }
-            add_bucket_entry(
-                bucket,
-                value,
-                path,
-                line_for_offset(content, value_match.start()),
-            );
-        }
-    }
-}
-
-fn scan_php_hook_map_contracts(
-    bucket: &mut HashMap<String, ContractEntryAccumulator>,
-    path: &Path,
-    content: &str,
-) {
-    let normalized = path.to_string_lossy().replace('\\', "/").to_lowercase();
-    if !(normalized.ends_with(".hook.php") || normalized.ends_with(".hooks.php")) {
-        return;
-    }
-
-    for captures in php_hook_map_key_pattern().captures_iter(content) {
-        let Some(value_match) = captures.name("value") else {
-            continue;
-        };
-        let value = value_match.as_str().trim();
-        if value.is_empty() {
-            continue;
-        }
-        add_bucket_entry(
-            bucket,
-            value,
-            path,
-            line_for_offset(content, value_match.start()),
-        );
-    }
-}
-
-fn scan_wordpress_rest_route_contracts(
-    bucket: &mut HashMap<String, ContractEntryAccumulator>,
-    path: &Path,
-    content: &str,
-) {
-    let mut lines = content.lines().collect::<Vec<_>>();
-    if lines.is_empty() {
-        return;
-    }
-    if content.ends_with('\n') {
-        lines.push("");
-    }
-
-    for (index, line) in content.lines().enumerate() {
-        let trimmed = line.trim_start();
-        if trimmed.starts_with("//")
-            || trimmed.starts_with("/*")
-            || trimmed.starts_with('*')
-            || trimmed.starts_with("*/")
-            || !trimmed.contains("register_rest_route")
-        {
-            continue;
-        }
-
-        let end = (index + 4).min(lines.len());
-        let snippet = lines[index..end].join(" ");
-        let value = wordpress_rest_route_value_regex()
-            .captures(&snippet)
-            .map(|captures| {
-                format!(
-                    "/{}/{}",
-                    captures
-                        .name("namespace")
-                        .map(|value| value.as_str().trim_matches('/'))
-                        .unwrap_or("wp-json"),
-                    captures
-                        .name("route")
-                        .map(|value| value.as_str().trim_matches('/'))
-                        .unwrap_or("wordpress.rest_route")
-                )
-            })
-            .unwrap_or_else(|| String::from("wordpress.rest_route"));
-
-        let entry = bucket.entry(value).or_default();
-        entry.count += 1;
-        entry.locations.push(ContractLocation {
-            file_path: path.to_path_buf(),
-            line: index + 1,
-        });
-    }
+fn register_semantic_model_pack(buckets: &mut ContractBuckets, pack_id: &'static str) {
+    buckets.semantic_model_pack_ids.insert(pack_id);
 }
 
 fn line_for_offset(content: &str, offset: usize) -> usize {
@@ -618,10 +564,8 @@ fn stimulus_controller_identifier_for_path(path: &Path) -> Option<String> {
 }
 
 fn route_patterns(language: ContractLanguage) -> Vec<&'static Regex> {
-    static COMMON_PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
-    static PYTHON_PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
-
-    let mut patterns = COMMON_PATTERNS
+    static PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
+    let patterns = PATTERNS
         .get_or_init(|| {
             vec![
                 Regex::new(r#"\b(?:Route|Router)(?:::|->)(?:get|post|put|patch|delete|options|any|match|resource|apiResource|view|redirect|prefix|group)\s*\(\s*['"](?P<value>/[^'"]*)['"]"#).unwrap(),
@@ -630,23 +574,11 @@ fn route_patterns(language: ContractLanguage) -> Vec<&'static Regex> {
                 Regex::new(r#"\bmount\s+[A-Z][A-Za-z0-9_:]+\s*=>\s*['"](?P<value>/[^'"]*)['"]"#).unwrap(),
             ]
         })
-        .iter()
-        .collect::<Vec<_>>();
-
+        .iter();
     if matches!(language, ContractLanguage::Python) {
-        patterns.extend(
-            PYTHON_PATTERNS
-                .get_or_init(|| {
-                    vec![Regex::new(
-                        r#"\b(?:path|re_path)\s*\(\s*(?:r|fr|rf)?['"](?P<value>[^'"]+)['"]"#,
-                    )
-                    .unwrap()]
-                })
-                .iter(),
-        );
+        return Vec::new();
     }
-
-    patterns
+    patterns.collect()
 }
 
 fn hook_patterns() -> Vec<&'static Regex> {
@@ -706,9 +638,6 @@ fn config_patterns() -> Vec<&'static Regex> {
             vec![
                 Regex::new(r#"\bconfig\s*\(\s*['"](?P<value>[A-Za-z0-9_.:-]+)['"]"#).unwrap(),
                 Regex::new(r#"\b(?:get_option|update_option|add_option|delete_option|register_setting)\s*\(\s*['"](?P<value>[A-Za-z0-9_.:-]+)['"]"#).unwrap(),
-                Regex::new(r#"\bsettings\.(?P<value>[A-Z][A-Z0-9_]+)\b"#).unwrap(),
-                Regex::new(r#"\bgetattr\s*\(\s*settings\s*,\s*['"](?P<value>[A-Z][A-Z0-9_]+)['"]"#)
-                    .unwrap(),
             ]
         })
         .iter()
@@ -783,38 +712,6 @@ fn multiline_union_start_pattern() -> &'static Regex {
     static PATTERN: OnceLock<Regex> = OnceLock::new();
     PATTERN
         .get_or_init(|| Regex::new(r#"\b(?:export\s+)?type\s+[A-Za-z0-9_<>,\s]+\s*=\s*$"#).unwrap())
-}
-
-fn python_signal_patterns() -> Vec<&'static Regex> {
-    static PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
-    PATTERNS
-        .get_or_init(|| {
-            vec![
-                Regex::new(r#"(?m)^\s*(?P<value>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*Signal\s*\("#)
-                    .unwrap(),
-                Regex::new(r#"@receiver\s*\(\s*(?P<value>[A-Za-z_][A-Za-z0-9_.]*)"#).unwrap(),
-                Regex::new(r#"\b(?P<value>[A-Za-z_][A-Za-z0-9_.]*)\.connect\s*\("#).unwrap(),
-            ]
-        })
-        .iter()
-        .collect()
-}
-
-fn php_hook_map_key_pattern() -> &'static Regex {
-    static PATTERN: OnceLock<Regex> = OnceLock::new();
-    PATTERN.get_or_init(|| {
-        Regex::new(r#"['"](?P<value>(?:before|after|on)[A-Z][A-Za-z0-9_]*)['"]\s*=>\s*\["#).unwrap()
-    })
-}
-
-fn wordpress_rest_route_value_regex() -> &'static Regex {
-    static PATTERN: OnceLock<Regex> = OnceLock::new();
-    PATTERN.get_or_init(|| {
-        Regex::new(
-            r#"register_rest_route\s*\(\s*['"](?P<namespace>[^'"]+)['"]\s*,\s*['"](?P<route>[^'"]+)['"]"#,
-        )
-        .unwrap()
-    })
 }
 
 #[cfg(test)]
@@ -1027,6 +924,47 @@ return [
             .config_keys
             .iter()
             .any(|item| item.value == "DEFAULT_HASHING_ALGORITHM"));
+        assert!(inventory
+            .semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "django_routes"));
+        assert!(inventory
+            .semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "django_signals"));
+        assert!(inventory
+            .semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "django_settings"));
+        assert!(inventory
+            .semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "php_hook_maps"));
+    }
+
+    #[test]
+    fn tracks_wordpress_rest_route_semantic_model_pack_usage() {
+        let inventory = build_contract_inventory(&[(
+            PathBuf::from("wordpress/src/wp-includes/rest-api/endpoints/demo.php"),
+            String::from(
+                r#"
+add_action('rest_api_init', function () {
+    register_rest_route('wp/v2', '/widgets', [
+        'methods' => 'GET',
+    ]);
+});
+"#,
+            ),
+        )]);
+
+        assert!(inventory
+            .routes
+            .iter()
+            .any(|item| item.value == "/wp/v2/widgets"));
+        assert!(inventory
+            .semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "wordpress_rest_routes"));
     }
 
     #[test]

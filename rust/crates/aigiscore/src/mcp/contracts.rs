@@ -5,9 +5,14 @@ use crate::artifacts::{
     GuardDecisionArtifact, GuardDecisionPressure, GuardDecisionTrigger, GuardTriggerLevel,
     GuardVerdict, GuardianPacket,
 };
-use crate::contracts::{ContractCategorySummary, ContractInventory};
+use crate::contracts::{
+    ContractCategorySummary, ContractInventory, ContractSemanticModelPackUsage,
+};
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
+use crate::doctrine::{
+    load_doctrine_registry, DoctrineCategory, DoctrineDisposition, DoctrineLoadError,
+};
 use crate::external::ExternalFinding;
 use crate::graph::analysis::{BottleneckFile, CycleClass, CycleFinding};
 use crate::graph::{GraphLayer, RelationKind};
@@ -21,7 +26,51 @@ use crate::surface::{ArchitectureSurface, HotspotFile, LanguageCoverage};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use std::ops::Not;
 use std::path::{Path, PathBuf};
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct DoctrineRegistryOutput {
+    pub version: String,
+    pub clauses: Vec<DoctrineClauseOutput>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct DoctrineClauseOutput {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub category: String,
+    pub default_disposition: String,
+    pub preferred_mechanism: Option<String>,
+    pub guidance: Vec<String>,
+}
+
+impl DoctrineRegistryOutput {
+    pub fn load(root: &Path) -> Result<Self, DoctrineLoadError> {
+        Ok(Self::from_registry(&load_doctrine_registry(root)?))
+    }
+
+    fn from_registry(registry: &crate::doctrine::DoctrineRegistry) -> Self {
+        Self {
+            version: registry.version.clone(),
+            clauses: registry
+                .clauses
+                .iter()
+                .map(|clause| DoctrineClauseOutput {
+                    id: clause.id.clone(),
+                    title: clause.title.clone(),
+                    description: clause.description.clone(),
+                    category: doctrine_category_label(clause.category).to_string(),
+                    default_disposition: doctrine_disposition_label(clause.default_disposition)
+                        .to_string(),
+                    preferred_mechanism: clause.preferred_mechanism.clone(),
+                    guidance: clause.guidance.clone(),
+                })
+                .collect(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -142,6 +191,8 @@ pub struct GuardianPacketOutput {
     pub confidence_millis: u16,
     pub summary: String,
     pub target_files: Vec<String>,
+    pub primary_anchor: Option<EvidenceAnchorOutput>,
+    pub evidence_anchors: Vec<EvidenceAnchorOutput>,
     pub finding_ids: Vec<String>,
     pub context_labels: Vec<String>,
     pub provenance: Vec<String>,
@@ -176,6 +227,15 @@ impl GuardianPacketOutput {
             confidence_millis: packet.confidence_millis,
             summary: packet.summary.clone(),
             target_files: packet.target_files.clone(),
+            primary_anchor: packet
+                .primary_anchor
+                .as_ref()
+                .map(EvidenceAnchorOutput::from_anchor),
+            evidence_anchors: packet
+                .evidence_anchors
+                .iter()
+                .map(EvidenceAnchorOutput::from_anchor)
+                .collect(),
             finding_ids: packet.finding_ids.clone(),
             context_labels: packet.context_labels.clone(),
             provenance: packet.provenance.clone(),
@@ -249,6 +309,7 @@ pub struct ArtifactFileOutput {
     pub dependency_graph: String,
     pub evidence_graph: String,
     pub contract_inventory: String,
+    pub doctrine_registry: String,
     pub kuzu_graph: Option<String>,
     pub deterministic_findings: String,
     pub external_analysis: String,
@@ -270,6 +331,7 @@ impl ArtifactFileOutput {
             dependency_graph: display_path(&paths.dependency_graph),
             evidence_graph: display_path(&paths.evidence_graph),
             contract_inventory: display_path(&paths.contract_inventory),
+            doctrine_registry: display_path(&paths.doctrine_registry),
             kuzu_graph: kuzu_path.map(display_path),
             deterministic_findings: display_path(&paths.deterministic_findings),
             external_analysis: display_path(&paths.external_analysis),
@@ -367,6 +429,7 @@ pub struct GuardDecisionPressureOutput {
     pub compatibility_scar_regression: bool,
     pub duplicate_mechanism_regression: bool,
     pub sanctioned_path_bypass_regression: bool,
+    pub abstraction_sprawl_regression: bool,
 }
 
 impl GuardDecisionPressureOutput {
@@ -390,6 +453,7 @@ impl GuardDecisionPressureOutput {
             compatibility_scar_regression: pressure.compatibility_scar_regression,
             duplicate_mechanism_regression: pressure.duplicate_mechanism_regression,
             sanctioned_path_bypass_regression: pressure.sanctioned_path_bypass_regression,
+            abstraction_sprawl_regression: pressure.abstraction_sprawl_regression,
         }
     }
 }
@@ -477,6 +541,8 @@ impl ConvergenceOutput {
                 compatibility_scar_delta: 0,
                 duplicate_mechanism_delta: 0,
                 sanctioned_path_bypass_delta: 0,
+                hand_rolled_parsing_delta: 0,
+                abstraction_sprawl_delta: 0,
                 visible_finding_delta: 0,
             },
             contract_delta: ConvergenceContractDeltaOutput {
@@ -531,6 +597,8 @@ pub struct ConvergenceGraphDeltaOutput {
     pub compatibility_scar_delta: isize,
     pub duplicate_mechanism_delta: isize,
     pub sanctioned_path_bypass_delta: isize,
+    pub hand_rolled_parsing_delta: isize,
+    pub abstraction_sprawl_delta: isize,
     pub visible_finding_delta: isize,
 }
 
@@ -546,6 +614,8 @@ impl ConvergenceGraphDeltaOutput {
             compatibility_scar_delta: delta.compatibility_scar_delta,
             duplicate_mechanism_delta: delta.duplicate_mechanism_delta,
             sanctioned_path_bypass_delta: delta.sanctioned_path_bypass_delta,
+            hand_rolled_parsing_delta: delta.hand_rolled_parsing_delta,
+            abstraction_sprawl_delta: delta.abstraction_sprawl_delta,
             visible_finding_delta: delta.visible_finding_delta,
         }
     }
@@ -737,6 +807,8 @@ pub struct OverviewOutput {
     pub compatibility_scar_count: usize,
     pub duplicate_mechanism_count: usize,
     pub sanctioned_path_bypass_count: usize,
+    pub hand_rolled_parsing_count: usize,
+    pub abstraction_sprawl_count: usize,
     pub route_contract_count: usize,
     pub hook_contract_count: usize,
     pub registered_key_count: usize,
@@ -773,6 +845,8 @@ impl OverviewOutput {
             compatibility_scar_count: surface.overview.compatibility_scar_count,
             duplicate_mechanism_count: surface.overview.duplicate_mechanism_count,
             sanctioned_path_bypass_count: surface.overview.sanctioned_path_bypass_count,
+            hand_rolled_parsing_count: surface.overview.hand_rolled_parsing_count,
+            abstraction_sprawl_count: surface.overview.abstraction_sprawl_count,
             route_contract_count: surface.overview.route_contract_count,
             hook_contract_count: surface.overview.hook_contract_count,
             registered_key_count: surface.overview.registered_key_count,
@@ -786,6 +860,7 @@ impl OverviewOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ContractInventoryOutput {
     pub summary: ContractInventorySummaryOutput,
+    pub semantic_model_packs: Vec<ContractSemanticModelPackUsageOutput>,
     pub routes: Vec<ContractItemOutput>,
     pub hooks: Vec<ContractItemOutput>,
     pub registered_keys: Vec<ContractItemOutput>,
@@ -798,6 +873,11 @@ impl ContractInventoryOutput {
     pub(crate) fn from_inventory(inventory: &ContractInventory) -> Self {
         Self {
             summary: ContractInventorySummaryOutput::from_summary(&inventory.summary),
+            semantic_model_packs: inventory
+                .semantic_model_packs
+                .iter()
+                .map(ContractSemanticModelPackUsageOutput::from_usage)
+                .collect(),
             routes: inventory
                 .routes
                 .iter()
@@ -828,6 +908,33 @@ impl ContractInventoryOutput {
                 .iter()
                 .map(ContractItemOutput::from_item)
                 .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ContractSemanticModelPackUsageOutput {
+    pub id: String,
+    pub description: String,
+    pub layer: String,
+    pub contract_categories: Vec<String>,
+}
+
+impl ContractSemanticModelPackUsageOutput {
+    fn from_usage(usage: &ContractSemanticModelPackUsage) -> Self {
+        Self {
+            id: usage.id.clone(),
+            description: usage.description.clone(),
+            layer: match usage.layer {
+                crate::semantic_models::SemanticModelPackLayer::Ecosystem => {
+                    String::from("ecosystem")
+                }
+                crate::semantic_models::SemanticModelPackLayer::Framework => {
+                    String::from("framework")
+                }
+                crate::semantic_models::SemanticModelPackLayer::Library => String::from("library"),
+            },
+            contract_categories: usage.contract_categories.clone(),
         }
     }
 }
@@ -930,6 +1037,23 @@ pub struct ListFindingsOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct EvidenceAnchorOutput {
+    pub file_path: String,
+    pub line: Option<usize>,
+    pub label: String,
+}
+
+impl EvidenceAnchorOutput {
+    fn from_anchor(anchor: &crate::evidence::EvidenceAnchor) -> Self {
+        Self {
+            file_path: anchor.file_path.display().to_string(),
+            line: anchor.line,
+            label: anchor.label.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FindingSummaryOutput {
     pub id: String,
     pub fingerprint: String,
@@ -941,6 +1065,8 @@ pub struct FindingSummaryOutput {
     pub summary: String,
     pub file_paths: Vec<String>,
     pub line: Option<usize>,
+    pub primary_anchor: Option<EvidenceAnchorOutput>,
+    pub evidence_anchors: Vec<EvidenceAnchorOutput>,
     pub languages: Vec<String>,
     pub provenance: Vec<String>,
     pub doctrine_refs: Vec<String>,
@@ -961,6 +1087,15 @@ impl FindingSummaryOutput {
             summary: finding.summary.clone(),
             file_paths: finding.file_paths.clone(),
             line: finding.line,
+            primary_anchor: finding
+                .primary_anchor
+                .as_ref()
+                .map(EvidenceAnchorOutput::from_anchor),
+            evidence_anchors: finding
+                .evidence_anchors
+                .iter()
+                .map(EvidenceAnchorOutput::from_anchor)
+                .collect(),
             languages: infer_languages_from_strings(&finding.file_paths),
             provenance: finding.provenance.clone(),
             doctrine_refs: finding.doctrine_refs.clone(),
@@ -1557,6 +1692,62 @@ pub fn build_finding_details(
         }
     }
 
+    for highlight in &surface.highlights {
+        if highlight.id.starts_with("architecture:").not() {
+            continue;
+        }
+        if let Some(summary) = summaries.get(&highlight.id) {
+            let primary_anchor =
+                highlight
+                    .primary_anchor
+                    .as_ref()
+                    .map(|anchor| match anchor.line {
+                        Some(line) => format!("{}:{line}", display_path(&anchor.file_path)),
+                        None => display_path(&anchor.file_path),
+                    });
+            let related_files = highlight
+                .file_paths
+                .iter()
+                .map(|path| display_path(path))
+                .collect::<Vec<_>>();
+            let evidence_anchor_count = highlight.evidence_anchors.len();
+            details.insert(
+                highlight.id.clone(),
+                FindingDetailOutput {
+                    finding: summary.clone(),
+                    explanation: format!(
+                        "{} {}{}",
+                        highlight.summary,
+                        primary_anchor
+                            .as_ref()
+                            .map(|anchor| format!("Primary anchor: {anchor}. "))
+                            .unwrap_or_default(),
+                        if evidence_anchor_count > 0 {
+                            format!("{evidence_anchor_count} supporting evidence anchor(s) are attached.")
+                        } else {
+                            String::from("No additional evidence anchors were attached.")
+                        }
+                    ),
+                    evidence_kind: String::from("architectural_assessment"),
+                    related_files: related_files.clone(),
+                    cycle_files: Vec::new(),
+                    hotspot: highlight
+                        .file_paths
+                        .first()
+                        .map(|path| display_path(path))
+                        .and_then(|path| hotspot_map.get(&path).cloned()),
+                    symbol_id: None,
+                    literal_value: None,
+                    context: (!highlight.doctrine_refs.is_empty())
+                        .then(|| format!("Doctrine: {}", highlight.doctrine_refs.join(", "))),
+                    resource_uri: format!("{finding_uri_prefix}{}", highlight.id),
+                    policy_status: summary.policy_status.clone(),
+                    is_visible: summary.is_visible,
+                },
+            );
+        }
+    }
+
     for finding in &analysis.dead_code.findings {
         let id = format!(
             "dead-code:{}:{}:{}",
@@ -2031,6 +2222,143 @@ fn relation_kind_label(kind: &RelationKind) -> &'static str {
     }
 }
 
+fn doctrine_category_label(category: DoctrineCategory) -> &'static str {
+    match category {
+        DoctrineCategory::Architecture => "architecture",
+        DoctrineCategory::ChangeGovernance => "change_governance",
+        DoctrineCategory::Configuration => "configuration",
+        DoctrineCategory::Maintainability => "maintainability",
+        DoctrineCategory::MechanismChoice => "mechanism_choice",
+        DoctrineCategory::Security => "security",
+    }
+}
+
+fn doctrine_disposition_label(disposition: DoctrineDisposition) -> &'static str {
+    match disposition {
+        DoctrineDisposition::Inform => "inform",
+        DoctrineDisposition::Warn => "warn",
+        DoctrineDisposition::Block => "block",
+    }
+}
+
 pub fn display_path(path: &Path) -> String {
     path.display().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_finding_details;
+    use crate::assessment::{
+        ArchitecturalAssessment, ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind,
+    };
+    use crate::ingestion::pipeline::analyze_project;
+    use crate::ingestion::scan::ScanConfig;
+    use crate::policy::PolicyBundle;
+    use crate::review::build_review_surface;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn build_finding_details_covers_architectural_assessment_ids() {
+        let fixture = unique_fixture_dir("mcp-architectural-detail");
+        fs::create_dir_all(fixture.join("app/Services/Filter")).unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/QueryContractParser.php"),
+            br#"<?php
+final class QueryContractParser {
+    public function parse(string $input): array {
+        $parts = explode(':', trim($input));
+        return ['left' => $parts[0] ?? '', 'right' => $parts[1] ?? ''];
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/FilterValidator.php"),
+            br#"<?php
+final class FilterValidator {
+    public function validate(string $input): bool {
+        return preg_match('/^[a-z:]+$/', trim($input)) === 1;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/OrderByValidator.php"),
+            br#"<?php
+final class OrderByValidator {
+    public function validate(string $input): bool {
+        return preg_match('/^[a-z_]+$/', trim($input)) === 1;
+    }
+}
+"#,
+        )
+        .unwrap();
+
+        let mut analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        analysis.architectural_assessment = ArchitecturalAssessment {
+            findings: vec![ArchitecturalAssessmentFinding {
+                kind: ArchitecturalAssessmentKind::HandRolledParsing,
+                file_path: PathBuf::from("app/Services/Filter/QueryContractParser.php"),
+                related_file_paths: vec![
+                    PathBuf::from("app/Services/Filter/FilterValidator.php"),
+                    PathBuf::from("app/Services/Filter/OrderByValidator.php"),
+                ],
+                related_identifiers: vec![
+                    String::from("directory:app/services/filter"),
+                    String::from("role:parser"),
+                    String::from("role:validator"),
+                ],
+                warning_count: 0,
+                warning_weight: 0,
+                bottleneck_centrality_millis: 540,
+                warning_families: vec![
+                    String::from("parsing_role:parser"),
+                    String::from("parsing_role:validator"),
+                    String::from("concern:custom_parsing"),
+                ],
+                severity_millis: 1000,
+                fingerprint: String::from("architecture|hand-rolled-parsing|fixture"),
+            }],
+        };
+        let surface = analysis.architecture_surface();
+        let review_surface = build_review_surface(
+            &analysis,
+            &surface,
+            &PolicyBundle::load(&analysis.root).unwrap(),
+        );
+        let details = build_finding_details(
+            &analysis,
+            &surface,
+            &review_surface,
+            "aigiscode://repo/current/finding/",
+        );
+        let finding_id = surface
+            .highlights
+            .iter()
+            .find(|highlight| {
+                highlight
+                    .id
+                    .starts_with("architecture:hand-rolled-parsing:")
+            })
+            .unwrap()
+            .id
+            .clone();
+        let detail = details.get(&finding_id).unwrap();
+        assert_eq!(detail.evidence_kind, "architectural_assessment");
+        assert!(detail
+            .explanation
+            .contains("custom parsing or mini-protocol stack"));
+    }
+
+    fn unique_fixture_dir(label: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("aigiscode-{label}-{unique}"))
+    }
 }

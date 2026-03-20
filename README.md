@@ -50,6 +50,7 @@ external adapters alongside deterministic analysis.
 .aigiscode/dependency-graph.json
 .aigiscode/evidence-graph.json
 .aigiscode/contract-inventory.json
+.aigiscode/doctrine-registry.json
 .aigiscode/deterministic-findings.json
 .aigiscode/external-analysis.json
 .aigiscode/architecture-surface.json

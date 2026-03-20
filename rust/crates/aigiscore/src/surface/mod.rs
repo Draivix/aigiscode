@@ -2,6 +2,7 @@ use crate::assessment::{ArchitecturalAssessmentFinding, ArchitecturalAssessmentK
 use crate::contracts::ContractInventory;
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
+use crate::evidence::EvidenceAnchor;
 use crate::external::{ExternalFinding, ExternalSeverity};
 use crate::graph::analysis::{
     ArchitecturalSmell, ArchitecturalSmellKind, BottleneckFile, CycleClass, CycleFinding,
@@ -54,6 +55,10 @@ pub struct SurfaceOverview {
     pub compatibility_scar_count: usize,
     pub duplicate_mechanism_count: usize,
     pub sanctioned_path_bypass_count: usize,
+    #[serde(default)]
+    pub hand_rolled_parsing_count: usize,
+    #[serde(default)]
+    pub abstraction_sprawl_count: usize,
     pub route_contract_count: usize,
     pub hook_contract_count: usize,
     pub registered_key_count: usize,
@@ -119,6 +124,10 @@ pub struct SurfaceFinding {
     pub summary: String,
     pub file_paths: Vec<PathBuf>,
     pub line: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_anchor: Option<EvidenceAnchor>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence_anchors: Vec<EvidenceAnchor>,
     pub provenance: Vec<String>,
     pub doctrine_refs: Vec<String>,
 }
@@ -279,6 +288,12 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             sanctioned_path_bypass_count: analysis
                 .architectural_assessment
                 .count_by_kind(ArchitecturalAssessmentKind::SanctionedPathBypass),
+            hand_rolled_parsing_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::HandRolledParsing),
+            abstraction_sprawl_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::AbstractionSprawl),
             route_contract_count: analysis.contract_inventory.summary.routes.unique_values,
             hook_contract_count: analysis.contract_inventory.summary.hooks.unique_values,
             registered_key_count: analysis
@@ -476,6 +491,26 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
             ),
             file_paths: cycle.files.clone(),
             line: None,
+            primary_anchor: cycle
+                .files
+                .first()
+                .cloned()
+                .map(|file_path| EvidenceAnchor {
+                    file_path,
+                    line: None,
+                    label: String::from("primary"),
+                }),
+            evidence_anchors: cycle
+                .files
+                .iter()
+                .skip(1)
+                .cloned()
+                .map(|file_path| EvidenceAnchor {
+                    file_path,
+                    line: None,
+                    label: String::from("cycle-member"),
+                })
+                .collect(),
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![String::from("structural.coherence")],
         });
@@ -496,21 +531,29 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
             ),
             file_paths: vec![path.clone()],
             line: None,
+            primary_anchor: Some(EvidenceAnchor {
+                file_path: path.clone(),
+                line: None,
+                label: String::from("primary"),
+            }),
+            evidence_anchors: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![String::from("structural.coherence")],
         });
     }
 
     for bottleneck in analysis.graph_analysis.bottleneck_files.iter().take(10) {
-        highlights.push(surface_finding_from_bottleneck(bottleneck));
+        highlights.push(surface_finding_from_bottleneck(bottleneck, analysis));
     }
 
     for smell in &analysis.graph_analysis.architectural_smells {
-        highlights.push(surface_finding_from_architectural_smell(smell));
+        highlights.push(surface_finding_from_architectural_smell(smell, analysis));
     }
 
     for finding in &analysis.architectural_assessment.findings {
-        highlights.push(surface_finding_from_architectural_assessment(finding));
+        highlights.push(surface_finding_from_architectural_assessment(
+            finding, analysis,
+        ));
     }
 
     for finding in &analysis.dead_code.findings {
@@ -540,7 +583,11 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
 
 fn surface_finding_from_architectural_assessment(
     finding: &ArchitecturalAssessmentFinding,
+    analysis: &ProjectAnalysis,
 ) -> SurfaceFinding {
+    let primary_anchor = best_effort_anchor_for_architectural_assessment(finding, analysis);
+    let evidence_anchors = supporting_anchors_for_architectural_assessment(finding, analysis);
+    let primary_line = primary_anchor.as_ref().and_then(|anchor| anchor.line);
     match finding.kind {
         ArchitecturalAssessmentKind::WarningHeavyHotspot => SurfaceFinding {
             id: format!("architecture:hotspot:{}", finding.file_path.display()),
@@ -559,7 +606,9 @@ fn surface_finding_from_architectural_assessment(
                 finding.warning_families.join(", ")
             ),
             file_paths: vec![finding.file_path.clone()],
-            line: None,
+            line: primary_line,
+            primary_anchor,
+            evidence_anchors,
             provenance: vec![
                 String::from("graph_analysis"),
                 String::from("architectural_assessment"),
@@ -590,7 +639,9 @@ fn surface_finding_from_architectural_assessment(
                     finding.related_identifiers.join(", ")
                 ),
                 file_paths,
-                line: None,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -622,7 +673,9 @@ fn surface_finding_from_architectural_assessment(
                     finding.related_identifiers.join(", ")
                 ),
                 file_paths,
-                line: None,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -656,7 +709,9 @@ fn surface_finding_from_architectural_assessment(
                     finding.warning_families.join(", ")
                 ),
                 file_paths,
-                line: None,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -689,7 +744,9 @@ fn surface_finding_from_architectural_assessment(
                     finding.related_identifiers.join(", ")
                 ),
                 file_paths,
-                line: None,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("hardwiring_detector"),
@@ -701,10 +758,91 @@ fn surface_finding_from_architectural_assessment(
                 ],
             }
         }
+        ArchitecturalAssessmentKind::AbstractionSprawl => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:abstraction-sprawl:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Abstraction sprawl"),
+                summary: format!(
+                    "{} spreads one concern across too many abstraction roles ({})",
+                    finding.file_path.display(),
+                    finding.warning_families.join(", ")
+                ),
+                file_paths,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("parsed_sources"),
+                    String::from("graph_analysis"),
+                ],
+                doctrine_refs: vec![
+                    String::from("mechanism.coherence"),
+                    String::from("guardian.minimal-mechanism"),
+                    String::from("guardian.overengineering"),
+                ],
+            }
+        }
+        ArchitecturalAssessmentKind::HandRolledParsing => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:hand-rolled-parsing:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Hand-rolled parsing"),
+                summary: format!(
+                    "{} appears to own a custom parsing or mini-protocol stack ({})",
+                    finding.file_path.display(),
+                    finding.warning_families.join(", ")
+                ),
+                file_paths,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("parsed_sources"),
+                    String::from("graph_analysis"),
+                ],
+                doctrine_refs: vec![
+                    String::from("pattern.coherence"),
+                    String::from("guardian.avoid-homegrown-parser"),
+                    String::from("guardian.native-vs-library"),
+                ],
+            }
+        }
     }
 }
 
-fn surface_finding_from_architectural_smell(smell: &ArchitecturalSmell) -> SurfaceFinding {
+fn surface_finding_from_architectural_smell(
+    smell: &ArchitecturalSmell,
+    analysis: &ProjectAnalysis,
+) -> SurfaceFinding {
+    let primary_anchor = best_effort_anchor_for_component(&smell.subject, analysis, "primary");
+    let evidence_anchors = smell
+        .related_components
+        .iter()
+        .filter_map(|component| best_effort_anchor_for_component(component, analysis, "supporting"))
+        .collect::<Vec<_>>();
     match smell.kind {
         ArchitecturalSmellKind::HubLikeDependency => SurfaceFinding {
             id: format!("graph:smell:hub:{}", smell.subject),
@@ -719,7 +857,9 @@ fn surface_finding_from_architectural_smell(smell: &ArchitecturalSmell) -> Surfa
                 smell.subject, smell.evidence_count
             ),
             file_paths: Vec::new(),
-            line: None,
+            line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
+            primary_anchor,
+            evidence_anchors,
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![
                 String::from("structural.coherence"),
@@ -744,7 +884,9 @@ fn surface_finding_from_architectural_smell(smell: &ArchitecturalSmell) -> Surfa
                 smell.related_components.join(", ")
             ),
             file_paths: Vec::new(),
-            line: None,
+            line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
+            primary_anchor,
+            evidence_anchors,
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![
                 String::from("structural.coherence"),
@@ -809,7 +951,11 @@ fn relation_kind_label(relation: &RelationKind) -> &'static str {
     }
 }
 
-fn surface_finding_from_bottleneck(bottleneck: &BottleneckFile) -> SurfaceFinding {
+fn surface_finding_from_bottleneck(
+    bottleneck: &BottleneckFile,
+    analysis: &ProjectAnalysis,
+) -> SurfaceFinding {
+    let primary_anchor = best_effort_anchor_for_file(&bottleneck.file_path, analysis, "primary");
     SurfaceFinding {
         id: format!("graph:bottleneck:{}", bottleneck.file_path.display()),
         fingerprint: bottleneck.fingerprint.clone(),
@@ -824,7 +970,9 @@ fn surface_finding_from_bottleneck(bottleneck: &BottleneckFile) -> SurfaceFindin
             bottleneck.centrality_millis
         ),
         file_paths: vec![bottleneck.file_path.clone()],
-        line: None,
+        line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
+        primary_anchor,
+        evidence_anchors: Vec::new(),
         provenance: vec![String::from("graph_analysis")],
         doctrine_refs: vec![
             String::from("structural.coherence"),
@@ -853,6 +1001,8 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         summary: format!("{} appears unused", finding.name),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
+        primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
+        evidence_anchors: Vec::new(),
         provenance: vec![
             String::from("dead_code_detector"),
             String::from("graph_analysis"),
@@ -888,6 +1038,8 @@ fn surface_finding_from_hardwiring(finding: &HardwiringFinding) -> SurfaceFindin
         summary: format!("{} in `{}`", finding.value, finding.context),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
+        primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
+        evidence_anchors: Vec::new(),
         provenance: vec![String::from("hardwiring_detector")],
         doctrine_refs: vec![String::from("configuration.coherence")],
     }
@@ -926,6 +1078,11 @@ fn surface_finding_from_external(finding: &ExternalFinding) -> SurfaceFinding {
         summary: finding.message.clone(),
         file_paths,
         line: finding.line,
+        primary_anchor: finding
+            .file_path
+            .as_ref()
+            .map(|path| anchor(path, finding.line, "primary")),
+        evidence_anchors: Vec::new(),
         provenance: vec![
             String::from("external_tool"),
             format!("tool:{}", finding.tool),
@@ -951,6 +1108,8 @@ fn surface_finding_from_security(finding: &SecurityFinding) -> SurfaceFinding {
         summary: finding.message.clone(),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
+        primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
+        evidence_anchors: Vec::new(),
         provenance: vec![
             String::from("native_security"),
             String::from("contract_inventory"),
@@ -976,6 +1135,120 @@ fn external_severity(severity: ExternalSeverity) -> SurfaceFindingSeverity {
         ExternalSeverity::Medium => SurfaceFindingSeverity::Medium,
         ExternalSeverity::Low => SurfaceFindingSeverity::Low,
     }
+}
+
+fn anchor(file_path: &Path, line: Option<usize>, label: &str) -> EvidenceAnchor {
+    EvidenceAnchor {
+        file_path: file_path.to_path_buf(),
+        line,
+        label: String::from(label),
+    }
+}
+
+fn best_effort_anchor_for_architectural_assessment(
+    finding: &ArchitecturalAssessmentFinding,
+    analysis: &ProjectAnalysis,
+) -> Option<EvidenceAnchor> {
+    let mut tokens = finding
+        .related_identifiers
+        .iter()
+        .filter_map(|identifier| {
+            identifier
+                .strip_prefix("concept:")
+                .or_else(|| identifier.strip_prefix("raw_"))
+                .map(String::from)
+                .or_else(|| {
+                    if identifier.starts_with("role:") {
+                        None
+                    } else {
+                        Some(identifier.clone())
+                    }
+                })
+        })
+        .collect::<Vec<_>>();
+    tokens.extend(
+        finding
+            .warning_families
+            .iter()
+            .filter_map(|family| family.split(':').next_back())
+            .map(String::from),
+    );
+    best_effort_anchor_for_file_with_tokens(&finding.file_path, analysis, "primary", &tokens)
+}
+
+fn supporting_anchors_for_architectural_assessment(
+    finding: &ArchitecturalAssessmentFinding,
+    analysis: &ProjectAnalysis,
+) -> Vec<EvidenceAnchor> {
+    finding
+        .related_file_paths
+        .iter()
+        .filter_map(|path| best_effort_anchor_for_file(path, analysis, "supporting"))
+        .collect()
+}
+
+fn best_effort_anchor_for_component(
+    component: &str,
+    analysis: &ProjectAnalysis,
+    label: &str,
+) -> Option<EvidenceAnchor> {
+    let path = analysis
+        .semantic_graph
+        .files
+        .iter()
+        .find(|file| {
+            file.path.to_string_lossy() == component
+                || file.path.file_name().and_then(|name| name.to_str()) == Some(component)
+        })
+        .map(|file| file.path.clone())?;
+    best_effort_anchor_for_file(&path, analysis, label)
+}
+
+fn best_effort_anchor_for_file(
+    file_path: &Path,
+    analysis: &ProjectAnalysis,
+    label: &str,
+) -> Option<EvidenceAnchor> {
+    let mut tokens = Vec::new();
+    if let Some(stem) = file_path.file_stem().and_then(|stem| stem.to_str()) {
+        tokens.push(stem.to_string());
+    }
+    best_effort_anchor_for_file_with_tokens(file_path, analysis, label, &tokens)
+}
+
+fn best_effort_anchor_for_file_with_tokens(
+    file_path: &Path,
+    analysis: &ProjectAnalysis,
+    label: &str,
+    tokens: &[String],
+) -> Option<EvidenceAnchor> {
+    let content = analysis
+        .parsed_sources
+        .iter()
+        .find_map(|(path, content)| (path == file_path).then_some(content))?;
+    let line = anchor_line_for_content(content, tokens);
+    Some(anchor(file_path, line, label))
+}
+
+fn anchor_line_for_content(content: &str, tokens: &[String]) -> Option<usize> {
+    let lowered_tokens = tokens
+        .iter()
+        .map(|token| token.to_ascii_lowercase())
+        .filter(|token| !token.is_empty())
+        .collect::<Vec<_>>();
+
+    for (index, line) in content.lines().enumerate() {
+        let lowered = line.to_ascii_lowercase();
+        if lowered_tokens.iter().any(|token| lowered.contains(token)) {
+            return Some(index + 1);
+        }
+    }
+
+    content
+        .lines()
+        .enumerate()
+        .find(|(_, line)| !line.trim().is_empty())
+        .map(|(index, _)| index + 1)
 }
 
 fn build_atlas_edges(analysis: &ProjectAnalysis) -> Vec<AtlasEdge> {

@@ -40,6 +40,7 @@ aigiscode --version
 - `.aigiscode/dependency-graph.json`
 - `.aigiscode/evidence-graph.json`
 - `.aigiscode/contract-inventory.json`
+- `.aigiscode/doctrine-registry.json`
 - `.aigiscode/deterministic-findings.json`
 - `.aigiscode/external-analysis.json`
 - `.aigiscode/architecture-surface.json`
@@ -58,12 +59,13 @@ aigiscode --version
 4. Use `.aigiscode/dependency-graph.json` for low-noise architecture queries.
 5. Use `.aigiscode/evidence-graph.json` for detailed call-site and runtime evidence.
 6. Use `.aigiscode/contract-inventory.json` for declared routes, hooks, env/config keys, and symbolic runtime contracts.
-7. Use `.aigiscode/architecture-surface.json` and `.aigiscode/review-surface.json` for topology and triage.
-8. Use `.aigiscode/convergence-history.json` to compare the current run against the previous artifact baseline in the same output directory.
-9. Use `.aigiscode/guard-decision.json` for the current allow/warn/block judgment and required review radius.
-10. Use `.aigiscode/aigiscode-handoff.json` when handing the repository to another agent.
-11. Use `aigiscode tune /repo` when you want a conservative starting patch for `.aigiscode/policy.json`.
-12. Re-run `aigiscode report /repo` after fixes.
+7. Use `.aigiscode/doctrine-registry.json` for the machine-readable guardian doctrine and default clause disposition.
+8. Use `.aigiscode/architecture-surface.json` and `.aigiscode/review-surface.json` for topology and triage.
+9. Use `.aigiscode/convergence-history.json` to compare the current run against the previous artifact baseline in the same output directory.
+10. Use `.aigiscode/guard-decision.json` for the current allow/warn/block judgment and required review radius.
+11. Use `.aigiscode/aigiscode-handoff.json` when handing the repository to another agent.
+12. Use `aigiscode tune /repo` when you want a conservative starting patch for `.aigiscode/policy.json`.
+13. Re-run `aigiscode report /repo` after fixes.
 
 ## Project Structure
 
@@ -77,6 +79,7 @@ rust/crates/aigiscore/
     ├── ingestion/                    # Scan and pipeline orchestration
     ├── parsing/                      # Language adapters
     ├── resolve/                      # Semantic resolution
+    ├── semantic_models/              # Framework/library semantic model packs
     ├── graph/                        # Structural analysis
     ├── detectors/                    # Dead code and hardwiring
     ├── surface/                      # Architecture surface contract

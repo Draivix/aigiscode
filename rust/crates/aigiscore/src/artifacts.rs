@@ -2,6 +2,10 @@ use crate::assessment::ArchitecturalAssessment;
 use crate::contracts::ContractInventory;
 use crate::detectors::dead_code::DeadCodeResult;
 use crate::detectors::hardwiring::HardwiringResult;
+use crate::doctrine::{
+    load_doctrine_registry, DoctrineDisposition, DoctrineLoadError, DoctrineRegistry,
+};
+use crate::evidence::EvidenceAnchor;
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::GraphAnalysis;
 use crate::ingestion::pipeline::{PhaseTiming, ProjectAnalysis, SemanticGraphProject};
@@ -28,6 +32,7 @@ pub const SEMANTIC_GRAPH_FILE: &str = "semantic-graph.json";
 pub const DEPENDENCY_GRAPH_FILE: &str = "dependency-graph.json";
 pub const EVIDENCE_GRAPH_FILE: &str = "evidence-graph.json";
 pub const CONTRACT_INVENTORY_FILE: &str = "contract-inventory.json";
+pub const DOCTRINE_REGISTRY_FILE: &str = "doctrine-registry.json";
 pub const DETERMINISTIC_FINDINGS_FILE: &str = "deterministic-findings.json";
 pub const EXTERNAL_ANALYSIS_FILE: &str = "external-analysis.json";
 pub const ARCHITECTURE_SURFACE_FILE: &str = "architecture-surface.json";
@@ -46,6 +51,7 @@ pub struct ArtifactPaths {
     pub dependency_graph: PathBuf,
     pub evidence_graph: PathBuf,
     pub contract_inventory: PathBuf,
+    pub doctrine_registry: PathBuf,
     pub deterministic_findings: PathBuf,
     pub external_analysis: PathBuf,
     pub architecture_surface: PathBuf,
@@ -96,6 +102,7 @@ pub struct AigiscodeReportArtifact<'a> {
     pub hardwiring: &'a HardwiringResult,
     pub security_analysis: &'a SecurityAnalysisResult,
     pub contract_inventory: &'a ContractInventory,
+    pub doctrine_registry: DoctrineRegistry,
     pub external_analysis: &'a ExternalAnalysisResult,
     pub architecture_surface: &'a ArchitectureSurface,
     pub review_surface: &'a ReviewSurface,
@@ -122,6 +129,8 @@ pub struct ReportSummary {
     pub compatibility_scar_count: usize,
     pub duplicate_mechanism_count: usize,
     pub sanctioned_path_bypass_count: usize,
+    pub hand_rolled_parsing_count: usize,
+    pub abstraction_sprawl_count: usize,
     pub dead_code_count: usize,
     pub hardwiring_count: usize,
     pub security_finding_count: usize,
@@ -176,6 +185,10 @@ pub struct ConvergenceGraphDelta {
     pub compatibility_scar_delta: isize,
     pub duplicate_mechanism_delta: isize,
     pub sanctioned_path_bypass_delta: isize,
+    #[serde(default)]
+    pub hand_rolled_parsing_delta: isize,
+    #[serde(default)]
+    pub abstraction_sprawl_delta: isize,
     pub visible_finding_delta: isize,
 }
 
@@ -287,6 +300,10 @@ pub struct GuardDecisionPressure {
     pub compatibility_scar_regression: bool,
     pub duplicate_mechanism_regression: bool,
     pub sanctioned_path_bypass_regression: bool,
+    #[serde(default)]
+    pub hand_rolled_parsing_regression: bool,
+    #[serde(default)]
+    pub abstraction_sprawl_regression: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -336,6 +353,8 @@ pub struct AgentHandoffSummary {
     pub compatibility_scar_count: usize,
     pub duplicate_mechanism_count: usize,
     pub sanctioned_path_bypass_count: usize,
+    pub hand_rolled_parsing_count: usize,
+    pub abstraction_sprawl_count: usize,
     pub visible_findings: usize,
     pub dead_code_count: usize,
     pub hardwiring_count: usize,
@@ -352,6 +371,8 @@ pub struct AgentHandoffFinding {
     pub summary: String,
     pub file_paths: Vec<String>,
     pub line: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_anchor: Option<EvidenceAnchor>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -364,6 +385,10 @@ pub struct GuardianPacket {
     pub confidence_millis: u16,
     pub summary: String,
     pub target_files: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primary_anchor: Option<EvidenceAnchor>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub evidence_anchors: Vec<EvidenceAnchor>,
     pub finding_ids: Vec<String>,
     pub context_labels: Vec<String>,
     pub provenance: Vec<String>,
@@ -406,6 +431,7 @@ pub fn write_project_analysis_artifacts(
         dependency_graph: output_dir.join(DEPENDENCY_GRAPH_FILE),
         evidence_graph: output_dir.join(EVIDENCE_GRAPH_FILE),
         contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
+        doctrine_registry: output_dir.join(DOCTRINE_REGISTRY_FILE),
         deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
         external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
         architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
@@ -449,6 +475,7 @@ pub fn write_project_analysis_artifacts(
     let previous_contract_inventory =
         read_json_artifact_if_exists::<ContractInventory>(&paths.contract_inventory)?;
     let policy_bundle = PolicyBundle::load(&analysis.root).map_err(policy_error_to_io)?;
+    let doctrine_registry = load_doctrine_registry(&analysis.root).map_err(doctrine_error_to_io)?;
     let review_surface = build_review_surface(analysis, &surface, &policy_bundle);
     let convergence_history = build_convergence_history_artifact(
         &analysis.root,
@@ -459,10 +486,11 @@ pub fn write_project_analysis_artifacts(
         &surface,
         &review_surface,
         &analysis.contract_inventory,
+        &doctrine_registry,
     );
     let guard_decision = build_guard_decision_artifact(&analysis.root, &convergence_history);
     let feedback_loop = build_feedback_loop_summary(&review_surface);
-    let agent_handoff = build_agent_handoff_artifact(analysis, &review_surface);
+    let agent_handoff = build_agent_handoff_artifact(analysis, &review_surface, &doctrine_registry);
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
@@ -505,6 +533,12 @@ pub fn write_project_analysis_artifacts(
             sanctioned_path_bypass_count: analysis.architectural_assessment.count_by_kind(
                 crate::assessment::ArchitecturalAssessmentKind::SanctionedPathBypass,
             ),
+            hand_rolled_parsing_count: analysis
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::HandRolledParsing),
+            abstraction_sprawl_count: analysis
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::AbstractionSprawl),
             dead_code_count: analysis.dead_code.findings.len(),
             hardwiring_count: analysis.hardwiring.findings.len(),
             security_finding_count: analysis.security_analysis.findings.len(),
@@ -542,6 +576,7 @@ pub fn write_project_analysis_artifacts(
         hardwiring: &analysis.hardwiring,
         security_analysis: &analysis.security_analysis,
         contract_inventory: &analysis.contract_inventory,
+        doctrine_registry: doctrine_registry.clone(),
         external_analysis: &analysis.external_analysis,
         architecture_surface: &surface,
         review_surface: &review_surface,
@@ -556,6 +591,7 @@ pub fn write_project_analysis_artifacts(
     write_json(&paths.dependency_graph, &dependency_graph)?;
     write_json(&paths.evidence_graph, &evidence_graph)?;
     write_json(&paths.contract_inventory, &analysis.contract_inventory)?;
+    write_json(&paths.doctrine_registry, &doctrine_registry)?;
     write_json(&paths.deterministic_findings, &findings)?;
     write_json(&paths.external_analysis, &analysis.external_analysis)?;
     write_json(&paths.architecture_surface, &surface)?;
@@ -592,6 +628,7 @@ pub fn build_convergence_history_artifact(
     current_architecture_surface: &ArchitectureSurface,
     current_review_surface: &ReviewSurface,
     current_contract_inventory: &ContractInventory,
+    doctrine_registry: &DoctrineRegistry,
 ) -> ConvergenceHistoryArtifact {
     let previous_findings = previous_review_surface
         .map(|surface| surface.findings.as_slice())
@@ -660,7 +697,8 @@ pub fn build_convergence_history_artifact(
         });
     }
 
-    let attention_items = build_convergence_attention_items(current_findings, &findings);
+    let attention_items =
+        build_convergence_attention_items(current_findings, &findings, doctrine_registry);
     let required_investigation_files = attention_items
         .iter()
         .flat_map(|item| item.file_paths.iter().cloned())
@@ -719,6 +757,14 @@ pub fn build_convergence_history_artifact(
             sanctioned_path_bypass_delta: delta(
                 previous_overview.map(|overview| overview.sanctioned_path_bypass_count),
                 current_overview.sanctioned_path_bypass_count,
+            ),
+            hand_rolled_parsing_delta: delta(
+                previous_overview.map(|overview| overview.hand_rolled_parsing_count),
+                current_overview.hand_rolled_parsing_count,
+            ),
+            abstraction_sprawl_delta: delta(
+                previous_overview.map(|overview| overview.abstraction_sprawl_count),
+                current_overview.abstraction_sprawl_count,
             ),
             visible_finding_delta: delta(
                 previous_review_surface.map(|surface| surface.summary.visible_findings),
@@ -810,6 +856,8 @@ pub fn build_guard_decision_artifact(
     let duplicate_mechanism_regression = convergence.graph_delta.duplicate_mechanism_delta > 0;
     let sanctioned_path_bypass_regression =
         convergence.graph_delta.sanctioned_path_bypass_delta > 0;
+    let hand_rolled_parsing_regression = convergence.graph_delta.hand_rolled_parsing_delta > 0;
+    let abstraction_sprawl_regression = convergence.graph_delta.abstraction_sprawl_delta > 0;
     let exact_or_modeled_attention_items = convergence
         .attention_items
         .iter()
@@ -839,6 +887,8 @@ pub fn build_guard_decision_artifact(
         compatibility_scar_regression,
         duplicate_mechanism_regression,
         sanctioned_path_bypass_regression,
+        hand_rolled_parsing_regression,
+        abstraction_sprawl_regression,
     };
 
     let mut reasons = Vec::new();
@@ -1079,6 +1129,44 @@ pub fn build_guard_decision_artifact(
                 String::from("convergence_history"),
             ],
             doctrine_refs: vec![String::from("guardian.sanctioned-paths")],
+        });
+    }
+    if abstraction_sprawl_regression {
+        let message =
+            String::from("Abstraction-sprawl pressure increased relative to the previous run.");
+        reasons.push(message.clone());
+        doctrine_refs.insert(String::from("guardian.overengineering"));
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Warn,
+            message,
+            precision: String::from("heuristic"),
+            confidence_millis: 790,
+            provenance: vec![
+                String::from("architectural_assessment"),
+                String::from("convergence_history"),
+            ],
+            doctrine_refs: vec![String::from("guardian.overengineering")],
+        });
+    }
+    if hand_rolled_parsing_regression {
+        let message =
+            String::from("Hand-rolled parsing pressure increased relative to the previous run.");
+        reasons.push(message.clone());
+        doctrine_refs.insert(String::from("guardian.native-vs-library"));
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Warn,
+            message,
+            precision: String::from("heuristic"),
+            confidence_millis: 800,
+            provenance: vec![
+                String::from("architectural_assessment"),
+                String::from("parsed_sources"),
+                String::from("convergence_history"),
+            ],
+            doctrine_refs: vec![
+                String::from("guardian.native-vs-library"),
+                String::from("guardian.avoid-homegrown-parser"),
+            ],
         });
     }
     if convergence.graph_delta.visible_finding_delta > 0 {
@@ -1371,6 +1459,7 @@ fn contract_value_delta(
 fn build_convergence_attention_items(
     current_findings: &[crate::review::ReviewFinding],
     deltas: &[ConvergenceFindingDelta],
+    doctrine_registry: &DoctrineRegistry,
 ) -> Vec<ConvergenceAttentionItem> {
     let current_by_fingerprint = current_findings
         .iter()
@@ -1387,6 +1476,13 @@ fn build_convergence_attention_items(
         })
         .filter_map(|delta| {
             let finding = current_by_fingerprint.get(&delta.fingerprint)?;
+            let focus = convergence_focus(finding);
+            let preferred_mechanism = guardian_packet_preferred_mechanism(
+                focus,
+                &finding.doctrine_refs,
+                &[],
+                doctrine_registry,
+            );
             Some(ConvergenceAttentionItem {
                 fingerprint: delta.fingerprint.clone(),
                 status: delta.status,
@@ -1399,12 +1495,13 @@ fn build_convergence_attention_items(
                 provenance: finding.provenance.clone(),
                 doctrine_refs: finding.doctrine_refs.clone(),
                 obligations: guardian_packet_obligations(
-                    convergence_focus(finding),
+                    focus,
                     &finding
                         .file_paths
                         .first()
                         .cloned()
                         .unwrap_or_else(|| String::from("unknown")),
+                    preferred_mechanism.as_deref(),
                     &[],
                 ),
             })
@@ -1425,12 +1522,18 @@ fn convergence_focus(finding: &crate::review::ReviewFinding) -> &'static str {
     let title = finding.title.to_ascii_lowercase();
     if finding.family == crate::review::ReviewFindingFamily::Security {
         "security_hotspot"
+    } else if title.contains("hand-rolled parsing") {
+        "hand_rolled_parsing"
+    } else if title.contains("abstraction sprawl") {
+        "abstraction_sprawl"
     } else if title.contains("compatibility scar") {
         "compatibility_scar"
     } else if title.contains("split identity model") {
         "split_identity_model"
     } else if title.contains("duplicate mechanism") {
         "duplicate_mechanism"
+    } else if title.contains("sanctioned path bypass") {
+        "sanctioned_path_bypass"
     } else {
         "warning_heavy_hotspot"
     }
@@ -1484,6 +1587,7 @@ fn review_severity_label(severity: ReviewFindingSeverity) -> String {
 pub fn build_agent_handoff_artifact(
     analysis: &ProjectAnalysis,
     review_surface: &ReviewSurface,
+    doctrine_registry: &DoctrineRegistry,
 ) -> AgentHandoffArtifact {
     let feedback_loop = build_feedback_loop_summary(review_surface);
     let visible_findings = review_surface
@@ -1540,7 +1644,18 @@ pub fn build_agent_handoff_artifact(
     let sanctioned_path_bypass_count = analysis
         .architectural_assessment
         .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::SanctionedPathBypass);
-    let guardian_packets = build_guardian_packets(analysis, review_surface, &visible_findings);
+    let hand_rolled_parsing_count = analysis
+        .architectural_assessment
+        .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::HandRolledParsing);
+    let abstraction_sprawl_count = analysis
+        .architectural_assessment
+        .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::AbstractionSprawl);
+    let guardian_packets = build_guardian_packets(
+        analysis,
+        review_surface,
+        &visible_findings,
+        doctrine_registry,
+    );
     if warning_hotspot_count > 0 {
         next_steps.push(format!(
             "Reduce {} warning-heavy hotspot files where architectural centrality and detector/security noise are accumulating together.",
@@ -1569,6 +1684,18 @@ pub fn build_agent_handoff_artifact(
         next_steps.push(format!(
             "Refactor {} sanctioned-path bypass hotspots where raw primitives bypass approved configuration or framework pathways.",
             sanctioned_path_bypass_count
+        ));
+    }
+    if abstraction_sprawl_count > 0 {
+        next_steps.push(format!(
+            "Collapse {} abstraction-sprawl hotspots where one concern is split across too many helper/service/registry/factory-style layers.",
+            abstraction_sprawl_count
+        ));
+    }
+    if hand_rolled_parsing_count > 0 {
+        next_steps.push(format!(
+            "Review {} hand-rolled parsing hotspots and replace custom mini-language or regex parsing stacks with battle-tested native/framework/library mechanisms where possible.",
+            hand_rolled_parsing_count
         ));
     }
     if analysis.dead_code.findings.is_empty().not() {
@@ -1614,6 +1741,8 @@ pub fn build_agent_handoff_artifact(
             compatibility_scar_count,
             duplicate_mechanism_count,
             sanctioned_path_bypass_count,
+            hand_rolled_parsing_count,
+            abstraction_sprawl_count,
             visible_findings: review_surface.summary.visible_findings,
             dead_code_count: analysis.dead_code.findings.len(),
             hardwiring_count: analysis.hardwiring.findings.len(),
@@ -1634,6 +1763,7 @@ pub fn build_agent_handoff_artifact(
                 summary: finding.summary.clone(),
                 file_paths: finding.file_paths.clone(),
                 line: finding.line,
+                primary_anchor: finding.primary_anchor.clone(),
             })
             .collect(),
     }
@@ -1643,6 +1773,7 @@ fn build_guardian_packets(
     analysis: &ProjectAnalysis,
     _review_surface: &ReviewSurface,
     visible_findings: &[&crate::review::ReviewFinding],
+    doctrine_registry: &DoctrineRegistry,
 ) -> Vec<GuardianPacket> {
     let mut packets = Vec::new();
     let mut visible_by_file = BTreeMap::<String, Vec<&crate::review::ReviewFinding>>::new();
@@ -1719,6 +1850,16 @@ fn build_guardian_packets(
         } else {
             "medium"
         };
+        let doctrine_refs = vec![
+            String::from("security.coherence"),
+            String::from("guardian.trust-boundaries"),
+        ];
+        let preferred_mechanism = guardian_packet_preferred_mechanism(
+            "security_hotspot",
+            &doctrine_refs,
+            &context_labels,
+            doctrine_registry,
+        );
         packets.push(GuardianPacket {
             id: format!("guardian:security:{file}"),
             priority: String::from(priority),
@@ -1732,21 +1873,22 @@ fn build_guardian_packets(
                 file
             ),
             target_files: vec![file.clone()],
+            primary_anchor: None,
+            evidence_anchors: Vec::new(),
             finding_ids: visible_security_ids,
             provenance: vec![
                 String::from("native_security"),
                 String::from("contract_inventory"),
                 String::from("graph_analysis"),
             ],
-            doctrine_refs: vec![
-                String::from("security.coherence"),
-                String::from("guardian.trust-boundaries"),
-            ],
-            preferred_mechanism: guardian_packet_preferred_mechanism(
+            doctrine_refs,
+            preferred_mechanism: preferred_mechanism.clone(),
+            obligations: guardian_packet_obligations(
                 "security_hotspot",
+                file,
+                preferred_mechanism.as_deref(),
                 &context_labels,
             ),
-            obligations: guardian_packet_obligations("security_hotspot", file, &context_labels),
             suppressibility: guardian_packet_suppressibility("security_hotspot"),
             investigation_questions: guardian_packet_questions(
                 "security_hotspot",
@@ -1804,6 +1946,16 @@ fn build_guardian_packets(
                 } else {
                     "medium"
                 };
+                let doctrine_refs = vec![
+                    String::from("structural.coherence"),
+                    String::from("guardian.centralized-damage"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "warning_heavy_hotspot",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
                 packets.push(GuardianPacket {
                     id: format!("guardian:warning-hotspot:{file}"),
                     priority: String::from(priority),
@@ -1818,23 +1970,20 @@ fn build_guardian_packets(
                         finding.warning_families.join(", ")
                     ),
                     target_files: vec![file],
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
                     finding_ids: condensed_packet_finding_ids(&visible),
                     provenance: vec![
                         String::from("graph_analysis"),
                         String::from("architectural_assessment"),
                         String::from("review_surface"),
                     ],
-                    doctrine_refs: vec![
-                        String::from("structural.coherence"),
-                        String::from("guardian.centralized-damage"),
-                    ],
-                    preferred_mechanism: guardian_packet_preferred_mechanism(
-                        "warning_heavy_hotspot",
-                        &context_labels,
-                    ),
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
                     obligations: guardian_packet_obligations(
                         "warning_heavy_hotspot",
                         &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
                         &context_labels,
                     ),
                     suppressibility: guardian_packet_suppressibility("warning_heavy_hotspot"),
@@ -1873,6 +2022,16 @@ fn build_guardian_packets(
                     primary_file,
                     finding.related_identifiers.join("+")
                 );
+                let doctrine_refs = vec![
+                    String::from("pattern.coherence"),
+                    String::from("guardian.single-canonical-representation"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "split_identity_model",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
                 packets.push(GuardianPacket {
                     id: format!(
                         "guardian:split-identity:{}",
@@ -1893,22 +2052,19 @@ fn build_guardian_packets(
                         target_files.len()
                     ),
                     target_files,
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
                         String::from("parsed_sources"),
                     ],
-                    doctrine_refs: vec![
-                        String::from("pattern.coherence"),
-                        String::from("guardian.single-canonical-representation"),
-                    ],
-                    preferred_mechanism: guardian_packet_preferred_mechanism(
-                        "split_identity_model",
-                        &context_labels,
-                    ),
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
                     obligations: guardian_packet_obligations(
                         "split_identity_model",
                         &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
                         &context_labels,
                     ),
                     suppressibility: guardian_packet_suppressibility("split_identity_model"),
@@ -1949,6 +2105,17 @@ fn build_guardian_packets(
                     finding.file_path.display(),
                     finding.related_identifiers.join("+")
                 );
+                let doctrine_refs = vec![
+                    String::from("pattern.coherence"),
+                    String::from("guardian.single-canonical-representation"),
+                    String::from("guardian.translation-hotspot"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "compatibility_scar",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
                 packets.push(GuardianPacket {
                     id: format!(
                         "guardian:compatibility-scar:{}",
@@ -1969,24 +2136,20 @@ fn build_guardian_packets(
                         finding.warning_count
                     ),
                     target_files,
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
                         String::from("parsed_sources"),
                         String::from("graph_analysis"),
                     ],
-                    doctrine_refs: vec![
-                        String::from("pattern.coherence"),
-                        String::from("guardian.single-canonical-representation"),
-                        String::from("guardian.translation-hotspot"),
-                    ],
-                    preferred_mechanism: guardian_packet_preferred_mechanism(
-                        "compatibility_scar",
-                        &context_labels,
-                    ),
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
                     obligations: guardian_packet_obligations(
                         "compatibility_scar",
                         &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
                         &context_labels,
                     ),
                     suppressibility: guardian_packet_suppressibility("compatibility_scar"),
@@ -2021,6 +2184,16 @@ fn build_guardian_packets(
                     finding.file_path.display(),
                     finding.related_identifiers.join("+")
                 );
+                let doctrine_refs = vec![
+                    String::from("mechanism.coherence"),
+                    String::from("guardian.single-solution-path"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "duplicate_mechanism",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
                 packets.push(GuardianPacket {
                     id: format!(
                         "guardian:duplicate-mechanism:{}",
@@ -2040,23 +2213,20 @@ fn build_guardian_packets(
                         finding.file_path.display()
                     ),
                     target_files,
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
                         String::from("parsed_sources"),
                         String::from("graph_analysis"),
                     ],
-                    doctrine_refs: vec![
-                        String::from("mechanism.coherence"),
-                        String::from("guardian.single-solution-path"),
-                    ],
-                    preferred_mechanism: guardian_packet_preferred_mechanism(
-                        "duplicate_mechanism",
-                        &context_labels,
-                    ),
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
                     obligations: guardian_packet_obligations(
                         "duplicate_mechanism",
                         &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
                         &context_labels,
                     ),
                     suppressibility: guardian_packet_suppressibility("duplicate_mechanism"),
@@ -2083,6 +2253,16 @@ fn build_guardian_packets(
                     finding.file_path.display(),
                     finding.related_identifiers.join("+")
                 );
+                let doctrine_refs = vec![
+                    String::from("configuration.coherence"),
+                    String::from("guardian.sanctioned-paths"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "sanctioned_path_bypass",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
                 packets.push(GuardianPacket {
                     id: format!(
                         "guardian:sanctioned-path-bypass:{}",
@@ -2102,23 +2282,20 @@ fn build_guardian_packets(
                         finding.file_path.display()
                     ),
                     target_files,
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
                         String::from("hardwiring_detector"),
                         String::from("parsed_sources"),
                     ],
-                    doctrine_refs: vec![
-                        String::from("configuration.coherence"),
-                        String::from("guardian.sanctioned-paths"),
-                    ],
-                    preferred_mechanism: guardian_packet_preferred_mechanism(
-                        "sanctioned_path_bypass",
-                        &context_labels,
-                    ),
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
                     obligations: guardian_packet_obligations(
                         "sanctioned_path_bypass",
                         &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
                         &context_labels,
                     ),
                     suppressibility: guardian_packet_suppressibility("sanctioned_path_bypass"),
@@ -2130,6 +2307,169 @@ fn build_guardian_packets(
                     context_labels,
                 });
             }
+            crate::assessment::ArchitecturalAssessmentKind::AbstractionSprawl => {
+                let mut target_files = vec![finding.file_path.display().to_string()];
+                target_files.extend(
+                    finding
+                        .related_file_paths
+                        .iter()
+                        .map(|path| path.display().to_string()),
+                );
+                target_files.sort();
+                target_files.dedup();
+                let mut context_labels = finding.warning_families.clone();
+                context_labels.extend(finding.related_identifiers.iter().cloned());
+                if finding.bottleneck_centrality_millis > 0 {
+                    context_labels.push(format!(
+                        "bottleneck:{}",
+                        finding.bottleneck_centrality_millis
+                    ));
+                }
+                let finding_id = format!(
+                    "architecture:abstraction-sprawl:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                );
+                let doctrine_refs = vec![
+                    String::from("mechanism.coherence"),
+                    String::from("guardian.minimal-mechanism"),
+                    String::from("guardian.overengineering"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "abstraction_sprawl",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
+                packets.push(GuardianPacket {
+                    id: format!(
+                        "guardian:abstraction-sprawl:{}",
+                        finding.file_path.display()
+                    ),
+                    priority: if finding.severity_millis >= 700 || target_files.len() >= 3 {
+                        String::from("high")
+                    } else {
+                        String::from("medium")
+                    },
+                    focus: String::from("abstraction_sprawl"),
+                    primary_target_file: finding.file_path.display().to_string(),
+                    precision: String::from("heuristic"),
+                    confidence_millis: finding.severity_millis,
+                    summary: format!(
+                        "{} spreads one concern across too many abstraction roles. Collapse the indirection until one primary boundary remains.",
+                        finding.file_path.display()
+                    ),
+                    target_files,
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
+                    finding_ids: vec![finding_id],
+                    provenance: vec![
+                        String::from("architectural_assessment"),
+                        String::from("parsed_sources"),
+                        String::from("graph_analysis"),
+                    ],
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
+                    obligations: guardian_packet_obligations(
+                        "abstraction_sprawl",
+                        &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
+                        &context_labels,
+                    ),
+                    suppressibility: guardian_packet_suppressibility("abstraction_sprawl"),
+                    investigation_questions: guardian_packet_questions(
+                        "abstraction_sprawl",
+                        &finding.file_path.display().to_string(),
+                        &context_labels,
+                    ),
+                    context_labels,
+                });
+            }
+            crate::assessment::ArchitecturalAssessmentKind::HandRolledParsing => {
+                let mut target_files = vec![finding.file_path.display().to_string()];
+                target_files.extend(
+                    finding
+                        .related_file_paths
+                        .iter()
+                        .map(|path| path.display().to_string()),
+                );
+                target_files.sort();
+                target_files.dedup();
+                let mut context_labels = finding.warning_families.clone();
+                context_labels.extend(finding.related_identifiers.iter().cloned());
+                if finding.bottleneck_centrality_millis > 0 {
+                    context_labels.push(format!(
+                        "bottleneck:{}",
+                        finding.bottleneck_centrality_millis
+                    ));
+                }
+                let finding_id = format!(
+                    "architecture:hand-rolled-parsing:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                );
+                let doctrine_refs = vec![
+                    String::from("guardian.native-vs-library"),
+                    String::from("guardian.avoid-homegrown-parser"),
+                    String::from("guardian.overengineering"),
+                ];
+                let preferred_mechanism = guardian_packet_preferred_mechanism(
+                    "hand_rolled_parsing",
+                    &doctrine_refs,
+                    &context_labels,
+                    doctrine_registry,
+                );
+                packets.push(GuardianPacket {
+                    id: format!(
+                        "guardian:hand-rolled-parsing:{}",
+                        finding.file_path.display()
+                    ),
+                    priority: if finding.severity_millis >= 700 || target_files.len() >= 3 {
+                        String::from("high")
+                    } else {
+                        String::from("medium")
+                    },
+                    focus: String::from("hand_rolled_parsing"),
+                    primary_target_file: finding.file_path.display().to_string(),
+                    precision: String::from("heuristic"),
+                    confidence_millis: finding.severity_millis,
+                    summary: format!(
+                        "{} appears to own a homegrown parsing or mini-protocol stack. Verify whether a battle-tested native/framework/library mechanism should replace it.",
+                        finding.file_path.display()
+                    ),
+                    target_files,
+                    primary_anchor: None,
+                    evidence_anchors: Vec::new(),
+                    finding_ids: vec![finding_id],
+                    provenance: vec![
+                        String::from("architectural_assessment"),
+                        String::from("parsed_sources"),
+                        String::from("graph_analysis"),
+                    ],
+                    doctrine_refs,
+                    preferred_mechanism: preferred_mechanism.clone(),
+                    obligations: guardian_packet_obligations(
+                        "hand_rolled_parsing",
+                        &finding.file_path.display().to_string(),
+                        preferred_mechanism.as_deref(),
+                        &context_labels,
+                    ),
+                    suppressibility: guardian_packet_suppressibility("hand_rolled_parsing"),
+                    investigation_questions: guardian_packet_questions(
+                        "hand_rolled_parsing",
+                        &finding.file_path.display().to_string(),
+                        &context_labels,
+                    ),
+                    context_labels,
+                });
+            }
+        }
+    }
+
+    for packet in &mut packets {
+        if let Some(finding) = best_packet_supporting_finding(packet, visible_findings) {
+            packet.primary_anchor = finding.primary_anchor.clone();
+            packet.evidence_anchors = finding.evidence_anchors.clone();
         }
     }
 
@@ -2142,6 +2482,27 @@ fn build_guardian_packets(
     });
     packets.truncate(8);
     packets
+}
+
+fn best_packet_supporting_finding<'a>(
+    packet: &GuardianPacket,
+    visible_findings: &'a [&crate::review::ReviewFinding],
+) -> Option<&'a crate::review::ReviewFinding> {
+    if let Some(finding) = packet.finding_ids.iter().find_map(|id| {
+        visible_findings
+            .iter()
+            .copied()
+            .find(|finding| &finding.id == id)
+    }) {
+        return Some(finding);
+    }
+
+    visible_findings.iter().copied().find(|finding| {
+        finding
+            .file_paths
+            .iter()
+            .any(|path| path == &packet.primary_target_file)
+    })
 }
 
 fn review_family_counts(findings: &[&crate::review::ReviewFinding]) -> BTreeMap<String, usize> {
@@ -2210,6 +2571,8 @@ fn review_severity_rank(severity: crate::review::ReviewFindingSeverity) -> u8 {
 fn packet_focus_rank(focus: &str) -> u8 {
     match focus {
         "security_hotspot" => 4,
+        "abstraction_sprawl" => 4,
+        "hand_rolled_parsing" => 3,
         "compatibility_scar" => 3,
         "sanctioned_path_bypass" => 2,
         "duplicate_mechanism" => 1,
@@ -2219,7 +2582,32 @@ fn packet_focus_rank(focus: &str) -> u8 {
     }
 }
 
-fn guardian_packet_preferred_mechanism(focus: &str, context_labels: &[String]) -> Option<String> {
+fn guardian_packet_preferred_mechanism(
+    focus: &str,
+    doctrine_refs: &[String],
+    context_labels: &[String],
+    doctrine_registry: &DoctrineRegistry,
+) -> Option<String> {
+    if let Some(preferred_mechanism) = doctrine_refs
+        .iter()
+        .enumerate()
+        .filter_map(|(index, id)| {
+            doctrine_registry.clause(id).and_then(|clause| {
+                clause.preferred_mechanism.as_ref().map(|mechanism| {
+                    (
+                        doctrine_disposition_rank(clause.default_disposition),
+                        index,
+                        mechanism.clone(),
+                    )
+                })
+            })
+        })
+        .max_by(|left, right| left.0.cmp(&right.0).then(right.1.cmp(&left.1)))
+        .map(|(_, _, mechanism)| mechanism)
+    {
+        return Some(preferred_mechanism);
+    }
+
     match focus {
         "security_hotspot" => Some(
             if context_labels
@@ -2232,6 +2620,8 @@ fn guardian_packet_preferred_mechanism(focus: &str, context_labels: &[String]) -
             },
         ),
         "warning_heavy_hotspot" => Some(String::from("single_authoritative_service_boundary")),
+        "abstraction_sprawl" => Some(String::from("single_authoritative_domain_boundary")),
+        "hand_rolled_parsing" => Some(String::from("battle_tested_parser_or_native_contract")),
         "duplicate_mechanism" => Some(String::from("single_sanctioned_orchestration_path")),
         "sanctioned_path_bypass" => Some(String::from("single_sanctioned_configuration_path")),
         "split_identity_model" | "compatibility_scar" => {
@@ -2241,16 +2631,26 @@ fn guardian_packet_preferred_mechanism(focus: &str, context_labels: &[String]) -
     }
 }
 
+fn doctrine_disposition_rank(disposition: DoctrineDisposition) -> u8 {
+    match disposition {
+        DoctrineDisposition::Block => 3,
+        DoctrineDisposition::Warn => 2,
+        DoctrineDisposition::Inform => 1,
+    }
+}
+
 fn guardian_packet_obligations(
     focus: &str,
     primary_file: &str,
+    preferred_mechanism: Option<&str>,
     _context_labels: &[String],
 ) -> Vec<GuardianObligation> {
     match focus {
         "security_hotspot" => vec![
             GuardianObligation {
                 action: format!(
-                    "Trace how meaningful input reaches `{primary_file}` and remove or isolate the dangerous primitive behind a sanctioned boundary."
+                    "Trace how meaningful input reaches `{primary_file}` and remove or isolate the dangerous primitive behind `{}`.",
+                    preferred_mechanism.unwrap_or("a sanctioned boundary")
                 ),
                 acceptance: String::from(
                     "The remaining path either eliminates the primitive or routes it through a reviewed boundary with explicit validation and authorization constraints.",
@@ -2268,7 +2668,10 @@ fn guardian_packet_obligations(
         "warning_heavy_hotspot" => vec![
             GuardianObligation {
                 action: format!(
-                    "Collapse the competing concerns around `{primary_file}` into one canonical service, adapter, or responsibility boundary."
+                    "Collapse the competing concerns around `{primary_file}` into `{}`.",
+                    preferred_mechanism.unwrap_or(
+                        "one canonical service, adapter, or responsibility boundary",
+                    )
                 ),
                 acceptance: String::from(
                     "The hotspot no longer acts as the place where unrelated architectural concerns accumulate.",
@@ -2283,10 +2686,49 @@ fn guardian_packet_obligations(
                 ),
             },
         ],
+        "abstraction_sprawl" => vec![
+            GuardianObligation {
+                action: format!(
+                    "Collapse the helper/service/factory/registry indirection around `{primary_file}` until `{}` owns the concern.",
+                    preferred_mechanism.unwrap_or("one primary boundary")
+                ),
+                acceptance: String::from(
+                    "The concern no longer requires multiple abstraction roles to understand or change one flow.",
+                ),
+            },
+            GuardianObligation {
+                action: String::from(
+                    "Retire decorative abstractions that only rename or forward behavior without protecting a real boundary.",
+                ),
+                acceptance: String::from(
+                    "The remaining abstraction layers each own a distinct boundary or capability instead of stacking incidental wrappers.",
+                ),
+            },
+        ],
+        "hand_rolled_parsing" => vec![
+            GuardianObligation {
+                action: format!(
+                    "Audit `{primary_file}` for custom parsing or mini-language logic and route the concern through `{}` if it is a valid sanctioned replacement.",
+                    preferred_mechanism.unwrap_or("a battle-tested native/framework/library parser")
+                ),
+                acceptance: String::from(
+                    "The changed slice no longer depends on an unnecessary homegrown parser stack when a sanctioned mechanism already exists.",
+                ),
+            },
+            GuardianObligation {
+                action: String::from(
+                    "If custom parsing is still required, isolate it behind one narrow boundary and document why a stronger existing mechanism could not be used.",
+                ),
+                acceptance: String::from(
+                    "The remaining parser logic is small, explicit, and justified instead of spread across validators, resolvers, or helper layers.",
+                ),
+            },
+        ],
         "split_identity_model" => vec![
             GuardianObligation {
                 action: format!(
-                    "Pick one canonical representation for the concept family centered on `{primary_file}`."
+                    "Pick `{}` as the canonical representation for the concept family centered on `{primary_file}`.",
+                    preferred_mechanism.unwrap_or("one canonical domain contract")
                 ),
                 acceptance: String::from(
                     "Callers no longer need to translate between object, id, and alias forms for the same concept.",
@@ -2304,7 +2746,8 @@ fn guardian_packet_obligations(
         "compatibility_scar" => vec![
             GuardianObligation {
                 action: format!(
-                    "Reduce the normalization and translation load concentrated in `{primary_file}` by migrating callers to one canonical contract."
+                    "Reduce the normalization and translation load concentrated in `{primary_file}` by migrating callers to `{}`.",
+                    preferred_mechanism.unwrap_or("one canonical contract")
                 ),
                 acceptance: String::from(
                     "The file is no longer a mandatory translation hotspot for multiple competing representations.",
@@ -2322,7 +2765,8 @@ fn guardian_packet_obligations(
         "duplicate_mechanism" => vec![
             GuardianObligation {
                 action: format!(
-                    "Choose one sanctioned orchestration path for the concern centered on `{primary_file}` and route new behavior through it."
+                    "Choose `{}` for the concern centered on `{primary_file}` and route new behavior through it.",
+                    preferred_mechanism.unwrap_or("one sanctioned orchestration path")
                 ),
                 acceptance: String::from(
                     "The concern no longer depends on parallel hooks, listeners, jobs, or direct notification paths for the same responsibility.",
@@ -2340,7 +2784,8 @@ fn guardian_packet_obligations(
         "sanctioned_path_bypass" => vec![
             GuardianObligation {
                 action: format!(
-                    "Move the raw environment reads in `{primary_file}` behind the sanctioned configuration path used by the surrounding code."
+                    "Move the raw environment reads in `{primary_file}` behind `{}`.",
+                    preferred_mechanism.unwrap_or("the sanctioned configuration path used by the surrounding code")
                 ),
                 acceptance: String::from(
                     "The changed slice reads configuration through one approved path instead of mixing direct env access with config helpers or settings access.",
@@ -2405,6 +2850,22 @@ fn guardian_packet_questions(
             ),
             format!(
                 "What callers depend on the legacy forms handled in `{primary_file}`, and can they be migrated to one authoritative contract?"
+            ),
+        ],
+        "abstraction_sprawl" => vec![
+            format!(
+                "Which abstraction in `{primary_file}` is the real boundary, and which surrounding helpers, managers, registries, or builders are only forwarding or renaming work?"
+            ),
+            format!(
+                "Does the concern around `{primary_file}` truly need this many abstraction roles, or can the flow be simplified into one primary domain/service boundary?"
+            ),
+        ],
+        "hand_rolled_parsing" => vec![
+            format!(
+                "What exact mini-language, query syntax, or text protocol is `{primary_file}` parsing by hand, and does the framework or an existing library already solve it?"
+            ),
+            format!(
+                "Can the parsing logic in `{primary_file}` be collapsed behind one sanctioned parser or contract boundary instead of being spread across validators, resolvers, or helpers?"
             ),
         ],
         "duplicate_mechanism" => vec![
@@ -2544,7 +3005,7 @@ fn build_markdown_report(
         format!("- Strong cycles: {}", report.summary.strong_cycle_count),
         format!("- Total cycles: {}", report.summary.total_cycle_count),
         format!(
-            "- Architectural smells: {} (hub-like: {}, unstable dependencies: {}, warning-heavy hotspots: {}, split identity models: {}, compatibility scars: {}, duplicate mechanisms: {}, sanctioned-path bypasses: {})",
+            "- Architectural smells: {} (hub-like: {}, unstable dependencies: {}, warning-heavy hotspots: {}, split identity models: {}, compatibility scars: {}, duplicate mechanisms: {}, sanctioned-path bypasses: {}, hand-rolled parsing: {}, abstraction sprawl: {})",
             report.summary.architectural_smell_count,
             report.summary.hub_like_dependency_count,
             report.summary.unstable_dependency_count,
@@ -2552,7 +3013,9 @@ fn build_markdown_report(
             report.summary.split_identity_model_count,
             report.summary.compatibility_scar_count,
             report.summary.duplicate_mechanism_count,
-            report.summary.sanctioned_path_bypass_count
+            report.summary.sanctioned_path_bypass_count,
+            report.summary.hand_rolled_parsing_count,
+            report.summary.abstraction_sprawl_count
         ),
         format!("- Dead code findings: {}", report.summary.dead_code_count),
         format!("- Hardwiring findings: {}", report.summary.hardwiring_count),
@@ -2834,6 +3297,10 @@ fn policy_error_to_io(error: PolicyLoadError) -> io::Error {
     io::Error::other(error)
 }
 
+fn doctrine_error_to_io(error: DoctrineLoadError) -> io::Error {
+    io::Error::other(error)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -2848,6 +3315,7 @@ mod tests {
         DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE, EVIDENCE_GRAPH_FILE,
         EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
     };
+    use crate::doctrine::load_doctrine_registry;
     use crate::ingestion::pipeline::{analyze_project, build_semantic_graph_project};
     use crate::ingestion::scan::ScanConfig;
     use crate::policy::PolicyBundle;
@@ -3145,6 +3613,8 @@ fn main() {
                 bottleneck_delta: 0,
                 architectural_smell_delta: 0,
                 warning_heavy_hotspot_delta: 0,
+                abstraction_sprawl_delta: 0,
+                hand_rolled_parsing_delta: 0,
                 split_identity_model_delta: 1,
                 compatibility_scar_delta: 1,
                 duplicate_mechanism_delta: 1,
@@ -3257,7 +3727,8 @@ fn main() {
         let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
         let surface = analysis.architecture_surface();
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
-        let handoff = build_agent_handoff_artifact(&analysis, &review_surface);
+        let doctrine_registry = load_doctrine_registry(&fixture).unwrap();
+        let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry);
         let focuses = handoff
             .guardian_packets
             .iter()
@@ -3304,6 +3775,97 @@ fn main() {
             .guardian_packets
             .iter()
             .all(|packet| packet.target_files.contains(&packet.primary_target_file)));
+    }
+
+    #[test]
+    fn guardian_packets_prefer_repo_defined_mechanisms_from_doctrine() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::create_dir_all(fixture.join("app/Services/Filter")).unwrap();
+        fs::write(
+            fixture.join(".aigiscode/doctrine.json"),
+            r#"{
+  "version": "repo-override-1",
+  "clauses": [
+    {
+      "id": "guardian.native-vs-library",
+      "title": "Repo native versus library",
+      "description": "Use the sanctioned query contract parser.",
+      "category": "MechanismChoice",
+      "default_disposition": "Block",
+      "preferred_mechanism": "query_contract_parser",
+      "guidance": ["Use the sanctioned query contract parser."]
+    }
+  ]
+}"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/QueryContractParser.php"),
+            br#"<?php
+final class QueryContractParser {
+    public function parse(Request $request): array {
+        $filters = json_decode($request->input('filters', '[]'), true);
+        $parts = array_map(trim(...), explode(',', (string) $request->query('sort')));
+        return $this->parseSort($parts);
+    }
+
+    private function parseSort(array $parts): array {
+        return $parts;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/FilterValidator.php"),
+            br#"<?php
+final class FilterValidator {
+    public function validateOperator(string $operator): bool {
+        return preg_match('/^[a-z_]+$/', $operator) === 1;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/FilterDefinitionResolver.php"),
+            br#"<?php
+final class FilterDefinitionResolver {
+    public function resolve(string $name): array {
+        $normalized = trim($name);
+        return ['key' => substr($normalized, 0, 10)];
+    }
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        assert_eq!(
+            analysis
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::HandRolledParsing),
+            1
+        );
+        let surface = analysis.architecture_surface();
+        let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
+        let doctrine_registry = load_doctrine_registry(&fixture).unwrap();
+        let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry);
+
+        let packet = handoff
+            .guardian_packets
+            .iter()
+            .find(|packet| packet.focus == "hand_rolled_parsing")
+            .unwrap();
+        assert_eq!(
+            packet.preferred_mechanism.as_deref(),
+            Some("query_contract_parser")
+        );
+        assert!(packet
+            .obligations
+            .iter()
+            .any(|obligation| obligation.action.contains("query_contract_parser")));
     }
 
     #[test]

@@ -1,4 +1,5 @@
 use crate::detectors::hardwiring::HardwiringFinding;
+use crate::evidence::EvidenceAnchor;
 use crate::ingestion::pipeline::ProjectAnalysis;
 use crate::policy::{PolicyBundle, PolicyLoadError, SuppressionReason};
 use crate::surface::{
@@ -56,6 +57,10 @@ pub struct ReviewFinding {
     pub summary: String,
     pub file_paths: Vec<String>,
     pub line: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_anchor: Option<EvidenceAnchor>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence_anchors: Vec<EvidenceAnchor>,
     pub provenance: Vec<String>,
     pub doctrine_refs: Vec<String>,
     pub review_status: ReviewStatus,
@@ -145,6 +150,8 @@ impl ReviewFinding {
                 .map(|path| path.display().to_string())
                 .collect(),
             line: finding.line,
+            primary_anchor: finding.primary_anchor.clone(),
+            evidence_anchors: finding.evidence_anchors.clone(),
             provenance: finding.provenance.clone(),
             doctrine_refs: finding.doctrine_refs.clone(),
             review_status: ReviewStatus::Unreviewed,

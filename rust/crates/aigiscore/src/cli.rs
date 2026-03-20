@@ -4,8 +4,8 @@ use crate::artifacts::{
     ArtifactPaths, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
     ARCHITECTURE_SURFACE_FILE, CONTRACT_INVENTORY_FILE, CONVERGENCE_HISTORY_FILE,
     DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE,
-    EVIDENCE_GRAPH_FILE, EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE,
-    SEMANTIC_GRAPH_FILE,
+    DOCTRINE_REGISTRY_FILE, EVIDENCE_GRAPH_FILE, EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE,
+    REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
 };
 use crate::assessment::build_architectural_assessment;
 use crate::external::collect_external_analysis;
@@ -20,6 +20,7 @@ use crate::plugins::built_in_runtime_plugins;
 use crate::policy::tune::{
     load_or_build_review_surface, suggest_policy_patch, write_policy_suggestion,
 };
+use crate::semantic_models::built_in_semantic_model_packs;
 use serde::Serialize;
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use std::fs;
@@ -202,6 +203,7 @@ struct AnalyzeArtifactOutput {
     dependency_graph: PathBuf,
     evidence_graph: PathBuf,
     contract_inventory: PathBuf,
+    doctrine_registry: PathBuf,
     kuzu_graph: Option<PathBuf>,
     deterministic_findings: PathBuf,
     external_analysis: PathBuf,
@@ -225,6 +227,7 @@ struct CypherCommandOutput {
 
 #[derive(Debug, Serialize)]
 struct PluginsCommandOutput {
+    built_in_semantic_model_packs: Vec<PluginCatalogEntry>,
     built_in_runtime_plugins: Vec<PluginCatalogEntry>,
 }
 
@@ -248,6 +251,8 @@ struct AnalyzeCommandSummary {
     split_identity_model_count: usize,
     compatibility_scar_count: usize,
     duplicate_mechanism_count: usize,
+    hand_rolled_parsing_count: usize,
+    abstraction_sprawl_count: usize,
     dead_code_count: usize,
     hardwiring_count: usize,
     security_finding_count: usize,
@@ -262,6 +267,7 @@ struct InfoArtifactPresence {
     dependency_graph: bool,
     evidence_graph: bool,
     contract_inventory: bool,
+    doctrine_registry: bool,
     deterministic_findings: bool,
     external_analysis: bool,
     architecture_surface: bool,
@@ -495,6 +501,7 @@ fn build_analysis_command_output(
             dependency_graph: paths.dependency_graph.clone(),
             evidence_graph: paths.evidence_graph.clone(),
             contract_inventory: paths.contract_inventory.clone(),
+            doctrine_registry: paths.doctrine_registry.clone(),
             kuzu_graph: kuzu_graph.clone(),
             deterministic_findings: paths.deterministic_findings.clone(),
             external_analysis: paths.external_analysis.clone(),
@@ -527,6 +534,12 @@ fn build_analysis_command_output(
             duplicate_mechanism_count: result
                 .architectural_assessment
                 .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::DuplicateMechanism),
+            hand_rolled_parsing_count: result
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::HandRolledParsing),
+            abstraction_sprawl_count: result
+                .architectural_assessment
+                .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::AbstractionSprawl),
             dead_code_count: result.dead_code.findings.len(),
             hardwiring_count: result.hardwiring.findings.len(),
             security_finding_count: result.security_analysis.findings.len(),
@@ -837,6 +850,13 @@ fn run_tune_command(path: PathBuf, output_dir: Option<PathBuf>) -> i32 {
 
 fn build_plugins_command_output() -> PluginsCommandOutput {
     PluginsCommandOutput {
+        built_in_semantic_model_packs: built_in_semantic_model_packs()
+            .iter()
+            .map(|pack| PluginCatalogEntry {
+                id: String::from(pack.id),
+                description: String::from(pack.description),
+            })
+            .collect(),
         built_in_runtime_plugins: built_in_runtime_plugins()
             .iter()
             .map(|plugin| PluginCatalogEntry {
@@ -853,12 +873,14 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
     let report = read_json_if_exists(&artifact_paths.aigiscode_report)?;
     let surface = read_json_if_exists(&artifact_paths.architecture_surface)?;
     let contract_inventory = read_json_if_exists(&artifact_paths.contract_inventory)?;
+    let doctrine_registry = read_json_if_exists(&artifact_paths.doctrine_registry)?;
     let convergence_history = read_json_if_exists(&artifact_paths.convergence_history)?;
     let guard_decision = read_json_if_exists(&artifact_paths.guard_decision)?;
 
     if report.is_none()
         && surface.is_none()
         && contract_inventory.is_none()
+        && doctrine_registry.is_none()
         && guard_decision.is_none()
     {
         return Err(format!(
@@ -884,6 +906,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
             dependency_graph: artifact_paths.dependency_graph.exists(),
             evidence_graph: artifact_paths.evidence_graph.exists(),
             contract_inventory: artifact_paths.contract_inventory.exists(),
+            doctrine_registry: artifact_paths.doctrine_registry.exists(),
             deterministic_findings: artifact_paths.deterministic_findings.exists(),
             external_analysis: artifact_paths.external_analysis.exists(),
             architecture_surface: artifact_paths.architecture_surface.exists(),
@@ -925,6 +948,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
                 .cloned()
                 .unwrap_or(JsonValue::Null)
         }),
+        "doctrine_registry": doctrine_registry.unwrap_or(JsonValue::Null),
         "languages": surface.as_ref().and_then(|payload| payload.get("languages")).cloned().unwrap_or(JsonValue::Array(Vec::new())),
         "top_hotspots": hotspots,
     });
@@ -942,6 +966,7 @@ fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPa
         dependency_graph: output_dir.join(DEPENDENCY_GRAPH_FILE),
         evidence_graph: output_dir.join(EVIDENCE_GRAPH_FILE),
         contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
+        doctrine_registry: output_dir.join(DOCTRINE_REGISTRY_FILE),
         deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
         external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
         architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
@@ -979,6 +1004,14 @@ mod tests {
     #[test]
     fn plugins_command_lists_built_in_runtime_plugins() {
         let output = build_plugins_command_output();
+        assert!(output
+            .built_in_semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "django_routes"));
+        assert!(output
+            .built_in_semantic_model_packs
+            .iter()
+            .any(|pack| pack.id == "wordpress_rest_routes"));
         assert!(output
             .built_in_runtime_plugins
             .iter()

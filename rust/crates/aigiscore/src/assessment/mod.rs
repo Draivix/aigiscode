@@ -17,6 +17,8 @@ pub enum ArchitecturalAssessmentKind {
     CompatibilityScar,
     DuplicateMechanism,
     SanctionedPathBypass,
+    HandRolledParsing,
+    AbstractionSprawl,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,10 +78,16 @@ pub fn build_architectural_assessment(
         hardwiring,
         parsed_sources,
     );
+    let hand_rolled_parsing =
+        detect_hand_rolled_parsing(&graph_analysis.bottleneck_files, parsed_sources);
+    let abstraction_sprawl =
+        detect_abstraction_sprawl(&graph_analysis.bottleneck_files, parsed_sources);
     findings.extend(split_identity_findings);
     findings.extend(compatibility_scars);
     findings.extend(duplicate_mechanisms);
     findings.extend(sanctioned_path_bypasses);
+    findings.extend(hand_rolled_parsing);
+    findings.extend(abstraction_sprawl);
     for finding in &mut findings {
         finding.fingerprint = architectural_assessment_fingerprint(finding);
     }
@@ -236,6 +244,8 @@ fn architectural_assessment_kind_label(kind: ArchitecturalAssessmentKind) -> &'s
         ArchitecturalAssessmentKind::CompatibilityScar => "compatibility-scar",
         ArchitecturalAssessmentKind::DuplicateMechanism => "duplicate-mechanism",
         ArchitecturalAssessmentKind::SanctionedPathBypass => "sanctioned-path-bypass",
+        ArchitecturalAssessmentKind::HandRolledParsing => "hand-rolled-parsing",
+        ArchitecturalAssessmentKind::AbstractionSprawl => "abstraction-sprawl",
     }
 }
 
@@ -486,6 +496,18 @@ struct DuplicateMechanismAccumulator {
     file_token_counts: HashMap<PathBuf, usize>,
 }
 
+#[derive(Debug, Default)]
+struct AbstractionSprawlAccumulator {
+    file_roles: HashMap<PathBuf, BTreeSet<String>>,
+    file_token_counts: HashMap<PathBuf, usize>,
+}
+
+#[derive(Debug, Default)]
+struct HandRolledParsingAccumulator {
+    file_roles: HashMap<PathBuf, BTreeSet<String>>,
+    file_scores: HashMap<PathBuf, usize>,
+}
+
 fn detect_duplicate_mechanisms(
     bottlenecks: &[BottleneckFile],
     parsed_sources: &[(PathBuf, String)],
@@ -521,7 +543,7 @@ fn detect_duplicate_mechanisms(
         }
     }
 
-    let mut findings = groups
+    let findings = groups
         .into_iter()
         .filter_map(|(concept, group)| {
             if group.file_mechanisms.len() < 2 {
@@ -608,6 +630,50 @@ fn detect_duplicate_mechanisms(
             })
         })
         .collect::<Vec<_>>();
+
+    let mut deduped = HashMap::<PathBuf, ArchitecturalAssessmentFinding>::new();
+    for finding in findings {
+        let entry = deduped
+            .entry(finding.file_path.clone())
+            .or_insert_with(|| finding.clone());
+        if entry.file_path != finding.file_path {
+            continue;
+        }
+        if entry.severity_millis < finding.severity_millis {
+            entry.severity_millis = finding.severity_millis;
+        }
+        entry.warning_count = entry.warning_count.max(finding.warning_count);
+        entry.warning_weight = entry.warning_weight.max(finding.warning_weight);
+        entry.bottleneck_centrality_millis = entry
+            .bottleneck_centrality_millis
+            .max(finding.bottleneck_centrality_millis);
+        entry.related_file_paths = entry
+            .related_file_paths
+            .iter()
+            .cloned()
+            .chain(finding.related_file_paths.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        entry.related_identifiers = entry
+            .related_identifiers
+            .iter()
+            .cloned()
+            .chain(finding.related_identifiers.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        entry.warning_families = entry
+            .warning_families
+            .iter()
+            .cloned()
+            .chain(finding.warning_families.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+    }
+
+    let mut findings = deduped.into_values().collect::<Vec<_>>();
     findings.sort_by(|left, right| {
         right
             .severity_millis
@@ -674,6 +740,305 @@ fn detect_sanctioned_path_bypasses(
                     + env_findings.len().min(4) as u16 * 70
                     + ((centrality / 200).min(180) as u16))
                     .min(1000),
+                fingerprint: String::new(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    findings.sort_by(|left, right| {
+        right
+            .severity_millis
+            .cmp(&left.severity_millis)
+            .then(left.file_path.cmp(&right.file_path))
+    });
+    findings
+}
+
+fn detect_abstraction_sprawl(
+    bottlenecks: &[BottleneckFile],
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<ArchitecturalAssessmentFinding> {
+    let bottleneck_by_path = bottlenecks
+        .iter()
+        .map(|bottleneck| (bottleneck.file_path.clone(), bottleneck.centrality_millis))
+        .collect::<HashMap<_, _>>();
+    let mut groups = HashMap::<String, AbstractionSprawlAccumulator>::new();
+
+    for (path, content) in parsed_sources {
+        if is_low_signal_identity_path(path) {
+            continue;
+        }
+        let roles = abstraction_roles(path, content);
+        if roles.is_empty() {
+            continue;
+        }
+        let concepts = abstraction_sprawl_concepts(path, content);
+        if concepts.is_empty() {
+            continue;
+        }
+
+        for concept in concepts {
+            let group = groups.entry(concept).or_default();
+            group
+                .file_roles
+                .entry(path.clone())
+                .or_default()
+                .extend(roles.iter().cloned());
+            *group.file_token_counts.entry(path.clone()).or_default() += 1;
+        }
+    }
+
+    let findings = groups
+        .into_iter()
+        .filter_map(|(concept, group)| {
+            if group.file_roles.len() < 3 {
+                return None;
+            }
+
+            let role_set = group
+                .file_roles
+                .values()
+                .flat_map(|roles| roles.iter().cloned())
+                .collect::<BTreeSet<_>>();
+            if role_set.len() < 4 {
+                return None;
+            }
+            let nontrivial_roles = role_set
+                .iter()
+                .filter(|role| {
+                    !matches!(
+                        role.as_str(),
+                        "service" | "helper" | "handler" | "client" | "validator"
+                    )
+                })
+                .count();
+            if nontrivial_roles < 2 {
+                return None;
+            }
+
+            let mut ranked_files = group
+                .file_roles
+                .into_iter()
+                .map(|(path, roles)| {
+                    let token_count = group
+                        .file_token_counts
+                        .get(&path)
+                        .copied()
+                        .unwrap_or_default();
+                    let centrality = bottleneck_by_path.get(&path).copied().unwrap_or_default();
+                    (path, roles, token_count, centrality)
+                })
+                .collect::<Vec<_>>();
+            ranked_files.sort_by(|left, right| {
+                right
+                    .3
+                    .cmp(&left.3)
+                    .then(right.1.len().cmp(&left.1.len()))
+                    .then(right.2.cmp(&left.2))
+                    .then(left.0.cmp(&right.0))
+            });
+
+            let Some((primary_file, primary_roles, _, primary_centrality)) = ranked_files.first()
+            else {
+                return None;
+            };
+            if primary_roles.len() < 2 && *primary_centrality < 250 {
+                return None;
+            }
+
+            let related_file_paths = ranked_files
+                .iter()
+                .skip(1)
+                .take(6)
+                .map(|(path, _, _, _)| path.clone())
+                .collect::<Vec<_>>();
+            let mut related_identifiers = vec![format!("concept:{concept}")];
+            related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
+            let warning_families = role_set
+                .iter()
+                .map(|role| format!("abstraction_role:{role}"))
+                .collect::<Vec<_>>();
+            let severity = (360
+                + (role_set.len().min(6) * 90)
+                + (ranked_files.len().min(5) * 80)
+                + ((*primary_centrality / 250).min(180) as usize))
+                .min(1000) as u16;
+
+            Some(ArchitecturalAssessmentFinding {
+                kind: ArchitecturalAssessmentKind::AbstractionSprawl,
+                file_path: primary_file.clone(),
+                related_file_paths,
+                related_identifiers,
+                warning_count: ranked_files.len(),
+                warning_weight: role_set.len(),
+                bottleneck_centrality_millis: *primary_centrality,
+                warning_families,
+                severity_millis: severity,
+                fingerprint: String::new(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let mut deduped = HashMap::<PathBuf, ArchitecturalAssessmentFinding>::new();
+    for finding in findings {
+        let entry = deduped
+            .entry(finding.file_path.clone())
+            .or_insert_with(|| finding.clone());
+        if entry.severity_millis < finding.severity_millis {
+            entry.severity_millis = finding.severity_millis;
+        }
+        entry.warning_count = entry.warning_count.max(finding.warning_count);
+        entry.warning_weight = entry.warning_weight.max(finding.warning_weight);
+        entry.bottleneck_centrality_millis = entry
+            .bottleneck_centrality_millis
+            .max(finding.bottleneck_centrality_millis);
+        entry.related_file_paths = entry
+            .related_file_paths
+            .iter()
+            .cloned()
+            .chain(finding.related_file_paths.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        entry.related_identifiers = entry
+            .related_identifiers
+            .iter()
+            .cloned()
+            .chain(finding.related_identifiers.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        entry.warning_families = entry
+            .warning_families
+            .iter()
+            .cloned()
+            .chain(finding.warning_families.iter().cloned())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+    }
+
+    let mut findings = deduped.into_values().collect::<Vec<_>>();
+    findings.sort_by(|left, right| {
+        right
+            .severity_millis
+            .cmp(&left.severity_millis)
+            .then(left.file_path.cmp(&right.file_path))
+    });
+    findings
+}
+
+fn detect_hand_rolled_parsing(
+    bottlenecks: &[BottleneckFile],
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<ArchitecturalAssessmentFinding> {
+    let bottleneck_by_path = bottlenecks
+        .iter()
+        .map(|bottleneck| (bottleneck.file_path.clone(), bottleneck.centrality_millis))
+        .collect::<HashMap<_, _>>();
+    let mut groups = HashMap::<PathBuf, HandRolledParsingAccumulator>::new();
+
+    for (path, content) in parsed_sources {
+        if is_low_signal_identity_path(path) {
+            continue;
+        }
+        let roles = parsing_roles(path);
+        let score = parsing_primitive_score(content);
+        if roles.is_empty() || score < parsing_role_minimum_score(&roles) {
+            continue;
+        }
+        let directory = path.parent().map(Path::to_path_buf).unwrap_or_default();
+        let group = groups.entry(directory).or_default();
+        group
+            .file_roles
+            .entry(path.clone())
+            .or_default()
+            .extend(roles.iter().cloned());
+        *group.file_scores.entry(path.clone()).or_default() += score;
+    }
+
+    let mut findings = groups
+        .into_iter()
+        .filter_map(|(directory, group)| {
+            if group.file_roles.len() < 2 {
+                return None;
+            }
+
+            let role_set = group
+                .file_roles
+                .values()
+                .flat_map(|roles| roles.iter().cloned())
+                .collect::<BTreeSet<_>>();
+            if !role_set.iter().any(|role| is_primary_parsing_role(role)) || role_set.len() < 2 {
+                return None;
+            }
+
+            let total_score = group.file_scores.values().sum::<usize>();
+            if total_score < 8 {
+                return None;
+            }
+
+            let mut ranked_files = group
+                .file_roles
+                .into_iter()
+                .map(|(path, roles)| {
+                    let score = group.file_scores.get(&path).copied().unwrap_or_default();
+                    let centrality = bottleneck_by_path.get(&path).copied().unwrap_or_default();
+                    let primary_role_bonus = roles
+                        .iter()
+                        .filter(|role| is_primary_parsing_role(role))
+                        .count();
+                    (path, roles, score, centrality, primary_role_bonus)
+                })
+                .collect::<Vec<_>>();
+            ranked_files.sort_by(|left, right| {
+                right
+                    .3
+                    .cmp(&left.3)
+                    .then(right.4.cmp(&left.4))
+                    .then(right.2.cmp(&left.2))
+                    .then(right.1.len().cmp(&left.1.len()))
+                    .then(left.0.cmp(&right.0))
+            });
+
+            let Some((primary_file, _, primary_score, primary_centrality, _)) =
+                ranked_files.first()
+            else {
+                return None;
+            };
+
+            let related_file_paths = ranked_files
+                .iter()
+                .skip(1)
+                .take(6)
+                .map(|(path, _, _, _, _)| path.clone())
+                .collect::<Vec<_>>();
+            let mut related_identifiers =
+                vec![format!("directory:{}", normalized_path(&directory))];
+            related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
+            let mut warning_families = role_set
+                .iter()
+                .map(|role| format!("parsing_role:{role}"))
+                .collect::<Vec<_>>();
+            warning_families.push(String::from("concern:custom_parsing"));
+
+            let severity = (360
+                + (role_set.len().min(5) * 80)
+                + (ranked_files.len().min(4) * 90)
+                + (total_score.min(12) * 20)
+                + ((*primary_centrality / 250).min(140) as usize))
+                .min(1000) as u16;
+
+            Some(ArchitecturalAssessmentFinding {
+                kind: ArchitecturalAssessmentKind::HandRolledParsing,
+                file_path: primary_file.clone(),
+                related_file_paths,
+                related_identifiers,
+                warning_count: ranked_files.len(),
+                warning_weight: total_score.max(*primary_score),
+                bottleneck_centrality_millis: *primary_centrality,
+                warning_families,
+                severity_millis: severity,
                 fingerprint: String::new(),
             })
         })
@@ -786,6 +1151,149 @@ fn duplicate_mechanism_tokens(path: &Path, content: &str) -> BTreeSet<String> {
         ));
     }
     tokens
+}
+
+fn abstraction_roles(path: &Path, _content: &str) -> BTreeSet<String> {
+    let mut roles = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        let words = split_identifier_words(stem);
+        roles.extend(words.into_iter().filter(|word| is_abstraction_role(word)));
+    }
+    roles
+}
+
+fn abstraction_sprawl_concepts(path: &Path, _content: &str) -> BTreeSet<String> {
+    let mut concepts = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        concepts.extend(abstraction_concepts_from_words(split_identifier_words(
+            stem,
+        )));
+    }
+    if let Some(parent) = path.parent().and_then(|parent| parent.file_name()) {
+        if let Some(parent) = parent.to_str() {
+            concepts.extend(abstraction_concepts_from_words(split_identifier_words(
+                parent,
+            )));
+        }
+    }
+    concepts
+}
+
+fn abstraction_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
+    let filtered = words
+        .into_iter()
+        .filter(|word| !is_abstraction_role(word))
+        .filter(|word| is_abstraction_concept_word(word))
+        .collect::<Vec<_>>();
+    let mut concepts = BTreeSet::new();
+    if let Some(word) = filtered.first() {
+        if word.len() >= 7 {
+            concepts.insert(word.clone());
+        }
+    }
+    concepts
+}
+
+fn parsing_roles(path: &Path) -> BTreeSet<String> {
+    let mut roles = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        roles.extend(
+            split_identifier_words(stem)
+                .into_iter()
+                .filter(|word| is_parsing_role(word)),
+        );
+    }
+    roles
+}
+
+fn parsing_primitive_score(content: &str) -> usize {
+    parsing_primitive_pattern().find_iter(content).count()
+}
+
+fn parsing_role_minimum_score(roles: &BTreeSet<String>) -> usize {
+    if roles.iter().any(|role| is_primary_parsing_role(role)) {
+        3
+    } else {
+        2
+    }
+}
+
+fn is_parsing_role(word: &str) -> bool {
+    matches!(
+        word,
+        "parser"
+            | "tokenizer"
+            | "lexer"
+            | "scanner"
+            | "matcher"
+            | "validator"
+            | "normalizer"
+            | "decoder"
+            | "encoder"
+            | "resolver"
+            | "definition"
+    )
+}
+
+fn is_primary_parsing_role(word: &str) -> bool {
+    matches!(word, "parser" | "tokenizer" | "lexer" | "scanner")
+}
+
+fn is_abstraction_role(word: &str) -> bool {
+    matches!(
+        word,
+        "service"
+            | "manager"
+            | "helper"
+            | "provider"
+            | "factory"
+            | "adapter"
+            | "resolver"
+            | "registry"
+            | "builder"
+            | "gateway"
+            | "normalizer"
+            | "mapper"
+            | "wrapper"
+            | "orchestrator"
+            | "dispatcher"
+            | "compiler"
+            | "validator"
+            | "loader"
+            | "handler"
+            | "client"
+            | "planner"
+            | "router"
+            | "broadcaster"
+            | "executor"
+            | "store"
+            | "repository"
+            | "policy"
+    )
+}
+
+fn is_abstraction_concept_word(word: &str) -> bool {
+    word.len() >= 4
+        && !matches!(
+            word,
+            "abstract"
+                | "default"
+                | "global"
+                | "common"
+                | "system"
+                | "value"
+                | "field"
+                | "fields"
+                | "types"
+                | "type"
+                | "data"
+                | "core"
+                | "base"
+                | "module"
+                | "modules"
+                | "view"
+                | "views"
+        )
 }
 
 fn duplicate_mechanism_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
@@ -910,6 +1418,16 @@ fn direct_notification_pattern() -> &'static Regex {
     DIRECT_NOTIFICATION_PATTERN.get_or_init(|| {
         Regex::new(
             r"(?i)(\bwp_mail\s*\(|\bmail\s*\(|\bmail::send\s*\(|\bsendmail\b|\bmailer\b|\bnotify\s*\(|->notify\s*\(|::notify\s*\(|\bphpmailer\b)",
+        )
+        .unwrap()
+    })
+}
+
+fn parsing_primitive_pattern() -> &'static Regex {
+    static PARSING_PRIMITIVE_PATTERN: OnceLock<Regex> = OnceLock::new();
+    PARSING_PRIMITIVE_PATTERN.get_or_init(|| {
+        Regex::new(
+            r"(?i)(json_decode|json_encode|preg_match|preg_replace|preg_split|explode\s*\(|split\s*\(|trim\s*\(|substr\s*\(|str_starts_with\s*\(|str_ends_with\s*\(|parse[A-Z][A-Za-z0-9_]*\s*\(|tokeni[sz]e\s*\(|regex|pattern\b|matcher\b|validate[A-Z][A-Za-z0-9_]*\s*\()",
         )
         .unwrap()
     })
@@ -1482,6 +2000,206 @@ def build_report():
         assert!(finding
             .warning_families
             .contains(&String::from("concern:configuration")));
+    }
+
+    #[test]
+    fn detects_abstraction_sprawl_for_concept_with_many_roles() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Notifications/NotificationService.php"),
+                    centrality_millis: 640,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Notifications/NotificationService.php"),
+                    String::from("final class NotificationService {}"),
+                ),
+                (
+                    PathBuf::from("app/Notifications/NotificationPayloadBuilder.php"),
+                    String::from("final class NotificationPayloadBuilder {}"),
+                ),
+                (
+                    PathBuf::from("app/Notifications/NotificationTypeRegistry.php"),
+                    String::from("final class NotificationTypeRegistry {}"),
+                ),
+                (
+                    PathBuf::from("app/Notifications/NotificationPreferenceResolver.php"),
+                    String::from("final class NotificationPreferenceResolver {}"),
+                ),
+                (
+                    PathBuf::from("app/Notifications/NotificationChannelDispatcher.php"),
+                    String::from("final class NotificationChannelDispatcher {}"),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| finding.kind == ArchitecturalAssessmentKind::AbstractionSprawl)
+            .expect("expected abstraction sprawl finding");
+        assert_eq!(
+            finding.file_path,
+            PathBuf::from("app/Notifications/NotificationService.php")
+        );
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier.starts_with("concept:notification")));
+        assert!(finding
+            .warning_families
+            .contains(&String::from("abstraction_role:service")));
+        assert!(finding
+            .warning_families
+            .contains(&String::from("abstraction_role:builder")));
+        assert!(finding
+            .warning_families
+            .contains(&String::from("abstraction_role:registry")));
+        assert!(finding
+            .warning_families
+            .contains(&String::from("abstraction_role:resolver")));
+    }
+
+    #[test]
+    fn detects_hand_rolled_parsing_stack_for_custom_query_contract_flow() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Services/Filter/QueryContractParser.php"),
+                    centrality_millis: 540,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Services/Filter/QueryContractParser.php"),
+                    String::from(
+                        r#"
+                        final class QueryContractParser {
+                            public function parse(Request $request): array {
+                                $filters = json_decode($request->input('filters', '[]'), true);
+                                $parts = array_map(trim(...), explode(',', (string) $request->query('sort')));
+                                return $this->parseSort($parts);
+                            }
+                            private function parseSort(array $parts): array { return $parts; }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Filter/FilterValidator.php"),
+                    String::from(
+                        r#"
+                        final class FilterValidator {
+                            public function validateOperator(string $operator): bool {
+                                return preg_match('/^[a-z_]+$/', $operator) === 1;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Filter/FilterDefinitionResolver.php"),
+                    String::from(
+                        r#"
+                        final class FilterDefinitionResolver {
+                            public function resolve(string $name): array {
+                                $normalized = trim($name);
+                                return ['key' => substr($normalized, 0, 10)];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| finding.kind == ArchitecturalAssessmentKind::HandRolledParsing)
+            .expect("expected hand-rolled parsing finding");
+        assert_eq!(
+            finding.file_path,
+            PathBuf::from("app/Services/Filter/QueryContractParser.php")
+        );
+        assert!(finding
+            .warning_families
+            .contains(&String::from("parsing_role:parser")));
+        assert!(finding
+            .warning_families
+            .contains(&String::from("parsing_role:validator")));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier.starts_with("directory:")));
+    }
+
+    #[test]
+    fn ignores_single_parser_file_without_cluster() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Support/SlugParser.php"),
+                String::from(
+                    r#"
+                    final class SlugParser {
+                        public function parse(string $value): array {
+                            return explode('-', trim($value));
+                        }
+                    }
+                "#,
+                ),
+            )],
+        );
+
+        assert!(assessment
+            .findings
+            .iter()
+            .all(|finding| finding.kind != ArchitecturalAssessmentKind::HandRolledParsing));
+    }
+
+    #[test]
+    fn ignores_plain_service_clusters_without_role_variety() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Orders/OrderService.php"),
+                    String::from("final class OrderService {}"),
+                ),
+                (
+                    PathBuf::from("app/Orders/OrderExportService.php"),
+                    String::from("final class OrderExportService {}"),
+                ),
+                (
+                    PathBuf::from("app/Orders/OrderListService.php"),
+                    String::from("final class OrderListService {}"),
+                ),
+            ],
+        );
+
+        assert!(assessment
+            .findings
+            .iter()
+            .all(|finding| finding.kind != ArchitecturalAssessmentKind::AbstractionSprawl));
     }
 
     #[test]

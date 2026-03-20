@@ -4,14 +4,15 @@ use self::contracts::{
     build_finding_details, display_path, family_matches, language_matches, path_matches,
     severity_matches, AtlasOutput, BottleneckOutput, ContractInventoryOutput, ConvergenceOutput,
     CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams,
-    ExplainFindingParams, FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput,
-    HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams, QualityEvaluationOutput,
-    RepoOverviewOutput, ShowCyclesParams, ShowHotspotsParams,
+    DoctrineRegistryOutput, ExplainFindingParams, FindingDetailOutput, FindingSummaryOutput,
+    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
+    QualityEvaluationOutput, RepoOverviewOutput, ShowCyclesParams, ShowHotspotsParams,
 };
 use crate::artifacts::{
     build_agent_handoff_artifact, write_project_analysis_artifacts, AgentHandoffArtifact,
     ArtifactPaths, ConvergenceHistoryArtifact, GuardDecisionArtifact,
 };
+use crate::doctrine::{load_doctrine_registry, DoctrineLoadError};
 use crate::ingestion::pipeline::{analyze_project, ProjectAnalysis, ProjectAnalysisError};
 use crate::ingestion::scan::ScanConfig;
 use crate::kuzu_index::{
@@ -53,6 +54,7 @@ const GRAPH_SCHEMA_URI: &str = "aigiscode://repo/current/graph-schema";
 const DEPENDENCY_GRAPH_URI: &str = "aigiscode://repo/current/dependency-graph";
 const EVIDENCE_GRAPH_URI: &str = "aigiscode://repo/current/evidence-graph";
 const CONTRACTS_URI: &str = "aigiscode://repo/current/contracts";
+const DOCTRINE_URI: &str = "aigiscode://repo/current/doctrine";
 const HANDOFF_URI: &str = "aigiscode://repo/current/handoff";
 const CONVERGENCE_URI: &str = "aigiscode://repo/current/convergence";
 const GUARD_URI: &str = "aigiscode://repo/current/guard";
@@ -65,6 +67,8 @@ pub enum McpServerError {
     Analysis(#[from] ProjectAnalysisError),
     #[error(transparent)]
     Policy(#[from] PolicyLoadError),
+    #[error(transparent)]
+    Doctrine(#[from] DoctrineLoadError),
     #[error("failed to write AigisCode artifacts: {0}")]
     WriteArtifacts(#[source] std::io::Error),
     #[error("failed to materialize Kuzu graph artifact: {0}")]
@@ -179,6 +183,7 @@ impl AigiscodeMcpServer {
                 dependency_graph: output_dir.join("dependency-graph.json"),
                 evidence_graph: output_dir.join("evidence-graph.json"),
                 contract_inventory: output_dir.join("contract-inventory.json"),
+                doctrine_registry: output_dir.join("doctrine-registry.json"),
                 deterministic_findings: output_dir.join("deterministic-findings.json"),
                 external_analysis: output_dir.join("external-analysis.json"),
                 architecture_surface: output_dir.join("architecture-surface.json"),
@@ -532,6 +537,10 @@ impl AigiscodeMcpServer {
                 .with_description("Declared runtime contract inventory for routes, hooks, env keys, config keys, and symbolic literals.")
                 .with_mime_type("application/json")
                 .no_annotation(),
+            self.resource(DOCTRINE_URI)
+                .with_description("Machine-readable guardian doctrine registry with built-in and repo-owned clauses.")
+                .with_mime_type("application/json")
+                .no_annotation(),
             self.resource(HANDOFF_URI)
                 .with_description("Agent handoff artifact with top visible findings, feedback-loop metrics, and next recommended actions.")
                 .with_mime_type("application/json")
@@ -596,6 +605,10 @@ impl AigiscodeMcpServer {
                 String::from(uri),
                 to_json_pretty(&self.state.contract_inventory)?,
             )),
+            DOCTRINE_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state.doctrine_registry)?,
+            )),
             HANDOFF_URI => Ok((String::from(uri), to_json_pretty(&self.state.handoff)?)),
             CONVERGENCE_URI => Ok((String::from(uri), to_json_pretty(&self.state.convergence)?)),
             GUARD_URI => Ok((
@@ -632,6 +645,7 @@ struct McpState {
     dependency_graph: DependencyGraphArtifact,
     evidence_graph: EvidenceGraphArtifact,
     contract_inventory: ContractInventoryOutput,
+    doctrine_registry: DoctrineRegistryOutput,
     handoff: AgentHandoffArtifact,
     convergence: ConvergenceOutput,
     guard_decision: GuardDecisionOutput,
@@ -707,9 +721,13 @@ impl McpState {
         let evidence_graph = build_evidence_graph_artifact(&analysis.semantic_graph);
         let contract_inventory =
             ContractInventoryOutput::from_inventory(&analysis.contract_inventory);
+        let doctrine_registry = DoctrineRegistryOutput::load(&analysis.root)?;
         let coverage = CoverageReportOutput::new(&root, &surface, &review_surface);
         let quality = QualityEvaluationOutput::new(&root, &analysis, &surface, &review_surface);
-        let handoff = build_agent_handoff_artifact(&analysis, &review_surface);
+        let doctrine_registry_native =
+            load_doctrine_registry(&analysis.root).map_err(McpServerError::Doctrine)?;
+        let handoff =
+            build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry_native);
         let convergence =
             read_json_artifact::<ConvergenceHistoryArtifact>(&artifact_paths.convergence_history)
                 .map(|artifact| ConvergenceOutput::from_artifact(&artifact))
@@ -736,6 +754,7 @@ impl McpState {
             dependency_graph,
             evidence_graph,
             contract_inventory,
+            doctrine_registry,
             handoff,
             convergence,
             guard_decision,
@@ -766,6 +785,7 @@ fn resource_name(uri: &str) -> &'static str {
         DEPENDENCY_GRAPH_URI => "dependency-graph",
         EVIDENCE_GRAPH_URI => "evidence-graph",
         CONTRACTS_URI => "contracts",
+        DOCTRINE_URI => "doctrine",
         HANDOFF_URI => "handoff",
         CONVERGENCE_URI => "convergence",
         GUARD_URI => "guard",
@@ -786,6 +806,7 @@ fn resource_title(uri: &str) -> &'static str {
         DEPENDENCY_GRAPH_URI => "Dependency Graph",
         EVIDENCE_GRAPH_URI => "Evidence Graph",
         CONTRACTS_URI => "Contract Inventory",
+        DOCTRINE_URI => "Doctrine Registry",
         HANDOFF_URI => "Agent Handoff",
         CONVERGENCE_URI => "Convergence Report",
         GUARD_URI => "Guard Decision",
@@ -810,9 +831,9 @@ fn read_json_artifact<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> 
 mod tests {
     use super::{
         AigiscodeMcpServer, CypherQueryParams, ListFindingsParams, ShowHotspotsParams,
-        CONTRACTS_URI, CONVERGENCE_URI, COVERAGE_URI, DEPENDENCY_GRAPH_URI, EVIDENCE_GRAPH_URI,
-        FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_SCHEMA_URI, GUARD_URI, HANDOFF_URI, HOTSPOTS_URI,
-        OVERVIEW_URI,
+        CONTRACTS_URI, CONVERGENCE_URI, COVERAGE_URI, DEPENDENCY_GRAPH_URI, DOCTRINE_URI,
+        EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_SCHEMA_URI, GUARD_URI,
+        HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI,
     };
     use rmcp::handler::server::wrapper::Parameters;
     use serde_json::Value;
@@ -975,6 +996,9 @@ fn main() {
             .any(|resource| resource.raw.uri == CONTRACTS_URI));
         assert!(resources
             .iter()
+            .any(|resource| resource.raw.uri == DOCTRINE_URI));
+        assert!(resources
+            .iter()
             .any(|resource| resource.raw.uri == HANDOFF_URI));
         assert!(resources
             .iter()
@@ -1024,6 +1048,11 @@ fn main() {
         let (_, contracts_payload) = server.read_resource_payload(CONTRACTS_URI).unwrap();
         let contracts_json: Value = serde_json::from_str(&contracts_payload).unwrap();
         assert_eq!(contracts_json["summary"]["env_keys"]["unique_values"], 0);
+
+        let (_, doctrine_payload) = server.read_resource_payload(DOCTRINE_URI).unwrap();
+        let doctrine_json: Value = serde_json::from_str(&doctrine_payload).unwrap();
+        assert!(doctrine_json["clauses"].is_array());
+        assert_eq!(doctrine_json["version"], "2026-03");
 
         let (_, handoff_payload) = server.read_resource_payload(HANDOFF_URI).unwrap();
         let handoff_json: Value = serde_json::from_str(&handoff_payload).unwrap();
