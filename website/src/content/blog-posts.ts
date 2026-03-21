@@ -22,6 +22,3263 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   /* ======================================================================== */
+  /*  Zeus Shield: How AigisCode Guards Your Architecture                     */
+  /* ======================================================================== */
+  {
+    slug: 'zeus-shield-guardian-doctrine',
+    date: '2026-03-21',
+    readTime: 10,
+    tags: ['Architecture', 'Guardian Doctrine', 'Zeus Shield', 'Open Source'],
+    image: '/blog-zeus-shield.jpg',
+    author: { name: 'David Strejc', role: 'Creator of AigisCode' },
+    relatedSlugs: [
+      'building-semantic-code-graph-rust',
+      'detecting-overengineered-code',
+    ],
+    title: {
+      en: 'Zeus Shield: How AigisCode Guards Your Architecture with Doctrine-Driven Governance',
+      cs: 'Zeus Shield: Jak AigisCode chrání vaši architekturu pomocí doktrínou řízeného řízení',
+      fr: 'Zeus Shield : comment AigisCode protège votre architecture avec une gouvernance pilotée par la doctrine',
+      es: 'Zeus Shield: cómo AigisCode protege tu arquitectura con gobernanza basada en doctrina',
+      zh: 'Zeus Shield：AigisCode 如何通过教义驱动的治理守护你的架构',
+      hi: 'Zeus Shield: AigisCode कैसे डॉक्ट्रिन-ड्रिवन गवर्नेंस से आपकी आर्किटेक्चर की रक्षा करता है',
+      pt: 'Zeus Shield: Como o AigisCode Protege Sua Arquitetura com Governança Orientada por Doutrina',
+      ar: 'درع زيوس: كيف يحمي AigisCode بنيتك المعمارية بالحوكمة المبنية على العقيدة',
+      pl: 'Zeus Shield: Jak AigisCode chroni Twoją architekturę dzięki zarządzaniu opartemu na doktrynie',
+      bn: 'Zeus Shield: কিভাবে AigisCode ডকট্রিন-চালিত গভর্ন্যান্সের মাধ্যমে আপনার আর্কিটেকচার রক্ষা করে',
+    },
+    description: {
+      en: 'Introducing Zeus Shield — a typed guardian doctrine that lets AigisCode enforce architectural rules, detect drift, and give AI agents explicit allow/warn/block decisions.',
+      cs: 'Představujeme Zeus Shield — typovanou strážní doktrínu, která umožňuje AigisCode vynucovat architektonická pravidla, detekovat odchylky a dávat AI agentům explicitní rozhodnutí allow/warn/block.',
+      fr: 'Présentation de Zeus Shield — une doctrine de gardien typée qui permet à AigisCode d\'appliquer des règles architecturales, de détecter les dérives et de fournir aux agents IA des décisions explicites allow/warn/block.',
+      es: 'Presentamos Zeus Shield — una doctrina de guardián tipada que permite a AigisCode aplicar reglas arquitectónicas, detectar desviaciones y dar a los agentes de IA decisiones explícitas de allow/warn/block.',
+      zh: '介绍 Zeus Shield——一套类型化的守护教义，让 AigisCode 能够强制执行架构规则、检测漂移，并为 AI 代理提供明确的允许/警告/阻止决策。',
+      hi: 'Zeus Shield का परिचय — एक टाइप्ड गार्जियन डॉक्ट्रिन जो AigisCode को आर्किटेक्चरल नियम लागू करने, ड्रिफ्ट का पता लगाने और AI एजेंटों को स्पष्ट allow/warn/block निर्णय देने में सक्षम बनाता है।',
+      pt: 'Apresentando o Zeus Shield — uma doutrina guardiã tipada que permite ao AigisCode aplicar regras arquiteturais, detectar desvios e fornecer decisões explícitas de permitir/alertar/bloquear para agentes de IA.',
+      ar: 'تقديم درع زيوس — عقيدة حراسة مصنّفة تتيح لـ AigisCode فرض قواعد معمارية واكتشاف الانحراف وإعطاء وكلاء الذكاء الاصطناعي قرارات صريحة بالسماح/التحذير/الحظر.',
+      pl: 'Przedstawiamy Zeus Shield — typowaną doktrynę strażniczą, która pozwala AigisCode egzekwować reguły architektoniczne, wykrywać dryf i dawać agentom AI jednoznaczne decyzje allow/warn/block.',
+      bn: 'Zeus Shield-এর পরিচয় — একটি টাইপড গার্ডিয়ান ডকট্রিন যা AigisCode-কে আর্কিটেকচারাল নিয়ম প্রয়োগ করতে, ড্রিফট শনাক্ত করতে এবং AI এজেন্টদের সুস্পষ্ট allow/warn/block সিদ্ধান্ত দিতে সক্ষম করে।',
+    },
+    metaDescription: {
+      en: 'Learn how AigisCode\'s Zeus Shield guardian doctrine enforces architectural quality through typed clauses, convergence tracking, and diff-local guard mode. Real examples from WordPress and enterprise codebases.',
+      cs: 'Zjistěte, jak strážní doktrína Zeus Shield v AigisCode vynucuje architektonickou kvalitu pomocí typovaných klauzulí, sledování konvergence a režimu diff-local guard. Reálné příklady z WordPress a podnikových kódových bází.',
+      fr: 'Découvrez comment la doctrine de gardien Zeus Shield d\'AigisCode impose la qualité architecturale grâce à des clauses typées, au suivi de convergence et au mode guard diff-local. Exemples réels tirés de WordPress et de codebases d\'entreprise.',
+      es: 'Descubre cómo la doctrina de guardián Zeus Shield de AigisCode impone la calidad arquitectónica mediante cláusulas tipadas, seguimiento de convergencia y modo guard diff-local. Ejemplos reales de WordPress y codebases empresariales.',
+      zh: '了解 AigisCode 的 Zeus Shield 守护教义如何通过类型化条款、收敛追踪和差异局部守卫模式来强制保障架构质量。包含 WordPress 和企业级代码库的实际案例。',
+      hi: 'जानें कि AigisCode का Zeus Shield गार्जियन डॉक्ट्रिन कैसे टाइप्ड क्लॉज़, कन्वर्जेंस ट्रैकिंग और डिफ-लोकल गार्ड मोड के माध्यम से आर्किटेक्चरल गुणवत्ता को लागू करता है। WordPress और एंटरप्राइज़ कोडबेस से वास्तविक उदाहरण।',
+      pt: 'Saiba como a doutrina guardiã Zeus Shield do AigisCode garante a qualidade arquitetural através de cláusulas tipadas, rastreamento de convergência e modo de guarda diff-local. Exemplos reais de WordPress e bases de código empresariais.',
+      ar: 'تعرّف كيف تفرض عقيدة الحراسة درع زيوس في AigisCode جودة معمارية من خلال بنود مصنّفة وتتبع التقارب ووضع الحراسة المحلي للفروقات. أمثلة حقيقية من WordPress وقواعد الكود المؤسسية.',
+      pl: 'Dowiedz się, jak doktryna strażnicza Zeus Shield w AigisCode wymusza jakość architektoniczną poprzez typowane klauzule, śledzenie konwergencji i tryb ochrony diff-local. Prawdziwe przykłady z WordPress i korporacyjnych baz kodu.',
+      bn: 'জানুন কিভাবে AigisCode-এর Zeus Shield গার্ডিয়ান ডকট্রিন টাইপড ক্লজ, কনভার্জেন্স ট্র্যাকিং এবং diff-local গার্ড মোডের মাধ্যমে আর্কিটেকচারাল গুণমান প্রয়োগ করে। WordPress এবং এন্টারপ্রাইজ কোডবেস থেকে বাস্তব উদাহরণ।',
+    },
+    content: {
+      en: `
+<p>Static analysis tools find problems. But they do not prevent them from coming back. You fix a circular dependency today, and a new one appears next sprint. You clean up dead code, and more accumulates. The fundamental gap is not detection — it is <strong>governance</strong>.</p>
+
+<p>This is why we built <strong>Zeus Shield</strong>: a doctrine-driven guardian system that turns AigisCode from a one-shot analyzer into a continuous architectural watchdog.</p>
+
+<h2 id="what-is-zeus-shield">What Is Zeus Shield?</h2>
+
+<p>Zeus Shield is the governance layer that sits on top of AigisCode's semantic graph and deterministic detectors. Instead of just reporting findings, it makes <strong>allow, warn, or block decisions</strong> based on a typed doctrine registry.</p>
+
+<p>Think of it as a constitution for your codebase. The doctrine defines what patterns are acceptable, what requires review, and what should block a merge. Every finding is evaluated against this doctrine, and the result is a machine-readable judgment that CI pipelines and AI agents can act on.</p>
+
+<h2 id="the-doctrine-registry">The Doctrine Registry</h2>
+
+<p>At the heart of Zeus Shield is the <strong>doctrine registry</strong> — a typed catalog of architectural clauses. Each clause declares:</p>
+
+<ul>
+<li><strong>What it guards against</strong> — the architectural pattern or smell it addresses</li>
+<li><strong>Default disposition</strong> — whether violations are informational, warnings, or blockers</li>
+<li><strong>Preferred mechanism</strong> — the sanctioned alternative (e.g., "use a framework scheduler instead of a homegrown one")</li>
+<li><strong>Strength</strong> — how strongly the doctrine feels about this pattern</li>
+</ul>
+
+<p>The registry ships with built-in clauses like:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>Each clause is backed by real detection logic. When AigisCode finds a codebase rolling its own query parser instead of using a battle-tested library, the doctrine clause fires with a concrete recommendation: "Consider using an established query builder or ORM query language instead of a custom string-driven parser."</p>
+
+<h2 id="guardian-packets">Guardian Packets: Actionable Review Units</h2>
+
+<p>Zeus Shield does not dump a flat list of warnings. It produces <strong>guardian packets</strong> — structured investigation units that combine graph pressure, architectonic assessment, and security context into a single review item.</p>
+
+<p>A guardian packet includes:</p>
+
+<table>
+<thead>
+<tr><th>Field</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>The file at the center of the hotspot</td></tr>
+<tr><td><code>packet_type</code></td><td>What kind of issue (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>Which doctrine clauses apply</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>The sanctioned replacement path</td></tr>
+<tr><td><code>investigation_questions</code></td><td>Concrete questions for the reviewer to answer</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>Line-level references into source code</td></tr>
+<tr><td><code>obligations</code></td><td>What must happen before this can be accepted</td></tr>
+</tbody>
+</table>
+
+<p>This is fundamentally different from a linter warning. A linter says "unused import on line 42." A guardian packet says "This file centralizes three competing data representations with compatibility glue between them. The doctrine recommends consolidating to a single canonical model. Here are three investigation questions to determine whether this is intentional API bridging or accidental drift."</p>
+
+<h2 id="convergence-tracking">Convergence: Getting Quieter Over Time</h2>
+
+<p>One of the most powerful aspects of Zeus Shield is <strong>convergence tracking</strong>. Every time AigisCode runs, it compares the current state against previous results stored in <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>The system tracks:</p>
+
+<ul>
+<li><strong>New findings</strong> — problems that appeared since the last run</li>
+<li><strong>Resolved findings</strong> — problems that were fixed</li>
+<li><strong>Worsened findings</strong> — existing problems that got worse</li>
+<li><strong>Stable findings</strong> — known issues that have not changed</li>
+</ul>
+
+<p>This means the system gets <em>quieter</em> as your team addresses findings. It does not re-litigate accepted patterns. And when something regresses — a new circular dependency appears, abstraction sprawl increases, or a compatibility scar deepens — it surfaces that regression explicitly as a guard trigger.</p>
+
+<h2 id="guard-mode">Guard Mode: Allow, Warn, Block</h2>
+
+<p>The culmination of Zeus Shield is <strong>guard mode</strong>. The guard evaluates all active findings, convergence deltas, and doctrine triggers to produce a single judgment written to <code>.aigiscode/guard-decision.json</code>:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>CI pipelines can read this file and decide whether to proceed, require review, or block the merge. AI agents can parse the triggers and prioritize their work accordingly.</p>
+
+<h2 id="doctrine-driven-advice">Doctrine-Driven Advice for AI Agents</h2>
+
+<p>Zeus Shield was designed with AI coding agents in mind. When an agent reads <code>.aigiscode/aigiscode-handoff.json</code>, it gets not just findings but <strong>doctrine-backed recommendations</strong>:</p>
+
+<ul>
+<li>The preferred mechanism for each issue (from the doctrine clause)</li>
+<li>Investigation questions to guide exploration</li>
+<li>Evidence anchors pointing to specific lines</li>
+<li>Obligations that must be met before acceptance</li>
+</ul>
+
+<p>This means an AI agent does not need to re-derive what the right fix is. The doctrine tells it: "This is a homegrown scheduler DSL. The preferred mechanism is the framework's native scheduler or queue system. Investigate whether the custom implementation handles anything the framework cannot."</p>
+
+<h2 id="real-world-calibration">Real-World Calibration</h2>
+
+<p>Zeus Shield is not a theoretical system. Every detection rule is calibrated against real codebases:</p>
+
+<ul>
+<li><strong>WordPress</strong> — the largest PHP codebase in the world. Zeus Shield produces zero false positives for abstraction sprawl, compatibility scars, and homegrown parser detection on WordPress core.</li>
+<li><strong>Django</strong> — Python's most established web framework. Zero false positives for the same detectors.</li>
+<li><strong>NewERP</strong> — a large enterprise application with 5,000+ files. Zeus Shield correctly identifies real architectural hotspots: a custom query contract parser, a homegrown scheduler DSL, abstraction sprawl in notification and calendar services.</li>
+</ul>
+
+<p>The calibration philosophy is simple: if a detection fires on WordPress or Django core code, it is a false positive and must be fixed. These are well-maintained, well-architected codebases. If the tool cannot distinguish them from genuine overengineering, the tool is wrong.</p>
+
+<h2 id="try-zeus-shield">Try Zeus Shield</h2>
+
+<p>Zeus Shield is included in every AigisCode run. No extra configuration needed:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Check <code>.aigiscode/guard-decision.json</code> for the verdict, <code>.aigiscode/doctrine-registry.json</code> for the active doctrine, and <code>.aigiscode/aigiscode-handoff.json</code> for the full guardian packet output.</p>
+`,
+      cs: `
+<p>Nástroje pro statickou analýzu nacházejí problémy. Ale nebrání tomu, aby se vracely. Dnes opravíte cyklickou závislost a v příštím sprintu se objeví nová. Vyčistíte mrtvý kód a další se nahromadí. Zásadní mezera není v detekci — je v <strong>řízení</strong>.</p>
+
+<p>Proto jsme vytvořili <strong>Zeus Shield</strong>: systém strážní doktríny, který proměňuje AigisCode z jednorázového analyzátoru v průběžného architektonického hlídače.</p>
+
+<h2 id="what-is-zeus-shield">Co je Zeus Shield?</h2>
+
+<p>Zeus Shield je vrstva řízení, která sedí nad sémantickým grafem a deterministickými detektory AigisCode. Místo pouhého hlášení nálezů činí rozhodnutí <strong>allow, warn nebo block</strong> na základě typovaného registru doktríny.</p>
+
+<p>Představte si to jako ústavu pro váš codebase. Doktrína definuje, jaké vzory jsou přijatelné, co vyžaduje revizi a co by mělo zablokovat merge. Každý nález je vyhodnocen proti této doktríně a výsledkem je strojově čitelný verdikt, na který mohou reagovat CI pipelines a AI agenti.</p>
+
+<h2 id="the-doctrine-registry">Registr doktríny</h2>
+
+<p>Srdcem Zeus Shield je <strong>registr doktríny</strong> — typovaný katalog architektonických klauzulí. Každá klauzule deklaruje:</p>
+
+<ul>
+<li><strong>Proti čemu chrání</strong> — architektonický vzor nebo zápach, kterým se zabývá</li>
+<li><strong>Výchozí dispozice</strong> — zda jsou porušení informační, varovná nebo blokující</li>
+<li><strong>Preferovaný mechanismus</strong> — schválená alternativa (např. „použijte frameworkový plánovač místo domácího")</li>
+<li><strong>Síla</strong> — jak silně doktrína vnímá tento vzor</li>
+</ul>
+
+<p>Registr obsahuje vestavěné klauzule jako:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>Každá klauzule je podpořena reálnou detekční logikou. Když AigisCode zjistí, že kódová báze si staví vlastní parser dotazů místo použití osvědčené knihovny, klauzule doktríny se aktivuje s konkrétním doporučením: „Zvažte použití zavedeného query builderu nebo ORM dotazovacího jazyka místo vlastního řetězcového parseru."</p>
+
+<h2 id="guardian-packets">Guardian Packets: Akční jednotky revize</h2>
+
+<p>Zeus Shield nevypíše plochý seznam varování. Vytváří <strong>guardian packets</strong> — strukturované vyšetřovací jednotky, které kombinují tlak grafu, architektonické posouzení a bezpečnostní kontext do jediné položky k revizi.</p>
+
+<p>Guardian packet obsahuje:</p>
+
+<table>
+<thead>
+<tr><th>Pole</th><th>Účel</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>Soubor v centru hotspotu</td></tr>
+<tr><td><code>packet_type</code></td><td>Druh problému (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>Které klauzule doktríny se uplatňují</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>Schválená náhradní cesta</td></tr>
+<tr><td><code>investigation_questions</code></td><td>Konkrétní otázky pro revizora</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>Odkazy na úrovni řádků do zdrojového kódu</td></tr>
+<tr><td><code>obligations</code></td><td>Co musí být splněno před přijetím</td></tr>
+</tbody>
+</table>
+
+<p>To je zásadně odlišné od varování linteru. Linter řekne „nepoužitý import na řádku 42." Guardian packet řekne „Tento soubor centralizuje tři konkurující si datové reprezentace s kompatibilním lepidlem mezi nimi. Doktrína doporučuje konsolidaci do jediného kanonického modelu. Zde jsou tři vyšetřovací otázky k určení, zda jde o záměrné API propojení nebo náhodný drift."</p>
+
+<h2 id="convergence-tracking">Konvergence: Postupné ztišování</h2>
+
+<p>Jedním z nejsilnějších aspektů Zeus Shield je <strong>sledování konvergence</strong>. Při každém spuštění AigisCode porovnává aktuální stav s předchozími výsledky uloženými v <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>Systém sleduje:</p>
+
+<ul>
+<li><strong>Nové nálezy</strong> — problémy, které se objevily od posledního spuštění</li>
+<li><strong>Vyřešené nálezy</strong> — problémy, které byly opraveny</li>
+<li><strong>Zhoršené nálezy</strong> — existující problémy, které se zhoršily</li>
+<li><strong>Stabilní nálezy</strong> — známé problémy, které se nezměnily</li>
+</ul>
+
+<p>To znamená, že systém se <em>ztišuje</em>, jak váš tým řeší nálezy. Nerozpoutává znovu debaty o přijatých vzorech. A když něco regreduje — objeví se nová cyklická závislost, zvýší se abstrakční rozrůstání nebo se prohloubí kompatibilní jizva — systém tuto regresi explicitně zobrazí jako spouštěč guardu.</p>
+
+<h2 id="guard-mode">Režim Guard: Allow, Warn, Block</h2>
+
+<p>Vyvrcholením Zeus Shield je <strong>režim guard</strong>. Guard vyhodnocuje všechny aktivní nálezy, delty konvergence a spouštěče doktríny a vytváří jediný verdikt zapsaný do <code>.aigiscode/guard-decision.json</code>:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>CI pipelines mohou číst tento soubor a rozhodnout se, zda pokračovat, vyžádat revizi nebo zablokovat merge. AI agenti mohou parsovat spouštěče a podle toho prioritizovat svou práci.</p>
+
+<h2 id="doctrine-driven-advice">Doktrínou řízené rady pro AI agenty</h2>
+
+<p>Zeus Shield byl navržen s ohledem na AI kódovací agenty. Když agent přečte <code>.aigiscode/aigiscode-handoff.json</code>, získá nejen nálezy, ale i <strong>doporučení podpořená doktrínou</strong>:</p>
+
+<ul>
+<li>Preferovaný mechanismus pro každý problém (z klauzule doktríny)</li>
+<li>Vyšetřovací otázky pro vedení průzkumu</li>
+<li>Důkazové kotvy ukazující na konkrétní řádky</li>
+<li>Povinnosti, které musí být splněny před přijetím</li>
+</ul>
+
+<p>To znamená, že AI agent nemusí znovu odvozovat správnou opravu. Doktrína mu říká: „Toto je domácí plánovací DSL. Preferovaný mechanismus je nativní plánovač nebo systém front frameworku. Zjistěte, zda vlastní implementace řeší něco, co framework nezvládne."</p>
+
+<h2 id="real-world-calibration">Kalibrace na reálných datech</h2>
+
+<p>Zeus Shield není teoretický systém. Každé detekční pravidlo je kalibrováno na reálných kódových bázích:</p>
+
+<ul>
+<li><strong>WordPress</strong> — největší PHP kódová báze na světě. Zeus Shield produkuje nula falešně pozitivních nálezů pro abstrakční rozrůstání, kompatibilní jizvy a detekci domácích parserů na jádru WordPress.</li>
+<li><strong>Django</strong> — nejuznávanější webový framework Pythonu. Nula falešně pozitivních nálezů pro stejné detektory.</li>
+<li><strong>NewERP</strong> — velká podniková aplikace s více než 5 000 soubory. Zeus Shield správně identifikuje reálné architektonické hotspoty: vlastní parser dotazových kontraktů, domácí plánovací DSL, abstrakční rozrůstání v notifikačních a kalendářových službách.</li>
+</ul>
+
+<p>Filozofie kalibrace je jednoduchá: pokud detekce vyhodí varování na jádru WordPress nebo Django, je to falešně pozitivní nález a musí být opraven. Jsou to dobře udržované, dobře navržené kódové báze. Pokud nástroj nedokáže rozlišit mezi nimi a skutečným přeinženýrováním, je chyba v nástroji.</p>
+
+<h2 id="try-zeus-shield">Vyzkoušejte Zeus Shield</h2>
+
+<p>Zeus Shield je součástí každého spuštění AigisCode. Není potřeba žádná další konfigurace:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Zkontrolujte <code>.aigiscode/guard-decision.json</code> pro verdikt, <code>.aigiscode/doctrine-registry.json</code> pro aktivní doktrínu a <code>.aigiscode/aigiscode-handoff.json</code> pro kompletní výstup guardian packets.</p>
+`,
+      fr: `
+<p>Les outils d'analyse statique trouvent des problèmes. Mais ils ne les empêchent pas de revenir. Vous corrigez une dépendance circulaire aujourd'hui, et une nouvelle apparaît au prochain sprint. Vous nettoyez le code mort, et d'autre s'accumule. Le fossé fondamental n'est pas la détection — c'est la <strong>gouvernance</strong>.</p>
+
+<p>C'est pourquoi nous avons construit <strong>Zeus Shield</strong> : un système de gardien piloté par la doctrine qui transforme AigisCode d'un analyseur ponctuel en un chien de garde architectural continu.</p>
+
+<h2 id="what-is-zeus-shield">Qu'est-ce que Zeus Shield ?</h2>
+
+<p>Zeus Shield est la couche de gouvernance qui se situe au-dessus du graphe sémantique et des détecteurs déterministes d'AigisCode. Au lieu de simplement rapporter des résultats, il prend des décisions <strong>allow, warn ou block</strong> basées sur un registre de doctrine typé.</p>
+
+<p>Considérez-le comme une constitution pour votre codebase. La doctrine définit quels motifs sont acceptables, ce qui nécessite une revue et ce qui devrait bloquer un merge. Chaque constat est évalué selon cette doctrine, et le résultat est un jugement lisible par machine sur lequel les pipelines CI et les agents IA peuvent agir.</p>
+
+<h2 id="the-doctrine-registry">Le registre de doctrine</h2>
+
+<p>Au cœur de Zeus Shield se trouve le <strong>registre de doctrine</strong> — un catalogue typé de clauses architecturales. Chaque clause déclare :</p>
+
+<ul>
+<li><strong>Ce contre quoi elle protège</strong> — le motif architectural ou l'odeur de code qu'elle traite</li>
+<li><strong>Disposition par défaut</strong> — si les violations sont informatives, des avertissements ou des blocages</li>
+<li><strong>Mécanisme préféré</strong> — l'alternative approuvée (par ex., « utilisez un ordonnanceur du framework au lieu d'un fait maison »)</li>
+<li><strong>Force</strong> — à quel point la doctrine juge ce motif sévèrement</li>
+</ul>
+
+<p>Le registre est livré avec des clauses intégrées comme :</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>Chaque clause est soutenue par une logique de détection réelle. Quand AigisCode découvre qu'une codebase construit son propre parseur de requêtes au lieu d'utiliser une bibliothèque éprouvée, la clause de doctrine se déclenche avec une recommandation concrète : « Envisagez d'utiliser un query builder ou un langage de requête ORM établi au lieu d'un parseur personnalisé basé sur les chaînes. »</p>
+
+<h2 id="guardian-packets">Guardian Packets : unités de revue actionnables</h2>
+
+<p>Zeus Shield ne produit pas une liste plate d'avertissements. Il génère des <strong>guardian packets</strong> — des unités d'investigation structurées qui combinent la pression du graphe, l'évaluation architectonique et le contexte de sécurité en un seul élément de revue.</p>
+
+<p>Un guardian packet comprend :</p>
+
+<table>
+<thead>
+<tr><th>Champ</th><th>Objectif</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>Le fichier au centre du hotspot</td></tr>
+<tr><td><code>packet_type</code></td><td>Le type de problème (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>Les clauses de doctrine applicables</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>Le chemin de remplacement approuvé</td></tr>
+<tr><td><code>investigation_questions</code></td><td>Questions concrètes auxquelles le réviseur doit répondre</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>Références au niveau des lignes dans le code source</td></tr>
+<tr><td><code>obligations</code></td><td>Ce qui doit être fait avant l'acceptation</td></tr>
+</tbody>
+</table>
+
+<p>C'est fondamentalement différent d'un avertissement de linter. Un linter dit « import inutilisé à la ligne 42 ». Un guardian packet dit « Ce fichier centralise trois représentations de données concurrentes avec de la colle de compatibilité entre elles. La doctrine recommande de consolider en un seul modèle canonique. Voici trois questions d'investigation pour déterminer s'il s'agit d'un pont API intentionnel ou d'une dérive accidentelle. »</p>
+
+<h2 id="convergence-tracking">Convergence : devenir plus silencieux au fil du temps</h2>
+
+<p>L'un des aspects les plus puissants de Zeus Shield est le <strong>suivi de convergence</strong>. À chaque exécution d'AigisCode, il compare l'état actuel aux résultats précédents stockés dans <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>Le système suit :</p>
+
+<ul>
+<li><strong>Nouveaux constats</strong> — problèmes apparus depuis la dernière exécution</li>
+<li><strong>Constats résolus</strong> — problèmes qui ont été corrigés</li>
+<li><strong>Constats aggravés</strong> — problèmes existants qui se sont détériorés</li>
+<li><strong>Constats stables</strong> — problèmes connus qui n'ont pas changé</li>
+</ul>
+
+<p>Cela signifie que le système devient <em>plus silencieux</em> à mesure que votre équipe traite les constats. Il ne relance pas le débat sur les motifs acceptés. Et quand quelque chose régresse — une nouvelle dépendance circulaire apparaît, la prolifération d'abstractions augmente ou une cicatrice de compatibilité s'approfondit — il fait remonter cette régression explicitement comme déclencheur de guard.</p>
+
+<h2 id="guard-mode">Mode Guard : Allow, Warn, Block</h2>
+
+<p>Le point culminant de Zeus Shield est le <strong>mode guard</strong>. Le guard évalue tous les constats actifs, les deltas de convergence et les déclencheurs de doctrine pour produire un jugement unique écrit dans <code>.aigiscode/guard-decision.json</code> :</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>Les pipelines CI peuvent lire ce fichier et décider s'il faut continuer, exiger une revue ou bloquer le merge. Les agents IA peuvent analyser les déclencheurs et prioriser leur travail en conséquence.</p>
+
+<h2 id="doctrine-driven-advice">Conseils pilotés par la doctrine pour les agents IA</h2>
+
+<p>Zeus Shield a été conçu avec les agents de codage IA à l'esprit. Quand un agent lit <code>.aigiscode/aigiscode-handoff.json</code>, il obtient non seulement des constats mais aussi des <strong>recommandations soutenues par la doctrine</strong> :</p>
+
+<ul>
+<li>Le mécanisme préféré pour chaque problème (issu de la clause de doctrine)</li>
+<li>Des questions d'investigation pour guider l'exploration</li>
+<li>Des ancres de preuve pointant vers des lignes spécifiques</li>
+<li>Des obligations à remplir avant l'acceptation</li>
+</ul>
+
+<p>Cela signifie qu'un agent IA n'a pas besoin de re-déduire la bonne correction. La doctrine lui dit : « Ceci est un DSL d'ordonnancement fait maison. Le mécanisme préféré est l'ordonnanceur natif ou le système de files d'attente du framework. Vérifiez si l'implémentation personnalisée gère quelque chose que le framework ne peut pas. »</p>
+
+<h2 id="real-world-calibration">Calibration en conditions réelles</h2>
+
+<p>Zeus Shield n'est pas un système théorique. Chaque règle de détection est calibrée sur des codebases réelles :</p>
+
+<ul>
+<li><strong>WordPress</strong> — la plus grande codebase PHP au monde. Zeus Shield produit zéro faux positif pour la prolifération d'abstractions, les cicatrices de compatibilité et la détection de parseurs faits maison sur le cœur de WordPress.</li>
+<li><strong>Django</strong> — le framework web le plus établi de Python. Zéro faux positif pour les mêmes détecteurs.</li>
+<li><strong>NewERP</strong> — une grande application d'entreprise de plus de 5 000 fichiers. Zeus Shield identifie correctement les vrais hotspots architecturaux : un parseur personnalisé de contrats de requêtes, un DSL d'ordonnancement fait maison, une prolifération d'abstractions dans les services de notification et de calendrier.</li>
+</ul>
+
+<p>La philosophie de calibration est simple : si une détection se déclenche sur le code cœur de WordPress ou Django, c'est un faux positif qui doit être corrigé. Ce sont des codebases bien maintenues et bien architecturées. Si l'outil ne peut pas les distinguer d'un véritable sur-ingénierie, c'est l'outil qui a tort.</p>
+
+<h2 id="try-zeus-shield">Essayez Zeus Shield</h2>
+
+<p>Zeus Shield est inclus dans chaque exécution d'AigisCode. Aucune configuration supplémentaire nécessaire :</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Consultez <code>.aigiscode/guard-decision.json</code> pour le verdict, <code>.aigiscode/doctrine-registry.json</code> pour la doctrine active et <code>.aigiscode/aigiscode-handoff.json</code> pour la sortie complète des guardian packets.</p>
+`,
+      es: `
+<p>Las herramientas de análisis estático encuentran problemas. Pero no evitan que vuelvan. Corriges una dependencia circular hoy, y aparece una nueva en el próximo sprint. Limpias el código muerto, y más se acumula. La brecha fundamental no está en la detección — está en la <strong>gobernanza</strong>.</p>
+
+<p>Por eso construimos <strong>Zeus Shield</strong>: un sistema de guardián dirigido por doctrina que transforma AigisCode de un analizador de un solo uso en un vigilante arquitectónico continuo.</p>
+
+<h2 id="what-is-zeus-shield">¿Qué es Zeus Shield?</h2>
+
+<p>Zeus Shield es la capa de gobernanza que se sitúa sobre el grafo semántico y los detectores determinísticos de AigisCode. En lugar de simplemente reportar hallazgos, toma decisiones de <strong>allow, warn o block</strong> basadas en un registro de doctrina tipado.</p>
+
+<p>Piensa en ello como una constitución para tu codebase. La doctrina define qué patrones son aceptables, qué requiere revisión y qué debería bloquear un merge. Cada hallazgo se evalúa contra esta doctrina, y el resultado es un juicio legible por máquina sobre el que los pipelines de CI y los agentes de IA pueden actuar.</p>
+
+<h2 id="the-doctrine-registry">El registro de doctrina</h2>
+
+<p>En el corazón de Zeus Shield está el <strong>registro de doctrina</strong> — un catálogo tipado de cláusulas arquitectónicas. Cada cláusula declara:</p>
+
+<ul>
+<li><strong>Contra qué protege</strong> — el patrón arquitectónico o mal olor de código que aborda</li>
+<li><strong>Disposición por defecto</strong> — si las violaciones son informativas, advertencias o bloqueantes</li>
+<li><strong>Mecanismo preferido</strong> — la alternativa aprobada (por ejemplo, «usa un planificador del framework en lugar de uno hecho en casa»)</li>
+<li><strong>Fuerza</strong> — cuán severamente la doctrina juzga este patrón</li>
+</ul>
+
+<p>El registro viene con cláusulas integradas como:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>Cada cláusula está respaldada por lógica de detección real. Cuando AigisCode encuentra que un codebase construye su propio parser de consultas en lugar de usar una biblioteca probada, la cláusula de doctrina se activa con una recomendación concreta: «Considera usar un query builder o lenguaje de consultas ORM establecido en lugar de un parser personalizado basado en cadenas.»</p>
+
+<h2 id="guardian-packets">Guardian Packets: unidades de revisión accionables</h2>
+
+<p>Zeus Shield no produce una lista plana de advertencias. Genera <strong>guardian packets</strong> — unidades de investigación estructuradas que combinan presión del grafo, evaluación arquitectónica y contexto de seguridad en un solo elemento de revisión.</p>
+
+<p>Un guardian packet incluye:</p>
+
+<table>
+<thead>
+<tr><th>Campo</th><th>Propósito</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>El archivo en el centro del hotspot</td></tr>
+<tr><td><code>packet_type</code></td><td>Qué tipo de problema (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>Qué cláusulas de doctrina aplican</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>La ruta de reemplazo aprobada</td></tr>
+<tr><td><code>investigation_questions</code></td><td>Preguntas concretas que el revisor debe responder</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>Referencias a nivel de línea en el código fuente</td></tr>
+<tr><td><code>obligations</code></td><td>Lo que debe ocurrir antes de la aceptación</td></tr>
+</tbody>
+</table>
+
+<p>Esto es fundamentalmente diferente de una advertencia de linter. Un linter dice «import no utilizado en la línea 42». Un guardian packet dice «Este archivo centraliza tres representaciones de datos que compiten entre sí con pegamento de compatibilidad entre ellas. La doctrina recomienda consolidar en un único modelo canónico. Aquí hay tres preguntas de investigación para determinar si se trata de un puente API intencional o una desviación accidental.»</p>
+
+<h2 id="convergence-tracking">Convergencia: volverse más silencioso con el tiempo</h2>
+
+<p>Uno de los aspectos más poderosos de Zeus Shield es el <strong>seguimiento de convergencia</strong>. Cada vez que AigisCode se ejecuta, compara el estado actual con los resultados anteriores almacenados en <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>El sistema rastrea:</p>
+
+<ul>
+<li><strong>Nuevos hallazgos</strong> — problemas que aparecieron desde la última ejecución</li>
+<li><strong>Hallazgos resueltos</strong> — problemas que fueron corregidos</li>
+<li><strong>Hallazgos empeorados</strong> — problemas existentes que empeoraron</li>
+<li><strong>Hallazgos estables</strong> — problemas conocidos que no han cambiado</li>
+</ul>
+
+<p>Esto significa que el sistema se vuelve <em>más silencioso</em> a medida que tu equipo aborda los hallazgos. No reabre debates sobre patrones aceptados. Y cuando algo regresa — aparece una nueva dependencia circular, la proliferación de abstracciones aumenta o una cicatriz de compatibilidad se profundiza — hace emerger esa regresión explícitamente como disparador del guard.</p>
+
+<h2 id="guard-mode">Modo Guard: Allow, Warn, Block</h2>
+
+<p>La culminación de Zeus Shield es el <strong>modo guard</strong>. El guard evalúa todos los hallazgos activos, los deltas de convergencia y los disparadores de doctrina para producir un juicio único escrito en <code>.aigiscode/guard-decision.json</code>:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>Los pipelines de CI pueden leer este archivo y decidir si continuar, requerir revisión o bloquear el merge. Los agentes de IA pueden analizar los disparadores y priorizar su trabajo en consecuencia.</p>
+
+<h2 id="doctrine-driven-advice">Consejos basados en doctrina para agentes de IA</h2>
+
+<p>Zeus Shield fue diseñado pensando en los agentes de codificación con IA. Cuando un agente lee <code>.aigiscode/aigiscode-handoff.json</code>, obtiene no solo hallazgos sino <strong>recomendaciones respaldadas por la doctrina</strong>:</p>
+
+<ul>
+<li>El mecanismo preferido para cada problema (de la cláusula de doctrina)</li>
+<li>Preguntas de investigación para guiar la exploración</li>
+<li>Anclas de evidencia que apuntan a líneas específicas</li>
+<li>Obligaciones que deben cumplirse antes de la aceptación</li>
+</ul>
+
+<p>Esto significa que un agente de IA no necesita re-derivar cuál es la corrección correcta. La doctrina le dice: «Este es un DSL de planificación hecho en casa. El mecanismo preferido es el planificador nativo o el sistema de colas del framework. Investiga si la implementación personalizada maneja algo que el framework no puede.»</p>
+
+<h2 id="real-world-calibration">Calibración en el mundo real</h2>
+
+<p>Zeus Shield no es un sistema teórico. Cada regla de detección está calibrada contra codebases reales:</p>
+
+<ul>
+<li><strong>WordPress</strong> — el codebase PHP más grande del mundo. Zeus Shield produce cero falsos positivos para proliferación de abstracciones, cicatrices de compatibilidad y detección de parsers hechos en casa en el núcleo de WordPress.</li>
+<li><strong>Django</strong> — el framework web más establecido de Python. Cero falsos positivos para los mismos detectores.</li>
+<li><strong>NewERP</strong> — una gran aplicación empresarial con más de 5.000 archivos. Zeus Shield identifica correctamente los hotspots arquitectónicos reales: un parser personalizado de contratos de consultas, un DSL de planificación hecho en casa, proliferación de abstracciones en servicios de notificación y calendario.</li>
+</ul>
+
+<p>La filosofía de calibración es simple: si una detección se dispara en el código núcleo de WordPress o Django, es un falso positivo y debe corregirse. Son codebases bien mantenidas y bien arquitecturadas. Si la herramienta no puede distinguirlas de una genuina sobreingeniería, la herramienta está equivocada.</p>
+
+<h2 id="try-zeus-shield">Prueba Zeus Shield</h2>
+
+<p>Zeus Shield está incluido en cada ejecución de AigisCode. No se necesita configuración adicional:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Consulta <code>.aigiscode/guard-decision.json</code> para el veredicto, <code>.aigiscode/doctrine-registry.json</code> para la doctrina activa y <code>.aigiscode/aigiscode-handoff.json</code> para la salida completa de los guardian packets.</p>
+`,
+      zh: `
+<p>静态分析工具能发现问题，但无法阻止问题再次出现。你今天修复了一个循环依赖，下个迭代又会出现新的。你清理了死代码，更多的又堆积起来。根本差距不在于检测——而在于<strong>治理</strong>。</p>
+
+<p>这就是我们构建 <strong>Zeus Shield</strong> 的原因：一个教义驱动的守护系统，将 AigisCode 从一次性分析器转变为持续的架构看门狗。</p>
+
+<h2 id="what-is-zeus-shield">什么是 Zeus Shield？</h2>
+
+<p>Zeus Shield 是建立在 AigisCode 语义图和确定性检测器之上的治理层。它不仅报告发现，还基于类型化的教义注册表做出<strong>允许、警告或阻止决策</strong>。</p>
+
+<p>可以把它看作代码库的宪法。教义定义了哪些模式是可接受的、哪些需要审查、哪些应该阻止合并。每个发现都根据这个教义进行评估，结果是一个机器可读的判断，CI 流水线和 AI 代理可以据此采取行动。</p>
+
+<h2 id="the-doctrine-registry">教义注册表</h2>
+
+<p>Zeus Shield 的核心是<strong>教义注册表</strong>——一个类型化的架构条款目录。每个条款声明：</p>
+
+<ul>
+<li><strong>防范什么</strong>——它针对的架构模式或代码异味</li>
+<li><strong>默认处置</strong>——违规是信息性的、警告还是阻止</li>
+<li><strong>首选机制</strong>——被认可的替代方案（例如，"使用框架调度器而不是自制的"）</li>
+<li><strong>强度</strong>——教义对这种模式的重视程度</li>
+</ul>
+
+<p>注册表附带内置条款，例如：</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>每个条款都有真实的检测逻辑支撑。当 AigisCode 发现代码库自行构建查询解析器而非使用经过实战检验的库时，教义条款会触发并给出具体建议："考虑使用成熟的查询构建器或 ORM 查询语言，而不是自定义的字符串驱动解析器。"</p>
+
+<h2 id="guardian-packets">守护数据包：可操作的审查单元</h2>
+
+<p>Zeus Shield 不会输出一个扁平的警告列表。它产生<strong>守护数据包</strong>——将图压力、架构评估和安全上下文组合成单个审查项的结构化调查单元。</p>
+
+<p>守护数据包包含：</p>
+
+<table>
+<thead>
+<tr><th>字段</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>热点中心的文件</td></tr>
+<tr><td><code>packet_type</code></td><td>问题类型（compatibility_scar、hand_rolled_parsing、split_identity、warning_heavy_hotspot）</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>适用的教义条款</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>被认可的替代路径</td></tr>
+<tr><td><code>investigation_questions</code></td><td>审查者需要回答的具体问题</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>源代码中的行级引用</td></tr>
+<tr><td><code>obligations</code></td><td>接受前必须完成的事项</td></tr>
+</tbody>
+</table>
+
+<p>这与 linter 警告有本质区别。linter 说"第 42 行有未使用的导入。"守护数据包说"这个文件集中了三种竞争的数据表示，它们之间有兼容性胶水。教义建议合并为单一规范模型。这里有三个调查问题，用于确定这是有意的 API 桥接还是意外的漂移。"</p>
+
+<h2 id="convergence-tracking">收敛：随时间变得更安静</h2>
+
+<p>Zeus Shield 最强大的方面之一是<strong>收敛追踪</strong>。每次 AigisCode 运行时，它都会将当前状态与存储在 <code>.aigiscode/convergence-history.json</code> 中的先前结果进行比较。</p>
+
+<p>系统追踪：</p>
+
+<ul>
+<li><strong>新发现</strong>——自上次运行以来出现的问题</li>
+<li><strong>已解决的发现</strong>——已修复的问题</li>
+<li><strong>恶化的发现</strong>——变得更严重的现有问题</li>
+<li><strong>稳定的发现</strong>——未发生变化的已知问题</li>
+</ul>
+
+<p>这意味着随着团队处理发现，系统会变得<em>更安静</em>。它不会重新审查已接受的模式。当某些东西退化时——出现新的循环依赖、抽象蔓延增加或兼容性伤疤加深——它会明确地将该退化作为守卫触发器呈现。</p>
+
+<h2 id="guard-mode">守卫模式：允许、警告、阻止</h2>
+
+<p>Zeus Shield 的最终成果是<strong>守卫模式</strong>。守卫评估所有活跃的发现、收敛增量和教义触发器，生成一个写入 <code>.aigiscode/guard-decision.json</code> 的单一判断：</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>CI 流水线可以读取此文件并决定是继续、要求审查还是阻止合并。AI 代理可以解析触发器并相应地确定工作优先级。</p>
+
+<h2 id="doctrine-driven-advice">为 AI 代理提供的教义驱动建议</h2>
+
+<p>Zeus Shield 的设计考虑了 AI 编码代理。当代理读取 <code>.aigiscode/aigiscode-handoff.json</code> 时，它获得的不仅是发现，还有<strong>教义支持的建议</strong>：</p>
+
+<ul>
+<li>每个问题的首选机制（来自教义条款）</li>
+<li>指导探索的调查问题</li>
+<li>指向特定行的证据锚点</li>
+<li>接受前必须满足的义务</li>
+</ul>
+
+<p>这意味着 AI 代理不需要重新推导正确的修复方法。教义告诉它："这是一个自制的调度器 DSL。首选机制是框架的原生调度器或队列系统。调查自定义实现是否处理了框架无法处理的内容。"</p>
+
+<h2 id="real-world-calibration">真实世界的校准</h2>
+
+<p>Zeus Shield 不是一个理论系统。每个检测规则都针对真实代码库进行校准：</p>
+
+<ul>
+<li><strong>WordPress</strong>——世界上最大的 PHP 代码库。Zeus Shield 在 WordPress 核心上对抽象蔓延、兼容性伤疤和自制解析器检测产生零误报。</li>
+<li><strong>Django</strong>——Python 最成熟的 Web 框架。相同检测器零误报。</li>
+<li><strong>NewERP</strong>——一个拥有 5,000+ 文件的大型企业应用。Zeus Shield 正确识别出真实的架构热点：自定义查询合约解析器、自制调度器 DSL、通知和日历服务中的抽象蔓延。</li>
+</ul>
+
+<p>校准哲学很简单：如果检测在 WordPress 或 Django 核心代码上触发，那就是误报，必须修复。这些是维护良好、架构良好的代码库。如果工具无法将它们与真正的过度工程区分开来，那工具就是错的。</p>
+
+<h2 id="try-zeus-shield">试用 Zeus Shield</h2>
+
+<p>Zeus Shield 包含在每次 AigisCode 运行中。无需额外配置：</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>检查 <code>.aigiscode/guard-decision.json</code> 获取判定结果，<code>.aigiscode/doctrine-registry.json</code> 获取活跃的教义，<code>.aigiscode/aigiscode-handoff.json</code> 获取完整的守护数据包输出。</p>
+`,
+      hi: `
+<p>स्टेटिक एनालिसिस टूल समस्याएँ खोजते हैं। लेकिन वे उन्हें वापस आने से नहीं रोकते। आप आज एक सर्कुलर डिपेंडेंसी ठीक करते हैं, और अगले स्प्रिंट में एक नई दिखाई देती है। आप डेड कोड साफ़ करते हैं, और अधिक जमा हो जाता है। मूलभूत अंतर डिटेक्शन में नहीं है — यह <strong>गवर्नेंस</strong> में है।</p>
+
+<p>इसीलिए हमने <strong>Zeus Shield</strong> बनाया: एक डॉक्ट्रिन-ड्रिवन गार्जियन सिस्टम जो AigisCode को एक बार के एनालाइज़र से निरंतर आर्किटेक्चरल वॉचडॉग में बदल देता है।</p>
+
+<h2 id="what-is-zeus-shield">Zeus Shield क्या है?</h2>
+
+<p>Zeus Shield वह गवर्नेंस लेयर है जो AigisCode के सिमेंटिक ग्राफ़ और डिटरमिनिस्टिक डिटेक्टर्स के ऊपर बैठती है। सिर्फ़ फ़ाइंडिंग्स रिपोर्ट करने के बजाय, यह टाइप्ड डॉक्ट्रिन रजिस्ट्री के आधार पर <strong>allow, warn या block निर्णय</strong> लेता है।</p>
+
+<p>इसे अपने कोडबेस का संविधान समझें। डॉक्ट्रिन परिभाषित करती है कि कौन से पैटर्न स्वीकार्य हैं, किसे रिव्यू की आवश्यकता है, और किसे मर्ज ब्लॉक करना चाहिए। हर फ़ाइंडिंग का इस डॉक्ट्रिन के विरुद्ध मूल्यांकन किया जाता है, और परिणाम एक मशीन-पठनीय निर्णय है जिस पर CI पाइपलाइन और AI एजेंट कार्रवाई कर सकते हैं।</p>
+
+<h2 id="the-doctrine-registry">डॉक्ट्रिन रजिस्ट्री</h2>
+
+<p>Zeus Shield के केंद्र में <strong>डॉक्ट्रिन रजिस्ट्री</strong> है — आर्किटेक्चरल क्लॉज़ का एक टाइप्ड कैटलॉग। प्रत्येक क्लॉज़ घोषित करता है:</p>
+
+<ul>
+<li><strong>किससे बचाव करता है</strong> — जिस आर्किटेक्चरल पैटर्न या स्मेल को यह संबोधित करता है</li>
+<li><strong>डिफ़ॉल्ट डिस्पोज़िशन</strong> — उल्लंघन सूचनात्मक हैं, चेतावनी हैं, या ब्लॉकर हैं</li>
+<li><strong>प्रेफ़र्ड मेकेनिज़्म</strong> — स्वीकृत विकल्प (जैसे, "होमग्रोन शेड्यूलर के बजाय फ़्रेमवर्क शेड्यूलर का उपयोग करें")</li>
+<li><strong>स्ट्रेंथ</strong> — डॉक्ट्रिन इस पैटर्न को कितना गंभीर मानती है</li>
+</ul>
+
+<p>रजिस्ट्री बिल्ट-इन क्लॉज़ के साथ आती है जैसे:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>प्रत्येक क्लॉज़ वास्तविक डिटेक्शन लॉजिक द्वारा समर्थित है। जब AigisCode पाता है कि कोई कोडबेस बैटल-टेस्टेड लाइब्रेरी का उपयोग करने के बजाय अपना क्वेरी पार्सर बना रहा है, तो डॉक्ट्रिन क्लॉज़ एक ठोस सिफ़ारिश के साथ ट्रिगर होता है: "कस्टम स्ट्रिंग-ड्रिवन पार्सर के बजाय एक स्थापित क्वेरी बिल्डर या ORM क्वेरी लैंग्वेज का उपयोग करने पर विचार करें।"</p>
+
+<h2 id="guardian-packets">गार्जियन पैकेट्स: एक्शनेबल रिव्यू यूनिट्स</h2>
+
+<p>Zeus Shield चेतावनियों की एक सपाट सूची नहीं देता। यह <strong>गार्जियन पैकेट्स</strong> उत्पन्न करता है — संरचित जाँच इकाइयाँ जो ग्राफ़ प्रेशर, आर्किटेक्टोनिक असेसमेंट और सिक्योरिटी कॉन्टेक्स्ट को एक रिव्यू आइटम में संयोजित करती हैं।</p>
+
+<p>एक गार्जियन पैकेट में शामिल हैं:</p>
+
+<table>
+<thead>
+<tr><th>फ़ील्ड</th><th>उद्देश्य</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>हॉटस्पॉट के केंद्र की फ़ाइल</td></tr>
+<tr><td><code>packet_type</code></td><td>समस्या का प्रकार (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>कौन सी डॉक्ट्रिन क्लॉज़ लागू होती हैं</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>स्वीकृत प्रतिस्थापन पथ</td></tr>
+<tr><td><code>investigation_questions</code></td><td>रिव्यूअर के लिए ठोस प्रश्न</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>सोर्स कोड में लाइन-लेवल रेफ़रेंस</td></tr>
+<tr><td><code>obligations</code></td><td>स्वीकार करने से पहले क्या होना चाहिए</td></tr>
+</tbody>
+</table>
+
+<p>यह मूल रूप से एक linter चेतावनी से अलग है। linter कहता है "लाइन 42 पर अनुपयोगी import।" गार्जियन पैकेट कहता है "यह फ़ाइल तीन प्रतिस्पर्धी डेटा प्रतिनिधित्वों को केंद्रीकृत करती है जिनके बीच कम्पैटिबिलिटी ग्लू है। डॉक्ट्रिन एक एकल कैनोनिकल मॉडल में समेकन की सिफ़ारिश करती है। यहाँ तीन जाँच प्रश्न हैं यह निर्धारित करने के लिए कि यह जानबूझकर API ब्रिजिंग है या आकस्मिक ड्रिफ्ट।"</p>
+
+<h2 id="convergence-tracking">कन्वर्जेंस: समय के साथ शांत होना</h2>
+
+<p>Zeus Shield के सबसे शक्तिशाली पहलुओं में से एक है <strong>कन्वर्जेंस ट्रैकिंग</strong>। हर बार AigisCode चलने पर, यह वर्तमान स्थिति की तुलना <code>.aigiscode/convergence-history.json</code> में संग्रहीत पिछले परिणामों से करता है।</p>
+
+<p>सिस्टम ट्रैक करता है:</p>
+
+<ul>
+<li><strong>नई फ़ाइंडिंग्स</strong> — पिछले रन के बाद से प्रकट हुई समस्याएँ</li>
+<li><strong>हल की गई फ़ाइंडिंग्स</strong> — ठीक की गई समस्याएँ</li>
+<li><strong>बिगड़ी हुई फ़ाइंडिंग्स</strong> — मौजूदा समस्याएँ जो और खराब हो गईं</li>
+<li><strong>स्थिर फ़ाइंडिंग्स</strong> — ज्ञात समस्याएँ जो नहीं बदलीं</li>
+</ul>
+
+<p>इसका मतलब है कि जैसे-जैसे आपकी टीम फ़ाइंडिंग्स को संबोधित करती है, सिस्टम <em>शांत</em> होता जाता है। यह स्वीकृत पैटर्न पर पुनर्विचार नहीं करता। और जब कुछ रिग्रेस होता है — एक नई सर्कुलर डिपेंडेंसी दिखाई देती है, एब्स्ट्रैक्शन स्प्रॉल बढ़ता है, या कम्पैटिबिलिटी स्कार गहरा होता है — तो यह उस रिग्रेशन को स्पष्ट रूप से गार्ड ट्रिगर के रूप में प्रस्तुत करता है।</p>
+
+<h2 id="guard-mode">गार्ड मोड: Allow, Warn, Block</h2>
+
+<p>Zeus Shield की परिणति <strong>गार्ड मोड</strong> है। गार्ड सभी सक्रिय फ़ाइंडिंग्स, कन्वर्जेंस डेल्टा और डॉक्ट्रिन ट्रिगर्स का मूल्यांकन करके <code>.aigiscode/guard-decision.json</code> में लिखा जाने वाला एकल निर्णय उत्पन्न करता है:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>CI पाइपलाइन इस फ़ाइल को पढ़ सकती हैं और तय कर सकती हैं कि आगे बढ़ना है, रिव्यू की आवश्यकता है, या मर्ज ब्लॉक करना है। AI एजेंट ट्रिगर्स को पार्स कर सकते हैं और तदनुसार अपने कार्य को प्राथमिकता दे सकते हैं।</p>
+
+<h2 id="doctrine-driven-advice">AI एजेंटों के लिए डॉक्ट्रिन-ड्रिवन सलाह</h2>
+
+<p>Zeus Shield AI कोडिंग एजेंटों को ध्यान में रखकर डिज़ाइन किया गया था। जब एक एजेंट <code>.aigiscode/aigiscode-handoff.json</code> पढ़ता है, तो उसे सिर्फ़ फ़ाइंडिंग्स नहीं बल्कि <strong>डॉक्ट्रिन-समर्थित सिफ़ारिशें</strong> मिलती हैं:</p>
+
+<ul>
+<li>प्रत्येक समस्या के लिए प्रेफ़र्ड मेकेनिज़्म (डॉक्ट्रिन क्लॉज़ से)</li>
+<li>अन्वेषण का मार्गदर्शन करने वाले जाँच प्रश्न</li>
+<li>विशिष्ट लाइनों की ओर इशारा करने वाले एविडेंस एंकर</li>
+<li>स्वीकृति से पहले पूरी की जाने वाली बाध्यताएँ</li>
+</ul>
+
+<p>इसका मतलब है कि AI एजेंट को सही फ़िक्स को फिर से निकालने की ज़रूरत नहीं है। डॉक्ट्रिन उसे बताती है: "यह एक होमग्रोन शेड्यूलर DSL है। प्रेफ़र्ड मेकेनिज़्म फ़्रेमवर्क का नेटिव शेड्यूलर या क्यू सिस्टम है। जाँचें कि क्या कस्टम इम्प्लीमेंटेशन कुछ ऐसा हैंडल करता है जो फ़्रेमवर्क नहीं कर सकता।"</p>
+
+<h2 id="real-world-calibration">वास्तविक दुनिया का कैलिब्रेशन</h2>
+
+<p>Zeus Shield एक सैद्धांतिक सिस्टम नहीं है। हर डिटेक्शन नियम वास्तविक कोडबेस के विरुद्ध कैलिब्रेटेड है:</p>
+
+<ul>
+<li><strong>WordPress</strong> — दुनिया का सबसे बड़ा PHP कोडबेस। Zeus Shield WordPress core पर एब्स्ट्रैक्शन स्प्रॉल, कम्पैटिबिलिटी स्कार और होमग्रोन पार्सर डिटेक्शन के लिए शून्य फ़ॉल्स पॉज़िटिव उत्पन्न करता है।</li>
+<li><strong>Django</strong> — Python का सबसे स्थापित वेब फ़्रेमवर्क। समान डिटेक्टर्स के लिए शून्य फ़ॉल्स पॉज़िटिव।</li>
+<li><strong>NewERP</strong> — 5,000+ फ़ाइलों वाला एक बड़ा एंटरप्राइज़ एप्लिकेशन। Zeus Shield वास्तविक आर्किटेक्चरल हॉटस्पॉट्स को सही ढंग से पहचानता है: एक कस्टम क्वेरी कॉन्ट्रैक्ट पार्सर, एक होमग्रोन शेड्यूलर DSL, नोटिफ़िकेशन और कैलेंडर सर्विसेज़ में एब्स्ट्रैक्शन स्प्रॉल।</li>
+</ul>
+
+<p>कैलिब्रेशन दर्शन सरल है: यदि कोई डिटेक्शन WordPress या Django core कोड पर ट्रिगर होता है, तो वह फ़ॉल्स पॉज़िटिव है और उसे ठीक किया जाना चाहिए। ये अच्छी तरह से रखरखाव किए गए, अच्छी तरह से आर्किटेक्ट किए गए कोडबेस हैं। यदि टूल उन्हें वास्तविक ओवर-इंजीनियरिंग से अलग नहीं कर सकता, तो टूल गलत है।</p>
+
+<h2 id="try-zeus-shield">Zeus Shield आज़माएँ</h2>
+
+<p>Zeus Shield हर AigisCode रन में शामिल है। किसी अतिरिक्त कॉन्फ़िगरेशन की आवश्यकता नहीं:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>निर्णय के लिए <code>.aigiscode/guard-decision.json</code>, सक्रिय डॉक्ट्रिन के लिए <code>.aigiscode/doctrine-registry.json</code>, और पूर्ण गार्जियन पैकेट आउटपुट के लिए <code>.aigiscode/aigiscode-handoff.json</code> देखें।</p>
+`,
+      pt: `
+<p>Ferramentas de análise estática encontram problemas. Mas não impedem que eles voltem. Você corrige uma dependência circular hoje, e uma nova aparece no próximo sprint. Você limpa código morto, e mais se acumula. A lacuna fundamental não está na detecção — está na <strong>governança</strong>.</p>
+
+<p>É por isso que construímos o <strong>Zeus Shield</strong>: um sistema guardião orientado por doutrina que transforma o AigisCode de um analisador pontual em um vigilante arquitetural contínuo.</p>
+
+<h2 id="what-is-zeus-shield">O Que É o Zeus Shield?</h2>
+
+<p>O Zeus Shield é a camada de governança que fica sobre o grafo semântico e os detectores determinísticos do AigisCode. Em vez de apenas reportar descobertas, ele toma <strong>decisões de permitir, alertar ou bloquear</strong> com base em um registro de doutrina tipado.</p>
+
+<p>Pense nele como uma constituição para seu código. A doutrina define quais padrões são aceitáveis, quais exigem revisão e quais devem bloquear um merge. Cada descoberta é avaliada contra essa doutrina, e o resultado é um julgamento legível por máquina que pipelines de CI e agentes de IA podem usar para agir.</p>
+
+<h2 id="the-doctrine-registry">O Registro de Doutrina</h2>
+
+<p>No coração do Zeus Shield está o <strong>registro de doutrina</strong> — um catálogo tipado de cláusulas arquiteturais. Cada cláusula declara:</p>
+
+<ul>
+<li><strong>Contra o que protege</strong> — o padrão arquitetural ou code smell que ela aborda</li>
+<li><strong>Disposição padrão</strong> — se violações são informativas, avisos ou bloqueantes</li>
+<li><strong>Mecanismo preferido</strong> — a alternativa sancionada (ex.: "use um scheduler de framework em vez de um caseiro")</li>
+<li><strong>Força</strong> — quão fortemente a doutrina se posiciona sobre esse padrão</li>
+</ul>
+
+<p>O registro vem com cláusulas integradas como:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>Cada cláusula é respaldada por lógica de detecção real. Quando o AigisCode encontra um código que constrói seu próprio parser de consultas em vez de usar uma biblioteca testada em batalha, a cláusula da doutrina dispara com uma recomendação concreta: "Considere usar um query builder estabelecido ou linguagem de consulta ORM em vez de um parser customizado baseado em strings."</p>
+
+<h2 id="guardian-packets">Pacotes Guardiões: Unidades de Revisão Acionáveis</h2>
+
+<p>O Zeus Shield não despeja uma lista plana de avisos. Ele produz <strong>pacotes guardiões</strong> — unidades de investigação estruturadas que combinam pressão do grafo, avaliação arquitetônica e contexto de segurança em um único item de revisão.</p>
+
+<p>Um pacote guardião inclui:</p>
+
+<table>
+<thead>
+<tr><th>Campo</th><th>Propósito</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>O arquivo no centro do hotspot</td></tr>
+<tr><td><code>packet_type</code></td><td>Que tipo de problema (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>Quais cláusulas de doutrina se aplicam</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>O caminho de substituição sancionado</td></tr>
+<tr><td><code>investigation_questions</code></td><td>Perguntas concretas para o revisor responder</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>Referências em nível de linha no código-fonte</td></tr>
+<tr><td><code>obligations</code></td><td>O que deve acontecer antes que isso possa ser aceito</td></tr>
+</tbody>
+</table>
+
+<p>Isso é fundamentalmente diferente de um aviso de linter. Um linter diz "import não utilizado na linha 42." Um pacote guardião diz "Este arquivo centraliza três representações de dados concorrentes com cola de compatibilidade entre elas. A doutrina recomenda consolidar para um único modelo canônico. Aqui estão três perguntas de investigação para determinar se isso é bridging de API intencional ou desvio acidental."</p>
+
+<h2 id="convergence-tracking">Convergência: Ficando Mais Silencioso ao Longo do Tempo</h2>
+
+<p>Um dos aspectos mais poderosos do Zeus Shield é o <strong>rastreamento de convergência</strong>. Cada vez que o AigisCode é executado, ele compara o estado atual com resultados anteriores armazenados em <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>O sistema rastreia:</p>
+
+<ul>
+<li><strong>Novas descobertas</strong> — problemas que apareceram desde a última execução</li>
+<li><strong>Descobertas resolvidas</strong> — problemas que foram corrigidos</li>
+<li><strong>Descobertas agravadas</strong> — problemas existentes que pioraram</li>
+<li><strong>Descobertas estáveis</strong> — problemas conhecidos que não mudaram</li>
+</ul>
+
+<p>Isso significa que o sistema fica <em>mais silencioso</em> conforme sua equipe aborda as descobertas. Ele não relitica padrões aceitos. E quando algo regride — uma nova dependência circular aparece, a proliferação de abstrações aumenta, ou uma cicatriz de compatibilidade se aprofunda — ele apresenta essa regressão explicitamente como um gatilho de guarda.</p>
+
+<h2 id="guard-mode">Modo de Guarda: Permitir, Alertar, Bloquear</h2>
+
+<p>A culminação do Zeus Shield é o <strong>modo de guarda</strong>. O guardião avalia todas as descobertas ativas, deltas de convergência e gatilhos de doutrina para produzir um julgamento único escrito em <code>.aigiscode/guard-decision.json</code>:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>Pipelines de CI podem ler esse arquivo e decidir se prosseguem, exigem revisão ou bloqueiam o merge. Agentes de IA podem analisar os gatilhos e priorizar seu trabalho de acordo.</p>
+
+<h2 id="doctrine-driven-advice">Conselhos Orientados por Doutrina para Agentes de IA</h2>
+
+<p>O Zeus Shield foi projetado pensando em agentes de codificação com IA. Quando um agente lê <code>.aigiscode/aigiscode-handoff.json</code>, ele recebe não apenas descobertas, mas <strong>recomendações respaldadas pela doutrina</strong>:</p>
+
+<ul>
+<li>O mecanismo preferido para cada problema (da cláusula de doutrina)</li>
+<li>Perguntas de investigação para orientar a exploração</li>
+<li>Âncoras de evidência apontando para linhas específicas</li>
+<li>Obrigações que devem ser cumpridas antes da aceitação</li>
+</ul>
+
+<p>Isso significa que um agente de IA não precisa re-derivar qual é a correção certa. A doutrina diz: "Este é um scheduler DSL caseiro. O mecanismo preferido é o scheduler nativo do framework ou sistema de filas. Investigue se a implementação customizada lida com algo que o framework não consegue."</p>
+
+<h2 id="real-world-calibration">Calibração no Mundo Real</h2>
+
+<p>O Zeus Shield não é um sistema teórico. Cada regra de detecção é calibrada contra bases de código reais:</p>
+
+<ul>
+<li><strong>WordPress</strong> — a maior base de código PHP do mundo. O Zeus Shield produz zero falsos positivos para proliferação de abstrações, cicatrizes de compatibilidade e detecção de parsers caseiros no core do WordPress.</li>
+<li><strong>Django</strong> — o framework web mais estabelecido do Python. Zero falsos positivos para os mesmos detectores.</li>
+<li><strong>NewERP</strong> — uma grande aplicação empresarial com mais de 5.000 arquivos. O Zeus Shield identifica corretamente hotspots arquiteturais reais: um parser de contrato de consulta customizado, um scheduler DSL caseiro, proliferação de abstrações nos serviços de notificação e calendário.</li>
+</ul>
+
+<p>A filosofia de calibração é simples: se uma detecção dispara no código core do WordPress ou Django, é um falso positivo e deve ser corrigido. Essas são bases de código bem mantidas e bem arquitetadas. Se a ferramenta não consegue distingui-las de engenharia excessiva genuína, a ferramenta está errada.</p>
+
+<h2 id="try-zeus-shield">Experimente o Zeus Shield</h2>
+
+<p>O Zeus Shield está incluído em toda execução do AigisCode. Nenhuma configuração extra necessária:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Verifique <code>.aigiscode/guard-decision.json</code> para o veredito, <code>.aigiscode/doctrine-registry.json</code> para a doutrina ativa, e <code>.aigiscode/aigiscode-handoff.json</code> para a saída completa dos pacotes guardiões.</p>
+`,
+      ar: `
+<p>أدوات التحليل الثابت تكتشف المشاكل. لكنها لا تمنعها من العودة. تصلح تبعية دائرية اليوم، وتظهر واحدة جديدة في السبرنت التالي. تنظّف الكود الميت، ويتراكم المزيد. الفجوة الأساسية ليست في الاكتشاف — بل في <strong>الحوكمة</strong>.</p>
+
+<p>لهذا السبب بنينا <strong>درع زيوس</strong>: نظام حراسة مبني على العقيدة يحوّل AigisCode من محلل يعمل مرة واحدة إلى حارس معماري مستمر.</p>
+
+<h2 id="what-is-zeus-shield">ما هو درع زيوس؟</h2>
+
+<p>درع زيوس هو طبقة الحوكمة التي تجلس فوق الرسم البياني الدلالي لـ AigisCode والكاشفات الحتمية. بدلاً من مجرد الإبلاغ عن النتائج، يتخذ <strong>قرارات السماح أو التحذير أو الحظر</strong> بناءً على سجل عقيدة مصنّف.</p>
+
+<p>فكّر فيه كدستور لقاعدة الكود الخاصة بك. تحدد العقيدة الأنماط المقبولة، وما يتطلب مراجعة، وما يجب أن يمنع الدمج. يتم تقييم كل نتيجة وفقاً لهذه العقيدة، والنتيجة هي حكم قابل للقراءة آلياً يمكن لخطوط أنابيب CI ووكلاء الذكاء الاصطناعي التصرف بناءً عليه.</p>
+
+<h2 id="the-doctrine-registry">سجل العقيدة</h2>
+
+<p>في قلب درع زيوس يوجد <strong>سجل العقيدة</strong> — كتالوج مصنّف من البنود المعمارية. كل بند يعلن:</p>
+
+<ul>
+<li><strong>ما يحمي منه</strong> — النمط المعماري أو الرائحة التي يعالجها</li>
+<li><strong>التصنيف الافتراضي</strong> — سواء كانت المخالفات إعلامية أو تحذيرات أو حواجز</li>
+<li><strong>الآلية المفضلة</strong> — البديل المعتمد (مثلاً، "استخدم مجدول إطار العمل بدلاً من واحد محلي الصنع")</li>
+<li><strong>القوة</strong> — مدى حزم العقيدة تجاه هذا النمط</li>
+</ul>
+
+<p>يأتي السجل مع بنود مدمجة مثل:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>كل بند مدعوم بمنطق اكتشاف حقيقي. عندما يجد AigisCode قاعدة كود تبني محلل الاستعلامات الخاص بها بدلاً من استخدام مكتبة مجربة، يُطلق بند العقيدة توصية ملموسة: "فكّر في استخدام منشئ استعلامات أو لغة استعلام ORM معتمدة بدلاً من محلل مخصص يعتمد على النصوص."</p>
+
+<h2 id="guardian-packets">حزم الحراسة: وحدات مراجعة قابلة للتنفيذ</h2>
+
+<p>درع زيوس لا يلقي قائمة مسطحة من التحذيرات. إنه ينتج <strong>حزم حراسة</strong> — وحدات تحقيق منظمة تجمع بين ضغط الرسم البياني والتقييم المعماري والسياق الأمني في عنصر مراجعة واحد.</p>
+
+<p>تتضمن حزمة الحراسة:</p>
+
+<table>
+<thead>
+<tr><th>الحقل</th><th>الغرض</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>الملف في مركز النقطة الساخنة</td></tr>
+<tr><td><code>packet_type</code></td><td>نوع المشكلة (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>بنود العقيدة المنطبقة</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>مسار الاستبدال المعتمد</td></tr>
+<tr><td><code>investigation_questions</code></td><td>أسئلة ملموسة يجب على المراجع الإجابة عليها</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>مراجع على مستوى الأسطر في الكود المصدري</td></tr>
+<tr><td><code>obligations</code></td><td>ما يجب أن يحدث قبل قبول هذا</td></tr>
+</tbody>
+</table>
+
+<p>هذا يختلف جوهرياً عن تحذير المدقق. المدقق يقول "استيراد غير مستخدم في السطر 42." حزمة الحراسة تقول "هذا الملف يجمع ثلاثة تمثيلات بيانات متنافسة مع غراء توافق بينها. توصي العقيدة بالتوحيد إلى نموذج قانوني واحد. إليك ثلاثة أسئلة تحقيق لتحديد ما إذا كان هذا جسراً مقصوداً لواجهة برمجة التطبيقات أو انحرافاً عرضياً."</p>
+
+<h2 id="convergence-tracking">التقارب: التهدئة مع مرور الوقت</h2>
+
+<p>أحد أقوى جوانب درع زيوس هو <strong>تتبع التقارب</strong>. في كل مرة يعمل فيها AigisCode، يقارن الحالة الحالية بالنتائج السابقة المخزنة في <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>يتتبع النظام:</p>
+
+<ul>
+<li><strong>نتائج جديدة</strong> — مشاكل ظهرت منذ آخر تشغيل</li>
+<li><strong>نتائج محلولة</strong> — مشاكل تم إصلاحها</li>
+<li><strong>نتائج متدهورة</strong> — مشاكل موجودة أصبحت أسوأ</li>
+<li><strong>نتائج مستقرة</strong> — مشاكل معروفة لم تتغير</li>
+</ul>
+
+<p>هذا يعني أن النظام يصبح <em>أهدأ</em> كلما عالج فريقك النتائج. إنه لا يعيد مناقشة الأنماط المقبولة. وعندما يحدث تراجع — تظهر تبعية دائرية جديدة، أو يزداد انتشار التجريد، أو تتعمق ندبة التوافق — يبرز ذلك التراجع صراحةً كمحفز حراسة.</p>
+
+<h2 id="guard-mode">وضع الحراسة: سماح، تحذير، حظر</h2>
+
+<p>ذروة درع زيوس هي <strong>وضع الحراسة</strong>. يقيّم الحارس جميع النتائج النشطة وفروقات التقارب ومحفزات العقيدة لإنتاج حكم واحد يُكتب في <code>.aigiscode/guard-decision.json</code>:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>يمكن لخطوط أنابيب CI قراءة هذا الملف واتخاذ قرار بالمتابعة أو طلب مراجعة أو حظر الدمج. يمكن لوكلاء الذكاء الاصطناعي تحليل المحفزات وترتيب أولويات عملهم وفقاً لذلك.</p>
+
+<h2 id="doctrine-driven-advice">نصائح مبنية على العقيدة لوكلاء الذكاء الاصطناعي</h2>
+
+<p>صُمم درع زيوس مع وضع وكلاء البرمجة بالذكاء الاصطناعي في الاعتبار. عندما يقرأ وكيل <code>.aigiscode/aigiscode-handoff.json</code>، يحصل ليس فقط على النتائج بل على <strong>توصيات مدعومة بالعقيدة</strong>:</p>
+
+<ul>
+<li>الآلية المفضلة لكل مشكلة (من بند العقيدة)</li>
+<li>أسئلة تحقيق لتوجيه الاستكشاف</li>
+<li>مراسي أدلة تشير إلى أسطر محددة</li>
+<li>التزامات يجب تلبيتها قبل القبول</li>
+</ul>
+
+<p>هذا يعني أن وكيل الذكاء الاصطناعي لا يحتاج إلى إعادة استنتاج الإصلاح الصحيح. تخبره العقيدة: "هذا مجدول DSL محلي الصنع. الآلية المفضلة هي المجدول الأصلي لإطار العمل أو نظام قائمة الانتظار. تحقق مما إذا كان التنفيذ المخصص يتعامل مع أي شيء لا يستطيع إطار العمل التعامل معه."</p>
+
+<h2 id="real-world-calibration">المعايرة في العالم الحقيقي</h2>
+
+<p>درع زيوس ليس نظاماً نظرياً. كل قاعدة اكتشاف معايرة مقابل قواعد كود حقيقية:</p>
+
+<ul>
+<li><strong>WordPress</strong> — أكبر قاعدة كود PHP في العالم. درع زيوس ينتج صفر إيجابيات كاذبة لانتشار التجريد وندبات التوافق واكتشاف المحللات محلية الصنع على نواة WordPress.</li>
+<li><strong>Django</strong> — إطار عمل الويب الأكثر رسوخاً في Python. صفر إيجابيات كاذبة لنفس الكاشفات.</li>
+<li><strong>NewERP</strong> — تطبيق مؤسسي كبير يحتوي على أكثر من 5,000 ملف. يحدد درع زيوس بشكل صحيح نقاط ساخنة معمارية حقيقية: محلل عقود استعلام مخصص، ومجدول DSL محلي الصنع، وانتشار التجريد في خدمات الإشعارات والتقويم.</li>
+</ul>
+
+<p>فلسفة المعايرة بسيطة: إذا أطلق الكاشف على كود نواة WordPress أو Django، فهو إيجابي كاذب ويجب إصلاحه. هذه قواعد كود محافَظ عليها جيداً ومصممة جيداً. إذا لم تستطع الأداة تمييزها عن الهندسة المفرطة الحقيقية، فالأداة مخطئة.</p>
+
+<h2 id="try-zeus-shield">جرّب درع زيوس</h2>
+
+<p>درع زيوس مضمّن في كل تشغيل لـ AigisCode. لا حاجة لإعدادات إضافية:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>تحقق من <code>.aigiscode/guard-decision.json</code> للحكم، و<code>.aigiscode/doctrine-registry.json</code> للعقيدة النشطة، و<code>.aigiscode/aigiscode-handoff.json</code> للمخرجات الكاملة لحزم الحراسة.</p>
+`,
+      pl: `
+<p>Narzędzia analizy statycznej znajdują problemy. Ale nie zapobiegają ich powrotowi. Naprawiasz cykliczną zależność dzisiaj, a nowa pojawia się w następnym sprincie. Sprzątasz martwy kod, a więcej się gromadzi. Fundamentalna luka to nie wykrywanie — to <strong>zarządzanie</strong>.</p>
+
+<p>Dlatego zbudowaliśmy <strong>Zeus Shield</strong>: system strażniczy oparty na doktrynie, który przekształca AigisCode z jednorazowego analizatora w ciągłego strażnika architektonicznego.</p>
+
+<h2 id="what-is-zeus-shield">Czym jest Zeus Shield?</h2>
+
+<p>Zeus Shield to warstwa zarządzania, która znajduje się na szczycie semantycznego grafu AigisCode i deterministycznych detektorów. Zamiast jedynie raportować wyniki, podejmuje <strong>decyzje o zezwoleniu, ostrzeżeniu lub zablokowaniu</strong> na podstawie typowanego rejestru doktryny.</p>
+
+<p>Pomyśl o tym jak o konstytucji dla Twojej bazy kodu. Doktryna definiuje, jakie wzorce są akceptowalne, co wymaga przeglądu i co powinno zablokować scalenie. Każde znalezisko jest oceniane względem tej doktryny, a wynikiem jest czytelne maszynowo orzeczenie, na podstawie którego mogą działać potoki CI i agenci AI.</p>
+
+<h2 id="the-doctrine-registry">Rejestr doktryny</h2>
+
+<p>W sercu Zeus Shield znajduje się <strong>rejestr doktryny</strong> — typowany katalog klauzul architektonicznych. Każda klauzula deklaruje:</p>
+
+<ul>
+<li><strong>Przed czym chroni</strong> — wzorzec architektoniczny lub zapach, który adresuje</li>
+<li><strong>Domyślną dyspozycję</strong> — czy naruszenia są informacyjne, ostrzegawcze czy blokujące</li>
+<li><strong>Preferowany mechanizm</strong> — zatwierdzoną alternatywę (np. "użyj harmonogramu frameworka zamiast własnoręcznie napisanego")</li>
+<li><strong>Siłę</strong> — jak mocno doktryna odnosi się do tego wzorca</li>
+</ul>
+
+<p>Rejestr zawiera wbudowane klauzule takie jak:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>Każda klauzula jest wspierana przez rzeczywistą logikę wykrywania. Gdy AigisCode znajdzie bazę kodu budującą własny parser zapytań zamiast korzystania ze sprawdzonej biblioteki, klauzula doktryny uruchamia się z konkretną rekomendacją: "Rozważ użycie ustalonego konstruktora zapytań lub języka zapytań ORM zamiast niestandardowego parsera opartego na łańcuchach znaków."</p>
+
+<h2 id="guardian-packets">Pakiety strażnicze: jednostki przeglądu gotowe do działania</h2>
+
+<p>Zeus Shield nie zrzuca płaskiej listy ostrzeżeń. Produkuje <strong>pakiety strażnicze</strong> — ustrukturyzowane jednostki dochodzeniowe, które łączą presję grafu, ocenę architektoniczną i kontekst bezpieczeństwa w jeden element przeglądu.</p>
+
+<p>Pakiet strażniczy zawiera:</p>
+
+<table>
+<thead>
+<tr><th>Pole</th><th>Cel</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>Plik w centrum hotspotu</td></tr>
+<tr><td><code>packet_type</code></td><td>Rodzaj problemu (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>Które klauzule doktryny mają zastosowanie</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>Zatwierdzona ścieżka zastąpienia</td></tr>
+<tr><td><code>investigation_questions</code></td><td>Konkretne pytania, na które recenzent powinien odpowiedzieć</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>Odniesienia na poziomie linii do kodu źródłowego</td></tr>
+<tr><td><code>obligations</code></td><td>Co musi się wydarzyć przed akceptacją</td></tr>
+</tbody>
+</table>
+
+<p>To fundamentalnie różni się od ostrzeżenia lintera. Linter mówi "nieużywany import w linii 42." Pakiet strażniczy mówi "Ten plik centralizuje trzy konkurujące reprezentacje danych z klejem kompatybilności między nimi. Doktryna zaleca konsolidację do jednego kanonicznego modelu. Oto trzy pytania dochodzeniowe, aby ustalić, czy jest to celowe mostkowanie API czy przypadkowy dryf."</p>
+
+<h2 id="convergence-tracking">Konwergencja: cichnie z czasem</h2>
+
+<p>Jednym z najpotężniejszych aspektów Zeus Shield jest <strong>śledzenie konwergencji</strong>. Za każdym razem, gdy AigisCode się uruchamia, porównuje bieżący stan z poprzednimi wynikami przechowywanymi w <code>.aigiscode/convergence-history.json</code>.</p>
+
+<p>System śledzi:</p>
+
+<ul>
+<li><strong>Nowe znaleziska</strong> — problemy, które pojawiły się od ostatniego uruchomienia</li>
+<li><strong>Rozwiązane znaleziska</strong> — problemy, które zostały naprawione</li>
+<li><strong>Pogorszone znaleziska</strong> — istniejące problemy, które się pogorszyły</li>
+<li><strong>Stabilne znaleziska</strong> — znane problemy, które się nie zmieniły</li>
+</ul>
+
+<p>To oznacza, że system staje się <em>cichszy</em> w miarę jak Twój zespół zajmuje się znaleziskami. Nie wznawia dyskusji o zaakceptowanych wzorcach. A gdy coś się cofa — pojawia się nowa cykliczna zależność, rozrost abstrakcji się zwiększa lub blizna kompatybilności się pogłębia — system wyraźnie ujawnia tę regresję jako wyzwalacz strażniczy.</p>
+
+<h2 id="guard-mode">Tryb ochrony: zezwól, ostrzeż, zablokuj</h2>
+
+<p>Kulminacją Zeus Shield jest <strong>tryb ochrony</strong>. Strażnik ocenia wszystkie aktywne znaleziska, delty konwergencji i wyzwalacze doktryny, aby wyprodukować pojedyncze orzeczenie zapisywane do <code>.aigiscode/guard-decision.json</code>:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>Potoki CI mogą odczytać ten plik i zdecydować, czy kontynuować, wymagać przeglądu czy zablokować scalenie. Agenci AI mogą analizować wyzwalacze i odpowiednio ustalać priorytety swojej pracy.</p>
+
+<h2 id="doctrine-driven-advice">Porady oparte na doktrynie dla agentów AI</h2>
+
+<p>Zeus Shield został zaprojektowany z myślą o agentach kodujących AI. Gdy agent odczytuje <code>.aigiscode/aigiscode-handoff.json</code>, otrzymuje nie tylko znaleziska, ale <strong>rekomendacje wsparte doktryną</strong>:</p>
+
+<ul>
+<li>Preferowany mechanizm dla każdego problemu (z klauzuli doktryny)</li>
+<li>Pytania dochodzeniowe prowadzące eksplorację</li>
+<li>Kotwice dowodowe wskazujące na konkretne linie</li>
+<li>Zobowiązania, które muszą być spełnione przed akceptacją</li>
+</ul>
+
+<p>To oznacza, że agent AI nie musi ponownie wyprowadzać właściwej poprawki. Doktryna mówi mu: "To jest własnoręcznie napisany harmonogram DSL. Preferowanym mechanizmem jest natywny harmonogram frameworka lub system kolejek. Zbadaj, czy niestandardowa implementacja obsługuje cokolwiek, czego framework nie potrafi."</p>
+
+<h2 id="real-world-calibration">Kalibracja w świecie rzeczywistym</h2>
+
+<p>Zeus Shield nie jest systemem teoretycznym. Każda reguła wykrywania jest kalibrowana na rzeczywistych bazach kodu:</p>
+
+<ul>
+<li><strong>WordPress</strong> — największa baza kodu PHP na świecie. Zeus Shield generuje zero fałszywych pozytywów dla rozrostu abstrakcji, blizn kompatybilności i wykrywania własnoręcznie napisanych parserów na rdzeniu WordPress.</li>
+<li><strong>Django</strong> — najlepiej ugruntowany framework webowy Pythona. Zero fałszywych pozytywów dla tych samych detektorów.</li>
+<li><strong>NewERP</strong> — duża aplikacja korporacyjna z ponad 5 000 plików. Zeus Shield prawidłowo identyfikuje rzeczywiste hotspoty architektoniczne: niestandardowy parser kontraktów zapytań, własnoręcznie napisany harmonogram DSL, rozrost abstrakcji w usługach powiadomień i kalendarza.</li>
+</ul>
+
+<p>Filozofia kalibracji jest prosta: jeśli detektor uruchamia się na kodzie rdzenia WordPress lub Django, jest to fałszywy pozytyw i musi zostać naprawiony. To dobrze utrzymywane, dobrze zaprojektowane bazy kodu. Jeśli narzędzie nie potrafi odróżnić ich od prawdziwej nadmiernej inżynierii, narzędzie jest błędne.</p>
+
+<h2 id="try-zeus-shield">Wypróbuj Zeus Shield</h2>
+
+<p>Zeus Shield jest zawarty w każdym uruchomieniu AigisCode. Nie jest wymagana dodatkowa konfiguracja:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Sprawdź <code>.aigiscode/guard-decision.json</code> dla werdyktu, <code>.aigiscode/doctrine-registry.json</code> dla aktywnej doktryny i <code>.aigiscode/aigiscode-handoff.json</code> dla pełnych wyników pakietów strażniczych.</p>
+`,
+      bn: `
+<p>স্ট্যাটিক অ্যানালাইসিস টুলগুলো সমস্যা খুঁজে পায়। কিন্তু সেগুলো ফিরে আসা থেকে রোধ করে না। আজ আপনি একটি সার্কুলার ডিপেন্ডেন্সি ঠিক করেন, আর পরবর্তী স্প্রিন্টে নতুন একটি দেখা দেয়। আপনি ডেড কোড পরিষ্কার করেন, আর আরও জমা হয়। মৌলিক ফাঁক সনাক্তকরণে নয় — এটি <strong>গভর্ন্যান্সে</strong>।</p>
+
+<p>এই কারণেই আমরা <strong>Zeus Shield</strong> তৈরি করেছি: একটি ডকট্রিন-চালিত গার্ডিয়ান সিস্টেম যা AigisCode-কে একটি একবারের অ্যানালাইজার থেকে একটি ক্রমাগত আর্কিটেকচারাল ওয়াচডগে রূপান্তরিত করে।</p>
+
+<h2 id="what-is-zeus-shield">Zeus Shield কী?</h2>
+
+<p>Zeus Shield হল গভর্ন্যান্স লেয়ার যা AigisCode-এর সিমান্টিক গ্রাফ এবং ডিটারমিনিস্টিক ডিটেক্টরগুলোর উপরে বসে। শুধু ফলাফল রিপোর্ট করার পরিবর্তে, এটি একটি টাইপড ডকট্রিন রেজিস্ট্রির ভিত্তিতে <strong>allow, warn, বা block সিদ্ধান্ত</strong> নেয়।</p>
+
+<p>এটিকে আপনার কোডবেসের সংবিধান হিসেবে ভাবুন। ডকট্রিন সংজ্ঞায়িত করে কোন প্যাটার্নগুলো গ্রহণযোগ্য, কোনটি রিভিউ প্রয়োজন, এবং কোনটি মার্জ ব্লক করবে। প্রতিটি ফলাফল এই ডকট্রিনের বিপরীতে মূল্যায়ন করা হয়, এবং ফলাফল হল একটি মেশিন-রিডেবল রায় যার উপর CI পাইপলাইন এবং AI এজেন্টরা কাজ করতে পারে।</p>
+
+<h2 id="the-doctrine-registry">ডকট্রিন রেজিস্ট্রি</h2>
+
+<p>Zeus Shield-এর কেন্দ্রে রয়েছে <strong>ডকট্রিন রেজিস্ট্রি</strong> — আর্কিটেকচারাল ক্লজগুলোর একটি টাইপড ক্যাটালগ। প্রতিটি ক্লজ ঘোষণা করে:</p>
+
+<ul>
+<li><strong>কিসের বিরুদ্ধে রক্ষা করে</strong> — যে আর্কিটেকচারাল প্যাটার্ন বা স্মেল এটি সম্বোধন করে</li>
+<li><strong>ডিফল্ট ডিসপোজিশন</strong> — লঙ্ঘনগুলো তথ্যমূলক, সতর্কতা, নাকি ব্লকার কিনা</li>
+<li><strong>পছন্দের মেকানিজম</strong> — অনুমোদিত বিকল্প (যেমন, "নিজে তৈরির পরিবর্তে ফ্রেমওয়ার্কের শিডিউলার ব্যবহার করুন")</li>
+<li><strong>শক্তি</strong> — ডকট্রিন এই প্যাটার্ন সম্পর্কে কতটা দৃঢ়</li>
+</ul>
+
+<p>রেজিস্ট্রি বিল্ট-ইন ক্লজ নিয়ে আসে যেমন:</p>
+
+<pre><code>guardian.avoid-homegrown-parser
+guardian.avoid-homegrown-schema-validation
+guardian.avoid-homegrown-definition-engine
+guardian.avoid-homegrown-scheduler-dsl
+guardian.native-vs-library
+</code></pre>
+
+<p>প্রতিটি ক্লজ বাস্তব সনাক্তকরণ লজিক দ্বারা সমর্থিত। যখন AigisCode একটি কোডবেস খুঁজে পায় যেটি যুদ্ধ-পরীক্ষিত লাইব্রেরি ব্যবহারের পরিবর্তে নিজের কুয়েরি পার্সার তৈরি করছে, ডকট্রিন ক্লজটি একটি কংক্রিট সুপারিশ সহ ফায়ার করে: "একটি কাস্টম স্ট্রিং-চালিত পার্সারের পরিবর্তে একটি প্রতিষ্ঠিত কুয়েরি বিল্ডার বা ORM কুয়েরি ভাষা ব্যবহার করার কথা বিবেচনা করুন।"</p>
+
+<h2 id="guardian-packets">গার্ডিয়ান প্যাকেট: কার্যকর রিভিউ ইউনিট</h2>
+
+<p>Zeus Shield সতর্কতার একটি সমতল তালিকা ফেলে না। এটি <strong>গার্ডিয়ান প্যাকেট</strong> তৈরি করে — কাঠামোবদ্ধ তদন্ত ইউনিট যা গ্রাফ প্রেশার, আর্কিটেক্টনিক মূল্যায়ন এবং নিরাপত্তা প্রসঙ্গকে একটি একক রিভিউ আইটেমে একত্রিত করে।</p>
+
+<p>একটি গার্ডিয়ান প্যাকেটে অন্তর্ভুক্ত:</p>
+
+<table>
+<thead>
+<tr><th>ফিল্ড</th><th>উদ্দেশ্য</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary_file</code></td><td>হটস্পটের কেন্দ্রে থাকা ফাইল</td></tr>
+<tr><td><code>packet_type</code></td><td>সমস্যার ধরন (compatibility_scar, hand_rolled_parsing, split_identity, warning_heavy_hotspot)</td></tr>
+<tr><td><code>doctrine_refs</code></td><td>কোন ডকট্রিন ক্লজ প্রযোজ্য</td></tr>
+<tr><td><code>preferred_mechanism</code></td><td>অনুমোদিত প্রতিস্থাপন পথ</td></tr>
+<tr><td><code>investigation_questions</code></td><td>রিভিউয়ারের উত্তর দেওয়ার জন্য কংক্রিট প্রশ্ন</td></tr>
+<tr><td><code>evidence_anchors</code></td><td>সোর্স কোডে লাইন-লেভেল রেফারেন্স</td></tr>
+<tr><td><code>obligations</code></td><td>এটি গ্রহণের আগে কী ঘটতে হবে</td></tr>
+</tbody>
+</table>
+
+<p>এটি একটি লিন্টার সতর্কতা থেকে মৌলিকভাবে আলাদা। একটি লিন্টার বলে "লাইন 42-এ অব্যবহৃত import।" একটি গার্ডিয়ান প্যাকেট বলে "এই ফাইলটি তাদের মধ্যে কম্প্যাটিবিলিটি গ্লু সহ তিনটি প্রতিযোগী ডেটা উপস্থাপনা কেন্দ্রীভূত করে। ডকট্রিন একটি একক ক্যানোনিক্যাল মডেলে একত্রীকরণের সুপারিশ করে। এটি ইচ্ছাকৃত API ব্রিজিং নাকি দুর্ঘটনাজনিত ড্রিফট তা নির্ধারণ করতে এখানে তিনটি তদন্ত প্রশ্ন রয়েছে।"</p>
+
+<h2 id="convergence-tracking">কনভার্জেন্স: সময়ের সাথে শান্ত হওয়া</h2>
+
+<p>Zeus Shield-এর সবচেয়ে শক্তিশালী দিকগুলোর একটি হল <strong>কনভার্জেন্স ট্র্যাকিং</strong>। প্রতিবার AigisCode চালানোর সময়, এটি বর্তমান অবস্থা <code>.aigiscode/convergence-history.json</code>-এ সংরক্ষিত পূর্ববর্তী ফলাফলগুলোর সাথে তুলনা করে।</p>
+
+<p>সিস্টেম ট্র্যাক করে:</p>
+
+<ul>
+<li><strong>নতুন ফলাফল</strong> — শেষ রানের পর থেকে যে সমস্যাগুলো দেখা দিয়েছে</li>
+<li><strong>সমাধানকৃত ফলাফল</strong> — যে সমস্যাগুলো ঠিক করা হয়েছে</li>
+<li><strong>অবনতি হওয়া ফলাফল</strong> — বিদ্যমান সমস্যা যা আরও খারাপ হয়েছে</li>
+<li><strong>স্থিতিশীল ফলাফল</strong> — পরিচিত সমস্যা যা পরিবর্তন হয়নি</li>
+</ul>
+
+<p>এর মানে হল সিস্টেম আপনার টিম ফলাফলগুলো সমাধান করার সাথে সাথে <em>শান্ত</em> হয়ে যায়। এটি গৃহীত প্যাটার্নগুলো পুনরায় বিতর্ক করে না। এবং যখন কিছু পিছিয়ে যায় — একটি নতুন সার্কুলার ডিপেন্ডেন্সি দেখা দেয়, অ্যাবস্ট্রাকশন স্প্রল বাড়ে, বা একটি কম্প্যাটিবিলিটি স্কার গভীর হয় — এটি সেই রিগ্রেশনটি স্পষ্টভাবে একটি গার্ড ট্রিগার হিসেবে প্রকাশ করে।</p>
+
+<h2 id="guard-mode">গার্ড মোড: Allow, Warn, Block</h2>
+
+<p>Zeus Shield-এর চূড়ান্ত পর্যায় হল <strong>গার্ড মোড</strong>। গার্ড সমস্ত সক্রিয় ফলাফল, কনভার্জেন্স ডেল্টা এবং ডকট্রিন ট্রিগার মূল্যায়ন করে <code>.aigiscode/guard-decision.json</code>-এ লেখা একটি একক রায় তৈরি করে:</p>
+
+<pre><code>{
+  "decision": "Warn",
+  "triggers": [
+    "New architectural regression: abstraction_sprawl_count increased from 2 to 3",
+    "Required review radius is anchored on 2 file(s) with 5 one-hop neighbors",
+    "guardian.avoid-homegrown-scheduler-dsl: custom scheduler DSL detected"
+  ],
+  "pressure": {
+    "exact_attention": 3,
+    "heuristic_attention": 1,
+    "security_pressure": 0
+  }
+}
+</code></pre>
+
+<p>CI পাইপলাইনগুলো এই ফাইলটি পড়ে সিদ্ধান্ত নিতে পারে এগিয়ে যাবে, রিভিউ প্রয়োজন, নাকি মার্জ ব্লক করবে। AI এজেন্টরা ট্রিগারগুলো পার্স করে তাদের কাজের অগ্রাধিকার নির্ধারণ করতে পারে।</p>
+
+<h2 id="doctrine-driven-advice">AI এজেন্টদের জন্য ডকট্রিন-চালিত পরামর্শ</h2>
+
+<p>Zeus Shield AI কোডিং এজেন্টদের কথা মাথায় রেখে ডিজাইন করা হয়েছে। যখন একটি এজেন্ট <code>.aigiscode/aigiscode-handoff.json</code> পড়ে, তখন সে শুধু ফলাফল নয় বরং <strong>ডকট্রিন-সমর্থিত সুপারিশ</strong> পায়:</p>
+
+<ul>
+<li>প্রতিটি সমস্যার জন্য পছন্দের মেকানিজম (ডকট্রিন ক্লজ থেকে)</li>
+<li>অনুসন্ধান পরিচালনার জন্য তদন্ত প্রশ্ন</li>
+<li>নির্দিষ্ট লাইনে নির্দেশকারী এভিডেন্স অ্যাঙ্কর</li>
+<li>গ্রহণের আগে পূরণ করতে হবে এমন বাধ্যবাধকতা</li>
+</ul>
+
+<p>এর মানে হল একটি AI এজেন্টকে সঠিক ফিক্স কী তা পুনরায় অনুমান করতে হয় না। ডকট্রিন তাকে বলে: "এটি একটি নিজে তৈরি শিডিউলার DSL। পছন্দের মেকানিজম হল ফ্রেমওয়ার্কের নেটিভ শিডিউলার বা কিউ সিস্টেম। তদন্ত করুন কাস্টম ইমপ্লিমেন্টেশন এমন কিছু হ্যান্ডেল করে কিনা যা ফ্রেমওয়ার্ক পারে না।"</p>
+
+<h2 id="real-world-calibration">বাস্তব-বিশ্বের ক্যালিব্রেশন</h2>
+
+<p>Zeus Shield একটি তাত্ত্বিক সিস্টেম নয়। প্রতিটি সনাক্তকরণ নিয়ম বাস্তব কোডবেসের বিপরীতে ক্যালিব্রেট করা হয়েছে:</p>
+
+<ul>
+<li><strong>WordPress</strong> — বিশ্বের বৃহত্তম PHP কোডবেস। Zeus Shield WordPress কোরে অ্যাবস্ট্রাকশন স্প্রল, কম্প্যাটিবিলিটি স্কার এবং নিজে তৈরি পার্সার সনাক্তকরণের জন্য শূন্য ফলস পজিটিভ তৈরি করে।</li>
+<li><strong>Django</strong> — Python-এর সবচেয়ে প্রতিষ্ঠিত ওয়েব ফ্রেমওয়ার্ক। একই ডিটেক্টরগুলোর জন্য শূন্য ফলস পজিটিভ।</li>
+<li><strong>NewERP</strong> — 5,000+ ফাইল সহ একটি বড় এন্টারপ্রাইজ অ্যাপ্লিকেশন। Zeus Shield সঠিকভাবে প্রকৃত আর্কিটেকচারাল হটস্পটগুলো চিহ্নিত করে: একটি কাস্টম কুয়েরি কন্ট্র্যাক্ট পার্সার, একটি নিজে তৈরি শিডিউলার DSL, নোটিফিকেশন এবং ক্যালেন্ডার সার্ভিসে অ্যাবস্ট্রাকশন স্প্রল।</li>
+</ul>
+
+<p>ক্যালিব্রেশন দর্শন সরল: যদি একটি সনাক্তকরণ WordPress বা Django কোর কোডে ফায়ার করে, এটি একটি ফলস পজিটিভ এবং ঠিক করতে হবে। এগুলো সুরক্ষিত, সুনির্মিত কোডবেস। যদি টুলটি এগুলোকে প্রকৃত ওভারইঞ্জিনিয়ারিং থেকে আলাদা করতে না পারে, তাহলে টুলটি ভুল।</p>
+
+<h2 id="try-zeus-shield">Zeus Shield চেষ্টা করুন</h2>
+
+<p>Zeus Shield প্রতিটি AigisCode রানে অন্তর্ভুক্ত। কোনো অতিরিক্ত কনফিগারেশনের প্রয়োজন নেই:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>রায়ের জন্য <code>.aigiscode/guard-decision.json</code>, সক্রিয় ডকট্রিনের জন্য <code>.aigiscode/doctrine-registry.json</code>, এবং সম্পূর্ণ গার্ডিয়ান প্যাকেট আউটপুটের জন্য <code>.aigiscode/aigiscode-handoff.json</code> পরীক্ষা করুন।</p>
+`,
+    },
+  },
+
+  /* ======================================================================== */
+  /*  From Python to Rust: Why We Rewrote AigisCode                          */
+  /* ======================================================================== */
+  {
+    slug: 'from-python-to-rust-rewrite',
+    date: '2026-03-20',
+    readTime: 9,
+    tags: ['Engineering', 'Rust', 'Performance', 'Open Source'],
+    image: '/blog-python-to-rust.jpg',
+    author: { name: 'David Strejc', role: 'Creator of AigisCode' },
+    relatedSlugs: [
+      'building-semantic-code-graph-rust',
+      'zeus-shield-guardian-doctrine',
+    ],
+    title: {
+      en: 'From Python to Rust: Why We Rewrote AigisCode from Scratch',
+      cs: 'Z Pythonu do Rustu: Proč jsme přepsali AigisCode od základů',
+      fr: 'De Python à Rust : pourquoi nous avons réécrit AigisCode de zéro',
+      es: 'De Python a Rust: por qué reescribimos AigisCode desde cero',
+      zh: '从 Python 到 Rust：为什么我们从头重写了 AigisCode',
+      hi: 'Python से Rust तक: हमने AigisCode को शुरू से क्यों दोबारा लिखा',
+      pt: 'De Python para Rust: Por Que Reescrevemos o AigisCode do Zero',
+      ar: 'من Python إلى Rust: لماذا أعدنا كتابة AigisCode من الصفر',
+      pl: 'Z Pythona do Rusta: dlaczego przepisaliśmy AigisCode od zera',
+      bn: 'Python থেকে Rust: কেন আমরা AigisCode শুরু থেকে পুনরায় লিখলাম',
+    },
+    description: {
+      en: 'The story of migrating a whole-codebase analyzer from Python to native Rust — the performance gains, the architectural lessons, and what we would do differently.',
+      cs: 'Příběh migrace analyzátoru celého codebase z Pythonu do nativního Rustu — výkonnostní zisky, architektonické poučení a co bychom udělali jinak.',
+      fr: 'L\'histoire de la migration d\'un analyseur de codebase complet de Python vers Rust natif — les gains de performance, les leçons architecturales et ce que nous ferions différemment.',
+      es: 'La historia de migrar un analizador de codebase completo de Python a Rust nativo — las ganancias de rendimiento, las lecciones arquitectónicas y lo que haríamos de manera diferente.',
+      zh: '将整个代码库分析器从 Python 迁移到原生 Rust 的故事——性能提升、架构经验教训，以及我们会做出哪些不同的选择。',
+      hi: 'एक पूरे कोडबेस एनालाइज़र को Python से नेटिव Rust में माइग्रेट करने की कहानी — परफ़ॉर्मेंस लाभ, आर्किटेक्चरल सबक, और हम क्या अलग करते।',
+      pt: 'A história da migração de um analisador de codebase completo de Python para Rust nativo — os ganhos de desempenho, as lições arquiteturais e o que faríamos de forma diferente.',
+      ar: 'قصة ترحيل محلل قاعدة كود كاملة من Python إلى Rust الأصلي — مكاسب الأداء والدروس المعمارية وما كنا سنفعله بشكل مختلف.',
+      pl: 'Historia migracji analizatora całej bazy kodu z Pythona do natywnego Rusta — zyski wydajnościowe, lekcje architektoniczne i co zrobilibyśmy inaczej.',
+      bn: 'Python থেকে নেটিভ Rust-এ একটি সম্পূর্ণ-কোডবেস অ্যানালাইজার মাইগ্রেট করার গল্প — পারফরম্যান্স লাভ, আর্কিটেকচারাল শিক্ষা, এবং আমরা কী ভিন্নভাবে করতাম।',
+    },
+    metaDescription: {
+      en: 'Learn why AigisCode was rewritten from Python to Rust. Covers performance benchmarks, architecture decisions, Tree-sitter parsing, and the challenges of migrating a static analysis tool to a systems language.',
+      cs: 'Zjistěte, proč byl AigisCode přepsán z Pythonu do Rustu. Zahrnuje výkonnostní benchmarky, architektonická rozhodnutí, parsování Tree-sitter a výzvy migrace nástroje pro statickou analýzu do systémového jazyka.',
+      zh: '了解 AigisCode 为什么从 Python 重写为 Rust。涵盖性能基准测试、架构决策、Tree-sitter 解析，以及将静态分析工具迁移到系统语言的挑战。',
+      hi: 'जानें AigisCode को Python से Rust में क्यों दोबारा लिखा गया। परफ़ॉर्मेंस बेंचमार्क, आर्किटेक्चर निर्णय, Tree-sitter पार्सिंग और स्टेटिक एनालिसिस टूल को सिस्टम लैंग्वेज में माइग्रेट करने की चुनौतियाँ शामिल हैं।',
+      pt: 'Saiba por que o AigisCode foi reescrito de Python para Rust. Abrange benchmarks de desempenho, decisões de arquitetura, parsing com Tree-sitter e os desafios de migrar uma ferramenta de análise estática para uma linguagem de sistemas.',
+      fr: 'Découvrez pourquoi AigisCode a été réécrit de Python en Rust. Couvre les benchmarks de performance, les décisions architecturales, le parsing Tree-sitter et les défis de la migration d\'un outil d\'analyse statique vers un langage système.',
+      es: 'Descubre por qué AigisCode fue reescrito de Python a Rust. Cubre benchmarks de rendimiento, decisiones arquitectónicas, parsing con Tree-sitter y los desafíos de migrar una herramienta de análisis estático a un lenguaje de sistemas.',
+      ar: 'تعرّف لماذا أُعيد كتابة AigisCode من Python إلى Rust. يغطي معايير الأداء وقرارات الهندسة المعمارية وتحليل Tree-sitter وتحديات ترحيل أداة تحليل ثابت إلى لغة أنظمة.',
+      pl: 'Dowiedz się, dlaczego AigisCode został przepisany z Pythona do Rusta. Obejmuje benchmarki wydajności, decyzje architektoniczne, parsowanie Tree-sitter i wyzwania migracji narzędzia analizy statycznej do języka systemowego.',
+      bn: 'জানুন কেন AigisCode Python থেকে Rust-এ পুনরায় লেখা হয়েছিল। পারফরম্যান্স বেঞ্চমার্ক, আর্কিটেকচার সিদ্ধান্ত, Tree-sitter পার্সিং এবং একটি স্ট্যাটিক অ্যানালাইসিস টুলকে সিস্টেম ল্যাঙ্গুয়েজে মাইগ্রেট করার চ্যালেঞ্জগুলো কভার করে।',
+    },
+    content: {
+      en: `
+<p>AigisCode started as a Python project. It used Tree-sitter bindings for parsing, NetworkX for graph analysis, and a collection of Python-based detectors for circular dependencies, dead code, and hardwired values. It worked. But as we pushed toward whole-codebase analysis on repositories with 30,000+ files, Python became the bottleneck.</p>
+
+<p>This is the story of why we rewrote AigisCode in Rust, what we gained, and what we learned along the way.</p>
+
+<h2 id="why-python-hit-the-wall">Why Python Hit the Wall</h2>
+
+<p>Python is excellent for prototyping. We built the first version of AigisCode in weeks, not months. But three problems became impossible to ignore:</p>
+
+<h3 id="memory">Memory Consumption</h3>
+<p>Analyzing a large PHP codebase like WordPress required holding the entire dependency graph in memory. With NetworkX, each node and edge carried significant Python object overhead. A graph with 30,000 nodes and 100,000 edges consumed over 2GB of RAM. The same graph in Rust with petgraph uses under 200MB.</p>
+
+<h3 id="parse-speed">Parse Speed</h3>
+<p>Even with Tree-sitter (which is itself written in C), the Python binding overhead added up. Parsing 5,000 PHP files took over 40 seconds in Python. In Rust with native Tree-sitter bindings, the same parse completes in under 8 seconds.</p>
+
+<h3 id="distribution">Distribution</h3>
+<p>Shipping a Python tool requires users to have a compatible Python installation, manage virtual environments, and install system dependencies for Tree-sitter. A Rust binary is a single executable. <code>curl | bash</code> and you are running. No Python, no pip, no virtualenv.</p>
+
+<h2 id="what-we-kept">What We Kept from the Python Era</h2>
+
+<p>The rewrite was not a rejection of everything we built in Python. Several architectural decisions survived:</p>
+
+<ul>
+<li><strong>Tree-sitter for parsing</strong> — we switched from Python bindings to Rust bindings, but Tree-sitter remains our parser for PHP, Python, TypeScript, JavaScript, Vue, and Ruby</li>
+<li><strong>The six-stage pipeline</strong> — Index, Graph, Detect, Rules, Review, Report. This architecture proved sound and transferred directly to Rust</li>
+<li><strong>JSON artifacts as the contract</strong> — <code>.aigiscode/*.json</code> files remain the machine-readable interface. The format is backward-compatible</li>
+<li><strong>Plugin architecture</strong> — framework-specific knowledge stays in plugins, not in core language parsers</li>
+</ul>
+
+<h2 id="what-rust-gave-us">What Rust Gave Us</h2>
+
+<h3 id="petgraph">petgraph: A Real Graph Library</h3>
+<p>NetworkX is general-purpose and dynamically typed. petgraph is specialized and statically typed. Every node and edge in our graph has a compile-time guaranteed type. You cannot accidentally add a string where a SymbolNode is expected. This eliminated an entire class of bugs that plagued the Python version.</p>
+
+<h3 id="zero-cost-abstractions">Zero-Cost Abstractions</h3>
+<p>In Python, every abstraction has runtime cost. A trait in Rust has zero cost at runtime. This means we can structure the code cleanly — with traits for parsers, resolvers, and detectors — without paying a performance penalty.</p>
+
+<h3 id="fearless-concurrency">Fearless Concurrency</h3>
+<p>Rust's ownership model means we can parallelize parsing and resolution across CPU cores without data races. The Python version was effectively single-threaded due to the GIL. The Rust version uses Rayon for parallel file parsing, which scales linearly with available cores.</p>
+
+<h3 id="single-binary">Single Binary Distribution</h3>
+<p>The entire AigisCode analyzer compiles to a single binary. Cross-compilation for Linux, macOS, and Windows is handled by CI. Users install with one command:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>No Python runtime, no dependency management, no virtual environments.</p>
+
+<h2 id="the-numbers">The Numbers</h2>
+
+<p>Here are real benchmarks from analyzing WordPress (the full <code>wp-includes</code> + <code>wp-admin</code> tree):</p>
+
+<table>
+<thead>
+<tr><th>Metric</th><th>Python</th><th>Rust</th><th>Improvement</th></tr>
+</thead>
+<tbody>
+<tr><td>Parse time (5,400 files)</td><td>42s</td><td>8s</td><td>5.2x faster</td></tr>
+<tr><td>Graph construction</td><td>18s</td><td>3s</td><td>6x faster</td></tr>
+<tr><td>Full analysis (end-to-end)</td><td>~90s</td><td>22.78s</td><td>3.9x faster</td></tr>
+<tr><td>Peak memory</td><td>2.1GB</td><td>~180MB</td><td>11.7x less</td></tr>
+<tr><td>Binary size</td><td>N/A (requires Python)</td><td>~12MB</td><td>Self-contained</td></tr>
+<tr><td>Dependency graph nodes</td><td>19,200</td><td>32,862</td><td>1.7x richer</td></tr>
+<tr><td>Dependency graph edges</td><td>61,000</td><td>95,878</td><td>1.6x richer</td></tr>
+</tbody>
+</table>
+
+<p>The Rust version is not just faster — it also produces a <em>richer</em> graph. The extra edges come from typed runtime and framework edges that the Python version did not model: WordPress hook publish/subscribe edges, method override chains, and interface implementations.</p>
+
+<h2 id="what-we-would-do-differently">What We Would Do Differently</h2>
+
+<p>If we were starting the rewrite today, we would:</p>
+
+<ul>
+<li><strong>Start with the artifact contract, not the parser.</strong> We spent too long on parsing before defining the exact JSON schema for each artifact. In hindsight, the contract should come first and drive the implementation.</li>
+<li><strong>Build the test suite from Python output first.</strong> We should have generated golden-file tests from the Python version's output before writing a single line of Rust. This would have caught parity regressions faster.</li>
+<li><strong>Use serde more aggressively for typed artifacts.</strong> We initially used ad-hoc JSON serialization. Switching to serde derive macros for all artifact types eliminated serialization bugs entirely.</li>
+</ul>
+
+<h2 id="the-lesson">The Lesson</h2>
+
+<p>Rewriting in Rust was not about chasing performance for its own sake. It was about building a foundation that can analyze the world's largest codebases in the time it takes to make coffee. When your analysis takes 90 seconds, developers skip it. When it takes 23 seconds, it becomes part of the workflow.</p>
+
+<p>The Python prototype proved the concept. Rust made it a product.</p>
+`,
+      cs: `
+<p>AigisCode začal jako projekt v Pythonu. Používal vazby Tree-sitter pro parsování, NetworkX pro grafovou analýzu a kolekci detektorů v Pythonu pro cyklické závislosti, mrtvý kód a natvrdo zapsané hodnoty. Fungovalo to. Ale jakmile jsme směřovali k analýze celého codebase u repozitářů s více než 30 000 soubory, Python se stal úzkým hrdlem.</p>
+
+<p>Toto je příběh o tom, proč jsme AigisCode přepsali v Rustu, co jsme získali a co jsme se cestou naučili.</p>
+
+<h2 id="why-python-hit-the-wall">Proč Python narazil na zeď</h2>
+
+<p>Python je vynikající pro prototypování. První verzi AigisCode jsme sestavili za týdny, ne měsíce. Ale tři problémy se staly nemožné ignorovat:</p>
+
+<h3 id="memory">Spotřeba paměti</h3>
+<p>Analýza velké PHP kódové báze jako WordPress vyžadovala držení celého grafu závislostí v paměti. S NetworkX každý uzel a hrana nesly značnou režii Python objektů. Graf s 30 000 uzly a 100 000 hranami spotřeboval přes 2 GB RAM. Stejný graf v Rustu s petgraph používá méně než 200 MB.</p>
+
+<h3 id="parse-speed">Rychlost parsování</h3>
+<p>I s Tree-sitter (který je sám napsaný v C) se režie Python vazby sčítala. Parsování 5 000 PHP souborů trvalo v Pythonu přes 40 sekund. V Rustu s nativními vazbami Tree-sitter stejné parsování skončí za méně než 8 sekund.</p>
+
+<h3 id="distribution">Distribuce</h3>
+<p>Dodávání Python nástroje vyžaduje, aby uživatelé měli kompatibilní instalaci Pythonu, spravovali virtuální prostředí a instalovali systémové závislosti pro Tree-sitter. Rust binárka je jediný spustitelný soubor. <code>curl | bash</code> a běžíte. Žádný Python, žádný pip, žádný virtualenv.</p>
+
+<h2 id="what-we-kept">Co jsme zachovali z éry Pythonu</h2>
+
+<p>Přepis nebyl odmítnutím všeho, co jsme v Pythonu vybudovali. Několik architektonických rozhodnutí přežilo:</p>
+
+<ul>
+<li><strong>Tree-sitter pro parsování</strong> — přešli jsme z Python vazeb na Rust vazby, ale Tree-sitter zůstává naším parserem pro PHP, Python, TypeScript, JavaScript, Vue a Ruby</li>
+<li><strong>Šestifázový pipeline</strong> — Index, Graph, Detect, Rules, Review, Report. Tato architektura se osvědčila a přímo se přenesla do Rustu</li>
+<li><strong>JSON artefakty jako kontrakt</strong> — soubory <code>.aigiscode/*.json</code> zůstávají strojově čitelným rozhraním. Formát je zpětně kompatibilní</li>
+<li><strong>Architektura pluginů</strong> — znalosti specifické pro framework zůstávají v pluginech, ne v jádrových jazykových parserech</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Co nám dal Rust</h2>
+
+<h3 id="petgraph">petgraph: Skutečná grafová knihovna</h3>
+<p>NetworkX je obecně zaměřený a dynamicky typovaný. petgraph je specializovaný a staticky typovaný. Každý uzel a hrana v našem grafu mají typ garantovaný v době kompilace. Nemůžete náhodně přidat řetězec tam, kde se očekává SymbolNode. To eliminovalo celou třídu chyb, které sužovaly Python verzi.</p>
+
+<h3 id="zero-cost-abstractions">Abstrakce s nulovými náklady</h3>
+<p>V Pythonu má každá abstrakce náklady za běhu. Trait v Rustu nemá za běhu žádné náklady. To znamená, že můžeme kód strukturovat čistě — s traity pro parsery, resolvery a detektory — bez platby výkonnostní penalizace.</p>
+
+<h3 id="fearless-concurrency">Nebojácná souběžnost</h3>
+<p>Vlastnický model Rustu znamená, že můžeme paralelizovat parsování a rozlišování napříč jádry CPU bez datových závodů. Python verze byla efektivně jednovláknová kvůli GIL. Rust verze používá Rayon pro paralelní parsování souborů, které škáluje lineárně s dostupnými jádry.</p>
+
+<h3 id="single-binary">Distribuce jako jediná binárka</h3>
+<p>Celý analyzátor AigisCode se zkompiluje do jediné binárky. Křížovou kompilaci pro Linux, macOS a Windows zajišťuje CI. Uživatelé instalují jedním příkazem:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>Žádný Python runtime, žádná správa závislostí, žádná virtuální prostředí.</p>
+
+<h2 id="the-numbers">Čísla</h2>
+
+<p>Zde jsou reálné benchmarky z analýzy WordPress (celý strom <code>wp-includes</code> + <code>wp-admin</code>):</p>
+
+<table>
+<thead>
+<tr><th>Metrika</th><th>Python</th><th>Rust</th><th>Zlepšení</th></tr>
+</thead>
+<tbody>
+<tr><td>Čas parsování (5 400 souborů)</td><td>42 s</td><td>8 s</td><td>5,2x rychlejší</td></tr>
+<tr><td>Konstrukce grafu</td><td>18 s</td><td>3 s</td><td>6x rychlejší</td></tr>
+<tr><td>Celková analýza (end-to-end)</td><td>~90 s</td><td>22,78 s</td><td>3,9x rychlejší</td></tr>
+<tr><td>Špičková paměť</td><td>2,1 GB</td><td>~180 MB</td><td>11,7x méně</td></tr>
+<tr><td>Velikost binárky</td><td>N/A (vyžaduje Python)</td><td>~12 MB</td><td>Samostatná</td></tr>
+<tr><td>Uzly grafu závislostí</td><td>19 200</td><td>32 862</td><td>1,7x bohatší</td></tr>
+<tr><td>Hrany grafu závislostí</td><td>61 000</td><td>95 878</td><td>1,6x bohatší</td></tr>
+</tbody>
+</table>
+
+<p>Rust verze není jen rychlejší — produkuje také <em>bohatší</em> graf. Extra hrany pocházejí z typovaných runtime a frameworkových hran, které Python verze nemodela: WordPress hook publish/subscribe hrany, řetězce přepisování metod a implementace rozhraní.</p>
+
+<h2 id="what-we-would-do-differently">Co bychom udělali jinak</h2>
+
+<p>Pokud bychom přepis začínali dnes, udělali bychom:</p>
+
+<ul>
+<li><strong>Začali bychom kontraktem artefaktu, ne parserem.</strong> Strávili jsme příliš dlouho parsováním, než jsme definovali přesné JSON schéma pro každý artefakt. Zpětně by měl kontrakt přijít jako první a řídit implementaci.</li>
+<li><strong>Nejdřív vytvořili testovací sadu z výstupu Pythonu.</strong> Měli jsme vygenerovat golden-file testy z výstupu Python verze ještě předtím, než jsme napsali jediný řádek Rustu. To by zachytilo regrese parity rychleji.</li>
+<li><strong>Agresivněji používali serde pro typované artefakty.</strong> Zpočátku jsme používali ad-hoc JSON serializaci. Přechod na serde derive makra pro všechny typy artefaktů zcela eliminoval chyby serializace.</li>
+</ul>
+
+<h2 id="the-lesson">Poučení</h2>
+
+<p>Přepis do Rustu nebyl o honbě za výkonem pro výkon samotný. Šlo o vybudování základu, který dokáže analyzovat největší kódové báze světa za čas, který stačí na uvaření kávy. Když vaše analýza trvá 90 sekund, vývojáři ji přeskočí. Když trvá 23 sekund, stane se součástí pracovního postupu.</p>
+
+<p>Python prototyp dokázal koncept. Rust z něj udělal produkt.</p>
+`,
+      fr: `
+<p>AigisCode a commencé comme un projet Python. Il utilisait les bindings Tree-sitter pour le parsing, NetworkX pour l'analyse de graphes, et une collection de détecteurs Python pour les dépendances circulaires, le code mort et les valeurs codées en dur. Ça fonctionnait. Mais alors que nous poussions vers l'analyse de codebases entières sur des dépôts de plus de 30 000 fichiers, Python est devenu le goulot d'étranglement.</p>
+
+<p>Voici l'histoire de pourquoi nous avons réécrit AigisCode en Rust, ce que nous y avons gagné et ce que nous avons appris en chemin.</p>
+
+<h2 id="why-python-hit-the-wall">Pourquoi Python a atteint ses limites</h2>
+
+<p>Python est excellent pour le prototypage. Nous avons construit la première version d'AigisCode en semaines, pas en mois. Mais trois problèmes sont devenus impossibles à ignorer :</p>
+
+<h3 id="memory">Consommation mémoire</h3>
+<p>L'analyse d'une grande codebase PHP comme WordPress nécessitait de maintenir le graphe de dépendances entier en mémoire. Avec NetworkX, chaque nœud et arête portait une surcharge significative d'objets Python. Un graphe avec 30 000 nœuds et 100 000 arêtes consommait plus de 2 Go de RAM. Le même graphe en Rust avec petgraph utilise moins de 200 Mo.</p>
+
+<h3 id="parse-speed">Vitesse de parsing</h3>
+<p>Même avec Tree-sitter (qui est lui-même écrit en C), la surcharge des bindings Python s'accumulait. Le parsing de 5 000 fichiers PHP prenait plus de 40 secondes en Python. En Rust avec les bindings Tree-sitter natifs, le même parsing se termine en moins de 8 secondes.</p>
+
+<h3 id="distribution">Distribution</h3>
+<p>Distribuer un outil Python nécessite que les utilisateurs aient une installation Python compatible, gèrent des environnements virtuels et installent des dépendances système pour Tree-sitter. Un binaire Rust est un seul exécutable. <code>curl | bash</code> et vous êtes opérationnel. Pas de Python, pas de pip, pas de virtualenv.</p>
+
+<h2 id="what-we-kept">Ce que nous avons conservé de l'ère Python</h2>
+
+<p>La réécriture n'était pas un rejet de tout ce que nous avions construit en Python. Plusieurs décisions architecturales ont survécu :</p>
+
+<ul>
+<li><strong>Tree-sitter pour le parsing</strong> — nous sommes passés des bindings Python aux bindings Rust, mais Tree-sitter reste notre parseur pour PHP, Python, TypeScript, JavaScript, Vue et Ruby</li>
+<li><strong>Le pipeline en six étapes</strong> — Index, Graph, Detect, Rules, Review, Report. Cette architecture s'est avérée solide et s'est transférée directement en Rust</li>
+<li><strong>Les artefacts JSON comme contrat</strong> — les fichiers <code>.aigiscode/*.json</code> restent l'interface lisible par machine. Le format est rétrocompatible</li>
+<li><strong>L'architecture de plugins</strong> — les connaissances spécifiques aux frameworks restent dans les plugins, pas dans les parseurs de langages de base</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Ce que Rust nous a apporté</h2>
+
+<h3 id="petgraph">petgraph : une vraie bibliothèque de graphes</h3>
+<p>NetworkX est généraliste et dynamiquement typé. petgraph est spécialisé et statiquement typé. Chaque nœud et arête dans notre graphe a un type garanti à la compilation. Vous ne pouvez pas accidentellement ajouter une chaîne là où un SymbolNode est attendu. Cela a éliminé toute une classe de bugs qui affligeaient la version Python.</p>
+
+<h3 id="zero-cost-abstractions">Abstractions à coût zéro</h3>
+<p>En Python, chaque abstraction a un coût à l'exécution. Un trait en Rust a un coût zéro à l'exécution. Cela signifie que nous pouvons structurer le code proprement — avec des traits pour les parseurs, les résolveurs et les détecteurs — sans payer de pénalité de performance.</p>
+
+<h3 id="fearless-concurrency">Concurrence sans peur</h3>
+<p>Le modèle d'ownership de Rust signifie que nous pouvons paralléliser le parsing et la résolution sur les cœurs du CPU sans courses de données. La version Python était effectivement mono-thread à cause du GIL. La version Rust utilise Rayon pour le parsing de fichiers en parallèle, qui évolue linéairement avec les cœurs disponibles.</p>
+
+<h3 id="single-binary">Distribution en binaire unique</h3>
+<p>L'analyseur AigisCode complet se compile en un seul binaire. La compilation croisée pour Linux, macOS et Windows est gérée par la CI. Les utilisateurs installent avec une seule commande :</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>Pas de runtime Python, pas de gestion de dépendances, pas d'environnements virtuels.</p>
+
+<h2 id="the-numbers">Les chiffres</h2>
+
+<p>Voici des benchmarks réels de l'analyse de WordPress (l'arbre complet <code>wp-includes</code> + <code>wp-admin</code>) :</p>
+
+<table>
+<thead>
+<tr><th>Métrique</th><th>Python</th><th>Rust</th><th>Amélioration</th></tr>
+</thead>
+<tbody>
+<tr><td>Temps de parsing (5 400 fichiers)</td><td>42 s</td><td>8 s</td><td>5,2x plus rapide</td></tr>
+<tr><td>Construction du graphe</td><td>18 s</td><td>3 s</td><td>6x plus rapide</td></tr>
+<tr><td>Analyse complète (bout en bout)</td><td>~90 s</td><td>22,78 s</td><td>3,9x plus rapide</td></tr>
+<tr><td>Mémoire maximale</td><td>2,1 Go</td><td>~180 Mo</td><td>11,7x moins</td></tr>
+<tr><td>Taille du binaire</td><td>N/A (nécessite Python)</td><td>~12 Mo</td><td>Autonome</td></tr>
+<tr><td>Nœuds du graphe de dépendances</td><td>19 200</td><td>32 862</td><td>1,7x plus riche</td></tr>
+<tr><td>Arêtes du graphe de dépendances</td><td>61 000</td><td>95 878</td><td>1,6x plus riche</td></tr>
+</tbody>
+</table>
+
+<p>La version Rust n'est pas seulement plus rapide — elle produit aussi un graphe <em>plus riche</em>. Les arêtes supplémentaires proviennent d'arêtes typées de runtime et de framework que la version Python ne modélisait pas : les arêtes publish/subscribe des hooks WordPress, les chaînes de surcharge de méthodes et les implémentations d'interfaces.</p>
+
+<h2 id="what-we-would-do-differently">Ce que nous ferions différemment</h2>
+
+<p>Si nous commencions la réécriture aujourd'hui, nous ferions :</p>
+
+<ul>
+<li><strong>Commencer par le contrat d'artefact, pas par le parseur.</strong> Nous avons passé trop de temps sur le parsing avant de définir le schéma JSON exact pour chaque artefact. Avec le recul, le contrat devrait venir en premier et piloter l'implémentation.</li>
+<li><strong>Construire d'abord la suite de tests à partir de la sortie Python.</strong> Nous aurions dû générer des tests golden-file à partir de la sortie de la version Python avant d'écrire une seule ligne de Rust. Cela aurait attrapé les régressions de parité plus rapidement.</li>
+<li><strong>Utiliser serde plus agressivement pour les artefacts typés.</strong> Nous utilisions initialement une sérialisation JSON ad hoc. Le passage aux macros serde derive pour tous les types d'artefacts a éliminé entièrement les bugs de sérialisation.</li>
+</ul>
+
+<h2 id="the-lesson">La leçon</h2>
+
+<p>Réécrire en Rust n'était pas une course à la performance pour elle-même. C'était construire une fondation capable d'analyser les plus grandes codebases du monde dans le temps qu'il faut pour préparer un café. Quand votre analyse prend 90 secondes, les développeurs la sautent. Quand elle prend 23 secondes, elle fait partie du flux de travail.</p>
+
+<p>Le prototype Python a prouvé le concept. Rust en a fait un produit.</p>
+`,
+      es: `
+<p>AigisCode comenzó como un proyecto en Python. Usaba bindings de Tree-sitter para el parsing, NetworkX para el análisis de grafos y una colección de detectores basados en Python para dependencias circulares, código muerto y valores codificados en duro. Funcionaba. Pero a medida que avanzábamos hacia el análisis de codebases completos en repositorios con más de 30.000 archivos, Python se convirtió en el cuello de botella.</p>
+
+<p>Esta es la historia de por qué reescribimos AigisCode en Rust, qué ganamos y qué aprendimos en el camino.</p>
+
+<h2 id="why-python-hit-the-wall">Por qué Python chocó contra el muro</h2>
+
+<p>Python es excelente para prototipar. Construimos la primera versión de AigisCode en semanas, no meses. Pero tres problemas se volvieron imposibles de ignorar:</p>
+
+<h3 id="memory">Consumo de memoria</h3>
+<p>Analizar un codebase PHP grande como WordPress requería mantener todo el grafo de dependencias en memoria. Con NetworkX, cada nodo y arista cargaba una sobrecarga significativa de objetos Python. Un grafo con 30.000 nodos y 100.000 aristas consumía más de 2 GB de RAM. El mismo grafo en Rust con petgraph usa menos de 200 MB.</p>
+
+<h3 id="parse-speed">Velocidad de parsing</h3>
+<p>Incluso con Tree-sitter (que está escrito en C), la sobrecarga de los bindings de Python se acumulaba. Parsear 5.000 archivos PHP tomaba más de 40 segundos en Python. En Rust con bindings nativos de Tree-sitter, el mismo parsing se completa en menos de 8 segundos.</p>
+
+<h3 id="distribution">Distribución</h3>
+<p>Distribuir una herramienta Python requiere que los usuarios tengan una instalación de Python compatible, gestionen entornos virtuales e instalen dependencias del sistema para Tree-sitter. Un binario de Rust es un único ejecutable. <code>curl | bash</code> y estás funcionando. Sin Python, sin pip, sin virtualenv.</p>
+
+<h2 id="what-we-kept">Lo que conservamos de la era Python</h2>
+
+<p>La reescritura no fue un rechazo de todo lo que construimos en Python. Varias decisiones arquitectónicas sobrevivieron:</p>
+
+<ul>
+<li><strong>Tree-sitter para parsing</strong> — cambiamos de bindings Python a bindings Rust, pero Tree-sitter sigue siendo nuestro parser para PHP, Python, TypeScript, JavaScript, Vue y Ruby</li>
+<li><strong>El pipeline de seis etapas</strong> — Index, Graph, Detect, Rules, Review, Report. Esta arquitectura demostró ser sólida y se transfirió directamente a Rust</li>
+<li><strong>Artefactos JSON como contrato</strong> — los archivos <code>.aigiscode/*.json</code> siguen siendo la interfaz legible por máquina. El formato es retrocompatible</li>
+<li><strong>Arquitectura de plugins</strong> — el conocimiento específico del framework permanece en los plugins, no en los parsers de lenguaje del núcleo</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Lo que Rust nos dio</h2>
+
+<h3 id="petgraph">petgraph: una biblioteca de grafos real</h3>
+<p>NetworkX es de propósito general y dinámicamente tipado. petgraph es especializado y estáticamente tipado. Cada nodo y arista en nuestro grafo tiene un tipo garantizado en tiempo de compilación. No puedes agregar accidentalmente una cadena donde se espera un SymbolNode. Esto eliminó toda una clase de bugs que afectaban a la versión Python.</p>
+
+<h3 id="zero-cost-abstractions">Abstracciones de costo cero</h3>
+<p>En Python, cada abstracción tiene un costo en tiempo de ejecución. Un trait en Rust tiene costo cero en tiempo de ejecución. Esto significa que podemos estructurar el código limpiamente — con traits para parsers, resolvers y detectores — sin pagar una penalización de rendimiento.</p>
+
+<h3 id="fearless-concurrency">Concurrencia sin miedo</h3>
+<p>El modelo de ownership de Rust significa que podemos paralelizar el parsing y la resolución a través de los núcleos del CPU sin carreras de datos. La versión Python era efectivamente de un solo hilo debido al GIL. La versión Rust usa Rayon para el parsing paralelo de archivos, que escala linealmente con los núcleos disponibles.</p>
+
+<h3 id="single-binary">Distribución de binario único</h3>
+<p>Todo el analizador AigisCode se compila en un solo binario. La compilación cruzada para Linux, macOS y Windows la gestiona el CI. Los usuarios instalan con un solo comando:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>Sin runtime de Python, sin gestión de dependencias, sin entornos virtuales.</p>
+
+<h2 id="the-numbers">Los números</h2>
+
+<p>Aquí están los benchmarks reales del análisis de WordPress (el árbol completo <code>wp-includes</code> + <code>wp-admin</code>):</p>
+
+<table>
+<thead>
+<tr><th>Métrica</th><th>Python</th><th>Rust</th><th>Mejora</th></tr>
+</thead>
+<tbody>
+<tr><td>Tiempo de parsing (5.400 archivos)</td><td>42 s</td><td>8 s</td><td>5,2x más rápido</td></tr>
+<tr><td>Construcción del grafo</td><td>18 s</td><td>3 s</td><td>6x más rápido</td></tr>
+<tr><td>Análisis completo (extremo a extremo)</td><td>~90 s</td><td>22,78 s</td><td>3,9x más rápido</td></tr>
+<tr><td>Memoria máxima</td><td>2,1 GB</td><td>~180 MB</td><td>11,7x menos</td></tr>
+<tr><td>Tamaño del binario</td><td>N/A (requiere Python)</td><td>~12 MB</td><td>Autocontenido</td></tr>
+<tr><td>Nodos del grafo de dependencias</td><td>19.200</td><td>32.862</td><td>1,7x más rico</td></tr>
+<tr><td>Aristas del grafo de dependencias</td><td>61.000</td><td>95.878</td><td>1,6x más rico</td></tr>
+</tbody>
+</table>
+
+<p>La versión Rust no es solo más rápida — también produce un grafo <em>más rico</em>. Las aristas adicionales provienen de aristas tipadas de runtime y framework que la versión Python no modelaba: aristas publish/subscribe de hooks de WordPress, cadenas de sobrescritura de métodos e implementaciones de interfaces.</p>
+
+<h2 id="what-we-would-do-differently">Lo que haríamos de manera diferente</h2>
+
+<p>Si estuviéramos comenzando la reescritura hoy, haríamos:</p>
+
+<ul>
+<li><strong>Empezar con el contrato de artefacto, no con el parser.</strong> Pasamos demasiado tiempo en el parsing antes de definir el esquema JSON exacto para cada artefacto. En retrospectiva, el contrato debería venir primero y dirigir la implementación.</li>
+<li><strong>Construir la suite de tests a partir de la salida de Python primero.</strong> Deberíamos haber generado tests golden-file a partir de la salida de la versión Python antes de escribir una sola línea de Rust. Esto habría detectado regresiones de paridad más rápido.</li>
+<li><strong>Usar serde más agresivamente para artefactos tipados.</strong> Inicialmente usamos serialización JSON ad hoc. Cambiar a macros serde derive para todos los tipos de artefactos eliminó los bugs de serialización por completo.</li>
+</ul>
+
+<h2 id="the-lesson">La lección</h2>
+
+<p>Reescribir en Rust no fue perseguir el rendimiento por sí mismo. Fue construir una base que pueda analizar los codebases más grandes del mundo en el tiempo que toma preparar un café. Cuando tu análisis tarda 90 segundos, los desarrolladores lo saltan. Cuando tarda 23 segundos, se convierte en parte del flujo de trabajo.</p>
+
+<p>El prototipo en Python demostró el concepto. Rust lo convirtió en un producto.</p>
+`,
+      zh: `
+<p>AigisCode 最初是一个 Python 项目。它使用 Tree-sitter 绑定进行解析，NetworkX 进行图分析，以及一系列基于 Python 的检测器来检测循环依赖、死代码和硬编码值。它能工作。但当我们推进到对拥有 30,000+ 文件的仓库进行全代码库分析时，Python 成为了瓶颈。</p>
+
+<p>这是我们为什么用 Rust 重写 AigisCode、我们获得了什么以及我们在过程中学到了什么的故事。</p>
+
+<h2 id="why-python-hit-the-wall">为什么 Python 碰壁了</h2>
+
+<p>Python 非常适合快速原型开发。我们在几周而非几个月内就构建了 AigisCode 的第一个版本。但三个问题变得无法忽视：</p>
+
+<h3 id="memory">内存消耗</h3>
+<p>分析像 WordPress 这样的大型 PHP 代码库需要将整个依赖图保存在内存中。使用 NetworkX，每个节点和边都带有显著的 Python 对象开销。一个拥有 30,000 个节点和 100,000 条边的图消耗超过 2GB 的 RAM。在 Rust 中使用 petgraph，同样的图只需不到 200MB。</p>
+
+<h3 id="parse-speed">解析速度</h3>
+<p>即使使用 Tree-sitter（它本身是用 C 编写的），Python 绑定的开销也会累积。在 Python 中解析 5,000 个 PHP 文件需要超过 40 秒。在 Rust 中使用原生 Tree-sitter 绑定，同样的解析在 8 秒内完成。</p>
+
+<h3 id="distribution">分发</h3>
+<p>发布一个 Python 工具需要用户拥有兼容的 Python 安装、管理虚拟环境，并为 Tree-sitter 安装系统依赖。Rust 二进制文件是一个单独的可执行文件。<code>curl | bash</code> 就可以运行。无需 Python，无需 pip，无需 virtualenv。</p>
+
+<h2 id="what-we-kept">我们从 Python 时代保留了什么</h2>
+
+<p>这次重写并不是对我们在 Python 中构建的一切的否定。几个架构决策得以保留：</p>
+
+<ul>
+<li><strong>Tree-sitter 用于解析</strong>——我们从 Python 绑定切换到 Rust 绑定，但 Tree-sitter 仍然是我们用于 PHP、Python、TypeScript、JavaScript、Vue 和 Ruby 的解析器</li>
+<li><strong>六阶段流水线</strong>——Index、Graph、Detect、Rules、Review、Report。这个架构被证明是合理的，并直接转移到了 Rust</li>
+<li><strong>JSON 工件作为契约</strong>——<code>.aigiscode/*.json</code> 文件仍然是机器可读的接口。格式向后兼容</li>
+<li><strong>插件架构</strong>——框架特定的知识保留在插件中，而不是核心语言解析器中</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Rust 给了我们什么</h2>
+
+<h3 id="petgraph">petgraph：一个真正的图库</h3>
+<p>NetworkX 是通用的且动态类型的。petgraph 是专用的且静态类型的。我们图中的每个节点和边都有编译时保证的类型。你不能意外地在需要 SymbolNode 的地方添加字符串。这消除了困扰 Python 版本的一整类 bug。</p>
+
+<h3 id="zero-cost-abstractions">零成本抽象</h3>
+<p>在 Python 中，每个抽象都有运行时开销。Rust 中的 trait 在运行时零开销。这意味着我们可以干净地构建代码——为解析器、解析器和检测器使用 trait——而不需要付出性能代价。</p>
+
+<h3 id="fearless-concurrency">无畏并发</h3>
+<p>Rust 的所有权模型意味着我们可以跨 CPU 核心并行化解析和解析，而不会有数据竞争。由于 GIL，Python 版本实际上是单线程的。Rust 版本使用 Rayon 进行并行文件解析，可以随可用核心线性扩展。</p>
+
+<h3 id="single-binary">单二进制分发</h3>
+<p>整个 AigisCode 分析器编译为单个二进制文件。Linux、macOS 和 Windows 的交叉编译由 CI 处理。用户用一条命令安装：</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>无需 Python 运行时，无需依赖管理，无需虚拟环境。</p>
+
+<h2 id="the-numbers">数据</h2>
+
+<p>以下是分析 WordPress（完整的 <code>wp-includes</code> + <code>wp-admin</code> 目录树）的实际基准测试：</p>
+
+<table>
+<thead>
+<tr><th>指标</th><th>Python</th><th>Rust</th><th>提升</th></tr>
+</thead>
+<tbody>
+<tr><td>解析时间（5,400 个文件）</td><td>42s</td><td>8s</td><td>快 5.2 倍</td></tr>
+<tr><td>图构建</td><td>18s</td><td>3s</td><td>快 6 倍</td></tr>
+<tr><td>完整分析（端到端）</td><td>~90s</td><td>22.78s</td><td>快 3.9 倍</td></tr>
+<tr><td>峰值内存</td><td>2.1GB</td><td>~180MB</td><td>减少 11.7 倍</td></tr>
+<tr><td>二进制大小</td><td>N/A（需要 Python）</td><td>~12MB</td><td>自包含</td></tr>
+<tr><td>依赖图节点</td><td>19,200</td><td>32,862</td><td>丰富 1.7 倍</td></tr>
+<tr><td>依赖图边</td><td>61,000</td><td>95,878</td><td>丰富 1.6 倍</td></tr>
+</tbody>
+</table>
+
+<p>Rust 版本不仅更快——它还产生了<em>更丰富</em>的图。额外的边来自 Python 版本未建模的类型化运行时和框架边：WordPress hook 的发布/订阅边、方法覆盖链和接口实现。</p>
+
+<h2 id="what-we-would-do-differently">我们会做出哪些不同的选择</h2>
+
+<p>如果我们今天开始重写，我们会：</p>
+
+<ul>
+<li><strong>先从工件契约开始，而不是解析器。</strong>我们在定义每个工件的精确 JSON schema 之前，在解析上花了太长时间。事后看来，契约应该先行并驱动实现。</li>
+<li><strong>先从 Python 输出构建测试套件。</strong>我们应该在编写任何一行 Rust 代码之前，从 Python 版本的输出生成黄金文件测试。这样可以更快地捕获一致性回归。</li>
+<li><strong>更积极地使用 serde 处理类型化工件。</strong>我们最初使用临时的 JSON 序列化。为所有工件类型切换到 serde derive 宏后，完全消除了序列化 bug。</li>
+</ul>
+
+<h2 id="the-lesson">经验教训</h2>
+
+<p>用 Rust 重写不是为了追求性能本身。而是为了建立一个基础，能够在泡一杯咖啡的时间内分析世界上最大的代码库。当你的分析需要 90 秒时，开发者会跳过它。当只需要 23 秒时，它就成为工作流程的一部分。</p>
+
+<p>Python 原型证明了概念。Rust 将其变成了产品。</p>
+`,
+      hi: `
+<p>AigisCode की शुरुआत एक Python प्रोजेक्ट के रूप में हुई थी। इसने पार्सिंग के लिए Tree-sitter बाइंडिंग, ग्राफ़ एनालिसिस के लिए NetworkX, और सर्कुलर डिपेंडेंसीज़, डेड कोड और हार्डवायर्ड वैल्यूज़ के लिए Python-आधारित डिटेक्टर्स का संग्रह उपयोग किया। यह काम करता था। लेकिन जब हमने 30,000+ फ़ाइलों वाले रिपॉजिटरीज़ पर पूरे कोडबेस एनालिसिस की ओर बढ़े, तो Python बाधा बन गया।</p>
+
+<p>यह कहानी है कि हमने AigisCode को Rust में क्यों दोबारा लिखा, हमें क्या मिला, और रास्ते में हमने क्या सीखा।</p>
+
+<h2 id="why-python-hit-the-wall">Python क्यों दीवार से टकराया</h2>
+
+<p>Python प्रोटोटाइपिंग के लिए उत्कृष्ट है। हमने AigisCode का पहला संस्करण महीनों में नहीं, हफ़्तों में बनाया। लेकिन तीन समस्याएँ नज़रअंदाज़ करना असंभव हो गईं:</p>
+
+<h3 id="memory">मेमोरी खपत</h3>
+<p>WordPress जैसे बड़े PHP कोडबेस का विश्लेषण करने के लिए पूरे डिपेंडेंसी ग्राफ़ को मेमोरी में रखना आवश्यक था। NetworkX के साथ, प्रत्येक नोड और एज में महत्वपूर्ण Python ऑब्जेक्ट ओवरहेड था। 30,000 नोड और 100,000 एज वाला ग्राफ़ 2GB से अधिक RAM खपत करता था। Rust में petgraph के साथ वही ग्राफ़ 200MB से कम उपयोग करता है।</p>
+
+<h3 id="parse-speed">पार्स स्पीड</h3>
+<p>Tree-sitter (जो स्वयं C में लिखा गया है) के साथ भी, Python बाइंडिंग ओवरहेड जमा होता गया। Python में 5,000 PHP फ़ाइलों को पार्स करने में 40 सेकंड से अधिक लगते थे। Rust में नेटिव Tree-sitter बाइंडिंग के साथ, वही पार्स 8 सेकंड में पूरा होता है।</p>
+
+<h3 id="distribution">वितरण</h3>
+<p>एक Python टूल शिप करने के लिए उपयोगकर्ताओं को संगत Python इंस्टॉलेशन, वर्चुअल एनवायरनमेंट प्रबंधन, और Tree-sitter के लिए सिस्टम डिपेंडेंसीज़ इंस्टॉल करने की आवश्यकता होती है। Rust बाइनरी एक एकल एक्ज़ीक्यूटेबल है। <code>curl | bash</code> और आप चला रहे हैं। कोई Python नहीं, कोई pip नहीं, कोई virtualenv नहीं।</p>
+
+<h2 id="what-we-kept">Python युग से हमने क्या रखा</h2>
+
+<p>यह रीराइट Python में बनी हर चीज़ की अस्वीकृति नहीं थी। कई आर्किटेक्चरल निर्णय बचे रहे:</p>
+
+<ul>
+<li><strong>पार्सिंग के लिए Tree-sitter</strong> — हमने Python बाइंडिंग से Rust बाइंडिंग में स्विच किया, लेकिन Tree-sitter PHP, Python, TypeScript, JavaScript, Vue और Ruby के लिए हमारा पार्सर बना रहा</li>
+<li><strong>छह-चरण पाइपलाइन</strong> — Index, Graph, Detect, Rules, Review, Report। यह आर्किटेक्चर सही साबित हुआ और सीधे Rust में स्थानांतरित हो गया</li>
+<li><strong>कॉन्ट्रैक्ट के रूप में JSON आर्टिफ़ैक्ट्स</strong> — <code>.aigiscode/*.json</code> फ़ाइलें मशीन-पठनीय इंटरफ़ेस बनी रहीं। फ़ॉर्मेट बैकवर्ड-कम्पैटिबल है</li>
+<li><strong>प्लगइन आर्किटेक्चर</strong> — फ़्रेमवर्क-विशिष्ट ज्ञान प्लगइन में रहता है, कोर लैंग्वेज पार्सर में नहीं</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Rust ने हमें क्या दिया</h2>
+
+<h3 id="petgraph">petgraph: एक वास्तविक ग्राफ़ लाइब्रेरी</h3>
+<p>NetworkX सामान्य-उद्देश्य और डायनामिक टाइप्ड है। petgraph विशेषीकृत और स्टेटिक टाइप्ड है। हमारे ग्राफ़ में प्रत्येक नोड और एज का कंपाइल-टाइम गारंटीड टाइप है। आप गलती से वहाँ स्ट्रिंग नहीं जोड़ सकते जहाँ SymbolNode अपेक्षित है। इसने Python संस्करण को परेशान करने वाले बग्स की पूरी श्रेणी को समाप्त कर दिया।</p>
+
+<h3 id="zero-cost-abstractions">ज़ीरो-कॉस्ट एब्स्ट्रैक्शन</h3>
+<p>Python में, हर एब्स्ट्रैक्शन का रनटाइम कॉस्ट होता है। Rust में एक trait का रनटाइम पर शून्य कॉस्ट होता है। इसका मतलब है कि हम कोड को साफ़-सुथरे ढंग से संरचित कर सकते हैं — पार्सर, रिज़ॉल्वर और डिटेक्टर के लिए traits के साथ — बिना परफ़ॉर्मेंस पेनल्टी चुकाए।</p>
+
+<h3 id="fearless-concurrency">निडर कंकरेंसी</h3>
+<p>Rust का ओनरशिप मॉडल का मतलब है कि हम डेटा रेस के बिना CPU कोर पर पार्सिंग और रिज़ॉल्यूशन को पैरेलाइज़ कर सकते हैं। GIL के कारण Python संस्करण प्रभावी रूप से सिंगल-थ्रेडेड था। Rust संस्करण पैरेलल फ़ाइल पार्सिंग के लिए Rayon का उपयोग करता है, जो उपलब्ध कोर के साथ रैखिक रूप से स्केल करता है।</p>
+
+<h3 id="single-binary">सिंगल बाइनरी डिस्ट्रीब्यूशन</h3>
+<p>पूरा AigisCode एनालाइज़र एक सिंगल बाइनरी में कंपाइल होता है। Linux, macOS और Windows के लिए क्रॉस-कंपाइलेशन CI द्वारा हैंडल किया जाता है। उपयोगकर्ता एक कमांड से इंस्टॉल करते हैं:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>कोई Python रनटाइम नहीं, कोई डिपेंडेंसी मैनेजमेंट नहीं, कोई वर्चुअल एनवायरनमेंट नहीं।</p>
+
+<h2 id="the-numbers">आँकड़े</h2>
+
+<p>WordPress (पूर्ण <code>wp-includes</code> + <code>wp-admin</code> ट्री) का विश्लेषण करने के वास्तविक बेंचमार्क:</p>
+
+<table>
+<thead>
+<tr><th>मेट्रिक</th><th>Python</th><th>Rust</th><th>सुधार</th></tr>
+</thead>
+<tbody>
+<tr><td>पार्स टाइम (5,400 फ़ाइलें)</td><td>42s</td><td>8s</td><td>5.2x तेज़</td></tr>
+<tr><td>ग्राफ़ कंस्ट्रक्शन</td><td>18s</td><td>3s</td><td>6x तेज़</td></tr>
+<tr><td>पूर्ण एनालिसिस (एंड-टू-एंड)</td><td>~90s</td><td>22.78s</td><td>3.9x तेज़</td></tr>
+<tr><td>पीक मेमोरी</td><td>2.1GB</td><td>~180MB</td><td>11.7x कम</td></tr>
+<tr><td>बाइनरी साइज़</td><td>N/A (Python आवश्यक)</td><td>~12MB</td><td>सेल्फ़-कंटेन्ड</td></tr>
+<tr><td>डिपेंडेंसी ग्राफ़ नोड्स</td><td>19,200</td><td>32,862</td><td>1.7x समृद्ध</td></tr>
+<tr><td>डिपेंडेंसी ग्राफ़ एज</td><td>61,000</td><td>95,878</td><td>1.6x समृद्ध</td></tr>
+</tbody>
+</table>
+
+<p>Rust संस्करण सिर्फ़ तेज़ नहीं है — यह एक <em>समृद्ध</em> ग्राफ़ भी उत्पन्न करता है। अतिरिक्त एज टाइप्ड रनटाइम और फ़्रेमवर्क एज से आते हैं जो Python संस्करण ने मॉडल नहीं किए थे: WordPress hook publish/subscribe एज, मेथड ओवरराइड चेन और इंटरफ़ेस इम्प्लीमेंटेशन।</p>
+
+<h2 id="what-we-would-do-differently">हम क्या अलग करते</h2>
+
+<p>अगर हम आज रीराइट शुरू कर रहे होते, तो हम:</p>
+
+<ul>
+<li><strong>पार्सर नहीं, आर्टिफ़ैक्ट कॉन्ट्रैक्ट से शुरू करते।</strong> हमने प्रत्येक आर्टिफ़ैक्ट के लिए सटीक JSON schema परिभाषित करने से पहले पार्सिंग पर बहुत अधिक समय बिताया। पीछे मुड़कर देखें तो कॉन्ट्रैक्ट पहले आना चाहिए था और इम्प्लीमेंटेशन को ड्राइव करना चाहिए था।</li>
+<li><strong>पहले Python आउटपुट से टेस्ट सूट बनाते।</strong> हमें Rust की एक भी लाइन लिखने से पहले Python संस्करण के आउटपुट से गोल्डन-फ़ाइल टेस्ट जनरेट करने चाहिए थे। इससे पैरिटी रिग्रेशन तेज़ी से पकड़ में आते।</li>
+<li><strong>टाइप्ड आर्टिफ़ैक्ट्स के लिए serde का अधिक आक्रामक उपयोग करते।</strong> हमने शुरू में एड-हॉक JSON सीरियलाइज़ेशन का उपयोग किया। सभी आर्टिफ़ैक्ट टाइप्स के लिए serde derive macros पर स्विच करने से सीरियलाइज़ेशन बग्स पूरी तरह समाप्त हो गए।</li>
+</ul>
+
+<h2 id="the-lesson">सबक</h2>
+
+<p>Rust में दोबारा लिखना परफ़ॉर्मेंस को अपने लिए चेज़ करने के बारे में नहीं था। यह एक ऐसी नींव बनाने के बारे में था जो दुनिया के सबसे बड़े कोडबेस का विश्लेषण उतने समय में कर सके जितने में एक कॉफ़ी बनती है। जब आपका एनालिसिस 90 सेकंड लेता है, तो डेवलपर्स इसे छोड़ देते हैं। जब 23 सेकंड लेता है, तो यह वर्कफ़्लो का हिस्सा बन जाता है।</p>
+
+<p>Python प्रोटोटाइप ने अवधारणा को सिद्ध किया। Rust ने इसे उत्पाद बना दिया।</p>
+`,
+      pt: `
+<p>O AigisCode começou como um projeto Python. Ele usava bindings Tree-sitter para parsing, NetworkX para análise de grafos e uma coleção de detectores baseados em Python para dependências circulares, código morto e valores hardcoded. Funcionava. Mas conforme avançamos para análise de codebase completo em repositórios com mais de 30.000 arquivos, o Python se tornou o gargalo.</p>
+
+<p>Esta é a história de por que reescrevemos o AigisCode em Rust, o que ganhamos e o que aprendemos ao longo do caminho.</p>
+
+<h2 id="why-python-hit-the-wall">Por Que o Python Bateu no Muro</h2>
+
+<p>Python é excelente para prototipagem. Construímos a primeira versão do AigisCode em semanas, não meses. Mas três problemas se tornaram impossíveis de ignorar:</p>
+
+<h3 id="memory">Consumo de Memória</h3>
+<p>Analisar uma grande base de código PHP como o WordPress exigia manter todo o grafo de dependências em memória. Com NetworkX, cada nó e aresta carregava overhead significativo de objetos Python. Um grafo com 30.000 nós e 100.000 arestas consumia mais de 2GB de RAM. O mesmo grafo em Rust com petgraph usa menos de 200MB.</p>
+
+<h3 id="parse-speed">Velocidade de Parsing</h3>
+<p>Mesmo com Tree-sitter (que é escrito em C), o overhead dos bindings Python se acumulava. Parsear 5.000 arquivos PHP levava mais de 40 segundos em Python. Em Rust com bindings Tree-sitter nativos, o mesmo parsing é concluído em menos de 8 segundos.</p>
+
+<h3 id="distribution">Distribuição</h3>
+<p>Distribuir uma ferramenta Python exige que os usuários tenham uma instalação Python compatível, gerenciem ambientes virtuais e instalem dependências de sistema para o Tree-sitter. Um binário Rust é um único executável. <code>curl | bash</code> e você está rodando. Sem Python, sem pip, sem virtualenv.</p>
+
+<h2 id="what-we-kept">O Que Mantivemos da Era Python</h2>
+
+<p>A reescrita não foi uma rejeição de tudo que construímos em Python. Várias decisões arquiteturais sobreviveram:</p>
+
+<ul>
+<li><strong>Tree-sitter para parsing</strong> — mudamos de bindings Python para bindings Rust, mas o Tree-sitter continua sendo nosso parser para PHP, Python, TypeScript, JavaScript, Vue e Ruby</li>
+<li><strong>O pipeline de seis estágios</strong> — Index, Graph, Detect, Rules, Review, Report. Essa arquitetura se mostrou sólida e foi transferida diretamente para Rust</li>
+<li><strong>Artefatos JSON como contrato</strong> — os arquivos <code>.aigiscode/*.json</code> continuam sendo a interface legível por máquina. O formato é retrocompatível</li>
+<li><strong>Arquitetura de plugins</strong> — conhecimento específico de framework fica nos plugins, não nos parsers de linguagem centrais</li>
+</ul>
+
+<h2 id="what-rust-gave-us">O Que o Rust Nos Deu</h2>
+
+<h3 id="petgraph">petgraph: Uma Biblioteca de Grafos de Verdade</h3>
+<p>NetworkX é de propósito geral e dinamicamente tipado. petgraph é especializado e estaticamente tipado. Cada nó e aresta em nosso grafo tem um tipo garantido em tempo de compilação. Você não pode acidentalmente adicionar uma string onde um SymbolNode é esperado. Isso eliminou toda uma classe de bugs que assolava a versão Python.</p>
+
+<h3 id="zero-cost-abstractions">Abstrações de Custo Zero</h3>
+<p>Em Python, toda abstração tem custo em runtime. Uma trait em Rust tem custo zero em runtime. Isso significa que podemos estruturar o código de forma limpa — com traits para parsers, resolvers e detectores — sem pagar penalidade de desempenho.</p>
+
+<h3 id="fearless-concurrency">Concorrência sem Medo</h3>
+<p>O modelo de ownership do Rust significa que podemos paralelizar parsing e resolução entre núcleos de CPU sem corridas de dados. A versão Python era efetivamente single-threaded devido ao GIL. A versão Rust usa Rayon para parsing paralelo de arquivos, que escala linearmente com os núcleos disponíveis.</p>
+
+<h3 id="single-binary">Distribuição em Binário Único</h3>
+<p>Todo o analisador AigisCode compila para um único binário. Cross-compilação para Linux, macOS e Windows é tratada pelo CI. Usuários instalam com um comando:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>Sem runtime Python, sem gerenciamento de dependências, sem ambientes virtuais.</p>
+
+<h2 id="the-numbers">Os Números</h2>
+
+<p>Aqui estão benchmarks reais da análise do WordPress (a árvore completa <code>wp-includes</code> + <code>wp-admin</code>):</p>
+
+<table>
+<thead>
+<tr><th>Métrica</th><th>Python</th><th>Rust</th><th>Melhoria</th></tr>
+</thead>
+<tbody>
+<tr><td>Tempo de parsing (5.400 arquivos)</td><td>42s</td><td>8s</td><td>5,2x mais rápido</td></tr>
+<tr><td>Construção do grafo</td><td>18s</td><td>3s</td><td>6x mais rápido</td></tr>
+<tr><td>Análise completa (ponta a ponta)</td><td>~90s</td><td>22,78s</td><td>3,9x mais rápido</td></tr>
+<tr><td>Memória de pico</td><td>2,1GB</td><td>~180MB</td><td>11,7x menos</td></tr>
+<tr><td>Tamanho do binário</td><td>N/A (requer Python)</td><td>~12MB</td><td>Autocontido</td></tr>
+<tr><td>Nós do grafo de dependências</td><td>19.200</td><td>32.862</td><td>1,7x mais rico</td></tr>
+<tr><td>Arestas do grafo de dependências</td><td>61.000</td><td>95.878</td><td>1,6x mais rico</td></tr>
+</tbody>
+</table>
+
+<p>A versão Rust não é apenas mais rápida — ela também produz um grafo <em>mais rico</em>. As arestas extras vêm de arestas tipadas de runtime e framework que a versão Python não modelava: arestas de publish/subscribe de hooks WordPress, cadeias de override de métodos e implementações de interfaces.</p>
+
+<h2 id="what-we-would-do-differently">O Que Faríamos de Forma Diferente</h2>
+
+<p>Se estivéssemos começando a reescrita hoje, nós:</p>
+
+<ul>
+<li><strong>Começaríamos pelo contrato de artefatos, não pelo parser.</strong> Gastamos tempo demais em parsing antes de definir o schema JSON exato de cada artefato. Em retrospecto, o contrato deveria vir primeiro e guiar a implementação.</li>
+<li><strong>Construiríamos a suíte de testes a partir da saída Python primeiro.</strong> Deveríamos ter gerado testes golden-file a partir da saída da versão Python antes de escrever uma única linha de Rust. Isso teria detectado regressões de paridade mais rápido.</li>
+<li><strong>Usaríamos serde de forma mais agressiva para artefatos tipados.</strong> Inicialmente usamos serialização JSON ad hoc. Mudar para macros serde derive para todos os tipos de artefatos eliminou bugs de serialização por completo.</li>
+</ul>
+
+<h2 id="the-lesson">A Lição</h2>
+
+<p>Reescrever em Rust não foi sobre perseguir desempenho por si só. Foi sobre construir uma fundação que pode analisar as maiores bases de código do mundo no tempo que leva para fazer um café. Quando sua análise leva 90 segundos, desenvolvedores a pulam. Quando leva 23 segundos, ela se torna parte do fluxo de trabalho.</p>
+
+<p>O protótipo em Python provou o conceito. O Rust o transformou em um produto.</p>
+`,
+      ar: `
+<p>بدأ AigisCode كمشروع Python. استخدم روابط Tree-sitter للتحليل، وNetworkX لتحليل الرسوم البيانية، ومجموعة من الكاشفات المبنية بـ Python للتبعيات الدائرية والكود الميت والقيم المشفرة. كان يعمل. لكن مع توجهنا نحو تحليل قاعدة الكود الكاملة لمستودعات تحتوي على أكثر من 30,000 ملف، أصبح Python عنق الزجاجة.</p>
+
+<p>هذه هي قصة لماذا أعدنا كتابة AigisCode بـ Rust، وما كسبناه، وما تعلمناه على طول الطريق.</p>
+
+<h2 id="why-python-hit-the-wall">لماذا وصل Python إلى الجدار</h2>
+
+<p>Python ممتاز للنماذج الأولية. بنينا النسخة الأولى من AigisCode في أسابيع، وليس أشهر. لكن ثلاث مشاكل أصبحت مستحيلة التجاهل:</p>
+
+<h3 id="memory">استهلاك الذاكرة</h3>
+<p>تحليل قاعدة كود PHP كبيرة مثل WordPress تطلب الاحتفاظ برسم بياني الاعتماديات بالكامل في الذاكرة. مع NetworkX، كل عقدة وحافة تحمل عبء كائن Python كبيراً. رسم بياني يحتوي على 30,000 عقدة و100,000 حافة استهلك أكثر من 2 جيجابايت من الذاكرة. نفس الرسم البياني في Rust مع petgraph يستخدم أقل من 200 ميجابايت.</p>
+
+<h3 id="parse-speed">سرعة التحليل</h3>
+<p>حتى مع Tree-sitter (المكتوب بـ C)، عبء ربط Python تراكم. تحليل 5,000 ملف PHP استغرق أكثر من 40 ثانية في Python. في Rust مع روابط Tree-sitter الأصلية، يكتمل نفس التحليل في أقل من 8 ثوانٍ.</p>
+
+<h3 id="distribution">التوزيع</h3>
+<p>شحن أداة Python يتطلب أن يكون لدى المستخدمين تثبيت Python متوافق، وإدارة بيئات افتراضية، وتثبيت تبعيات النظام لـ Tree-sitter. ملف Rust التنفيذي هو ملف واحد. <code>curl | bash</code> وأنت تعمل. لا Python، لا pip، لا virtualenv.</p>
+
+<h2 id="what-we-kept">ما احتفظنا به من حقبة Python</h2>
+
+<p>إعادة الكتابة لم تكن رفضاً لكل ما بنيناه في Python. عدة قرارات معمارية نجت:</p>
+
+<ul>
+<li><strong>Tree-sitter للتحليل</strong> — انتقلنا من روابط Python إلى روابط Rust، لكن Tree-sitter يبقى محللنا لـ PHP وPython وTypeScript وJavaScript وVue وRuby</li>
+<li><strong>خط الأنابيب ذو الست مراحل</strong> — فهرسة، رسم بياني، اكتشاف، قواعد، مراجعة، تقرير. هذه الهندسة أثبتت صحتها وانتقلت مباشرة إلى Rust</li>
+<li><strong>عناصر JSON كالعقد</strong> — ملفات <code>.aigiscode/*.json</code> تبقى الواجهة القابلة للقراءة آلياً. التنسيق متوافق مع الإصدارات السابقة</li>
+<li><strong>هندسة الإضافات</strong> — المعرفة الخاصة بالإطار تبقى في الإضافات، وليس في المحللات الأساسية للغة</li>
+</ul>
+
+<h2 id="what-rust-gave-us">ما أعطانا Rust</h2>
+
+<h3 id="petgraph">petgraph: مكتبة رسوم بيانية حقيقية</h3>
+<p>NetworkX عامة الغرض ومصنفة ديناميكياً. petgraph متخصصة ومصنفة ثابتاً. كل عقدة وحافة في رسمنا البياني لها نوع مضمون في وقت التجميع. لا يمكنك بالخطأ إضافة نص حيث يُتوقع SymbolNode. هذا أزال فئة كاملة من الأخطاء التي ابتليت بها نسخة Python.</p>
+
+<h3 id="zero-cost-abstractions">تجريدات بدون تكلفة</h3>
+<p>في Python، كل تجريد له تكلفة في وقت التشغيل. سمة في Rust ليس لها تكلفة في وقت التشغيل. هذا يعني أننا نستطيع هيكلة الكود بنظافة — مع سمات للمحللات والمحللين والكاشفات — بدون دفع عقوبة أداء.</p>
+
+<h3 id="fearless-concurrency">التزامن بلا خوف</h3>
+<p>نموذج الملكية في Rust يعني أننا نستطيع موازاة التحليل والحل عبر نوى المعالج بدون سباقات بيانات. نسخة Python كانت فعلياً أحادية الخيط بسبب GIL. نسخة Rust تستخدم Rayon للتحليل المتوازي للملفات، الذي يتوسع خطياً مع النوى المتاحة.</p>
+
+<h3 id="single-binary">توزيع ملف تنفيذي واحد</h3>
+<p>محلل AigisCode بالكامل يُجمَّع إلى ملف تنفيذي واحد. الترجمة المتقاطعة لـ Linux وmacOS وWindows تُدار بواسطة CI. يثبّت المستخدمون بأمر واحد:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>لا بيئة تشغيل Python، لا إدارة تبعيات، لا بيئات افتراضية.</p>
+
+<h2 id="the-numbers">الأرقام</h2>
+
+<p>إليك معايير حقيقية من تحليل WordPress (شجرة <code>wp-includes</code> + <code>wp-admin</code> الكاملة):</p>
+
+<table>
+<thead>
+<tr><th>المقياس</th><th>Python</th><th>Rust</th><th>التحسن</th></tr>
+</thead>
+<tbody>
+<tr><td>وقت التحليل (5,400 ملف)</td><td>42 ثانية</td><td>8 ثوانٍ</td><td>أسرع 5.2 مرة</td></tr>
+<tr><td>بناء الرسم البياني</td><td>18 ثانية</td><td>3 ثوانٍ</td><td>أسرع 6 مرات</td></tr>
+<tr><td>التحليل الكامل (من البداية للنهاية)</td><td>~90 ثانية</td><td>22.78 ثانية</td><td>أسرع 3.9 مرة</td></tr>
+<tr><td>ذروة الذاكرة</td><td>2.1 جيجابايت</td><td>~180 ميجابايت</td><td>أقل 11.7 مرة</td></tr>
+<tr><td>حجم الملف التنفيذي</td><td>غير متاح (يتطلب Python)</td><td>~12 ميجابايت</td><td>مستقل بذاته</td></tr>
+<tr><td>عقد رسم الاعتماديات</td><td>19,200</td><td>32,862</td><td>أغنى 1.7 مرة</td></tr>
+<tr><td>حواف رسم الاعتماديات</td><td>61,000</td><td>95,878</td><td>أغنى 1.6 مرة</td></tr>
+</tbody>
+</table>
+
+<p>نسخة Rust ليست أسرع فحسب — إنها تنتج أيضاً رسماً بيانياً <em>أغنى</em>. الحواف الإضافية تأتي من حواف وقت التشغيل والإطار المصنفة التي لم تنمذجها نسخة Python: حواف نشر/اشتراك WordPress hooks، سلاسل تجاوز الطرق، وتنفيذات الواجهات.</p>
+
+<h2 id="what-we-would-do-differently">ما كنا سنفعله بشكل مختلف</h2>
+
+<p>لو كنا نبدأ إعادة الكتابة اليوم، كنا سنقوم بـ:</p>
+
+<ul>
+<li><strong>البدء بعقد العناصر، وليس المحلل.</strong> قضينا وقتاً طويلاً في التحليل قبل تحديد المخطط الدقيق لـ JSON لكل عنصر.</li>
+<li><strong>بناء مجموعة الاختبارات من مخرجات Python أولاً.</strong> كان يجب أن نولّد اختبارات الملف المرجعي من مخرجات نسخة Python قبل كتابة سطر واحد من Rust.</li>
+<li><strong>استخدام serde بشكل أكثر حزماً للعناصر المصنفة.</strong> التبديل إلى ماكرو اشتقاق serde لجميع أنواع العناصر أزال أخطاء التسلسل بالكامل.</li>
+</ul>
+
+<h2 id="the-lesson">الدرس</h2>
+
+<p>إعادة الكتابة بـ Rust لم تكن لمطاردة الأداء لذاته. كانت لبناء أساس يستطيع تحليل أكبر قواعد الكود في العالم في الوقت الذي يستغرقه إعداد القهوة. عندما يستغرق تحليلك 90 ثانية، يتخطاه المطورون. عندما يستغرق 23 ثانية، يصبح جزءاً من سير العمل.</p>
+
+<p>النموذج الأولي بـ Python أثبت المفهوم. Rust حوّله إلى منتج.</p>
+`,
+      pl: `
+<p>AigisCode zaczął jako projekt w Pythonie. Używał bindingów Tree-sitter do parsowania, NetworkX do analizy grafów i kolekcji detektorów opartych na Pythonie do cyklicznych zależności, martwego kodu i wartości zakodowanych na stałe. Działało. Ale gdy dążyliśmy do analizy całej bazy kodu w repozytoriach z ponad 30 000 plików, Python stał się wąskim gardłem.</p>
+
+<p>To jest historia, dlaczego przepisaliśmy AigisCode w Ruście, co zyskaliśmy i czego się nauczyliśmy po drodze.</p>
+
+<h2 id="why-python-hit-the-wall">Dlaczego Python uderzył w ścianę</h2>
+
+<p>Python jest doskonały do prototypowania. Pierwszą wersję AigisCode zbudowaliśmy w tygodnie, nie miesiące. Ale trzy problemy stały się niemożliwe do zignorowania:</p>
+
+<h3 id="memory">Zużycie pamięci</h3>
+<p>Analiza dużej bazy kodu PHP jak WordPress wymagała trzymania całego grafu zależności w pamięci. W NetworkX każdy węzeł i krawędź niosły znaczny narzut obiektu Pythona. Graf z 30 000 węzłów i 100 000 krawędzi zużywał ponad 2 GB RAM. Ten sam graf w Ruście z petgraph zajmuje poniżej 200 MB.</p>
+
+<h3 id="parse-speed">Szybkość parsowania</h3>
+<p>Nawet z Tree-sitter (który sam jest napisany w C), narzut bindingu Pythona się kumulował. Parsowanie 5 000 plików PHP zajmowało ponad 40 sekund w Pythonie. W Ruście z natywnymi bindingami Tree-sitter to samo parsowanie kończy się w mniej niż 8 sekund.</p>
+
+<h3 id="distribution">Dystrybucja</h3>
+<p>Dostarczanie narzędzia Pythonowego wymaga od użytkowników kompatybilnej instalacji Pythona, zarządzania środowiskami wirtualnymi i instalacji zależności systemowych dla Tree-sitter. Plik binarny Rusta to pojedynczy plik wykonywalny. <code>curl | bash</code> i działasz. Bez Pythona, bez pip, bez virtualenv.</p>
+
+<h2 id="what-we-kept">Co zachowaliśmy z ery Pythona</h2>
+
+<p>Przepisanie nie było odrzuceniem wszystkiego, co zbudowaliśmy w Pythonie. Kilka decyzji architektonicznych przetrwało:</p>
+
+<ul>
+<li><strong>Tree-sitter do parsowania</strong> — przeszliśmy z bindingów Pythona na bindingi Rusta, ale Tree-sitter pozostaje naszym parserem dla PHP, Pythona, TypeScript, JavaScript, Vue i Ruby</li>
+<li><strong>Sześcioetapowy potok</strong> — Indeksowanie, Graf, Wykrywanie, Reguły, Przegląd, Raport. Ta architektura okazała się solidna i przeniosła się bezpośrednio do Rusta</li>
+<li><strong>Artefakty JSON jako kontrakt</strong> — pliki <code>.aigiscode/*.json</code> pozostają interfejsem czytelnym maszynowo. Format jest wstecznie kompatybilny</li>
+<li><strong>Architektura pluginów</strong> — wiedza specyficzna dla frameworka pozostaje w pluginach, nie w parserach języków podstawowych</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Co dał nam Rust</h2>
+
+<h3 id="petgraph">petgraph: prawdziwa biblioteka grafowa</h3>
+<p>NetworkX jest ogólnego przeznaczenia i dynamicznie typowany. petgraph jest wyspecjalizowany i statycznie typowany. Każdy węzeł i krawędź w naszym grafie ma typ gwarantowany w czasie kompilacji. Nie możesz przypadkowo dodać stringa, gdzie oczekiwany jest SymbolNode. To wyeliminowało całą klasę błędów, które nękały wersję Pythonową.</p>
+
+<h3 id="zero-cost-abstractions">Abstrakcje bez kosztu</h3>
+<p>W Pythonie każda abstrakcja ma koszt w czasie wykonania. Trait w Ruście ma zerowy koszt w czasie wykonania. To oznacza, że możemy strukturyzować kod czysto — z traitami dla parserów, resolverów i detektorów — bez płacenia kary wydajnościowej.</p>
+
+<h3 id="fearless-concurrency">Współbieżność bez strachu</h3>
+<p>Model własności Rusta oznacza, że możemy zrównoleglić parsowanie i rozwiązywanie nazw na rdzeniach CPU bez wyścigów danych. Wersja Pythonowa była efektywnie jednowątkowa z powodu GIL. Wersja Rustowa używa Rayon do równoległego parsowania plików, które skaluje się liniowo z dostępnymi rdzeniami.</p>
+
+<h3 id="single-binary">Dystrybucja pojedynczego pliku binarnego</h3>
+<p>Cały analizator AigisCode kompiluje się do pojedynczego pliku binarnego. Kompilacja krzyżowa dla Linux, macOS i Windows jest obsługiwana przez CI. Użytkownicy instalują jednym poleceniem:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<p>Bez środowiska uruchomieniowego Pythona, bez zarządzania zależnościami, bez środowisk wirtualnych.</p>
+
+<h2 id="the-numbers">Liczby</h2>
+
+<p>Oto rzeczywiste benchmarki z analizy WordPress (pełne drzewo <code>wp-includes</code> + <code>wp-admin</code>):</p>
+
+<table>
+<thead>
+<tr><th>Metryka</th><th>Python</th><th>Rust</th><th>Poprawa</th></tr>
+</thead>
+<tbody>
+<tr><td>Czas parsowania (5 400 plików)</td><td>42 s</td><td>8 s</td><td>5,2x szybciej</td></tr>
+<tr><td>Budowa grafu</td><td>18 s</td><td>3 s</td><td>6x szybciej</td></tr>
+<tr><td>Pełna analiza (od początku do końca)</td><td>~90 s</td><td>22,78 s</td><td>3,9x szybciej</td></tr>
+<tr><td>Szczytowe zużycie pamięci</td><td>2,1 GB</td><td>~180 MB</td><td>11,7x mniej</td></tr>
+<tr><td>Rozmiar pliku binarnego</td><td>N/D (wymaga Pythona)</td><td>~12 MB</td><td>Samodzielny</td></tr>
+<tr><td>Węzły grafu zależności</td><td>19 200</td><td>32 862</td><td>1,7x bogatszy</td></tr>
+<tr><td>Krawędzie grafu zależności</td><td>61 000</td><td>95 878</td><td>1,6x bogatszy</td></tr>
+</tbody>
+</table>
+
+<p>Wersja Rustowa jest nie tylko szybsza — produkuje również <em>bogatszy</em> graf. Dodatkowe krawędzie pochodzą z typowanych krawędzi czasu wykonania i frameworkowych, których wersja Pythonowa nie modelowała: krawędzie publish/subscribe hooków WordPress, łańcuchy nadpisywania metod i implementacje interfejsów.</p>
+
+<h2 id="what-we-would-do-differently">Co zrobilibyśmy inaczej</h2>
+
+<p>Gdybyśmy zaczynali przepisywanie dzisiaj, zrobilibyśmy:</p>
+
+<ul>
+<li><strong>Zaczęlibyśmy od kontraktu artefaktów, nie od parsera.</strong> Spędziliśmy zbyt dużo czasu na parsowaniu, zanim zdefiniowaliśmy dokładny schemat JSON dla każdego artefaktu.</li>
+<li><strong>Zbudowalibyśmy zestaw testów z wyjść Pythona najpierw.</strong> Powinniśmy wygenerować testy golden-file z wyjść wersji Pythonowej przed napisaniem jednej linii Rusta.</li>
+<li><strong>Używalibyśmy serde bardziej agresywnie dla typowanych artefaktów.</strong> Przejście na makra derive serde dla wszystkich typów artefaktów całkowicie wyeliminowało błędy serializacji.</li>
+</ul>
+
+<h2 id="the-lesson">Lekcja</h2>
+
+<p>Przepisanie w Ruście nie polegało na pogoni za wydajnością dla niej samej. Chodziło o zbudowanie fundamentu, który potrafi analizować największe bazy kodu na świecie w czasie, jaki zajmuje przygotowanie kawy. Gdy analiza trwa 90 sekund, programiści ją pomijają. Gdy trwa 23 sekundy, staje się częścią przepływu pracy.</p>
+
+<p>Prototyp w Pythonie udowodnił koncepcję. Rust uczynił z niej produkt.</p>
+`,
+      bn: `
+<p>AigisCode একটি Python প্রজেক্ট হিসেবে শুরু হয়েছিল। এটি পার্সিংয়ের জন্য Tree-sitter বাইন্ডিং, গ্রাফ অ্যানালাইসিসের জন্য NetworkX, এবং সার্কুলার ডিপেন্ডেন্সি, ডেড কোড এবং হার্ডওয়ায়ার্ড ভ্যালুর জন্য Python-ভিত্তিক ডিটেক্টরগুলোর একটি সংগ্রহ ব্যবহার করত। এটি কাজ করত। কিন্তু 30,000+ ফাইলের রিপোজিটরিতে সম্পূর্ণ-কোডবেস অ্যানালাইসিসের দিকে এগিয়ে যেতে গিয়ে, Python বটলনেক হয়ে দাঁড়ায়।</p>
+
+<p>এটি হল কেন আমরা AigisCode Rust-এ পুনরায় লিখলাম, কী অর্জন করলাম, এবং পথে কী শিখলাম তার গল্প।</p>
+
+<h2 id="why-python-hit-the-wall">কেন Python দেয়ালে ধাক্কা খেল</h2>
+
+<p>Python প্রোটোটাইপিংয়ে চমৎকার। আমরা AigisCode-এর প্রথম সংস্করণ মাসে নয়, সপ্তাহে তৈরি করেছি। কিন্তু তিনটি সমস্যা উপেক্ষা করা অসম্ভব হয়ে উঠল:</p>
+
+<h3 id="memory">মেমরি ব্যবহার</h3>
+<p>WordPress-এর মতো বড় PHP কোডবেস বিশ্লেষণের জন্য সম্পূর্ণ ডিপেন্ডেন্সি গ্রাফ মেমরিতে রাখা প্রয়োজন ছিল। NetworkX-এ, প্রতিটি নোড এবং এজ উল্লেখযোগ্য Python অবজেক্ট ওভারহেড বহন করত। 30,000 নোড এবং 100,000 এজ সহ একটি গ্রাফ 2GB-র বেশি RAM ব্যবহার করত। Rust-এ petgraph দিয়ে একই গ্রাফ 200MB-র কম ব্যবহার করে।</p>
+
+<h3 id="parse-speed">পার্স গতি</h3>
+<p>এমনকি Tree-sitter দিয়েও (যা নিজেই C-তে লেখা), Python বাইন্ডিং ওভারহেড জমা হচ্ছিল। 5,000 PHP ফাইল পার্স করতে Python-এ 40 সেকেন্ডের বেশি সময় লাগত। নেটিভ Tree-sitter বাইন্ডিং সহ Rust-এ, একই পার্স 8 সেকেন্ডেরও কম সময়ে সম্পন্ন হয়।</p>
+
+<h3 id="distribution">ডিস্ট্রিবিউশন</h3>
+<p>একটি Python টুল শিপ করার জন্য ব্যবহারকারীদের একটি সামঞ্জস্যপূর্ণ Python ইনস্টলেশন, ভার্চুয়াল এনভায়রনমেন্ট পরিচালনা, এবং Tree-sitter-এর জন্য সিস্টেম ডিপেন্ডেন্সি ইনস্টল করা প্রয়োজন। একটি Rust বাইনারি একটি একক এক্সিকিউটেবল। <code>curl | bash</code> এবং আপনি চলছেন। কোনো Python নেই, pip নেই, virtualenv নেই।</p>
+
+<h2 id="what-we-kept">Python যুগ থেকে কী রাখলাম</h2>
+
+<p>পুনর্লিখন Python-এ আমরা যা তৈরি করেছিলাম তার সবকিছু প্রত্যাখ্যান ছিল না। বেশ কিছু আর্কিটেকচারাল সিদ্ধান্ত টিকে গেছে:</p>
+
+<ul>
+<li><strong>পার্সিংয়ের জন্য Tree-sitter</strong> — আমরা Python বাইন্ডিং থেকে Rust বাইন্ডিংয়ে গেছি, কিন্তু Tree-sitter আমাদের পার্সার হিসেবে রয়ে গেছে</li>
+<li><strong>ছয়-পর্যায়ের পাইপলাইন</strong> — Index, Graph, Detect, Rules, Review, Report। এই আর্কিটেকচার সঠিক প্রমাণিত হয়েছে</li>
+<li><strong>JSON আর্টিফ্যাক্ট কন্ট্র্যাক্ট হিসেবে</strong> — <code>.aigiscode/*.json</code> ফাইলগুলো মেশিন-রিডেবল ইন্টারফেস হিসেবে রয়ে গেছে</li>
+<li><strong>প্লাগইন আর্কিটেকচার</strong> — ফ্রেমওয়ার্ক-নির্দিষ্ট জ্ঞান প্লাগইনে থাকে, কোর ভাষা পার্সারে নয়</li>
+</ul>
+
+<h2 id="what-rust-gave-us">Rust আমাদের কী দিল</h2>
+
+<h3 id="petgraph">petgraph: একটি প্রকৃত গ্রাফ লাইব্রেরি</h3>
+<p>NetworkX সাধারণ-উদ্দেশ্য এবং ডায়নামিকভাবে টাইপড। petgraph বিশেষায়িত এবং স্ট্যাটিকভাবে টাইপড। আমাদের গ্রাফের প্রতিটি নোড এবং এজের একটি কম্পাইল-টাইম গ্যারান্টিড টাইপ আছে। এটি Python সংস্করণকে জর্জরিত করা বাগগুলোর একটি সম্পূর্ণ শ্রেণি দূর করেছে।</p>
+
+<h3 id="zero-cost-abstractions">জিরো-কস্ট অ্যাবস্ট্রাকশন</h3>
+<p>Python-এ, প্রতিটি অ্যাবস্ট্রাকশনের রানটাইম খরচ আছে। Rust-এ একটি trait-এর রানটাইমে শূন্য খরচ।</p>
+
+<h3 id="fearless-concurrency">ভয়হীন কনকারেন্সি</h3>
+<p>Rust-এর ওনারশিপ মডেল মানে আমরা CPU কোর জুড়ে পার্সিং এবং রেজোলিউশন সমান্তরালভাবে করতে পারি ডেটা রেস ছাড়া। Rust সংস্করণ প্যারালেল ফাইল পার্সিংয়ের জন্য Rayon ব্যবহার করে।</p>
+
+<h3 id="single-binary">সিঙ্গেল বাইনারি ডিস্ট্রিবিউশন</h3>
+<p>সম্পূর্ণ AigisCode অ্যানালাইজার একটি একক বাইনারিতে কম্পাইল হয়।</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+</code></pre>
+
+<h2 id="the-numbers">সংখ্যাগুলো</h2>
+
+<p>WordPress বিশ্লেষণ থেকে বাস্তব বেঞ্চমার্ক (সম্পূর্ণ <code>wp-includes</code> + <code>wp-admin</code> ট্রি):</p>
+
+<table>
+<thead>
+<tr><th>মেট্রিক</th><th>Python</th><th>Rust</th><th>উন্নতি</th></tr>
+</thead>
+<tbody>
+<tr><td>পার্স সময় (5,400 ফাইল)</td><td>42s</td><td>8s</td><td>5.2x দ্রুত</td></tr>
+<tr><td>গ্রাফ নির্মাণ</td><td>18s</td><td>3s</td><td>6x দ্রুত</td></tr>
+<tr><td>সম্পূর্ণ বিশ্লেষণ</td><td>~90s</td><td>22.78s</td><td>3.9x দ্রুত</td></tr>
+<tr><td>পিক মেমরি</td><td>2.1GB</td><td>~180MB</td><td>11.7x কম</td></tr>
+<tr><td>বাইনারি সাইজ</td><td>N/A</td><td>~12MB</td><td>স্বয়ংসম্পূর্ণ</td></tr>
+<tr><td>ডিপেন্ডেন্সি গ্রাফ নোড</td><td>19,200</td><td>32,862</td><td>1.7x সমৃদ্ধ</td></tr>
+<tr><td>ডিপেন্ডেন্সি গ্রাফ এজ</td><td>61,000</td><td>95,878</td><td>1.6x সমৃদ্ধ</td></tr>
+</tbody>
+</table>
+
+<p>Rust সংস্করণ শুধু দ্রুত নয় — এটি একটি <em>সমৃদ্ধতর</em> গ্রাফও তৈরি করে।</p>
+
+<h2 id="what-we-would-do-differently">আমরা কী ভিন্নভাবে করতাম</h2>
+
+<ul>
+<li><strong>আর্টিফ্যাক্ট কন্ট্র্যাক্ট দিয়ে শুরু করতাম, পার্সার দিয়ে নয়।</strong></li>
+<li><strong>প্রথমে Python আউটপুট থেকে টেস্ট স্যুট তৈরি করতাম।</strong></li>
+<li><strong>টাইপড আর্টিফ্যাক্টের জন্য serde আরও আগ্রাসীভাবে ব্যবহার করতাম।</strong></li>
+</ul>
+
+<h2 id="the-lesson">শিক্ষা</h2>
+
+<p>Rust-এ পুনর্লিখন পারফরম্যান্সের জন্য পারফরম্যান্স তাড়া করা ছিল না। এটি ছিল এমন একটি ভিত্তি তৈরি করা যা বিশ্বের বৃহত্তম কোডবেসগুলো কফি বানাতে যতটুকু সময় লাগে তার মধ্যে বিশ্লেষণ করতে পারে। যখন আপনার বিশ্লেষণে 90 সেকেন্ড লাগে, ডেভেলপাররা এটি এড়িয়ে যান। যখন 23 সেকেন্ড লাগে, এটি ওয়ার্কফ্লোর অংশ হয়ে যায়।</p>
+
+<p>Python প্রোটোটাইপ ধারণাটি প্রমাণ করেছে। Rust এটিকে পণ্যে পরিণত করেছে।</p>
+`,
+    },
+  },
+
+  /* ======================================================================== */
+  /*  Detecting Overengineered Code                                           */
+  /* ======================================================================== */
+  {
+    slug: 'detecting-overengineered-code',
+    date: '2026-03-19',
+    readTime: 11,
+    tags: ['Architecture', 'Code Quality', 'Detectors', 'Open Source'],
+    image: '/blog-overengineering-detection.jpg',
+    author: { name: 'David Strejc', role: 'Creator of AigisCode' },
+    relatedSlugs: [
+      'zeus-shield-guardian-doctrine',
+      'circular-dependencies-real-cost',
+    ],
+    title: {
+      en: 'Detecting Overengineered Code: How AigisCode Finds Abstraction Sprawl and Reinvented Wheels',
+      cs: 'Detekce přeinženýrovaného kódu: Jak AigisCode nachází abstrakční rozrůstání a znovuvynalézaná kola',
+      fr: 'Détecter le code sur-ingéniéré : comment AigisCode trouve la prolifération d\'abstractions et les roues réinventées',
+      es: 'Detectando código sobreingeniado: cómo AigisCode encuentra la proliferación de abstracciones y las ruedas reinventadas',
+      zh: '检测过度工程化代码：AigisCode 如何发现抽象蔓延和重复造轮子',
+      hi: 'ओवर-इंजीनियर्ड कोड का पता लगाना: AigisCode कैसे एब्स्ट्रैक्शन स्प्रॉल और फिर से बनाए गए पहियों को खोजता है',
+      pt: 'Detectando Código Sobre-engenheirado: Como o AigisCode Encontra Proliferação de Abstrações e Rodas Reinventadas',
+      ar: 'اكتشاف الكود المفرط في الهندسة: كيف يجد AigisCode انتشار التجريد والعجلات المُعاد اختراعها',
+      pl: 'Wykrywanie nadmiernie inżynierowanego kodu: jak AigisCode znajduje rozrost abstrakcji i ponownie wynalezione koła',
+      bn: 'ওভারইঞ্জিনিয়ার্ড কোড সনাক্তকরণ: কিভাবে AigisCode অ্যাবস্ট্রাকশন স্প্রল এবং পুনরায় আবিষ্কৃত চাকা খুঁজে পায়',
+    },
+    description: {
+      en: 'How we built detectors for overengineering patterns — abstraction sprawl, homegrown parsers, custom scheduler DSLs — without drowning in false positives.',
+      cs: 'Jak jsme vytvořili detektory pro vzory přeinženýrování — abstrakční rozrůstání, domácí parsery, vlastní plánovací DSL — bez utonutí ve falešně pozitivních nálezech.',
+      fr: 'Comment nous avons construit des détecteurs pour les motifs de sur-ingénierie — prolifération d\'abstractions, parseurs faits maison, DSL de planification personnalisés — sans se noyer dans les faux positifs.',
+      es: 'Cómo construimos detectores para patrones de sobreingeniería — proliferación de abstracciones, parsers hechos en casa, DSL de planificación personalizados — sin ahogarnos en falsos positivos.',
+      zh: '我们如何构建过度工程模式的检测器——抽象蔓延、自制解析器、自定义调度器 DSL——同时不被误报淹没。',
+      hi: 'हमने ओवर-इंजीनियरिंग पैटर्न के लिए डिटेक्टर कैसे बनाए — एब्स्ट्रैक्शन स्प्रॉल, होमग्रोन पार्सर, कस्टम शेड्यूलर DSL — फ़ॉल्स पॉज़िटिव में डूबे बिना।',
+      pt: 'Como construímos detectores para padrões de engenharia excessiva — proliferação de abstrações, parsers caseiros, DSLs de scheduler customizados — sem nos afogar em falsos positivos.',
+      ar: 'كيف بنينا كاشفات لأنماط الهندسة المفرطة — انتشار التجريد، المحللات محلية الصنع، لغات DSL المجدولة المخصصة — بدون الغرق في الإيجابيات الكاذبة.',
+      pl: 'Jak zbudowaliśmy detektory wzorców nadmiernej inżynierii — rozrost abstrakcji, własnoręcznie pisane parsery, niestandardowe DSL harmonogramów — bez tonięcia w fałszywych pozytywach.',
+      bn: 'কিভাবে আমরা ওভারইঞ্জিনিয়ারিং প্যাটার্নের জন্য ডিটেক্টর তৈরি করলাম — অ্যাবস্ট্রাকশন স্প্রল, নিজে তৈরি পার্সার, কাস্টম শিডিউলার DSL — ফলস পজিটিভে না ডুবে।',
+    },
+    metaDescription: {
+      en: 'Learn how AigisCode detects overengineered code patterns: abstraction sprawl, hand-rolled parsers, custom schema validation, homegrown scheduler DSLs. Calibrated against WordPress, Django, and real enterprise codebases.',
+      cs: 'Zjistěte, jak AigisCode detekuje vzory přeinženýrovaného kódu: abstrakční rozrůstání, ručně psané parsery, vlastní validaci schémat, domácí plánovací DSL. Kalibrováno na WordPress, Django a reálných podnikových kódových bázích.',
+      fr: 'Découvrez comment AigisCode détecte les motifs de code sur-ingéniéré : prolifération d\'abstractions, parseurs artisanaux, validation de schéma personnalisée, DSL de planification faits maison. Calibré sur WordPress, Django et de vraies codebases d\'entreprise.',
+      es: 'Descubre cómo AigisCode detecta patrones de código sobreingeniado: proliferación de abstracciones, parsers artesanales, validación de esquemas personalizada, DSL de planificación hechos en casa. Calibrado contra WordPress, Django y codebases empresariales reales.',
+      zh: '了解 AigisCode 如何检测过度工程化的代码模式：抽象蔓延、手工解析器、自定义 schema 验证、自制调度器 DSL。经过 WordPress、Django 和真实企业代码库的校准。',
+      hi: 'जानें AigisCode कैसे ओवर-इंजीनियर्ड कोड पैटर्न का पता लगाता है: एब्स्ट्रैक्शन स्प्रॉल, हैंड-रोल्ड पार्सर, कस्टम स्कीमा वैलिडेशन, होमग्रोन शेड्यूलर DSL। WordPress, Django और वास्तविक एंटरप्राइज़ कोडबेस के विरुद्ध कैलिब्रेटेड।',
+      pt: 'Saiba como o AigisCode detecta padrões de código sobre-engenheirado: proliferação de abstrações, parsers artesanais, validação de schema customizada, DSLs de scheduler caseiros. Calibrado contra WordPress, Django e bases de código empresariais reais.',
+      ar: 'تعرّف كيف يكتشف AigisCode أنماط الكود المفرط في الهندسة: انتشار التجريد، المحللات المكتوبة يدوياً، التحقق المخصص من المخططات، لغات DSL المجدولة محلية الصنع. معايرة مقابل WordPress وDjango وقواعد كود مؤسسية حقيقية.',
+      pl: 'Dowiedz się, jak AigisCode wykrywa wzorce nadmiernie inżynierowanego kodu: rozrost abstrakcji, ręcznie pisane parsery, niestandardowa walidacja schematów, własnoręcznie pisane DSL harmonogramów. Skalibrowane na WordPress, Django i rzeczywistych korporacyjnych bazach kodu.',
+      bn: 'জানুন কিভাবে AigisCode ওভারইঞ্জিনিয়ার্ড কোড প্যাটার্ন সনাক্ত করে: অ্যাবস্ট্রাকশন স্প্রল, হাতে লেখা পার্সার, কাস্টম স্কিমা ভ্যালিডেশন, নিজে তৈরি শিডিউলার DSL। WordPress, Django, এবং বাস্তব এন্টারপ্রাইজ কোডবেসের বিপরীতে ক্যালিব্রেট করা।',
+    },
+    content: {
+      en: `
+<p>Every codebase has areas where someone built too much. A custom query parser when an ORM would suffice. A notification type registry with its own resolver, builder, and compiler when a simple enum would do. A homegrown scheduler DSL when the framework's native job queue handles the same use case.</p>
+
+<p>These are not bugs. The code works. But they represent <strong>unnecessary complexity</strong> — abstraction that adds maintenance cost without proportional value. Detecting this automatically, without drowning in false positives, is one of the hardest problems in static analysis.</p>
+
+<p>Here is how we approached it in AigisCode.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">The Problem with Detecting Overengineering</h2>
+
+<p>Overengineering detection has a fundamental calibration challenge: the same patterns that indicate overengineering in application code are <em>correct and necessary</em> in framework code.</p>
+
+<p>A service/builder/registry/resolver cluster in a Laravel application might be unnecessary abstraction. The exact same pattern inside Django's ORM is the framework doing its job. Any detector that flags Django or WordPress internals as overengineered is producing noise, not signal.</p>
+
+<p>This means we need detectors that understand <em>context</em>, not just structure.</p>
+
+<h2 id="abstraction-sprawl">Abstraction Sprawl</h2>
+
+<p>Our first overengineering detector is <strong>AbstractionSprawl</strong>. It identifies files that participate in role-heavy abstraction clusters where the pattern vocabulary (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) is dense relative to the actual domain work being done.</p>
+
+<p>The detection works by:</p>
+
+<ol>
+<li>Scanning file names and class names for abstraction-role keywords</li>
+<li>Measuring the density of these roles within a module or directory</li>
+<li>Comparing the abstraction surface against the actual call graph — are these abstractions serving real callers, or are they mostly calling each other?</li>
+<li>Filtering out framework directories where dense abstraction is expected</li>
+</ol>
+
+<p>Calibration results:</p>
+
+<table>
+<thead>
+<tr><th>Codebase</th><th>Abstraction Sprawl Count</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendar, notifications, templates)</td></tr>
+</tbody>
+</table>
+
+<p>Zero false positives on framework code. Three real hotspots in the enterprise application — exactly the areas where the team independently identified unnecessary complexity.</p>
+
+<h2 id="hand-rolled-parsing">Hand-Rolled Parsing and Custom DSLs</h2>
+
+<p>The <strong>HandRolledParsing</strong> detector family identifies codebases that build their own string-driven mini-languages when battle-tested alternatives exist. It currently recognizes four subtypes:</p>
+
+<h3 id="custom-parser">Custom Parsers</h3>
+<p>Multi-file validator/resolver/normalizer stacks that form a real string-driven parsing subsystem. Example: a custom query contract parser with its own tokenizer, validator, and executor when the framework's query builder handles the same use case.</p>
+
+<h3 id="custom-schema-validation">Custom Schema Validation</h3>
+<p>Homegrown schema validation engines where an established library like JSON Schema, Zod, or Joi would provide the same guarantees with better error messages and community support.</p>
+
+<h3 id="custom-definition-engine">Custom Definition Engines</h3>
+<p>Metadata/definition engines that register, resolve, and compile entity definitions through a custom stack when a simpler configuration-based approach would suffice.</p>
+
+<h3 id="custom-scheduler-dsl">Custom Scheduler DSLs</h3>
+<p>Homegrown scheduler and job-definition stacks where the framework's native scheduler or queue system provides the same functionality. This is the newest subtype, detected by looking for registry + executor/command scheduler meshes:</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">Compatibility Scars</h2>
+
+<p>A <strong>CompatibilityScar</strong> is a file that centralizes multiple competing representations of the same concept, with compatibility and normalization glue between them. It is a sign that a concept evolved through multiple iterations without the team consolidating to a single canonical model.</p>
+
+<p>Example from a real enterprise codebase: <code>EntityUiConfigService.php</code> — a single file that manages entity display configuration through three different representation formats (legacy array, new typed config, and API DTO), with normalization methods bridging between all three.</p>
+
+<p>The detector identifies these by looking for files that:</p>
+
+<ul>
+<li>Reference multiple naming variants of the same concept (<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>)</li>
+<li>Contain translation/normalization methods between representations</li>
+<li>Have high coupling to both old and new API surfaces</li>
+</ul>
+
+<h2 id="split-identity-models">Split-Identity Models</h2>
+
+<p><strong>SplitIdentityModel</strong> detects when a domain concept exists under multiple identities across the codebase — different naming conventions, different field names, different accessor patterns for what is semantically the same thing.</p>
+
+<p>This is related to compatibility scars but operates at a broader scope. A compatibility scar is localized to one file. A split identity is a concept that is fragmented across an entire service layer.</p>
+
+<p>When both detectors fire on the same code, Zeus Shield's guardian system <strong>collapses them</strong> into a single investigation packet. The compatibility scar subsumes the split identity findings, so AI agents get one canonical review item instead of duplicate noise.</p>
+
+<h2 id="the-calibration-philosophy">The Calibration Philosophy</h2>
+
+<p>Every detection rule in AigisCode follows a strict calibration protocol:</p>
+
+<ol>
+<li><strong>WordPress must score zero.</strong> If the detector flags WordPress core internals, the detection is wrong.</li>
+<li><strong>Django must score zero.</strong> Same principle — framework code uses dense abstractions legitimately.</li>
+<li><strong>Real enterprise code must score non-zero.</strong> If the detector cannot find real problems in a 5,000-file enterprise application, it is not useful.</li>
+<li><strong>Every new subtype must pass the regression suite.</strong> Adding a new detection must not regress existing calibration.</li>
+</ol>
+
+<p>This philosophy means we ship fewer detectors than competitors. But the detectors we ship produce findings you can actually act on.</p>
+
+<h2 id="try-it">Try It on Your Codebase</h2>
+
+<p>All overengineering detectors are included in every AigisCode run:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Check <code>.aigiscode/architecture-surface.json</code> for the full breakdown of abstraction sprawl, hand-rolled parsing, compatibility scars, and split-identity findings. The <code>.aigiscode/aigiscode-handoff.json</code> provides guardian packets with doctrine-backed recommendations for each hotspot.</p>
+`,
+      cs: `
+<p>Každý codebase má oblasti, kde někdo vybudoval příliš mnoho. Vlastní parser dotazů, když by stačilo ORM. Registr typů notifikací s vlastním resolverem, builderem a kompilátorem, když by stačil jednoduchý enum. Domácí plánovací DSL, když nativní fronta úloh frameworku zvládne stejný případ použití.</p>
+
+<p>To nejsou chyby. Kód funguje. Ale představují <strong>zbytečnou složitost</strong> — abstrakci, která přidává náklady na údržbu bez proporční hodnoty. Detekovat toto automaticky, bez utonutí ve falešně pozitivních nálezech, je jeden z nejtěžších problémů ve statické analýze.</p>
+
+<p>Zde je, jak jsme to v AigisCode řešili.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">Problém s detekcí přeinženýrování</h2>
+
+<p>Detekce přeinženýrování má zásadní kalibrační výzvu: stejné vzory, které indikují přeinženýrování v aplikačním kódu, jsou <em>správné a nezbytné</em> ve frameworkovém kódu.</p>
+
+<p>Cluster service/builder/registry/resolver v Laravel aplikaci může být zbytečná abstrakce. Přesně stejný vzor uvnitř Django ORM je framework, který dělá svou práci. Jakýkoli detektor, který označí interní části Django nebo WordPress jako přeinženýrované, produkuje šum, ne signál.</p>
+
+<p>To znamená, že potřebujeme detektory, které rozumějí <em>kontextu</em>, ne jen struktuře.</p>
+
+<h2 id="abstraction-sprawl">Abstrakční rozrůstání</h2>
+
+<p>Náš první detektor přeinženýrování je <strong>AbstractionSprawl</strong>. Identifikuje soubory, které se účastní abstrakčních clusterů bohatých na role, kde je slovník vzorů (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) hustý ve vztahu ke skutečné doménové práci.</p>
+
+<p>Detekce funguje tak, že:</p>
+
+<ol>
+<li>Skenuje názvy souborů a tříd na klíčová slova abstrakčních rolí</li>
+<li>Měří hustotu těchto rolí v rámci modulu nebo adresáře</li>
+<li>Porovnává abstrakční povrch s reálným call grafem — slouží tyto abstrakce skutečným volajícím, nebo se většinou volají navzájem?</li>
+<li>Filtruje frameworkové adresáře, kde se hustá abstrakce očekává</li>
+</ol>
+
+<p>Výsledky kalibrace:</p>
+
+<table>
+<thead>
+<tr><th>Kódová báze</th><th>Počet abstrakčního rozrůstání</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (kalendář, notifikace, šablony)</td></tr>
+</tbody>
+</table>
+
+<p>Nula falešně pozitivních nálezů na frameworkovém kódu. Tři reálné hotspoty v podnikové aplikaci — přesně oblasti, kde tým nezávisle identifikoval zbytečnou složitost.</p>
+
+<h2 id="hand-rolled-parsing">Ručně psané parsování a vlastní DSL</h2>
+
+<p>Rodina detektorů <strong>HandRolledParsing</strong> identifikuje kódové báze, které si staví vlastní řetězcové minijazky, když existují osvědčené alternativy. V současnosti rozpoznává čtyři podtypy:</p>
+
+<h3 id="custom-parser">Vlastní parsery</h3>
+<p>Vícesouborové validátor/resolver/normalizátor stacky, které tvoří reálný řetězcový parsovací subsystém. Příklad: vlastní parser dotazových kontraktů s vlastním tokenizerem, validátorem a exekutorem, když query builder frameworku zvládne stejný případ použití.</p>
+
+<h3 id="custom-schema-validation">Vlastní validace schémat</h3>
+<p>Domácí validační enginy schémat, kde by zavedená knihovna jako JSON Schema, Zod nebo Joi poskytla stejné záruky s lepšími chybovými zprávami a komunitní podporou.</p>
+
+<h3 id="custom-definition-engine">Vlastní definiční enginy</h3>
+<p>Metadatové/definiční enginy, které registrují, resolvují a kompilují definice entit přes vlastní stack, když by stačil jednodušší konfigurační přístup.</p>
+
+<h3 id="custom-scheduler-dsl">Vlastní plánovací DSL</h3>
+<p>Domácí plánovací a job-definiční stacky, kde nativní plánovač nebo systém front frameworku poskytuje stejnou funkcionalitu. Toto je nejnovější podtyp, detekovaný hledáním mesh registru + exekutoru/příkazového plánovače:</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">Kompatibilní jizvy</h2>
+
+<p><strong>CompatibilityScar</strong> je soubor, který centralizuje více konkurujících si reprezentací stejného konceptu s kompatibilním a normalizačním lepidlem mezi nimi. Je to znamení, že koncept prošel více iteracemi, aniž by tým konsolidoval do jediného kanonického modelu.</p>
+
+<p>Příklad z reálné podnikové kódové báze: <code>EntityUiConfigService.php</code> — jediný soubor, který spravuje konfiguraci zobrazení entit ve třech různých formátech reprezentace (legacy pole, nová typovaná konfigurace a API DTO) s normalizačními metodami přemosťujícími mezi všemi třemi.</p>
+
+<p>Detektor je identifikuje hledáním souborů, které:</p>
+
+<ul>
+<li>Odkazují na více názvových variant stejného konceptu (<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>)</li>
+<li>Obsahují překladové/normalizační metody mezi reprezentacemi</li>
+<li>Mají vysokou provázanost se starými i novými API povrchy</li>
+</ul>
+
+<h2 id="split-identity-models">Modely s rozdělenou identitou</h2>
+
+<p><strong>SplitIdentityModel</strong> detekuje, když doménový koncept existuje pod více identitami napříč kódovou bází — různé konvence pojmenování, různé názvy polí, různé vzory přístupu pro to, co je sémanticky stejná věc.</p>
+
+<p>To souvisí s kompatibilními jizvami, ale operuje v širším rozsahu. Kompatibilní jizva je lokalizována v jednom souboru. Rozdělená identita je koncept fragmentovaný přes celou servisní vrstvu.</p>
+
+<p>Když oba detektory vyhodí varování na stejném kódu, strážní systém Zeus Shield je <strong>sbalí</strong> do jediného vyšetřovacího paketu. Kompatibilní jizva pohltí nálezy rozdělené identity, takže AI agenti dostanou jednu kanonickou položku k revizi místo duplicitního šumu.</p>
+
+<h2 id="the-calibration-philosophy">Filozofie kalibrace</h2>
+
+<p>Každé detekční pravidlo v AigisCode sleduje přísný kalibrační protokol:</p>
+
+<ol>
+<li><strong>WordPress musí mít nulové skóre.</strong> Pokud detektor označí interní části jádra WordPress, detekce je chybná.</li>
+<li><strong>Django musí mít nulové skóre.</strong> Stejný princip — frameworkový kód legitimně používá husté abstrakce.</li>
+<li><strong>Reálný podnikový kód musí mít nenulové skóre.</strong> Pokud detektor nedokáže najít reálné problémy v podnikové aplikaci s 5 000+ soubory, není užitečný.</li>
+<li><strong>Každý nový podtyp musí projít regresní sadou.</strong> Přidání nové detekce nesmí způsobit regresi existující kalibrace.</li>
+</ol>
+
+<p>Tato filozofie znamená, že dodáváme méně detektorů než konkurence. Ale detektory, které dodáváme, produkují nálezy, podle kterých můžete skutečně jednat.</p>
+
+<h2 id="try-it">Vyzkoušejte to na svém codebase</h2>
+
+<p>Všechny detektory přeinženýrování jsou součástí každého spuštění AigisCode:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Zkontrolujte <code>.aigiscode/architecture-surface.json</code> pro kompletní rozpis abstrakčního rozrůstání, ručně psaného parsování, kompatibilních jizev a nálezů rozdělené identity. <code>.aigiscode/aigiscode-handoff.json</code> poskytuje guardian packets s doporučeními podpořenými doktrínou pro každý hotspot.</p>
+`,
+      fr: `
+<p>Chaque codebase a des zones où quelqu'un a trop construit. Un parseur de requêtes personnalisé quand un ORM suffirait. Un registre de types de notifications avec son propre résolveur, constructeur et compilateur quand un simple enum ferait l'affaire. Un DSL d'ordonnancement fait maison quand la file d'attente native du framework gère le même cas d'usage.</p>
+
+<p>Ce ne sont pas des bugs. Le code fonctionne. Mais ils représentent une <strong>complexité inutile</strong> — de l'abstraction qui ajoute des coûts de maintenance sans valeur proportionnelle. Détecter cela automatiquement, sans se noyer dans les faux positifs, est l'un des problèmes les plus difficiles en analyse statique.</p>
+
+<p>Voici comment nous avons abordé le problème dans AigisCode.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">Le problème de la détection de la sur-ingénierie</h2>
+
+<p>La détection de la sur-ingénierie a un défi fondamental de calibration : les mêmes motifs qui indiquent une sur-ingénierie dans le code applicatif sont <em>corrects et nécessaires</em> dans le code de framework.</p>
+
+<p>Un cluster service/builder/registry/resolver dans une application Laravel pourrait être de l'abstraction inutile. Le même motif exact à l'intérieur de l'ORM de Django, c'est le framework qui fait son travail. Tout détecteur qui signale les internals de Django ou WordPress comme sur-ingéniérés produit du bruit, pas du signal.</p>
+
+<p>Cela signifie que nous avons besoin de détecteurs qui comprennent le <em>contexte</em>, pas seulement la structure.</p>
+
+<h2 id="abstraction-sprawl">Prolifération d'abstractions</h2>
+
+<p>Notre premier détecteur de sur-ingénierie est <strong>AbstractionSprawl</strong>. Il identifie les fichiers qui participent à des clusters d'abstraction riches en rôles où le vocabulaire de motifs (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) est dense par rapport au travail de domaine réellement effectué.</p>
+
+<p>La détection fonctionne en :</p>
+
+<ol>
+<li>Scannant les noms de fichiers et de classes pour les mots-clés de rôles d'abstraction</li>
+<li>Mesurant la densité de ces rôles au sein d'un module ou répertoire</li>
+<li>Comparant la surface d'abstraction avec le graphe d'appels réel — ces abstractions servent-elles de vrais appelants, ou s'appellent-elles principalement entre elles ?</li>
+<li>Filtrant les répertoires de framework où l'abstraction dense est attendue</li>
+</ol>
+
+<p>Résultats de calibration :</p>
+
+<table>
+<thead>
+<tr><th>Codebase</th><th>Nombre de proliférations d'abstractions</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendrier, notifications, modèles)</td></tr>
+</tbody>
+</table>
+
+<p>Zéro faux positif sur le code de framework. Trois vrais hotspots dans l'application d'entreprise — exactement les zones où l'équipe avait indépendamment identifié une complexité inutile.</p>
+
+<h2 id="hand-rolled-parsing">Parsing artisanal et DSL personnalisés</h2>
+
+<p>La famille de détecteurs <strong>HandRolledParsing</strong> identifie les codebases qui construisent leurs propres mini-langages pilotés par les chaînes de caractères quand des alternatives éprouvées existent. Elle reconnaît actuellement quatre sous-types :</p>
+
+<h3 id="custom-parser">Parseurs personnalisés</h3>
+<p>Des piles multi-fichiers validateur/résolveur/normaliseur qui forment un vrai sous-système de parsing piloté par les chaînes. Exemple : un parseur de contrats de requêtes personnalisé avec son propre tokeniseur, validateur et exécuteur quand le query builder du framework gère le même cas d'usage.</p>
+
+<h3 id="custom-schema-validation">Validation de schéma personnalisée</h3>
+<p>Des moteurs de validation de schéma faits maison où une bibliothèque établie comme JSON Schema, Zod ou Joi fournirait les mêmes garanties avec de meilleurs messages d'erreur et un support communautaire.</p>
+
+<h3 id="custom-definition-engine">Moteurs de définition personnalisés</h3>
+<p>Des moteurs de métadonnées/définition qui enregistrent, résolvent et compilent des définitions d'entités à travers une pile personnalisée quand une approche basée sur la configuration plus simple suffirait.</p>
+
+<h3 id="custom-scheduler-dsl">DSL de planification personnalisés</h3>
+<p>Des piles d'ordonnancement et de définition de jobs faites maison où l'ordonnanceur natif ou le système de files d'attente du framework fournit la même fonctionnalité. C'est le sous-type le plus récent, détecté en cherchant des maillages registre + exécuteur/ordonnanceur de commandes :</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">Cicatrices de compatibilité</h2>
+
+<p>Une <strong>CompatibilityScar</strong> est un fichier qui centralise plusieurs représentations concurrentes du même concept, avec de la colle de compatibilité et de normalisation entre elles. C'est un signe qu'un concept a évolué à travers plusieurs itérations sans que l'équipe ne consolide en un seul modèle canonique.</p>
+
+<p>Exemple d'une vraie codebase d'entreprise : <code>EntityUiConfigService.php</code> — un seul fichier qui gère la configuration d'affichage des entités à travers trois formats de représentation différents (tableau legacy, nouvelle configuration typée, et DTO API), avec des méthodes de normalisation faisant le pont entre les trois.</p>
+
+<p>Le détecteur les identifie en cherchant des fichiers qui :</p>
+
+<ul>
+<li>Référencent plusieurs variantes de nommage du même concept (<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>)</li>
+<li>Contiennent des méthodes de traduction/normalisation entre représentations</li>
+<li>Ont un couplage élevé avec les surfaces API anciennes et nouvelles</li>
+</ul>
+
+<h2 id="split-identity-models">Modèles à identité divisée</h2>
+
+<p><strong>SplitIdentityModel</strong> détecte quand un concept de domaine existe sous plusieurs identités à travers la codebase — différentes conventions de nommage, différents noms de champs, différents motifs d'accès pour ce qui est sémantiquement la même chose.</p>
+
+<p>Cela est lié aux cicatrices de compatibilité mais opère à une portée plus large. Une cicatrice de compatibilité est localisée dans un fichier. Une identité divisée est un concept fragmenté à travers toute une couche de services.</p>
+
+<p>Quand les deux détecteurs se déclenchent sur le même code, le système de gardien de Zeus Shield les <strong>fusionne</strong> en un seul paquet d'investigation. La cicatrice de compatibilité subsume les constats d'identité divisée, donc les agents IA reçoivent un seul élément de revue canonique au lieu de bruit dupliqué.</p>
+
+<h2 id="the-calibration-philosophy">La philosophie de calibration</h2>
+
+<p>Chaque règle de détection dans AigisCode suit un protocole de calibration strict :</p>
+
+<ol>
+<li><strong>WordPress doit avoir un score de zéro.</strong> Si le détecteur signale les internals du cœur de WordPress, la détection est fausse.</li>
+<li><strong>Django doit avoir un score de zéro.</strong> Même principe — le code de framework utilise légitimement des abstractions denses.</li>
+<li><strong>Le code d'entreprise réel doit avoir un score non nul.</strong> Si le détecteur ne peut pas trouver de vrais problèmes dans une application d'entreprise de 5 000+ fichiers, il n'est pas utile.</li>
+<li><strong>Chaque nouveau sous-type doit passer la suite de régression.</strong> L'ajout d'une nouvelle détection ne doit pas régresser la calibration existante.</li>
+</ol>
+
+<p>Cette philosophie signifie que nous livrons moins de détecteurs que les concurrents. Mais les détecteurs que nous livrons produisent des constats sur lesquels vous pouvez réellement agir.</p>
+
+<h2 id="try-it">Essayez-le sur votre codebase</h2>
+
+<p>Tous les détecteurs de sur-ingénierie sont inclus dans chaque exécution d'AigisCode :</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Consultez <code>.aigiscode/architecture-surface.json</code> pour le détail complet de la prolifération d'abstractions, du parsing artisanal, des cicatrices de compatibilité et des constats d'identité divisée. Le fichier <code>.aigiscode/aigiscode-handoff.json</code> fournit les guardian packets avec des recommandations soutenues par la doctrine pour chaque hotspot.</p>
+`,
+      es: `
+<p>Cada codebase tiene áreas donde alguien construyó de más. Un parser de consultas personalizado cuando un ORM bastaría. Un registro de tipos de notificación con su propio resolver, builder y compilador cuando un simple enum serviría. Un DSL de planificación hecho en casa cuando la cola de trabajos nativa del framework maneja el mismo caso de uso.</p>
+
+<p>Estos no son bugs. El código funciona. Pero representan <strong>complejidad innecesaria</strong> — abstracción que añade costos de mantenimiento sin valor proporcional. Detectar esto automáticamente, sin ahogarse en falsos positivos, es uno de los problemas más difíciles en el análisis estático.</p>
+
+<p>Así es como lo abordamos en AigisCode.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">El problema de detectar la sobreingeniería</h2>
+
+<p>La detección de sobreingeniería tiene un desafío fundamental de calibración: los mismos patrones que indican sobreingeniería en el código de aplicación son <em>correctos y necesarios</em> en el código de framework.</p>
+
+<p>Un cluster service/builder/registry/resolver en una aplicación Laravel podría ser abstracción innecesaria. El mismo patrón exacto dentro del ORM de Django es el framework haciendo su trabajo. Cualquier detector que marque las partes internas de Django o WordPress como sobreingeniadas está produciendo ruido, no señal.</p>
+
+<p>Esto significa que necesitamos detectores que entiendan el <em>contexto</em>, no solo la estructura.</p>
+
+<h2 id="abstraction-sprawl">Proliferación de abstracciones</h2>
+
+<p>Nuestro primer detector de sobreingeniería es <strong>AbstractionSprawl</strong>. Identifica archivos que participan en clusters de abstracción ricos en roles donde el vocabulario de patrones (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) es denso en relación con el trabajo de dominio real que se está realizando.</p>
+
+<p>La detección funciona así:</p>
+
+<ol>
+<li>Escaneando nombres de archivos y clases en busca de palabras clave de roles de abstracción</li>
+<li>Midiendo la densidad de estos roles dentro de un módulo o directorio</li>
+<li>Comparando la superficie de abstracción contra el grafo de llamadas real — ¿estas abstracciones sirven a llamadores reales, o se llaman mayormente entre sí?</li>
+<li>Filtrando directorios de framework donde la abstracción densa es esperada</li>
+</ol>
+
+<p>Resultados de calibración:</p>
+
+<table>
+<thead>
+<tr><th>Codebase</th><th>Conteo de proliferación de abstracciones</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendario, notificaciones, plantillas)</td></tr>
+</tbody>
+</table>
+
+<p>Cero falsos positivos en código de framework. Tres hotspots reales en la aplicación empresarial — exactamente las áreas donde el equipo había identificado independientemente complejidad innecesaria.</p>
+
+<h2 id="hand-rolled-parsing">Parsing artesanal y DSL personalizados</h2>
+
+<p>La familia de detectores <strong>HandRolledParsing</strong> identifica codebases que construyen sus propios minilenguajes basados en cadenas cuando existen alternativas probadas. Actualmente reconoce cuatro subtipos:</p>
+
+<h3 id="custom-parser">Parsers personalizados</h3>
+<p>Pilas multi-archivo de validador/resolver/normalizador que forman un verdadero subsistema de parsing basado en cadenas. Ejemplo: un parser de contratos de consultas personalizado con su propio tokenizador, validador y ejecutor cuando el query builder del framework maneja el mismo caso de uso.</p>
+
+<h3 id="custom-schema-validation">Validación de esquemas personalizada</h3>
+<p>Motores de validación de esquemas hechos en casa donde una biblioteca establecida como JSON Schema, Zod o Joi proporcionaría las mismas garantías con mejores mensajes de error y soporte comunitario.</p>
+
+<h3 id="custom-definition-engine">Motores de definición personalizados</h3>
+<p>Motores de metadatos/definición que registran, resuelven y compilan definiciones de entidades a través de una pila personalizada cuando un enfoque más simple basado en configuración bastaría.</p>
+
+<h3 id="custom-scheduler-dsl">DSL de planificación personalizados</h3>
+<p>Pilas de planificación y definición de trabajos hechas en casa donde el planificador nativo o el sistema de colas del framework proporciona la misma funcionalidad. Este es el subtipo más nuevo, detectado buscando mallas de registro + ejecutor/planificador de comandos:</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">Cicatrices de compatibilidad</h2>
+
+<p>Una <strong>CompatibilityScar</strong> es un archivo que centraliza múltiples representaciones que compiten del mismo concepto, con pegamento de compatibilidad y normalización entre ellas. Es una señal de que un concepto evolucionó a través de múltiples iteraciones sin que el equipo consolidara en un único modelo canónico.</p>
+
+<p>Ejemplo de un codebase empresarial real: <code>EntityUiConfigService.php</code> — un único archivo que gestiona la configuración de visualización de entidades a través de tres formatos de representación diferentes (array legacy, nueva configuración tipada y DTO de API), con métodos de normalización que hacen puente entre los tres.</p>
+
+<p>El detector los identifica buscando archivos que:</p>
+
+<ul>
+<li>Referencian múltiples variantes de nomenclatura del mismo concepto (<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>)</li>
+<li>Contienen métodos de traducción/normalización entre representaciones</li>
+<li>Tienen alto acoplamiento con las superficies API antiguas y nuevas</li>
+</ul>
+
+<h2 id="split-identity-models">Modelos de identidad dividida</h2>
+
+<p><strong>SplitIdentityModel</strong> detecta cuando un concepto de dominio existe bajo múltiples identidades a través del codebase — diferentes convenciones de nomenclatura, diferentes nombres de campos, diferentes patrones de acceso para lo que es semánticamente lo mismo.</p>
+
+<p>Esto está relacionado con las cicatrices de compatibilidad pero opera a un alcance más amplio. Una cicatriz de compatibilidad está localizada en un archivo. Una identidad dividida es un concepto fragmentado a través de toda una capa de servicios.</p>
+
+<p>Cuando ambos detectores se disparan sobre el mismo código, el sistema de guardián de Zeus Shield los <strong>colapsa</strong> en un único paquete de investigación. La cicatriz de compatibilidad subsume los hallazgos de identidad dividida, así que los agentes de IA obtienen un único elemento de revisión canónico en lugar de ruido duplicado.</p>
+
+<h2 id="the-calibration-philosophy">La filosofía de calibración</h2>
+
+<p>Cada regla de detección en AigisCode sigue un protocolo de calibración estricto:</p>
+
+<ol>
+<li><strong>WordPress debe puntuar cero.</strong> Si el detector marca las partes internas del núcleo de WordPress, la detección está mal.</li>
+<li><strong>Django debe puntuar cero.</strong> Mismo principio — el código de framework usa abstracciones densas legítimamente.</li>
+<li><strong>El código empresarial real debe puntuar distinto de cero.</strong> Si el detector no puede encontrar problemas reales en una aplicación empresarial de 5.000+ archivos, no es útil.</li>
+<li><strong>Cada nuevo subtipo debe pasar la suite de regresión.</strong> Agregar una nueva detección no debe causar regresión en la calibración existente.</li>
+</ol>
+
+<p>Esta filosofía significa que enviamos menos detectores que los competidores. Pero los detectores que enviamos producen hallazgos sobre los que realmente puedes actuar.</p>
+
+<h2 id="try-it">Pruébalo en tu codebase</h2>
+
+<p>Todos los detectores de sobreingeniería están incluidos en cada ejecución de AigisCode:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Consulta <code>.aigiscode/architecture-surface.json</code> para el desglose completo de proliferación de abstracciones, parsing artesanal, cicatrices de compatibilidad y hallazgos de identidad dividida. El archivo <code>.aigiscode/aigiscode-handoff.json</code> proporciona guardian packets con recomendaciones respaldadas por la doctrina para cada hotspot.</p>
+`,
+      zh: `
+<p>每个代码库都有人构建过多的地方。当 ORM 就足够时使用自定义查询解析器。当简单的枚举就能胜任时，构建一个拥有自己的解析器、构建器和编译器的通知类型注册表。当框架的原生作业队列处理相同用例时，使用自制的调度器 DSL。</p>
+
+<p>这些不是 bug。代码能工作。但它们代表了<strong>不必要的复杂性</strong>——增加维护成本却没有相应价值的抽象。在不被误报淹没的情况下自动检测这些问题，是静态分析中最困难的问题之一。</p>
+
+<p>以下是我们在 AigisCode 中的解决方法。</p>
+
+<h2 id="the-problem-with-detecting-overengineering">检测过度工程的问题</h2>
+
+<p>过度工程检测有一个根本的校准挑战：在应用程序代码中表示过度工程的相同模式，在框架代码中是<em>正确且必要的</em>。</p>
+
+<p>Laravel 应用程序中的 service/builder/registry/resolver 集群可能是不必要的抽象。Django ORM 内部完全相同的模式是框架在履行其职责。任何将 Django 或 WordPress 内部标记为过度工程的检测器都在产生噪音，而非信号。</p>
+
+<p>这意味着我们需要理解<em>上下文</em>而不仅仅是结构的检测器。</p>
+
+<h2 id="abstraction-sprawl">抽象蔓延</h2>
+
+<p>我们的第一个过度工程检测器是 <strong>AbstractionSprawl</strong>。它识别参与角色密集的抽象集群的文件，其中模式词汇（Service、Builder、Registry、Resolver、Factory、Handler、Manager、Provider、Adapter、Transformer、Normalizer）相对于实际领域工作而言密度过高。</p>
+
+<p>检测工作原理：</p>
+
+<ol>
+<li>扫描文件名和类名中的抽象角色关键字</li>
+<li>测量模块或目录中这些角色的密度</li>
+<li>将抽象表面与实际调用图进行比较——这些抽象是为真正的调用者服务，还是主要在相互调用？</li>
+<li>过滤掉预期存在密集抽象的框架目录</li>
+</ol>
+
+<p>校准结果：</p>
+
+<table>
+<thead>
+<tr><th>代码库</th><th>抽象蔓延数量</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3（日历、通知、模板）</td></tr>
+</tbody>
+</table>
+
+<p>框架代码零误报。企业应用中的三个真实热点——正是团队独立识别出不必要复杂性的区域。</p>
+
+<h2 id="hand-rolled-parsing">手工解析和自定义 DSL</h2>
+
+<p><strong>HandRolledParsing</strong> 检测器家族识别在存在经过实战检验的替代方案时构建自己的字符串驱动迷你语言的代码库。它目前识别四种子类型：</p>
+
+<h3 id="custom-parser">自定义解析器</h3>
+<p>多文件 validator/resolver/normalizer 栈，形成真正的字符串驱动解析子系统。示例：一个拥有自己的分词器、验证器和执行器的自定义查询合约解析器，而框架的查询构建器处理相同用例。</p>
+
+<h3 id="custom-schema-validation">自定义 Schema 验证</h3>
+<p>自制的 schema 验证引擎，而 JSON Schema、Zod 或 Joi 等成熟库可以提供相同的保证，并有更好的错误消息和社区支持。</p>
+
+<h3 id="custom-definition-engine">自定义定义引擎</h3>
+<p>通过自定义栈注册、解析和编译实体定义的元数据/定义引擎，而更简单的基于配置的方法就足够了。</p>
+
+<h3 id="custom-scheduler-dsl">自定义调度器 DSL</h3>
+<p>自制的调度器和作业定义栈，而框架的原生调度器或队列系统提供相同的功能。这是最新的子类型，通过查找 registry + executor/command scheduler 网格来检测：</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">兼容性伤疤</h2>
+
+<p><strong>CompatibilityScar</strong> 是一个将同一概念的多个竞争表示集中在一起的文件，它们之间有兼容性和规范化胶水。这表明一个概念经历了多次迭代演变，而团队没有合并为单一规范模型。</p>
+
+<p>来自真实企业代码库的示例：<code>EntityUiConfigService.php</code>——一个通过三种不同的表示格式（旧数组、新类型化配置和 API DTO）管理实体显示配置的单个文件，并有在这三种格式之间桥接的规范化方法。</p>
+
+<p>检测器通过查找以下文件来识别这些：</p>
+
+<ul>
+<li>引用同一概念的多个命名变体（<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>）</li>
+<li>包含表示之间的翻译/规范化方法</li>
+<li>与旧和新 API 表面都有高耦合</li>
+</ul>
+
+<h2 id="split-identity-models">分裂身份模型</h2>
+
+<p><strong>SplitIdentityModel</strong> 检测一个领域概念在代码库中以多个身份存在的情况——不同的命名约定、不同的字段名、语义上相同事物的不同访问器模式。</p>
+
+<p>这与兼容性伤疤相关，但在更广的范围内运作。兼容性伤疤局限于一个文件。分裂身份是一个在整个服务层中碎片化的概念。</p>
+
+<p>当两个检测器都触发相同的代码时，Zeus Shield 的守护系统将它们<strong>合并</strong>为单个调查包。兼容性伤疤包含分裂身份发现，因此 AI 代理得到一个规范的审查项，而不是重复的噪音。</p>
+
+<h2 id="the-calibration-philosophy">校准哲学</h2>
+
+<p>AigisCode 中的每个检测规则都遵循严格的校准协议：</p>
+
+<ol>
+<li><strong>WordPress 必须得零分。</strong>如果检测器标记 WordPress 核心内部，检测就是错误的。</li>
+<li><strong>Django 必须得零分。</strong>同样的原则——框架代码合法地使用密集抽象。</li>
+<li><strong>真实的企业代码必须得到非零分。</strong>如果检测器无法在 5,000 文件的企业应用中找到真正的问题，它就没有用。</li>
+<li><strong>每个新子类型必须通过回归测试套件。</strong>添加新检测不得影响现有校准。</li>
+</ol>
+
+<p>这种哲学意味着我们发布的检测器比竞争对手少。但我们发布的检测器产生的发现是你可以实际采取行动的。</p>
+
+<h2 id="try-it">在你的代码库上试试</h2>
+
+<p>所有过度工程检测器都包含在每次 AigisCode 运行中：</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>查看 <code>.aigiscode/architecture-surface.json</code> 获取抽象蔓延、手工解析、兼容性伤疤和分裂身份发现的完整分解。<code>.aigiscode/aigiscode-handoff.json</code> 为每个热点提供带有教义支持建议的守护数据包。</p>
+`,
+      hi: `
+<p>हर कोडबेस में ऐसे क्षेत्र होते हैं जहाँ किसी ने बहुत ज़्यादा बनाया। जब ORM पर्याप्त होता, तब एक कस्टम क्वेरी पार्सर। जब एक साधारण enum काम कर देता, तब अपने स्वयं के resolver, builder और compiler के साथ एक नोटिफ़िकेशन टाइप रजिस्ट्री। जब फ़्रेमवर्क की नेटिव जॉब क्यू वही उपयोग केस संभालती है, तब एक होमग्रोन शेड्यूलर DSL।</p>
+
+<p>ये बग नहीं हैं। कोड काम करता है। लेकिन ये <strong>अनावश्यक जटिलता</strong> का प्रतिनिधित्व करते हैं — ऐसी एब्स्ट्रैक्शन जो आनुपातिक मूल्य के बिना रखरखाव लागत जोड़ती है। इसे स्वचालित रूप से पहचानना, फ़ॉल्स पॉज़िटिव में डूबे बिना, स्टेटिक एनालिसिस की सबसे कठिन समस्याओं में से एक है।</p>
+
+<p>यहाँ बताया गया है कि हमने AigisCode में इसे कैसे हल किया।</p>
+
+<h2 id="the-problem-with-detecting-overengineering">ओवर-इंजीनियरिंग का पता लगाने की समस्या</h2>
+
+<p>ओवर-इंजीनियरिंग डिटेक्शन में एक मूलभूत कैलिब्रेशन चुनौती है: वही पैटर्न जो एप्लिकेशन कोड में ओवर-इंजीनियरिंग दर्शाते हैं, फ़्रेमवर्क कोड में <em>सही और आवश्यक</em> हैं।</p>
+
+<p>Laravel एप्लिकेशन में service/builder/registry/resolver क्लस्टर अनावश्यक एब्स्ट्रैक्शन हो सकता है। Django के ORM के अंदर बिल्कुल वही पैटर्न फ़्रेमवर्क का अपना काम करना है। कोई भी डिटेक्टर जो Django या WordPress इंटर्नल्स को ओवर-इंजीनियर्ड के रूप में फ़्लैग करता है, वह सिग्नल नहीं बल्कि शोर पैदा कर रहा है।</p>
+
+<p>इसका मतलब है कि हमें ऐसे डिटेक्टर चाहिए जो सिर्फ़ संरचना नहीं बल्कि <em>संदर्भ</em> समझें।</p>
+
+<h2 id="abstraction-sprawl">एब्स्ट्रैक्शन स्प्रॉल</h2>
+
+<p>हमारा पहला ओवर-इंजीनियरिंग डिटेक्टर <strong>AbstractionSprawl</strong> है। यह उन फ़ाइलों की पहचान करता है जो भूमिका-भारी एब्स्ट्रैक्शन क्लस्टर में भाग लेती हैं जहाँ पैटर्न शब्दावली (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) वास्तविक डोमेन कार्य की तुलना में सघन है।</p>
+
+<p>डिटेक्शन कैसे काम करता है:</p>
+
+<ol>
+<li>फ़ाइल नामों और क्लास नामों में एब्स्ट्रैक्शन-भूमिका कीवर्ड के लिए स्कैन करना</li>
+<li>मॉड्यूल या डायरेक्टरी के भीतर इन भूमिकाओं की सघनता मापना</li>
+<li>एब्स्ट्रैक्शन सरफ़ेस की तुलना वास्तविक कॉल ग्राफ़ से करना — क्या ये एब्स्ट्रैक्शन वास्तविक कॉलर्स की सेवा कर रही हैं, या ज़्यादातर एक-दूसरे को कॉल कर रही हैं?</li>
+<li>फ़्रेमवर्क डायरेक्टरीज़ को फ़िल्टर करना जहाँ सघन एब्स्ट्रैक्शन अपेक्षित है</li>
+</ol>
+
+<p>कैलिब्रेशन परिणाम:</p>
+
+<table>
+<thead>
+<tr><th>कोडबेस</th><th>एब्स्ट्रैक्शन स्प्रॉल काउंट</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (कैलेंडर, नोटिफ़िकेशन, टेम्प्लेट)</td></tr>
+</tbody>
+</table>
+
+<p>फ़्रेमवर्क कोड पर शून्य फ़ॉल्स पॉज़िटिव। एंटरप्राइज़ एप्लिकेशन में तीन वास्तविक हॉटस्पॉट — ठीक वे क्षेत्र जहाँ टीम ने स्वतंत्र रूप से अनावश्यक जटिलता की पहचान की।</p>
+
+<h2 id="hand-rolled-parsing">हैंड-रोल्ड पार्सिंग और कस्टम DSL</h2>
+
+<p><strong>HandRolledParsing</strong> डिटेक्टर फ़ैमिली उन कोडबेस की पहचान करती है जो बैटल-टेस्टेड विकल्प उपलब्ध होने पर अपनी स्वयं की स्ट्रिंग-ड्रिवन मिनी-लैंग्वेज बनाते हैं। यह वर्तमान में चार उपप्रकारों को पहचानता है:</p>
+
+<h3 id="custom-parser">कस्टम पार्सर</h3>
+<p>मल्टी-फ़ाइल validator/resolver/normalizer स्टैक जो एक वास्तविक स्ट्रिंग-ड्रिवन पार्सिंग सबसिस्टम बनाते हैं। उदाहरण: अपने स्वयं के tokenizer, validator और executor के साथ एक कस्टम क्वेरी कॉन्ट्रैक्ट पार्सर जबकि फ़्रेमवर्क का क्वेरी बिल्डर वही उपयोग केस हैंडल करता है।</p>
+
+<h3 id="custom-schema-validation">कस्टम स्कीमा वैलिडेशन</h3>
+<p>होमग्रोन स्कीमा वैलिडेशन इंजन जहाँ JSON Schema, Zod या Joi जैसी स्थापित लाइब्रेरी बेहतर एरर मैसेज और कम्युनिटी सपोर्ट के साथ समान गारंटी प्रदान करती है।</p>
+
+<h3 id="custom-definition-engine">कस्टम डेफ़िनिशन इंजन</h3>
+<p>मेटाडेटा/डेफ़िनिशन इंजन जो कस्टम स्टैक के माध्यम से एंटिटी डेफ़िनिशन को रजिस्टर, रिज़ॉल्व और कंपाइल करते हैं जबकि एक सरल कॉन्फ़िगरेशन-आधारित दृष्टिकोण पर्याप्त होता।</p>
+
+<h3 id="custom-scheduler-dsl">कस्टम शेड्यूलर DSL</h3>
+<p>होमग्रोन शेड्यूलर और जॉब-डेफ़िनिशन स्टैक जहाँ फ़्रेमवर्क का नेटिव शेड्यूलर या क्यू सिस्टम समान कार्यक्षमता प्रदान करता है। यह नवीनतम उपप्रकार है, registry + executor/command scheduler मेश की तलाश करके पहचाना जाता है:</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">कम्पैटिबिलिटी स्कार</h2>
+
+<p><strong>CompatibilityScar</strong> एक ऐसी फ़ाइल है जो एक ही अवधारणा के कई प्रतिस्पर्धी प्रतिनिधित्वों को केंद्रीकृत करती है, उनके बीच कम्पैटिबिलिटी और नॉर्मलाइज़ेशन ग्लू के साथ। यह इंगित करता है कि एक अवधारणा कई पुनरावृत्तियों से गुज़री बिना टीम के एकल कैनोनिकल मॉडल में समेकन किए।</p>
+
+<p>एक वास्तविक एंटरप्राइज़ कोडबेस से उदाहरण: <code>EntityUiConfigService.php</code> — एक एकल फ़ाइल जो तीन अलग-अलग प्रतिनिधित्व फ़ॉर्मेट (लेगेसी अरे, नया टाइप्ड कॉन्फ़िग, और API DTO) के माध्यम से एंटिटी डिस्प्ले कॉन्फ़िगरेशन प्रबंधित करती है, तीनों के बीच ब्रिजिंग करने वाले नॉर्मलाइज़ेशन मेथड के साथ।</p>
+
+<p>डिटेक्टर उन फ़ाइलों की तलाश करके इन्हें पहचानता है जो:</p>
+
+<ul>
+<li>एक ही अवधारणा के कई नामकरण वेरिएंट का संदर्भ देती हैं (<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>)</li>
+<li>प्रतिनिधित्वों के बीच ट्रांसलेशन/नॉर्मलाइज़ेशन मेथड रखती हैं</li>
+<li>पुरानी और नई दोनों API सरफ़ेस से उच्च कपलिंग रखती हैं</li>
+</ul>
+
+<h2 id="split-identity-models">स्प्लिट-आइडेंटिटी मॉडल</h2>
+
+<p><strong>SplitIdentityModel</strong> तब पहचानता है जब एक डोमेन अवधारणा कोडबेस में कई पहचानों के तहत मौजूद होती है — अलग-अलग नामकरण परंपराएँ, अलग-अलग फ़ील्ड नाम, शब्दार्थ रूप से एक ही चीज़ के लिए अलग-अलग एक्सेसर पैटर्न।</p>
+
+<p>यह कम्पैटिबिलिटी स्कार से संबंधित है लेकिन व्यापक दायरे पर काम करता है। कम्पैटिबिलिटी स्कार एक फ़ाइल तक सीमित है। स्प्लिट आइडेंटिटी एक ऐसी अवधारणा है जो पूरी सर्विस लेयर में खंडित है।</p>
+
+<p>जब दोनों डिटेक्टर एक ही कोड पर ट्रिगर होते हैं, तो Zeus Shield का गार्जियन सिस्टम उन्हें एक एकल जाँच पैकेट में <strong>समेट</strong> देता है। कम्पैटिबिलिटी स्कार स्प्लिट आइडेंटिटी फ़ाइंडिंग्स को शामिल कर लेता है, इसलिए AI एजेंट को डुप्लिकेट शोर के बजाय एक कैनोनिकल रिव्यू आइटम मिलता है।</p>
+
+<h2 id="the-calibration-philosophy">कैलिब्रेशन दर्शन</h2>
+
+<p>AigisCode में हर डिटेक्शन नियम एक सख्त कैलिब्रेशन प्रोटोकॉल का पालन करता है:</p>
+
+<ol>
+<li><strong>WordPress को शून्य स्कोर करना चाहिए।</strong> यदि डिटेक्टर WordPress कोर इंटर्नल्स को फ़्लैग करता है, तो डिटेक्शन गलत है।</li>
+<li><strong>Django को शून्य स्कोर करना चाहिए।</strong> वही सिद्धांत — फ़्रेमवर्क कोड वैध रूप से सघन एब्स्ट्रैक्शन का उपयोग करता है।</li>
+<li><strong>वास्तविक एंटरप्राइज़ कोड को नॉन-ज़ीरो स्कोर करना चाहिए।</strong> यदि डिटेक्टर 5,000-फ़ाइल एंटरप्राइज़ एप्लिकेशन में वास्तविक समस्याएँ नहीं खोज सकता, तो वह उपयोगी नहीं है।</li>
+<li><strong>हर नए उपप्रकार को रिग्रेशन सूट पास करना चाहिए।</strong> नई डिटेक्शन जोड़ने से मौजूदा कैलिब्रेशन प्रभावित नहीं होना चाहिए।</li>
+</ol>
+
+<p>इस दर्शन का मतलब है कि हम प्रतिस्पर्धियों की तुलना में कम डिटेक्टर शिप करते हैं। लेकिन जो डिटेक्टर हम शिप करते हैं वे ऐसी फ़ाइंडिंग्स उत्पन्न करते हैं जिन पर आप वास्तव में कार्रवाई कर सकते हैं।</p>
+
+<h2 id="try-it">अपने कोडबेस पर आज़माएँ</h2>
+
+<p>सभी ओवर-इंजीनियरिंग डिटेक्टर हर AigisCode रन में शामिल हैं:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>एब्स्ट्रैक्शन स्प्रॉल, हैंड-रोल्ड पार्सिंग, कम्पैटिबिलिटी स्कार और स्प्लिट-आइडेंटिटी फ़ाइंडिंग्स के पूर्ण विभाजन के लिए <code>.aigiscode/architecture-surface.json</code> देखें। <code>.aigiscode/aigiscode-handoff.json</code> प्रत्येक हॉटस्पॉट के लिए डॉक्ट्रिन-समर्थित सिफ़ारिशों के साथ गार्जियन पैकेट प्रदान करता है।</p>
+`,
+      pt: `
+<p>Todo codebase tem áreas onde alguém construiu demais. Um parser de consulta customizado quando um ORM bastaria. Um registro de tipos de notificação com seu próprio resolver, builder e compilador quando um enum simples serviria. Um scheduler DSL caseiro quando a fila de jobs nativa do framework lida com o mesmo caso de uso.</p>
+
+<p>Esses não são bugs. O código funciona. Mas eles representam <strong>complexidade desnecessária</strong> — abstração que adiciona custo de manutenção sem valor proporcional. Detectar isso automaticamente, sem se afogar em falsos positivos, é um dos problemas mais difíceis em análise estática.</p>
+
+<p>Veja como abordamos isso no AigisCode.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">O Problema de Detectar Engenharia Excessiva</h2>
+
+<p>A detecção de engenharia excessiva tem um desafio fundamental de calibração: os mesmos padrões que indicam engenharia excessiva em código de aplicação são <em>corretos e necessários</em> em código de framework.</p>
+
+<p>Um cluster service/builder/registry/resolver em uma aplicação Laravel pode ser abstração desnecessária. O exato mesmo padrão dentro do ORM do Django é o framework fazendo seu trabalho. Qualquer detector que marque os internos do Django ou WordPress como sobre-engenheirados está produzindo ruído, não sinal.</p>
+
+<p>Isso significa que precisamos de detectores que entendam <em>contexto</em>, não apenas estrutura.</p>
+
+<h2 id="abstraction-sprawl">Proliferação de Abstrações</h2>
+
+<p>Nosso primeiro detector de engenharia excessiva é o <strong>AbstractionSprawl</strong>. Ele identifica arquivos que participam de clusters de abstração densos em papéis, onde o vocabulário de padrões (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) é denso em relação ao trabalho de domínio real sendo feito.</p>
+
+<p>A detecção funciona:</p>
+
+<ol>
+<li>Escaneando nomes de arquivos e classes para palavras-chave de papéis de abstração</li>
+<li>Medindo a densidade desses papéis dentro de um módulo ou diretório</li>
+<li>Comparando a superfície de abstração contra o grafo de chamadas real — essas abstrações servem chamadores reais, ou estão principalmente chamando umas às outras?</li>
+<li>Filtrando diretórios de framework onde abstração densa é esperada</li>
+</ol>
+
+<p>Resultados de calibração:</p>
+
+<table>
+<thead>
+<tr><th>Base de Código</th><th>Contagem de Proliferação de Abstrações</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendário, notificações, templates)</td></tr>
+</tbody>
+</table>
+
+<p>Zero falsos positivos em código de framework. Três hotspots reais na aplicação empresarial — exatamente as áreas onde a equipe identificou independentemente complexidade desnecessária.</p>
+
+<h2 id="hand-rolled-parsing">Parsing Artesanal e DSLs Customizados</h2>
+
+<p>A família de detectores <strong>HandRolledParsing</strong> identifica bases de código que constroem suas próprias mini-linguagens baseadas em strings quando alternativas testadas em batalha existem. Atualmente reconhece quatro subtipos:</p>
+
+<h3 id="custom-parser">Parsers Customizados</h3>
+<p>Stacks multi-arquivo de validator/resolver/normalizer que formam um subsistema de parsing real baseado em strings. Exemplo: um parser de contrato de consulta customizado com seu próprio tokenizer, validator e executor quando o query builder do framework lida com o mesmo caso de uso.</p>
+
+<h3 id="custom-schema-validation">Validação de Schema Customizada</h3>
+<p>Engines de validação de schema caseiros onde uma biblioteca estabelecida como JSON Schema, Zod ou Joi forneceria as mesmas garantias com melhores mensagens de erro e suporte da comunidade.</p>
+
+<h3 id="custom-definition-engine">Engines de Definição Customizados</h3>
+<p>Engines de metadados/definição que registram, resolvem e compilam definições de entidades através de um stack customizado quando uma abordagem mais simples baseada em configuração bastaria.</p>
+
+<h3 id="custom-scheduler-dsl">DSLs de Scheduler Customizados</h3>
+<p>Stacks de scheduler e definição de jobs caseiros onde o scheduler nativo do framework ou sistema de filas fornece a mesma funcionalidade. Este é o subtipo mais recente, detectado procurando meshes de registry + executor/command scheduler:</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">Cicatrizes de Compatibilidade</h2>
+
+<p>Uma <strong>CompatibilityScar</strong> é um arquivo que centraliza múltiplas representações concorrentes do mesmo conceito, com cola de compatibilidade e normalização entre elas. É um sinal de que um conceito evoluiu através de múltiplas iterações sem a equipe consolidar para um único modelo canônico.</p>
+
+<p>Exemplo de uma base de código empresarial real: <code>EntityUiConfigService.php</code> — um único arquivo que gerencia configuração de exibição de entidades através de três formatos de representação diferentes (array legado, config tipada nova e DTO de API), com métodos de normalização fazendo ponte entre todos os três.</p>
+
+<p>O detector identifica esses arquivos procurando por:</p>
+
+<ul>
+<li>Referências a múltiplas variantes de nomenclatura do mesmo conceito (<code>assignedUser</code> / <code>assigned_user_id</code> / <code>getAssignedUser()</code>)</li>
+<li>Métodos de tradução/normalização entre representações</li>
+<li>Alto acoplamento com superfícies de API antigas e novas</li>
+</ul>
+
+<h2 id="split-identity-models">Modelos de Identidade Dividida</h2>
+
+<p><strong>SplitIdentityModel</strong> detecta quando um conceito de domínio existe sob múltiplas identidades pela base de código — diferentes convenções de nomenclatura, diferentes nomes de campos, diferentes padrões de acesso para o que é semanticamente a mesma coisa.</p>
+
+<p>Isso está relacionado a cicatrizes de compatibilidade, mas opera em um escopo mais amplo. Uma cicatriz de compatibilidade é localizada em um arquivo. Uma identidade dividida é um conceito que está fragmentado por toda uma camada de serviço.</p>
+
+<p>Quando ambos os detectores disparam no mesmo código, o sistema guardião do Zeus Shield os <strong>colapsa</strong> em um único pacote de investigação. A cicatriz de compatibilidade subsume as descobertas de identidade dividida, então agentes de IA recebem um item de revisão canônico em vez de ruído duplicado.</p>
+
+<h2 id="the-calibration-philosophy">A Filosofia de Calibração</h2>
+
+<p>Cada regra de detecção no AigisCode segue um protocolo rigoroso de calibração:</p>
+
+<ol>
+<li><strong>WordPress deve pontuar zero.</strong> Se o detector marca internos do core do WordPress, a detecção está errada.</li>
+<li><strong>Django deve pontuar zero.</strong> Mesmo princípio — código de framework usa abstrações densas legitimamente.</li>
+<li><strong>Código empresarial real deve pontuar acima de zero.</strong> Se o detector não consegue encontrar problemas reais em uma aplicação empresarial de 5.000 arquivos, ele não é útil.</li>
+<li><strong>Todo novo subtipo deve passar na suíte de regressão.</strong> Adicionar uma nova detecção não deve causar regressão na calibração existente.</li>
+</ol>
+
+<p>Essa filosofia significa que lançamos menos detectores que os concorrentes. Mas os detectores que lançamos produzem descobertas nas quais você pode realmente agir.</p>
+
+<h2 id="try-it">Experimente em Sua Base de Código</h2>
+
+<p>Todos os detectores de engenharia excessiva estão incluídos em toda execução do AigisCode:</p>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Verifique <code>.aigiscode/architecture-surface.json</code> para o detalhamento completo de proliferação de abstrações, parsing artesanal, cicatrizes de compatibilidade e descobertas de identidade dividida. O <code>.aigiscode/aigiscode-handoff.json</code> fornece pacotes guardiões com recomendações respaldadas pela doutrina para cada hotspot.</p>
+`,
+      ar: `
+<p>كل قاعدة كود فيها مناطق بنى فيها شخص ما أكثر مما يلزم. محلل استعلامات مخصص عندما يكفي ORM. سجل أنواع إشعارات مع محلل ومنشئ ومترجم خاص به عندما يفي تعداد بسيط بالغرض. مجدول DSL محلي الصنع عندما تتعامل قائمة انتظار المهام الأصلية للإطار مع نفس حالة الاستخدام.</p>
+
+<p>هذه ليست أخطاء. الكود يعمل. لكنها تمثل <strong>تعقيداً غير ضروري</strong> — تجريد يضيف تكلفة صيانة بدون قيمة متناسبة. اكتشاف هذا تلقائياً، بدون الغرق في الإيجابيات الكاذبة، هو أحد أصعب المشاكل في التحليل الثابت.</p>
+
+<p>إليك كيف تعاملنا معه في AigisCode.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">مشكلة اكتشاف الهندسة المفرطة</h2>
+
+<p>لاكتشاف الهندسة المفرطة تحدٍّ جوهري في المعايرة: نفس الأنماط التي تشير إلى الهندسة المفرطة في كود التطبيق هي <em>صحيحة وضرورية</em> في كود الإطار.</p>
+
+<p>مجموعة service/builder/registry/resolver في تطبيق Laravel قد تكون تجريداً غير ضروري. نفس النمط بالضبط داخل ORM الخاص بـ Django هو الإطار يؤدي عمله. أي كاشف يُعلّم عناصر Django أو WordPress الداخلية كهندسة مفرطة ينتج ضوضاء، وليس إشارة.</p>
+
+<h2 id="abstraction-sprawl">انتشار التجريد</h2>
+
+<p>أول كاشف للهندسة المفرطة هو <strong>AbstractionSprawl</strong>. يحدد الملفات التي تشارك في مجموعات تجريد كثيفة الأدوار حيث مفردات الأنماط (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) كثيفة نسبة إلى العمل الفعلي في المجال.</p>
+
+<p>نتائج المعايرة:</p>
+
+<table>
+<thead>
+<tr><th>قاعدة الكود</th><th>عدد انتشار التجريد</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendar, notifications, templates)</td></tr>
+</tbody>
+</table>
+
+<p>صفر إيجابيات كاذبة على كود الإطار. ثلاث نقاط ساخنة حقيقية في التطبيق المؤسسي.</p>
+
+<h2 id="hand-rolled-parsing">التحليل المكتوب يدوياً واللغات المخصصة</h2>
+
+<p>عائلة كاشف <strong>HandRolledParsing</strong> تحدد قواعد الكود التي تبني لغاتها المصغرة الخاصة المعتمدة على النصوص عندما توجد بدائل مجربة. تتعرف على أربعة أنواع فرعية: المحللات المخصصة، التحقق المخصص من المخططات، محركات التعريف المخصصة، ولغات DSL المجدولة المخصصة.</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">ندبات التوافق</h2>
+
+<p><strong>CompatibilityScar</strong> هو ملف يجمع تمثيلات متعددة ومتنافسة لنفس المفهوم، مع غراء توافق وتطبيع بينها.</p>
+
+<h2 id="split-identity-models">نماذج الهوية المنقسمة</h2>
+
+<p><strong>SplitIdentityModel</strong> يكتشف عندما يوجد مفهوم مجال تحت هويات متعددة عبر قاعدة الكود. عندما يُطلق كلا الكاشفين على نفس الكود، نظام الحراسة في Zeus Shield <strong>يدمجهما</strong> في حزمة تحقيق واحدة.</p>
+
+<h2 id="the-calibration-philosophy">فلسفة المعايرة</h2>
+
+<ol>
+<li><strong>WordPress يجب أن يسجل صفر.</strong></li>
+<li><strong>Django يجب أن يسجل صفر.</strong></li>
+<li><strong>الكود المؤسسي الحقيقي يجب أن يسجل غير صفر.</strong></li>
+<li><strong>كل نوع فرعي جديد يجب أن يجتاز مجموعة الانحدار.</strong></li>
+</ol>
+
+<h2 id="try-it">جرّبه على قاعدة الكود الخاصة بك</h2>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>تحقق من <code>.aigiscode/architecture-surface.json</code> للتحليل الكامل لانتشار التجريد، والتحليل المكتوب يدوياً، وندبات التوافق، ونتائج الهوية المنقسمة. يوفر <code>.aigiscode/aigiscode-handoff.json</code> حزم حراسة مع توصيات مدعومة بالعقيدة لكل نقطة ساخنة.</p>
+`,
+      pl: `
+<p>Każda baza kodu ma obszary, gdzie ktoś zbudował za dużo. Niestandardowy parser zapytań, gdy wystarczyłby ORM. Rejestr typów powiadomień z własnym resolverem, builderem i kompilatorem, gdy wystarczyłby prosty enum. Własnoręcznie napisany harmonogram DSL, gdy natywna kolejka zadań frameworka obsługuje ten sam przypadek użycia.</p>
+
+<p>To nie są błędy. Kod działa. Ale reprezentują <strong>niepotrzebną złożoność</strong> — abstrakcję, która dodaje koszt utrzymania bez proporcjonalnej wartości. Automatyczne wykrywanie tego, bez tonięcia w fałszywych pozytywach, jest jednym z najtrudniejszych problemów w analizie statycznej.</p>
+
+<p>Oto jak podeszliśmy do tego w AigisCode.</p>
+
+<h2 id="the-problem-with-detecting-overengineering">Problem z wykrywaniem nadmiernej inżynierii</h2>
+
+<p>Wykrywanie nadmiernej inżynierii ma fundamentalne wyzwanie kalibracyjne: te same wzorce, które wskazują na nadmierną inżynierię w kodzie aplikacji, są <em>poprawne i konieczne</em> w kodzie frameworka.</p>
+
+<p>Klaster service/builder/registry/resolver w aplikacji Laravel może być niepotrzebną abstrakcją. Dokładnie ten sam wzorzec wewnątrz ORM Django to framework wykonujący swoją pracę.</p>
+
+<h2 id="abstraction-sprawl">Rozrost abstrakcji</h2>
+
+<p>Nasz pierwszy detektor nadmiernej inżynierii to <strong>AbstractionSprawl</strong>. Identyfikuje pliki uczestniczące w klastrach abstrakcji o dużej gęstości ról, gdzie słownictwo wzorców (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) jest gęste w stosunku do faktycznej pracy domenowej.</p>
+
+<p>Wyniki kalibracji:</p>
+
+<table>
+<thead>
+<tr><th>Baza kodu</th><th>Liczba rozrostu abstrakcji</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendar, notifications, templates)</td></tr>
+</tbody>
+</table>
+
+<p>Zero fałszywych pozytywów na kodzie frameworka. Trzy rzeczywiste hotspoty w aplikacji korporacyjnej.</p>
+
+<h2 id="hand-rolled-parsing">Ręczne parsowanie i niestandardowe DSL</h2>
+
+<p>Rodzina detektorów <strong>HandRolledParsing</strong> identyfikuje bazy kodu budujące własne mini-języki oparte na łańcuchach znaków, gdy istnieją sprawdzone alternatywy. Rozpoznaje cztery podtypy: niestandardowe parsery, niestandardowa walidacja schematów, niestandardowe silniki definicji i niestandardowe DSL harmonogramów.</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">Blizny kompatybilności</h2>
+
+<p><strong>CompatibilityScar</strong> to plik centralizujący wiele konkurujących reprezentacji tego samego konceptu, z klejem kompatybilności i normalizacji między nimi.</p>
+
+<h2 id="split-identity-models">Modele podzielonej tożsamości</h2>
+
+<p><strong>SplitIdentityModel</strong> wykrywa, gdy koncept domenowy istnieje pod wieloma tożsamościami w całej bazie kodu. Gdy oba detektory uruchamiają się na tym samym kodzie, system strażniczy Zeus Shield <strong>scala je</strong> w pojedynczy pakiet dochodzeniowy.</p>
+
+<h2 id="the-calibration-philosophy">Filozofia kalibracji</h2>
+
+<ol>
+<li><strong>WordPress musi mieć wynik zero.</strong></li>
+<li><strong>Django musi mieć wynik zero.</strong></li>
+<li><strong>Rzeczywisty kod korporacyjny musi mieć wynik niezerowy.</strong></li>
+<li><strong>Każdy nowy podtyp musi przejść zestaw regresji.</strong></li>
+</ol>
+
+<h2 id="try-it">Wypróbuj na swojej bazie kodu</h2>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>Sprawdź <code>.aigiscode/architecture-surface.json</code> dla pełnego rozbicia rozrostu abstrakcji, ręcznego parsowania, blizn kompatybilności i znalezisk podzielonej tożsamości. <code>.aigiscode/aigiscode-handoff.json</code> zapewnia pakiety strażnicze z rekomendacjami wspieranymi doktryną dla każdego hotspotu.</p>
+`,
+      bn: `
+<p>প্রতিটি কোডবেসে এমন অঞ্চল আছে যেখানে কেউ প্রয়োজনের চেয়ে বেশি তৈরি করেছে। একটি কাস্টম কুয়েরি পার্সার যখন একটি ORM যথেষ্ট হতো। একটি নোটিফিকেশন টাইপ রেজিস্ট্রি তার নিজস্ব রিজলভার, বিল্ডার এবং কম্পাইলার সহ যখন একটি সাধারণ enum কাজ করত। একটি নিজে তৈরি শিডিউলার DSL যখন ফ্রেমওয়ার্কের নেটিভ জব কিউ একই ব্যবহারের ক্ষেত্র সামলায়।</p>
+
+<p>এগুলো বাগ নয়। কোড কাজ করে। কিন্তু এগুলো <strong>অপ্রয়োজনীয় জটিলতা</strong> উপস্থাপন করে — অ্যাবস্ট্রাকশন যা আনুপাতিক মূল্য ছাড়াই রক্ষণাবেক্ষণ খরচ যোগ করে। ফলস পজিটিভে না ডুবে এটি স্বয়ংক্রিয়ভাবে সনাক্ত করা স্ট্যাটিক অ্যানালাইসিসের সবচেয়ে কঠিন সমস্যাগুলোর একটি।</p>
+
+<p>এখানে আমরা AigisCode-এ কিভাবে এটি মোকাবেলা করেছি।</p>
+
+<h2 id="the-problem-with-detecting-overengineering">ওভারইঞ্জিনিয়ারিং সনাক্তকরণের সমস্যা</h2>
+
+<p>ওভারইঞ্জিনিয়ারিং সনাক্তকরণে একটি মৌলিক ক্যালিব্রেশন চ্যালেঞ্জ আছে: অ্যাপ্লিকেশন কোডে যে প্যাটার্নগুলো ওভারইঞ্জিনিয়ারিং নির্দেশ করে সেগুলোই ফ্রেমওয়ার্ক কোডে <em>সঠিক এবং প্রয়োজনীয়</em>।</p>
+
+<h2 id="abstraction-sprawl">অ্যাবস্ট্রাকশন স্প্রল</h2>
+
+<p>আমাদের প্রথম ওভারইঞ্জিনিয়ারিং ডিটেক্টর হল <strong>AbstractionSprawl</strong>। এটি এমন ফাইলগুলো চিহ্নিত করে যা রোল-ভারী অ্যাবস্ট্রাকশন ক্লাস্টারে অংশগ্রহণ করে যেখানে প্যাটার্ন শব্দভাণ্ডার (Service, Builder, Registry, Resolver, Factory, Handler, Manager, Provider, Adapter, Transformer, Normalizer) প্রকৃত ডোমেইন কাজের তুলনায় ঘন।</p>
+
+<p>ক্যালিব্রেশন ফলাফল:</p>
+
+<table>
+<thead>
+<tr><th>কোডবেস</th><th>অ্যাবস্ট্রাকশন স্প্রল কাউন্ট</th></tr>
+</thead>
+<tbody>
+<tr><td>WordPress (<code>wp-admin/includes</code>)</td><td>0</td></tr>
+<tr><td>Django (<code>django/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>resources/</code>)</td><td>0</td></tr>
+<tr><td>NewERP (<code>app/Services/</code>)</td><td>3 (calendar, notifications, templates)</td></tr>
+</tbody>
+</table>
+
+<p>ফ্রেমওয়ার্ক কোডে শূন্য ফলস পজিটিভ। এন্টারপ্রাইজ অ্যাপ্লিকেশনে তিনটি বাস্তব হটস্পট।</p>
+
+<h2 id="hand-rolled-parsing">হাতে লেখা পার্সিং এবং কাস্টম DSL</h2>
+
+<p><strong>HandRolledParsing</strong> ডিটেক্টর পরিবার এমন কোডবেসগুলো চিহ্নিত করে যা যুদ্ধ-পরীক্ষিত বিকল্প থাকা সত্ত্বেও নিজেদের স্ট্রিং-চালিত মিনি-ভাষা তৈরি করে। এটি চারটি সাবটাইপ চিনতে পারে: কাস্টম পার্সার, কাস্টম স্কিমা ভ্যালিডেশন, কাস্টম ডেফিনিশন ইঞ্জিন, এবং কাস্টম শিডিউলার DSL।</p>
+
+<pre><code>// Detected: homegrown scheduler DSL
+// File: Jobs/ScheduledJobExecutor.php
+// Preferred mechanism: framework_scheduler_or_queue
+// Doctrine: guardian.avoid-homegrown-scheduler-dsl
+</code></pre>
+
+<h2 id="compatibility-scars">কম্প্যাটিবিলিটি স্কার</h2>
+
+<p>একটি <strong>CompatibilityScar</strong> হল এমন একটি ফাইল যা একই ধারণার একাধিক প্রতিযোগী উপস্থাপনা কেন্দ্রীভূত করে, তাদের মধ্যে কম্প্যাটিবিলিটি এবং নরমালাইজেশন গ্লু সহ।</p>
+
+<h2 id="split-identity-models">স্প্লিট-আইডেন্টিটি মডেল</h2>
+
+<p><strong>SplitIdentityModel</strong> সনাক্ত করে যখন একটি ডোমেইন ধারণা কোডবেস জুড়ে একাধিক পরিচয়ের অধীনে বিদ্যমান থাকে। যখন উভয় ডিটেক্টর একই কোডে ফায়ার করে, Zeus Shield-এর গার্ডিয়ান সিস্টেম সেগুলোকে একটি একক তদন্ত প্যাকেটে <strong>একত্রিত করে</strong>।</p>
+
+<h2 id="the-calibration-philosophy">ক্যালিব্রেশন দর্শন</h2>
+
+<ol>
+<li><strong>WordPress-এ স্কোর শূন্য হতে হবে।</strong></li>
+<li><strong>Django-তে স্কোর শূন্য হতে হবে।</strong></li>
+<li><strong>বাস্তব এন্টারপ্রাইজ কোডে স্কোর অ-শূন্য হতে হবে।</strong></li>
+<li><strong>প্রতিটি নতুন সাবটাইপকে রিগ্রেশন স্যুট পাস করতে হবে।</strong></li>
+</ol>
+
+<h2 id="try-it">আপনার কোডবেসে চেষ্টা করুন</h2>
+
+<pre><code>curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash
+aigiscode analyze /path/to/your/project
+</code></pre>
+
+<p>অ্যাবস্ট্রাকশন স্প্রল, হাতে লেখা পার্সিং, কম্প্যাটিবিলিটি স্কার এবং স্প্লিট-আইডেন্টিটি ফলাফলের সম্পূর্ণ বিশ্লেষণের জন্য <code>.aigiscode/architecture-surface.json</code> পরীক্ষা করুন। <code>.aigiscode/aigiscode-handoff.json</code> প্রতিটি হটস্পটের জন্য ডকট্রিন-সমর্থিত সুপারিশ সহ গার্ডিয়ান প্যাকেট প্রদান করে।</p>
+`,
+    },
+  },
+
+  /* ======================================================================== */
   /*  0. Building a Semantic Code Graph in Rust                               */
   /* ======================================================================== */
   {
