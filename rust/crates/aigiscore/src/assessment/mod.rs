@@ -506,6 +506,7 @@ struct AbstractionSprawlAccumulator {
 struct HandRolledParsingAccumulator {
     file_roles: HashMap<PathBuf, BTreeSet<String>>,
     file_scores: HashMap<PathBuf, usize>,
+    file_concepts: HashMap<PathBuf, BTreeSet<String>>,
 }
 
 fn detect_duplicate_mechanisms(
@@ -947,6 +948,7 @@ fn detect_hand_rolled_parsing(
         if roles.is_empty() || score < parsing_role_minimum_score(&roles) {
             continue;
         }
+        let concepts = parsing_concepts(path);
         let directory = path.parent().map(Path::to_path_buf).unwrap_or_default();
         let group = groups.entry(directory).or_default();
         group
@@ -954,6 +956,11 @@ fn detect_hand_rolled_parsing(
             .entry(path.clone())
             .or_default()
             .extend(roles.iter().cloned());
+        group
+            .file_concepts
+            .entry(path.clone())
+            .or_default()
+            .extend(concepts);
         *group.file_scores.entry(path.clone()).or_default() += score;
     }
 
@@ -969,12 +976,53 @@ fn detect_hand_rolled_parsing(
                 .values()
                 .flat_map(|roles| roles.iter().cloned())
                 .collect::<BTreeSet<_>>();
-            if !role_set.iter().any(|role| is_primary_parsing_role(role)) || role_set.len() < 2 {
+            let concept_set = group
+                .file_concepts
+                .values()
+                .flat_map(|concepts| concepts.iter().cloned())
+                .collect::<BTreeSet<_>>();
+            let is_primary_parser_cluster =
+                role_set.iter().any(|role| is_primary_parsing_role(role)) && role_set.len() >= 2;
+            let is_contract_stack_cluster = role_set.len() >= 3
+                && role_set.iter().any(|role| is_contract_stack_role(role))
+                && role_set
+                    .iter()
+                    .any(|role| matches!(role.as_str(), "resolver" | "definition" | "normalizer"))
+                && concept_set.is_empty().not();
+            let is_schema_validation_cluster = is_contract_stack_cluster
+                && role_set.iter().any(|role| role == "validator")
+                && role_set
+                    .iter()
+                    .any(|role| matches!(role.as_str(), "definition" | "normalizer"))
+                && concept_set
+                    .iter()
+                    .any(|concept| matches!(concept.as_str(), "preference" | "schema"));
+            let is_definition_engine_cluster = is_primary_parser_cluster.not()
+                && role_set.len() >= 3
+                && role_set.iter().any(|role| role == "definition")
+                && role_set.iter().any(|role| role == "validator").not()
+                && role_set
+                    .iter()
+                    .any(|role| matches!(role.as_str(), "resolver" | "normalizer"))
+                && group.file_roles.len() >= 3;
+            if !is_primary_parser_cluster
+                && !is_contract_stack_cluster
+                && !is_definition_engine_cluster
+            {
                 return None;
             }
 
             let total_score = group.file_scores.values().sum::<usize>();
-            if total_score < 8 {
+            let minimum_total_score = if is_primary_parser_cluster {
+                8
+            } else if is_definition_engine_cluster {
+                5
+            } else if is_contract_stack_cluster {
+                5
+            } else {
+                8
+            };
+            if total_score < minimum_total_score {
                 return None;
             }
 
@@ -1016,11 +1064,25 @@ fn detect_hand_rolled_parsing(
             let mut related_identifiers =
                 vec![format!("directory:{}", normalized_path(&directory))];
             related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
+            related_identifiers.extend(
+                concept_set
+                    .iter()
+                    .take(4)
+                    .map(|concept| format!("concept:{concept}")),
+            );
             let mut warning_families = role_set
                 .iter()
                 .map(|role| format!("parsing_role:{role}"))
                 .collect::<Vec<_>>();
-            warning_families.push(String::from("concern:custom_parsing"));
+            warning_families.push(String::from(if is_schema_validation_cluster {
+                "concern:custom_schema_validation"
+            } else if is_definition_engine_cluster {
+                "concern:custom_definition_engine"
+            } else if is_contract_stack_cluster {
+                "concern:custom_contract_stack"
+            } else {
+                "concern:custom_parsing"
+            }));
 
             let severity = (360
                 + (role_set.len().min(5) * 80)
@@ -1043,6 +1105,10 @@ fn detect_hand_rolled_parsing(
             })
         })
         .collect::<Vec<_>>();
+    findings.extend(detect_scheduler_dsl_stacks(
+        &bottleneck_by_path,
+        parsed_sources,
+    ));
 
     findings.sort_by(|left, right| {
         right
@@ -1051,6 +1117,128 @@ fn detect_hand_rolled_parsing(
             .then(left.file_path.cmp(&right.file_path))
     });
     findings
+}
+
+fn detect_scheduler_dsl_stacks(
+    bottleneck_by_path: &HashMap<PathBuf, u32>,
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<ArchitecturalAssessmentFinding> {
+    let mut ranked_files = parsed_sources
+        .iter()
+        .filter_map(|(path, content)| {
+            if is_low_signal_identity_path(path) {
+                return None;
+            }
+            let roles = scheduler_stack_roles(path);
+            if roles.is_empty() {
+                return None;
+            }
+            let concepts = scheduler_stack_concepts(path, content);
+            if concepts.is_empty() {
+                return None;
+            }
+            let score = scheduler_stack_score(content);
+            if score < scheduler_stack_minimum_score(&roles) {
+                return None;
+            }
+            let centrality = bottleneck_by_path.get(path).copied().unwrap_or_default();
+            let primary_bonus = scheduler_stack_primary_bonus(&roles);
+            Some((
+                path.clone(),
+                roles,
+                concepts,
+                score,
+                centrality,
+                primary_bonus,
+            ))
+        })
+        .collect::<Vec<_>>();
+
+    if ranked_files.len() < 2 {
+        return Vec::new();
+    }
+
+    let role_set = ranked_files
+        .iter()
+        .flat_map(|(_, roles, _, _, _, _)| roles.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    if !role_set.contains("registry")
+        || role_set.iter().all(|role| {
+            !matches!(
+                role.as_str(),
+                "executor" | "scheduler" | "command" | "runner"
+            )
+        })
+    {
+        return Vec::new();
+    }
+
+    let concept_set = ranked_files
+        .iter()
+        .flat_map(|(_, _, concepts, _, _, _)| concepts.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    let total_score = ranked_files
+        .iter()
+        .map(|(_, _, _, score, _, _)| *score)
+        .sum::<usize>();
+    if total_score < 6 {
+        return Vec::new();
+    }
+
+    ranked_files.sort_by(|left, right| {
+        right
+            .4
+            .cmp(&left.4)
+            .then(right.5.cmp(&left.5))
+            .then(right.3.cmp(&left.3))
+            .then(right.1.len().cmp(&left.1.len()))
+            .then(left.0.cmp(&right.0))
+    });
+
+    let Some((primary_file, _, _, primary_score, primary_centrality, _)) = ranked_files.first()
+    else {
+        return Vec::new();
+    };
+
+    let related_file_paths = ranked_files
+        .iter()
+        .skip(1)
+        .take(6)
+        .map(|(path, _, _, _, _, _)| path.clone())
+        .collect::<Vec<_>>();
+    let mut related_identifiers = vec![String::from("concern:scheduler")];
+    related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
+    related_identifiers.extend(
+        concept_set
+            .iter()
+            .take(4)
+            .map(|concept| format!("concept:{concept}")),
+    );
+    let mut warning_families = role_set
+        .iter()
+        .map(|role| format!("parsing_role:{role}"))
+        .collect::<Vec<_>>();
+    warning_families.push(String::from("concern:custom_scheduler_dsl"));
+
+    let severity = (420
+        + (role_set.len().min(5) * 80)
+        + (ranked_files.len().min(4) * 100)
+        + (total_score.min(12) * 18)
+        + ((*primary_centrality / 250).min(140) as usize))
+        .min(1000) as u16;
+
+    vec![ArchitecturalAssessmentFinding {
+        kind: ArchitecturalAssessmentKind::HandRolledParsing,
+        file_path: primary_file.clone(),
+        related_file_paths,
+        related_identifiers,
+        warning_count: ranked_files.len(),
+        warning_weight: total_score.max(*primary_score),
+        bottleneck_centrality_millis: *primary_centrality,
+        warning_families,
+        severity_millis: severity,
+        fingerprint: String::new(),
+    }]
 }
 
 fn sanctioned_config_markers(content: &str) -> Vec<String> {
@@ -1213,6 +1401,12 @@ fn parsing_primitive_score(content: &str) -> usize {
 fn parsing_role_minimum_score(roles: &BTreeSet<String>) -> usize {
     if roles.iter().any(|role| is_primary_parsing_role(role)) {
         3
+    } else if roles.iter().all(|role| role != "validator")
+        && roles
+            .iter()
+            .any(|role| matches!(role.as_str(), "definition" | "resolver" | "normalizer"))
+    {
+        1
     } else {
         2
     }
@@ -1237,6 +1431,122 @@ fn is_parsing_role(word: &str) -> bool {
 
 fn is_primary_parsing_role(word: &str) -> bool {
     matches!(word, "parser" | "tokenizer" | "lexer" | "scanner")
+}
+
+fn is_contract_stack_role(word: &str) -> bool {
+    matches!(
+        word,
+        "validator" | "resolver" | "definition" | "normalizer" | "matcher"
+    )
+}
+
+fn scheduler_stack_roles(path: &Path) -> BTreeSet<String> {
+    let mut roles = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        roles.extend(split_identifier_words(stem).into_iter().filter(|word| {
+            matches!(
+                word.as_str(),
+                "registry" | "executor" | "scheduler" | "command" | "controller" | "runner"
+            )
+        }));
+    }
+    roles
+}
+
+fn scheduler_stack_score(content: &str) -> usize {
+    scheduler_stack_pattern().find_iter(content).count()
+}
+
+fn scheduler_stack_minimum_score(roles: &BTreeSet<String>) -> usize {
+    if roles.iter().any(|role| {
+        matches!(
+            role.as_str(),
+            "executor" | "scheduler" | "command" | "runner"
+        )
+    }) {
+        2
+    } else {
+        1
+    }
+}
+
+fn scheduler_stack_primary_bonus(roles: &BTreeSet<String>) -> usize {
+    roles
+        .iter()
+        .filter(|role| {
+            matches!(
+                role.as_str(),
+                "executor" | "scheduler" | "command" | "runner"
+            )
+        })
+        .count()
+}
+
+fn scheduler_stack_concepts(path: &Path, content: &str) -> BTreeSet<String> {
+    let mut concepts = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        concepts.extend(
+            split_identifier_words(stem)
+                .into_iter()
+                .filter(|word| matches!(word.as_str(), "job" | "schedule" | "scheduled" | "cron")),
+        );
+    }
+    let normalized = content.to_ascii_lowercase();
+    if normalized.contains("scheduled job") || normalized.contains("scheduled-job") {
+        concepts.insert(String::from("scheduled"));
+        concepts.insert(String::from("job"));
+    }
+    if normalized.contains("cronexpression") || normalized.contains("cron") {
+        concepts.insert(String::from("cron"));
+    }
+    if normalized.contains("schedule:run") || normalized.contains("scheduling") {
+        concepts.insert(String::from("schedule"));
+    }
+    concepts
+}
+
+fn scheduler_stack_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| {
+        Regex::new(
+            r#"(?i)cronexpression|schedule:run|scheduled_jobs|scheduled[- ]job|config\('jobs|config\("jobs|manifest\['jobs'\]|artisan::call|dispatch\s*\(\s*new\s+[A-Za-z_\\]|cache::lock|->isdue\("#,
+        )
+        .expect("scheduler stack pattern should compile")
+    })
+}
+
+fn parsing_concepts(path: &Path) -> BTreeSet<String> {
+    let mut concepts = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        concepts.extend(parsing_concepts_from_words(split_identifier_words(stem)));
+    }
+    if let Some(parent) = path.parent().and_then(|parent| parent.file_name()) {
+        if let Some(parent) = parent.to_str() {
+            concepts.extend(parsing_concepts_from_words(split_identifier_words(parent)));
+        }
+    }
+    concepts
+}
+
+fn parsing_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
+    words
+        .into_iter()
+        .filter(|word| {
+            matches!(
+                word.as_str(),
+                "filter"
+                    | "query"
+                    | "contract"
+                    | "definition"
+                    | "schema"
+                    | "criteria"
+                    | "sort"
+                    | "order"
+                    | "rule"
+                    | "preference"
+            )
+        })
+        .collect()
 }
 
 fn is_abstraction_role(word: &str) -> bool {
@@ -1427,7 +1737,7 @@ fn parsing_primitive_pattern() -> &'static Regex {
     static PARSING_PRIMITIVE_PATTERN: OnceLock<Regex> = OnceLock::new();
     PARSING_PRIMITIVE_PATTERN.get_or_init(|| {
         Regex::new(
-            r"(?i)(json_decode|json_encode|preg_match|preg_replace|preg_split|explode\s*\(|split\s*\(|trim\s*\(|substr\s*\(|str_starts_with\s*\(|str_ends_with\s*\(|parse[A-Z][A-Za-z0-9_]*\s*\(|tokeni[sz]e\s*\(|regex|pattern\b|matcher\b|validate[A-Z][A-Za-z0-9_]*\s*\()",
+            r#"(?i)(json_decode|json_encode|preg_match|preg_replace|preg_split|explode\s*\(|split\s*\(|trim\s*\(|substr\s*\(|str_starts_with\s*\(|str_ends_with\s*\(|parse[A-Z][A-Za-z0-9_]*\s*\(|tokeni[sz]e\s*\(|regex|pattern\b|matcher\b|validate[A-Z][A-Za-z0-9_]*\s*\(|\$schema\s*\[\s*['"](type|enum|required|properties|items|nullable|minlength|maxlength|min|max)['"]\s*\]|['"](type|enum|required|properties|items|nullable|minlength|maxlength|min|max)['"]\s*=>|assert[A-Z][A-Za-z0-9_]*Schema\s*\(|array_key_exists\s*\()"#,
         )
         .unwrap()
     })
@@ -2147,6 +2457,95 @@ def build_report():
     }
 
     #[test]
+    fn detects_homegrown_scheduler_dsl_stack() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Services/Jobs/ScheduledJobExecutor.php"),
+                    centrality_millis: 480,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Services/Settings/JobRegistry.php"),
+                    String::from(
+                        r#"
+                        final class JobRegistry {
+                            public function getJobs(): array {
+                                $jobs = config('jobs.jobs', []);
+                                foreach ($this->moduleRegistry->getEnabledModules() as $module) {
+                                    $manifestJobs = $module['manifest']['jobs'] ?? [];
+                                    $jobs = array_merge($jobs, $manifestJobs);
+                                }
+                                return $jobs;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Jobs/ScheduledJobExecutor.php"),
+                    String::from(
+                        r#"
+                        final class ScheduledJobExecutor {
+                            public function execute(array $config): string {
+                                $command = $config['command'] ?? '';
+                                $exitCode = Artisan::call($command);
+                                dispatch(new SyncTenantJob());
+                                return (string) $exitCode;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Console/Commands/ErpScheduledJobsRunCommand.php"),
+                    String::from(
+                        r#"
+                        final class ErpScheduledJobsRunCommand {
+                            public function handle(): int {
+                                $expression = new CronExpression('* * * * *');
+                                if ($expression->isDue(now())) {
+                                    Cache::lock('scheduled_job:tenant:sync', 900);
+                                }
+                                return 0;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::HandRolledParsing
+                    && finding
+                        .warning_families
+                        .contains(&String::from("concern:custom_scheduler_dsl"))
+            })
+            .expect("expected homegrown scheduler dsl finding");
+        assert!(finding
+            .warning_families
+            .contains(&String::from("parsing_role:registry")));
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "parsing_role:executor" || family == "parsing_role:command"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier == "concept:schedule" || identifier == "concept:job"));
+    }
+
+    #[test]
     fn ignores_single_parser_file_without_cluster() {
         let assessment = build_architectural_assessment(
             &GraphAnalysis::default(),
@@ -2171,6 +2570,172 @@ def build_report():
             .findings
             .iter()
             .all(|finding| finding.kind != ArchitecturalAssessmentKind::HandRolledParsing));
+    }
+
+    #[test]
+    fn detects_hand_rolled_contract_stack_without_primary_parser_role() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Services/Filter/FilterDefinitionResolver.php"),
+                    centrality_millis: 520,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Services/Filter/FilterValidator.php"),
+                    String::from(
+                        r#"
+                        final class FilterValidator {
+                            public function validateOperator(string $operator): bool {
+                                return preg_match('/^[a-z_]+$/', $operator) === 1;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Filter/FilterDefinitionResolver.php"),
+                    String::from(
+                        r#"
+                        final class FilterDefinitionResolver {
+                            public function resolve(string $name): array {
+                                $normalized = trim($name);
+                                return ['key' => substr($normalized, 0, 10)];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Filter/FilterNormalizer.php"),
+                    String::from(
+                        r#"
+                        final class FilterNormalizer {
+                            public function normalize(string $value): string {
+                                return substr(trim(strtolower($value)), 0, 32);
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| finding.kind == ArchitecturalAssessmentKind::HandRolledParsing)
+            .expect("expected hand-rolled parsing finding");
+        assert_eq!(
+            finding.file_path,
+            PathBuf::from("app/Services/Filter/FilterDefinitionResolver.php")
+        );
+        assert!(finding
+            .warning_families
+            .contains(&String::from("concern:custom_contract_stack")));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier == "concept:filter"));
+    }
+
+    #[test]
+    fn detects_homegrown_schema_validation_stack() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from(
+                        "app/Modules/Preferences/Services/PreferenceValueValidator.php",
+                    ),
+                    centrality_millis: 480,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Modules/Preferences/Services/PreferenceDefinition.php"),
+                    String::from(
+                        r#"
+                        final class PreferenceDefinition {
+                            public array $schema = [
+                                'type' => 'object',
+                                'required' => ['mode'],
+                                'properties' => ['mode' => ['type' => 'string']],
+                            ];
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Modules/Preferences/Services/PreferenceValueValidator.php"),
+                    String::from(
+                        r#"
+                        final class PreferenceValueValidator {
+                            public function validate(PreferenceDefinition $definition, mixed $value): void {
+                                $schema = $definition->schema;
+                                $this->assertMatchesSchema($value, $schema);
+                            }
+
+                            private function assertMatchesSchema(mixed $value, array $schema): void {
+                                if (array_key_exists('enum', $schema)) {}
+                                if (($schema['nullable'] ?? false) && $value === null) { return; }
+                                if (($schema['type'] ?? null) === 'object') {
+                                    $this->assertObjectSchema($value, $schema);
+                                }
+                            }
+
+                            private function assertObjectSchema(mixed $value, array $schema): void {
+                                $properties = $schema['properties'] ?? [];
+                                $required = $schema['required'] ?? [];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Modules/Preferences/Services/PreferenceValueNormalizer.php"),
+                    String::from(
+                        r#"
+                        final class PreferenceValueNormalizer {
+                            public function normalize(array $schema, mixed $value): mixed {
+                                if (($schema['type'] ?? null) === 'string') {
+                                    return trim((string) $value);
+                                }
+                                return $value;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| finding.kind == ArchitecturalAssessmentKind::HandRolledParsing)
+            .expect("expected hand-rolled parsing finding");
+        assert_eq!(
+            finding.file_path,
+            PathBuf::from("app/Modules/Preferences/Services/PreferenceValueValidator.php")
+        );
+        assert!(finding
+            .warning_families
+            .contains(&String::from("concern:custom_schema_validation")));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier == "concept:preference"));
     }
 
     #[test]

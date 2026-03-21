@@ -797,6 +797,22 @@ fn surface_finding_from_architectural_assessment(
         ArchitecturalAssessmentKind::HandRolledParsing => {
             let mut file_paths = vec![finding.file_path.clone()];
             file_paths.extend(finding.related_file_paths.clone());
+            let is_contract_stack = finding
+                .warning_families
+                .iter()
+                .any(|family| family == "concern:custom_contract_stack");
+            let is_schema_validation = finding
+                .warning_families
+                .iter()
+                .any(|family| family == "concern:custom_schema_validation");
+            let is_definition_engine = finding
+                .warning_families
+                .iter()
+                .any(|family| family == "concern:custom_definition_engine");
+            let is_scheduler_dsl = finding
+                .warning_families
+                .iter()
+                .any(|family| family == "concern:custom_scheduler_dsl");
             SurfaceFinding {
                 id: format!(
                     "architecture:hand-rolled-parsing:{}:{}",
@@ -808,10 +824,29 @@ fn surface_finding_from_architectural_assessment(
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
-                title: String::from("Hand-rolled parsing"),
+                title: String::from(if is_schema_validation {
+                    "Homegrown schema validation"
+                } else if is_scheduler_dsl {
+                    "Homegrown scheduler DSL"
+                } else if is_definition_engine {
+                    "Homegrown definition engine"
+                } else {
+                    "Hand-rolled parsing"
+                }),
                 summary: format!(
-                    "{} appears to own a custom parsing or mini-protocol stack ({})",
+                    "{} appears to own a custom {} ({})",
                     finding.file_path.display(),
+                    if is_schema_validation {
+                        "schema or validation contract stack"
+                    } else if is_scheduler_dsl {
+                        "scheduler or job-definition DSL"
+                    } else if is_definition_engine {
+                        "definition or metadata engine"
+                    } else if is_contract_stack {
+                        "contract stack"
+                    } else {
+                        "parsing or mini-protocol stack"
+                    },
                     finding.warning_families.join(", ")
                 ),
                 file_paths,
@@ -825,7 +860,15 @@ fn surface_finding_from_architectural_assessment(
                 ],
                 doctrine_refs: vec![
                     String::from("pattern.coherence"),
-                    String::from("guardian.avoid-homegrown-parser"),
+                    String::from(if is_schema_validation {
+                        "guardian.avoid-homegrown-schema-validation"
+                    } else if is_scheduler_dsl {
+                        "guardian.avoid-homegrown-scheduler-dsl"
+                    } else if is_definition_engine {
+                        "guardian.avoid-homegrown-definition-engine"
+                    } else {
+                        "guardian.avoid-homegrown-parser"
+                    }),
                     String::from("guardian.native-vs-library"),
                 ],
             }

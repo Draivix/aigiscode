@@ -1149,8 +1149,9 @@ pub fn build_guard_decision_artifact(
         });
     }
     if hand_rolled_parsing_regression {
-        let message =
-            String::from("Hand-rolled parsing pressure increased relative to the previous run.");
+        let message = String::from(
+            "Homegrown parsing or validation pressure increased relative to the previous run.",
+        );
         reasons.push(message.clone());
         doctrine_refs.insert(String::from("guardian.native-vs-library"));
         triggers.push(GuardDecisionTrigger {
@@ -1166,6 +1167,9 @@ pub fn build_guard_decision_artifact(
             doctrine_refs: vec![
                 String::from("guardian.native-vs-library"),
                 String::from("guardian.avoid-homegrown-parser"),
+                String::from("guardian.avoid-homegrown-definition-engine"),
+                String::from("guardian.avoid-homegrown-scheduler-dsl"),
+                String::from("guardian.avoid-homegrown-schema-validation"),
             ],
         });
     }
@@ -1694,7 +1698,7 @@ pub fn build_agent_handoff_artifact(
     }
     if hand_rolled_parsing_count > 0 {
         next_steps.push(format!(
-            "Review {} hand-rolled parsing hotspots and replace custom mini-language or regex parsing stacks with battle-tested native/framework/library mechanisms where possible.",
+            "Review {} hand-rolled parsing, schema-validation, scheduler-DSL, definition-engine, or contract-stack hotspots and replace custom mini-language, validator/resolver, scheduler/orchestration, schema-walker, or metadata-engine logic with battle-tested native/framework/library mechanisms where possible.",
             hand_rolled_parsing_count
         ));
     }
@@ -1873,8 +1877,15 @@ fn build_guardian_packets(
                 file
             ),
             target_files: vec![file.clone()],
-            primary_anchor: None,
-            evidence_anchors: Vec::new(),
+            primary_anchor: findings
+                .first()
+                .map(|finding| anchor(&finding.file_path, Some(finding.line), "primary")),
+            evidence_anchors: findings
+                .iter()
+                .skip(1)
+                .take(3)
+                .map(|finding| anchor(&finding.file_path, Some(finding.line), "supporting"))
+                .collect(),
             finding_ids: visible_security_ids,
             provenance: vec![
                 String::from("native_security"),
@@ -1970,7 +1981,11 @@ fn build_guardian_packets(
                         finding.warning_families.join(", ")
                     ),
                     target_files: vec![file],
-                    primary_anchor: None,
+                    primary_anchor: best_effort_anchor_for_file(
+                        &finding.file_path,
+                        analysis,
+                        "primary",
+                    ),
                     evidence_anchors: Vec::new(),
                     finding_ids: condensed_packet_finding_ids(&visible),
                     provenance: vec![
@@ -2052,8 +2067,14 @@ fn build_guardian_packets(
                         target_files.len()
                     ),
                     target_files,
-                    primary_anchor: None,
-                    evidence_anchors: Vec::new(),
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -2136,8 +2157,14 @@ fn build_guardian_packets(
                         finding.warning_count
                     ),
                     target_files,
-                    primary_anchor: None,
-                    evidence_anchors: Vec::new(),
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -2213,8 +2240,14 @@ fn build_guardian_packets(
                         finding.file_path.display()
                     ),
                     target_files,
-                    primary_anchor: None,
-                    evidence_anchors: Vec::new(),
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -2282,8 +2315,14 @@ fn build_guardian_packets(
                         finding.file_path.display()
                     ),
                     target_files,
-                    primary_anchor: None,
-                    evidence_anchors: Vec::new(),
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -2360,8 +2399,14 @@ fn build_guardian_packets(
                         finding.file_path.display()
                     ),
                     target_files,
-                    primary_anchor: None,
-                    evidence_anchors: Vec::new(),
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -2408,9 +2453,33 @@ fn build_guardian_packets(
                     finding.file_path.display(),
                     finding.related_identifiers.join("+")
                 );
+                let is_contract_stack = finding
+                    .warning_families
+                    .iter()
+                    .any(|family| family == "concern:custom_contract_stack");
+                let is_schema_validation = finding
+                    .warning_families
+                    .iter()
+                    .any(|family| family == "concern:custom_schema_validation");
+                let is_definition_engine = finding
+                    .warning_families
+                    .iter()
+                    .any(|family| family == "concern:custom_definition_engine");
+                let is_scheduler_dsl = finding
+                    .warning_families
+                    .iter()
+                    .any(|family| family == "concern:custom_scheduler_dsl");
                 let doctrine_refs = vec![
                     String::from("guardian.native-vs-library"),
-                    String::from("guardian.avoid-homegrown-parser"),
+                    String::from(if is_schema_validation {
+                        "guardian.avoid-homegrown-schema-validation"
+                    } else if is_scheduler_dsl {
+                        "guardian.avoid-homegrown-scheduler-dsl"
+                    } else if is_definition_engine {
+                        "guardian.avoid-homegrown-definition-engine"
+                    } else {
+                        "guardian.avoid-homegrown-parser"
+                    }),
                     String::from("guardian.overengineering"),
                 ];
                 let preferred_mechanism = guardian_packet_preferred_mechanism(
@@ -2434,12 +2503,29 @@ fn build_guardian_packets(
                     precision: String::from("heuristic"),
                     confidence_millis: finding.severity_millis,
                     summary: format!(
-                        "{} appears to own a homegrown parsing or mini-protocol stack. Verify whether a battle-tested native/framework/library mechanism should replace it.",
-                        finding.file_path.display()
+                        "{} appears to own a homegrown {}. Verify whether a battle-tested native/framework/library mechanism should replace it.",
+                        finding.file_path.display(),
+                        if is_schema_validation {
+                            "schema or validation contract stack"
+                        } else if is_scheduler_dsl {
+                            "scheduler or job-definition DSL"
+                        } else if is_definition_engine {
+                            "definition or metadata engine"
+                        } else if is_contract_stack {
+                            "contract stack"
+                        } else {
+                            "parsing or mini-protocol stack"
+                        }
                     ),
                     target_files,
-                    primary_anchor: None,
-                    evidence_anchors: Vec::new(),
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -2482,6 +2568,103 @@ fn build_guardian_packets(
     });
     packets.truncate(8);
     packets
+}
+
+fn anchor(file_path: &Path, line: Option<usize>, label: &str) -> EvidenceAnchor {
+    EvidenceAnchor {
+        file_path: file_path.to_path_buf(),
+        line,
+        label: String::from(label),
+    }
+}
+
+fn best_effort_anchor_for_architectural_assessment(
+    finding: &crate::assessment::ArchitecturalAssessmentFinding,
+    analysis: &ProjectAnalysis,
+) -> Option<EvidenceAnchor> {
+    let mut tokens = finding
+        .related_identifiers
+        .iter()
+        .filter_map(|identifier| {
+            identifier
+                .strip_prefix("concept:")
+                .or_else(|| identifier.strip_prefix("raw_"))
+                .map(String::from)
+                .or_else(|| {
+                    if identifier.starts_with("role:") {
+                        None
+                    } else {
+                        Some(identifier.clone())
+                    }
+                })
+        })
+        .collect::<Vec<_>>();
+    tokens.extend(
+        finding
+            .warning_families
+            .iter()
+            .filter_map(|family| family.split(':').next_back())
+            .map(String::from),
+    );
+    best_effort_anchor_for_file_with_tokens(&finding.file_path, analysis, "primary", &tokens)
+}
+
+fn supporting_anchors_for_architectural_assessment(
+    finding: &crate::assessment::ArchitecturalAssessmentFinding,
+    analysis: &ProjectAnalysis,
+) -> Vec<EvidenceAnchor> {
+    finding
+        .related_file_paths
+        .iter()
+        .filter_map(|path| best_effort_anchor_for_file(path, analysis, "supporting"))
+        .collect()
+}
+
+fn best_effort_anchor_for_file(
+    file_path: &Path,
+    analysis: &ProjectAnalysis,
+    label: &str,
+) -> Option<EvidenceAnchor> {
+    let mut tokens = Vec::new();
+    if let Some(stem) = file_path.file_stem().and_then(|stem| stem.to_str()) {
+        tokens.push(stem.to_string());
+    }
+    best_effort_anchor_for_file_with_tokens(file_path, analysis, label, &tokens)
+}
+
+fn best_effort_anchor_for_file_with_tokens(
+    file_path: &Path,
+    analysis: &ProjectAnalysis,
+    label: &str,
+    tokens: &[String],
+) -> Option<EvidenceAnchor> {
+    let content = analysis
+        .parsed_sources
+        .iter()
+        .find_map(|(path, content)| (path == file_path).then_some(content))?;
+    let line = anchor_line_for_content(content, tokens);
+    Some(anchor(file_path, line, label))
+}
+
+fn anchor_line_for_content(content: &str, tokens: &[String]) -> Option<usize> {
+    let lowered_tokens = tokens
+        .iter()
+        .map(|token| token.to_ascii_lowercase())
+        .filter(|token| !token.is_empty())
+        .collect::<Vec<_>>();
+
+    for (index, line) in content.lines().enumerate() {
+        let lowered = line.to_ascii_lowercase();
+        if lowered_tokens.iter().any(|token| lowered.contains(token)) {
+            return Some(index + 1);
+        }
+    }
+
+    content
+        .lines()
+        .enumerate()
+        .find(|(_, line)| !line.trim().is_empty())
+        .map(|(index, _)| index + 1)
 }
 
 fn best_packet_supporting_finding<'a>(
@@ -2570,13 +2753,13 @@ fn review_severity_rank(severity: crate::review::ReviewFindingSeverity) -> u8 {
 
 fn packet_focus_rank(focus: &str) -> u8 {
     match focus {
-        "security_hotspot" => 4,
-        "abstraction_sprawl" => 4,
-        "hand_rolled_parsing" => 3,
-        "compatibility_scar" => 3,
-        "sanctioned_path_bypass" => 2,
-        "duplicate_mechanism" => 1,
-        "split_identity_model" => 0,
+        "security_hotspot" => 6,
+        "hand_rolled_parsing" => 5,
+        "sanctioned_path_bypass" => 4,
+        "duplicate_mechanism" => 4,
+        "abstraction_sprawl" => 3,
+        "compatibility_scar" => 2,
+        "split_identity_model" => 1,
         "warning_heavy_hotspot" => 0,
         _ => 0,
     }
@@ -2602,7 +2785,7 @@ fn guardian_packet_preferred_mechanism(
                 })
             })
         })
-        .max_by(|left, right| left.0.cmp(&right.0).then(right.1.cmp(&left.1)))
+        .max_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)))
         .map(|(_, _, mechanism)| mechanism)
     {
         return Some(preferred_mechanism);
@@ -2708,19 +2891,19 @@ fn guardian_packet_obligations(
         "hand_rolled_parsing" => vec![
             GuardianObligation {
                 action: format!(
-                    "Audit `{primary_file}` for custom parsing or mini-language logic and route the concern through `{}` if it is a valid sanctioned replacement.",
+                    "Audit `{primary_file}` for custom parsing, schema validation, scheduler/orchestration DSLs, definition-engine, validator/resolver, or mini-language logic and route the concern through `{}` if it is a valid sanctioned replacement.",
                     preferred_mechanism.unwrap_or("a battle-tested native/framework/library parser")
                 ),
                 acceptance: String::from(
-                    "The changed slice no longer depends on an unnecessary homegrown parser stack when a sanctioned mechanism already exists.",
+                    "The changed slice no longer depends on an unnecessary homegrown parsing, validation, or scheduler/orchestration stack when a sanctioned mechanism already exists.",
                 ),
             },
             GuardianObligation {
                 action: String::from(
-                    "If custom parsing is still required, isolate it behind one narrow boundary and document why a stronger existing mechanism could not be used.",
+                    "If custom parsing, validation, scheduler, or definition-engine behavior is still required, isolate it behind one narrow boundary and document why a stronger existing mechanism could not be used.",
                 ),
                 acceptance: String::from(
-                    "The remaining parser logic is small, explicit, and justified instead of spread across validators, resolvers, or helper layers.",
+                    "The remaining parsing, validation, scheduler, or definition logic is small, explicit, and justified instead of spread across validators, resolvers, normalizers, registries, executors, commands, definition services, or helper layers.",
                 ),
             },
         ],
@@ -2862,10 +3045,10 @@ fn guardian_packet_questions(
         ],
         "hand_rolled_parsing" => vec![
             format!(
-                "What exact mini-language, query syntax, or text protocol is `{primary_file}` parsing by hand, and does the framework or an existing library already solve it?"
+                "What exact mini-language, query syntax, schema-validation contract, scheduler/job DSL, definition engine, or validator/resolver flow is `{primary_file}` implementing by hand, and does the framework or an existing library already solve it?"
             ),
             format!(
-                "Can the parsing logic in `{primary_file}` be collapsed behind one sanctioned parser or contract boundary instead of being spread across validators, resolvers, or helpers?"
+                "Can the parsing, validation, scheduling, or contract logic in `{primary_file}` be collapsed behind one sanctioned parser, scheduler, validator, metadata contract, or contract boundary instead of being spread across validators, resolvers, normalizers, registries, executors, definition services, or helpers?"
             ),
         ],
         "duplicate_mechanism" => vec![
@@ -3315,7 +3498,7 @@ mod tests {
         DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE, EVIDENCE_GRAPH_FILE,
         EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
     };
-    use crate::doctrine::load_doctrine_registry;
+    use crate::doctrine::{built_in_doctrine_registry, load_doctrine_registry};
     use crate::ingestion::pipeline::{analyze_project, build_semantic_graph_project};
     use crate::ingestion::scan::ScanConfig;
     use crate::policy::PolicyBundle;
@@ -3775,6 +3958,18 @@ fn main() {
             .guardian_packets
             .iter()
             .all(|packet| packet.target_files.contains(&packet.primary_target_file)));
+        let split_packet = handoff
+            .guardian_packets
+            .iter()
+            .find(|packet| packet.focus == "split_identity_model")
+            .unwrap();
+        assert!(split_packet.primary_anchor.is_some());
+        let security_packet = handoff
+            .guardian_packets
+            .iter()
+            .find(|packet| packet.focus == "security_hotspot")
+            .unwrap();
+        assert!(security_packet.primary_anchor.is_some());
     }
 
     #[test]
@@ -3866,6 +4061,156 @@ final class FilterDefinitionResolver {
             .obligations
             .iter()
             .any(|obligation| obligation.action.contains("query_contract_parser")));
+    }
+
+    #[test]
+    fn guardian_packets_keep_native_anchors_for_hand_rolled_parsing() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("app/Services/Filter")).unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/QueryContractParser.php"),
+            br#"<?php
+final class QueryContractParser {
+    public function parse(Request $request): array {
+        $filters = json_decode($request->input('filters', '[]'), true);
+        $parts = array_map(trim(...), explode(',', (string) $request->query('sort')));
+        return $this->parseSort($parts);
+    }
+
+    private function parseSort(array $parts): array {
+        return $parts;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/FilterValidator.php"),
+            br#"<?php
+final class FilterValidator {
+    public function validateOperator(string $operator): bool {
+        return preg_match('/^[a-z_]+$/', $operator) === 1;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Filter/FilterDefinitionResolver.php"),
+            br#"<?php
+final class FilterDefinitionResolver {
+    public function resolve(string $name): array {
+        $normalized = trim($name);
+        return ['key' => substr($normalized, 0, 10)];
+    }
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = analysis.architecture_surface();
+        let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
+        let doctrine_registry = load_doctrine_registry(&fixture).unwrap();
+        let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry);
+
+        let packet = handoff
+            .guardian_packets
+            .iter()
+            .find(|packet| packet.focus == "hand_rolled_parsing")
+            .unwrap();
+        assert_eq!(
+            packet
+                .primary_anchor
+                .as_ref()
+                .map(|anchor| anchor.file_path.clone()),
+            Some(PathBuf::from("app/Services/Filter/QueryContractParser.php"))
+        );
+        assert!(packet
+            .primary_anchor
+            .as_ref()
+            .and_then(|anchor| anchor.line)
+            .is_some());
+        assert!(!packet.evidence_anchors.is_empty());
+    }
+
+    #[test]
+    fn hand_rolled_scheduler_packets_prefer_specific_doctrine_mechanism() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("app/Services/Settings")).unwrap();
+        fs::create_dir_all(fixture.join("app/Services/Jobs")).unwrap();
+        fs::create_dir_all(fixture.join("app/Console/Commands")).unwrap();
+        fs::write(
+            fixture.join("app/Services/Settings/JobRegistry.php"),
+            br#"<?php
+final class JobRegistry {
+    public function getJobs(): array {
+        $jobs = config('jobs.jobs', []);
+        foreach ($this->moduleRegistry->getEnabledModules() as $module) {
+            $jobs = array_merge($jobs, $module['manifest']['jobs'] ?? []);
+        }
+        return $jobs;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/Jobs/ScheduledJobExecutor.php"),
+            br#"<?php
+final class ScheduledJobExecutor {
+    public function execute(array $config): string {
+        $exitCode = Artisan::call((string) ($config['command'] ?? ''));
+        dispatch(new SyncTenantJob());
+        return (string) $exitCode;
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Console/Commands/ErpScheduledJobsRunCommand.php"),
+            br#"<?php
+final class ErpScheduledJobsRunCommand {
+    public function handle(): int {
+        $expression = new CronExpression('* * * * *');
+        if ($expression->isDue(now())) {
+            Cache::lock('scheduled_job:tenant:sync', 900);
+        }
+        return 0;
+    }
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = analysis.architecture_surface();
+        let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
+        let doctrine_registry = built_in_doctrine_registry();
+        let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry);
+
+        let packet = handoff
+            .guardian_packets
+            .iter()
+            .find(|packet| {
+                packet.focus == "hand_rolled_parsing"
+                    && packet.preferred_mechanism.as_deref() == Some("framework_scheduler_or_queue")
+            })
+            .expect("expected scheduler dsl guardian packet");
+        assert_eq!(
+            packet.preferred_mechanism.as_deref(),
+            Some("framework_scheduler_or_queue")
+        );
+        assert!(packet.target_files.iter().any(|file| {
+            file == "app/Services/Jobs/ScheduledJobExecutor.php"
+                || file == "app/Services/Settings/JobRegistry.php"
+                || file == "app/Console/Commands/ErpScheduledJobsRunCommand.php"
+        }));
+        assert!(packet
+            .obligations
+            .iter()
+            .any(|obligation| obligation.action.contains("framework_scheduler_or_queue")));
     }
 
     #[test]

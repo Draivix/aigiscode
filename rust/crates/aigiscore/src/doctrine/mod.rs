@@ -103,6 +103,39 @@ pub fn built_in_doctrine_registry() -> DoctrineRegistry {
                     "Prefer native framework contracts and established parser libraries over regex-heavy mini-parsers.",
                 ],
             ),
+            clause_with_preferred(
+                "guardian.avoid-homegrown-schema-validation",
+                "Avoid homegrown schema validation",
+                "Do not hand-roll schema-driven validation stacks when a sanctioned framework validator or battle-tested schema library already exists.",
+                DoctrineCategory::MechanismChoice,
+                DoctrineDisposition::Warn,
+                "framework_validator_or_schema_library",
+                &[
+                    "Prefer sanctioned framework validation and established schema libraries over custom schema walkers.",
+                ],
+            ),
+            clause_with_preferred(
+                "guardian.avoid-homegrown-definition-engine",
+                "Avoid homegrown definition engines",
+                "Do not build broad custom definition or metadata engines when sanctioned framework model, schema, or configuration contracts already cover the same responsibility.",
+                DoctrineCategory::MechanismChoice,
+                DoctrineDisposition::Warn,
+                "framework_metadata_or_schema_contract",
+                &[
+                    "Prefer sanctioned framework metadata, relation, and schema contracts over custom definition-service stacks.",
+                ],
+            ),
+            clause_with_preferred(
+                "guardian.avoid-homegrown-scheduler-dsl",
+                "Avoid homegrown scheduler DSLs",
+                "Do not build a second scheduler or job-definition DSL on top of a framework scheduler, queue, or command system when the sanctioned runtime already covers orchestration.",
+                DoctrineCategory::MechanismChoice,
+                DoctrineDisposition::Warn,
+                "framework_scheduler_or_queue",
+                &[
+                    "Prefer framework scheduler, queues, and first-class job declarations over custom manifest-backed scheduler registries and executors.",
+                ],
+            ),
             clause(
                 "guardian.boundary-stability",
                 "Boundary stability",
@@ -450,7 +483,10 @@ mod tests {
         for id in [
             "configuration.coherence",
             "guardian.architectonic-quality",
+            "guardian.avoid-homegrown-definition-engine",
             "guardian.avoid-homegrown-parser",
+            "guardian.avoid-homegrown-scheduler-dsl",
+            "guardian.avoid-homegrown-schema-validation",
             "guardian.boundary-stability",
             "guardian.centralized-damage",
             "guardian.change-governance",
