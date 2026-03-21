@@ -1,0 +1,389 @@
+{
+  "nav": {
+    "features": "功能特性",
+    "howItWorks": "工作原理",
+    "languages": "支持语言",
+    "getStarted": "快速开始",
+    "docs": "文档",
+    "useCases": "使用场景",
+    "blog": "博客",
+    "toggleTheme": "切换主题",
+    "subscribe": "订阅"
+  },
+  "menu": {
+    "blog": "Blog",
+    "analysis": {
+      "name": "分析",
+      "circular": { "title": "循环依赖", "desc": "检测模块间的架构性循环依赖，这些循环会导致紧耦合，让重构变得危险" },
+      "deadCode": { "title": "死代码检测", "desc": "在整个项目中找出未使用的 import、废弃的类、不可达的方法和孤立文件" },
+      "hardwiring": { "title": "硬编码检测", "desc": "捕获魔法字符串、重复字面量、硬编码的 IP 地址，以及配置文件之外的环境变量调用" },
+      "aiReview": { "title": "AI 辅助审查", "desc": "AI 将检测结果分类为真阳性、假阳性或需要上下文，以减少噪音" },
+      "godClasses": { "title": "上帝类检测", "desc": "识别职责过多、违反单一职责原则的类" },
+      "bottlenecks": { "title": "瓶颈检测", "desc": "找出高扇入耦合的文件，这些文件会成为架构中的单点故障" },
+      "layers": { "title": "分层违规", "desc": "检测代码何时打破了既定的架构层边界和访问模式" },
+      "orphans": { "title": "孤立文件检测", "desc": "发现没有入向依赖的文件，它们可能是代码库中的冗余" }
+    },
+    "useCases": {
+      "name": "使用场景",
+      "circularDeps": { "title": "循环依赖检测", "desc": "在循环依赖变成不可维护的意大利面条代码之前打破它们" },
+      "deadCode": { "title": "死代码消除", "desc": "移除未使用的代码以减小包体积和维护负担" },
+      "hardwiredValues": { "title": "硬编码值检测", "desc": "查找并外部化魔法字符串、IP 和重复字面量" },
+      "codeReview": { "title": "AI 代码审查", "desc": "AI 辅助的结果分类，实现更快、更准确的审查" },
+      "laravel": { "title": "Laravel 分析", "desc": "深度分析 Laravel 项目，内置框架感知策略" },
+      "django": { "title": "Django 分析", "desc": "使用 Python 原生依赖图构建分析 Django 项目" },
+      "wordpress": { "title": "WordPress 分析", "desc": "扫描 WordPress 插件和主题，发现架构问题" },
+      "typescript": { "title": "TypeScript 单体仓库", "desc": "分析复杂的 TypeScript 单体仓库，支持跨包依赖追踪" },
+      "cicd": { "title": "CI/CD 集成", "desc": "将 AigisCode 作为持续集成流水线的一部分运行" },
+      "python": { "title": "Python 分析", "desc": "基于 AST 级别解析的 Python 项目全量代码分析" }
+    },
+    "languages": {
+      "name": "语言",
+      "php": { "title": "PHP", "desc": "完整的 PHP 支持，包括 tree-sitter 解析、命名空间解析和框架检测" },
+      "python": { "title": "Python", "desc": "原生 tree-sitter-python 解析，支持 import 解析和类型感知分析" },
+      "typescript": { "title": "TypeScript", "desc": "TypeScript 分析，支持路径别名解析和声明文件" },
+      "javascript": { "title": "JavaScript", "desc": "JavaScript 分析，包括 ESM 和 CommonJS 模块系统" },
+      "vue": { "title": "Vue", "desc": "Vue 单文件组件分析，支持 script、template 和 style 提取" },
+      "ruby": { "title": "Ruby", "desc": "Ruby 支持，包括 gem 依赖追踪和 Rails 感知分析" }
+    },
+    "integrations": {
+      "name": "集成",
+      "cicd": { "title": "CI/CD 流水线", "desc": "与任何 CI/CD 系统集成 — GitHub Actions、GitLab CI、Jenkins 等" },
+      "githubActions": { "title": "GitHub Actions", "desc": "预构建的 GitHub Action，在每次 Pull Request 时自动运行分析" },
+      "gitlabCi": { "title": "GitLab CI", "desc": "GitLab CI/CD 模板，无缝集成到您的流水线中" },
+      "aiAgents": { "title": "AI 编码代理", "desc": "机器可读的 JSON 输出，专为 AI 代理消费和操作设计" },
+      "idePlugins": { "title": "IDE 插件", "desc": "编辑器集成，在 IDE 中提供实时分析反馈" },
+      "preCommit": { "title": "Pre-commit 钩子", "desc": "在有问题的代码进入仓库之前阻止它" },
+      "restApi": { "title": "REST API", "desc": "通过简洁的 REST 接口以编程方式访问分析结果" },
+      "webhooks": { "title": "Webhooks", "desc": "当分析发现关键问题时实时通知" }
+    },
+    "platform": {
+      "name": "平台",
+      "openSource": { "title": "开源", "desc": "MIT 许可证，在 GitHub 上社区驱动开发" },
+      "plugins": { "title": "插件系统", "desc": "使用自定义检测器和框架特定插件扩展 AigisCode" },
+      "policy": { "title": "策略引擎", "desc": "基于 JSON 的策略配置，使分析适应每个项目" },
+      "reporting": { "title": "报告生成器", "desc": "生成包含可操作结果和指标的 Markdown 和 JSON 报告" },
+      "architecture": { "title": "架构分析", "desc": "可视化和分析代码库依赖图和结构" },
+      "cli": { "title": "CLI 工具", "desc": "强大的命令行界面，包含六个分析命令" },
+      "detectors": { "title": "自定义检测器", "desc": "使用扩展 API 构建项目特定的检测器" },
+      "extensionApi": { "title": "扩展 API", "desc": "用于构建自定义分析扩展的全功能 API" }
+    },
+    "about": {
+      "name": "关于",
+      "company": { "title": "关于 Draivix", "desc": "我们的使命、愿景以及 AigisCode 和 Draivix Corporation 背后的故事" },
+      "leadership": { "title": "领导团队", "desc": "认识推动 AI 代码分析的创始人和高管团队" },
+      "careers": { "title": "职业机会", "desc": "加入我们的团队，共同打造 AI 驱动的开发者工具的未来" },
+      "press": { "title": "新闻与媒体", "desc": "最新消息、新闻稿和媒体资源" },
+      "investors": { "title": "投资者", "desc": "投资者关系、财务数据和公司业绩" },
+      "partners": { "title": "合作伙伴", "desc": "合作伙伴生态系统、集成和技术联盟" },
+      "contact": { "title": "联系我们", "desc": "联系销售、支持或工程团队" },
+      "blog": { "title": "博客", "desc": "关于 AI 代码分析、架构和开发者效率的深度洞察" },
+      "events": { "title": "活动", "desc": "即将举办的网络研讨会、会议和社区聚会" },
+      "stories": { "title": "客户案例", "desc": "了解领先的工程团队如何使用 AigisCode 提升代码质量" }
+    },
+    "docs": {
+      "name": "文档",
+      "gettingStarted": { "title": "快速入门", "desc": "安装和运行首次 AigisCode 分析的快速设置指南" },
+      "apiReference": { "title": "API 参考", "desc": "完整的 REST API 文档，包括端点和示例" },
+      "cliReference": { "title": "CLI 参考", "desc": "六个 CLI 命令及其选项的详细文档" },
+      "pluginDev": { "title": "插件开发", "desc": "构建自定义插件以使用新检测器扩展 AigisCode" },
+      "tutorials": { "title": "教程与指南", "desc": "常见分析工作流程的分步指导" },
+      "knowledgeBase": { "title": "知识库", "desc": "关于配置、最佳实践和技巧的深度文章" },
+      "videoTutorials": { "title": "视频教程", "desc": "每个功能的可视化演练和产品演示" },
+      "support": { "title": "支持中心", "desc": "通过 GitHub Issues、邮件或社区获取帮助" },
+      "faq": { "title": "常见问题", "desc": "关于 AigisCode 最常见问题的解答" }
+    }
+  },
+  "hero": {
+    "title1": "你的代码值得拥有",
+    "title2": "一位守护者",
+    "subtitle": "AI 驱动的静态分析工具，全面监控你的代码库——死代码、循环依赖和架构问题，一个都不放过。",
+    "cta1": "快速开始",
+    "cta2": "在 GitHub 上查看",
+    "install": "curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash"
+  },
+  "trustedBy": {
+    "title": "支持分析以下语言编写的代码库"
+  },
+  "features": {
+    "title": "你的代码库需要的一切",
+    "subtitle": "六大检测器协同工作，保持代码整洁、可维护、架构健康。",
+    "circular": {
+      "title": "循环依赖检测",
+      "description": "发现模块间的架构性循环依赖，这些循环会导致紧耦合，让重构变得危险。"
+    },
+    "deadCode": {
+      "title": "死代码检测",
+      "description": "找出整个项目中未使用的 import、废弃的类、不可达的方法和孤立文件。"
+    },
+    "hardwiring": {
+      "title": "硬编码检测",
+      "description": "捕获魔法字符串、重复字面量、硬编码的 IP 地址，以及配置文件之外的环境变量调用。"
+    },
+    "aiReview": {
+      "title": "AI 辅助审查",
+      "description": "AI 将检测结果分类为真阳性、假阳性或需要上下文——减少噪音，让你专注于真正的问题。"
+    },
+    "policy": {
+      "title": "策略驱动分析",
+      "description": "通过分层策略自定义每个项目的行为。内置 Laravel、Django 和 WordPress 插件。"
+    },
+    "multiLang": {
+      "title": "多语言支持",
+      "description": "一次扫描即可分析 PHP、Python、TypeScript、JavaScript 和 Vue 文件，使用统一的依赖关系图。"
+    }
+  },
+  "pipeline": {
+    "title": "工作原理",
+    "subtitle": "六个阶段，一条命令。从源代码到可执行的洞察。",
+    "stages": {
+      "index": {
+        "title": "索引",
+        "description": "解析文件，提取符号，存储到 SQLite"
+      },
+      "graph": {
+        "title": "构建图",
+        "description": "构建文件级依赖关系图，计算指标"
+      },
+      "detect": {
+        "title": "检测",
+        "description": "运行死代码和硬编码检测器"
+      },
+      "rules": {
+        "title": "规则",
+        "description": "应用之前审查中保存的排除规则"
+      },
+      "review": {
+        "title": "AI 审查",
+        "description": "AI 对剩余检测结果进行分类，提高准确性"
+      },
+      "report": {
+        "title": "报告",
+        "description": "生成 Markdown 和 JSON 格式的报告"
+      }
+    }
+  },
+  "cta": {
+    "title": "开始守护你的代码",
+    "subtitle": "一条命令分析整个代码库。开源，永久免费。",
+    "button": "快速开始"
+  },
+  "footer": {
+    "tagline": "AI 驱动的代码守护者，全面监控你的代码库。Draivix Corporation 旗下产品。",
+    "newsletter": "保持关注",
+    "emailPlaceholder": "you@company.com",
+    "subscribe": "订阅",
+    "product": "产品",
+    "productLinks": {
+      "analysis": "代码分析",
+      "useCases": "使用场景",
+      "languages": "语言",
+      "integrations": "集成",
+      "plugins": "插件系统",
+      "policy": "策略引擎",
+      "reporting": "报告",
+      "pricing": "定价",
+      "whatsNew": "最新动态"
+    },
+    "company": "公司",
+    "companyLinks": {
+      "about": "关于 Draivix",
+      "leadership": "领导团队",
+      "careers": "职业机会",
+      "hiring": "招聘中",
+      "press": "新闻与媒体",
+      "blog": "博客",
+      "stories": "客户案例",
+      "partners": "合作伙伴",
+      "investors": "投资者",
+      "events": "活动",
+      "contact": "联系我们"
+    },
+    "resources": "资源",
+    "resourceLinks": {
+      "docs": "文档",
+      "api": "API 参考",
+      "help": "帮助中心",
+      "community": "社区",
+      "devHub": "开发者中心",
+      "integrations": "集成",
+      "status": "服务状态",
+      "changelog": "更新日志",
+      "webinars": "网络研讨会",
+      "templates": "模板"
+    },
+    "legal": "法律信息",
+    "legalLinks": {
+      "terms": "服务条款",
+      "privacy": "隐私政策",
+      "cookies": "Cookie 政策",
+      "gdpr": "GDPR 合规",
+      "soc2": "SOC 2 Type II",
+      "iso": "ISO 27001",
+      "dpa": "数据处理协议",
+      "security": "安全概览",
+      "ai": "负责任的 AI 政策",
+      "accessibility": "无障碍"
+    },
+    "copyright": "© {{year}} Draivix Corporation. 保留所有权利。",
+    "sitemap": "站点地图",
+    "doNotSell": "不要出售我的信息",
+    "cookiePrefs": "Cookie 偏好设置"
+  },
+  "meta": {
+    "title": "AigisCode — AI 驱动的代码守护者",
+    "description": "AI 驱动的静态分析工具，全面监控你的代码库——死代码、循环依赖和架构问题。开源免费。"
+  },
+  "docs": {
+    "title": "文档",
+    "subtitle": "开始使用 AigisCode 所需的一切",
+    "quickStart": {
+      "title": "快速开始",
+      "step1": "从 GitHub 安装 AigisCode",
+      "step2": "对你的项目运行分析",
+      "step3": "查看 JSON 报告"
+    },
+    "cli": {
+      "title": "CLI 命令",
+      "index": "解析并存储代码库索引",
+      "analyze": "完整流水线：索引 + 构建图 + 检测 + 审查 + 报告",
+      "report": "从现有索引重新生成报告",
+      "tune": "AI 引导的策略调优",
+      "info": "显示索引统计和检测器覆盖范围",
+      "plugins": "列出可用插件"
+    },
+    "config": {
+      "title": "配置",
+      "description": "AigisCode 以策略驱动。通过 JSON 策略文件自定义每个项目的行为。"
+    },
+    "languages": {
+      "title": "支持的语言"
+    }
+  },
+  "useCases": {
+    "title": "使用场景",
+    "subtitle": "了解 AigisCode 如何帮助团队维护整洁、可维护的代码库",
+    "viewAll": "查看所有使用场景",
+    "readMore": "了解更多"
+  },
+  "blog": {
+    "title": "博客",
+    "subtitle": "关于 AI 代码分析、架构和开发者效率的深度洞察",
+    "readMore": "阅读文章",
+    "minRead": "分钟阅读",
+    "publishedOn": "发布于",
+    "backToBlog": "返回博客",
+    "relatedPosts": "相关文章",
+    "tags": "标签"
+  },
+  "common": {
+    "getStarted": "快速开始",
+    "learnMore": "了解更多",
+    "viewOnGithub": "在 GitHub 上查看",
+    "backToHome": "返回首页",
+    "share": "分享",
+    "tableOfContents": "目录"
+  },
+  "about": {
+    "breadcrumb": "关于",
+    "meta": {
+      "title": "关于 Draivix - AigisCode",
+      "description": "了解 Draivix Corporation，AigisCode 背后专注于 AI 的软件公司。认识我们的领导团队，探索合作伙伴关系，发现职业机会。"
+    },
+    "hero": {
+      "title1": "关于",
+      "title2": "Draivix",
+      "subtitle": "构建 AI 驱动的开发者工具，让每个工程团队更高效。从代码分析到架构洞察，我们守护最重要的事物。"
+    },
+    "toc": {
+      "company": "公司",
+      "leadership": "领导团队",
+      "vision": "愿景与使命",
+      "partners": "合作伙伴",
+      "careers": "职业机会",
+      "events": "活动",
+      "stories": "客户案例",
+      "press": "新闻与媒体",
+      "contact": "联系我们"
+    },
+    "company": {
+      "title": "公司介绍",
+      "p1": "Draivix Corporation 是一家专注于 AI 的软件公司，构建用于大规模分析、理解和守护代码库的开发者工具。我们的旗舰产品 AigisCode 为各种规模的工程团队带来 AI 驱动的静态分析能力。",
+      "p2": "Draivix 由 David Strejc 创立，秉持一个简单的信念：代码库的结构健康应当是可见的、可衡量的、并被持续守护的。我们将久经考验的解析器（如 tree-sitter）与现代 AI 后端相结合，检测单文件代码检查工具完全遗漏的问题。",
+      "aigisDesc": "AI 驱动的代码库评估器。六阶段流水线覆盖循环依赖、死代码、硬编码值、上帝类、瓶颈文件和孤立模块。基于 MIT 许可证开源。",
+      "platformName": "Draivix Platform",
+      "platformDesc": "更广泛的 Draivix 生态系统，包括 AI 驱动的开发者工具、基础设施自动化和为现代工程团队设计的智能工作流。"
+    },
+    "leadership": {
+      "title": "领导团队",
+      "intro": "Draivix 由工程师和研究人员领导，他们坚信 AI 应该增强开发者的能力，而不是取代他们。",
+      "founderRole": "创始人兼 CEO",
+      "founderBio": "AI 研究员和全栈开发者，在静态分析、图论和开发者工具方面拥有深厚专业知识。David 创立 Draivix 旨在将 AI 代码分析带给每个工程团队，将 tree-sitter 解析与现代 AI 后端相结合，捕捉单文件代码检查工具遗漏的结构性问题。"
+    },
+    "vision": {
+      "title": "愿景与使命",
+      "missionLabel": "我们的使命",
+      "mission": "让 AI 驱动的开发者工具对每个工程团队都触手可及。代码质量不应成为只有能负担得起专门架构评审委员会的公司才能享有的奢侈品。",
+      "visionLabel": "我们的愿景",
+      "vision": "一个每个代码库都有守护者的世界。循环依赖、死代码和架构漂移在成为技术债务之前就被发现。AI 和确定性分析协同工作，让软件变得更好。"
+    },
+    "partners": {
+      "title": "技术合作伙伴",
+      "intro": "AigisCode 构建在世界一流的开源技术之上。我们集成久经考验的工具，而非重复造轮子，确保我们的分析可靠、快速且准确。"
+    },
+    "careers": {
+      "title": "加入我们",
+      "intro": "我们一直在寻找充满热情的开发者、研究人员和开源贡献者，共同推动 AI 驱动的开发者工具的边界。无论你想为 AigisCode 做贡献还是全职加入 Draivix 团队，这里都有属于你的位置。",
+      "benefit1Title": "构建前沿工具",
+      "benefit1Desc": "从事 AI 驱动的静态分析工作，突破开发者工具的能力边界。",
+      "benefit2Title": "完全远程",
+      "benefit2Desc": "在世界任何地方工作。我们是一个分布式团队，重视成果而非办公时长。",
+      "benefit3Title": "开源优先",
+      "benefit3Desc": "你的工作以开源形式发布。在建设职业生涯的同时为开发者社区做出贡献。",
+      "benefit4Title": "快速迭代",
+      "benefit4Desc": "小团队，大影响。每周发布功能，而非每季度。你的创意从概念到上线的速度飞快。",
+      "ossTitle": "为 AigisCode 做贡献",
+      "ossDesc": "AigisCode 基于 MIT 许可证开源。贡献检测器、语言支持、插件或文档。每一个 Pull Request 都让整个社区的工具变得更好。",
+      "ossButton": "在 GitHub 上查看"
+    },
+    "events": {
+      "title": "活动",
+      "intro": "加入我们即将举办的会议、网络研讨会和社区聚会，我们将展示 AigisCode 并探讨 AI 驱动的开发者工具的未来。"
+    },
+    "stories": {
+      "title": "客户案例",
+      "intro": "全球各地的工程团队使用 AigisCode 发现并修复其他工具遗漏的结构性问题。以下是他们的一些经验。",
+      "quote1": "AigisCode 在我们的 Laravel 单体应用中发现了 47 个我们多年来一直忽视的循环依赖。AI 审查阶段将 8 个发现重新分类为假阳性，为我们节省了数小时的手动分类时间。",
+      "author1": "高级工程主管",
+      "company1": "SaaS 平台",
+      "quote2": "我们将 AigisCode 集成到 CI 流水线中，立即发现了 TypeScript 单体仓库中 23 个无用的 import。策略引擎让我们可以在不损失检测覆盖率的情况下抑制框架特定的模式。",
+      "author2": "Staff Engineer",
+      "company2": "金融科技初创公司",
+      "quote3": "硬编码检测器发现了配置层之外的环境变量访问。我们在一个下午就外部化了 15 个硬编码值，提高了跨环境的部署灵活性。",
+      "author3": "DevOps 主管",
+      "company3": "企业软件"
+    },
+    "press": {
+      "title": "新闻与媒体",
+      "intro": "如需媒体咨询、媒体资源和公司信息，请联系我们的传播团队。我们很乐意提供产品演示、高管访谈和技术深度解析。",
+      "inquiriesTitle": "媒体咨询",
+      "inquiriesDesc": "用于采访、产品评测和媒体报道。",
+      "resourcesTitle": "品牌资源",
+      "resourcesDesc": "供媒体使用的 Logo、截图和公司简介。",
+      "comingSoon": "即将推出"
+    },
+    "investors": {
+      "title": "投资者关系",
+      "desc": "Draivix Corporation 是一家私人控股公司。如需投资者咨询和合作机会，请通过 investors@aigiscode.com 联系我们。"
+    },
+    "contact": {
+      "title": "联系我们",
+      "intro": "对 AigisCode 有疑问、想讨论合作，或需要企业支持？我们期待您的来信。",
+      "emailLabel": "电子邮件"
+    },
+    "cta": {
+      "title": "开始守护你的代码",
+      "desc": "几秒钟内安装 AigisCode 并运行首次分析。开源，MIT 许可证，永久免费。",
+      "github": "在 GitHub 上查看"
+    }
+  }
+}

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
+    <meta name="description" content="AigisCode — AI-powered code guardian. Static analysis that watches your entire codebase for dead code, circular dependencies, and architectural issues." />
+    <meta name="theme-color" content="#030303" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>AigisCode — AI-Powered Code Guardian</title>
+
+    <!-- Google Fonts (preloaded, non-blocking) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
+    <link rel="dns-prefetch" href="https://github.com" />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://al.wpdistro.cz" />
+
+    <!-- Google Analytics (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F7R6KD7997"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-F7R6KD7997', { send_page_view: false });
+    </script>
+
+    <!-- Matomo Analytics (deferred to not block rendering) -->
+    <script defer>
+      window.addEventListener('DOMContentLoaded', function() {
+        var _paq = window._paq = window._paq || [];
+        _paq.push(['enableLinkTracking']);
+        var u="//al.wpdistro.cz/";
+        _paq.push(['setTrackerUrl', u+'matomo.php']);
+        _paq.push(['setSiteId', '29']);
+        var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+        g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+      });
+    </script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AigisCode — AI-Powered Code Guardian" />
+    <meta property="og:description" content="AI-powered static analysis that watches your entire codebase for dead code, circular dependencies, and architectural issues. Open source." />
+    <meta property="og:url" content="https://aigiscode.com" />
+    <meta property="og:site_name" content="AigisCode" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="cs_CZ" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:locale:alternate" content="zh_CN" />
+    <meta property="og:locale:alternate" content="hi_IN" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AigisCode — AI-Powered Code Guardian" />
+    <meta name="twitter:description" content="AI-powered static analysis that watches your entire codebase. Open source." />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://aigiscode.com" />
+
+    <!-- JSON-LD Structured Data (@graph pattern for entity linking) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://aigiscode.com/#organization",
+          "name": "AigisCode",
+          "url": "https://aigiscode.com",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://aigiscode.com/favicon.svg",
+            "width": "512",
+            "height": "512"
+          },
+          "sameAs": [
+            "https://github.com/Draivix/aigiscode",
+            "https://x.com/aigiscode"
+          ],
+          "founder": { "@id": "https://aigiscode.com/#founder" },
+          "foundingDate": "2025",
+          "parentOrganization": {
+            "@type": "Organization",
+            "name": "Draivix",
+            "url": "https://draivix.com"
+          }
+        },
+        {
+          "@type": "Person",
+          "@id": "https://aigiscode.com/#founder",
+          "name": "David Strejc",
+          "jobTitle": "Founder & CEO",
+          "url": "https://aigiscode.com/about",
+          "sameAs": [
+            "https://github.com/david-strejc",
+            "https://x.com/aigiscode"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://aigiscode.com/#website",
+          "name": "AigisCode",
+          "url": "https://aigiscode.com",
+          "description": "AI-powered static analysis for AI coding agents",
+          "publisher": { "@id": "https://aigiscode.com/#organization" },
+          "inLanguage": ["en", "cs", "fr", "es", "zh-CN", "hi", "pt-BR"]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://aigiscode.com/#software",
+          "name": "AigisCode",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Cross-platform",
+          "description": "AI-powered static analysis for AI coding agents. Whole-codebase evaluation that finds circular dependencies, dead code, hardwired values, and architectural issues.",
+          "url": "https://aigiscode.com",
+          "downloadUrl": "https://github.com/Draivix/aigiscode",
+          "softwareVersion": "0.1.0",
+          "license": "https://opensource.org/licenses/MIT",
+          "featureList": [
+            "Circular dependency detection",
+            "Dead code detection",
+            "Hardwired value detection",
+            "AI-assisted code review",
+            "God class detection",
+            "Bottleneck file analysis",
+            "Layer violation enforcement",
+            "Orphan file detection"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "author": { "@id": "https://aigiscode.com/#organization" },
+          "isPartOf": { "@id": "https://aigiscode.com/#website" }
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "@id": "https://aigiscode.com/#sourcecode",
+          "name": "AigisCode",
+          "description": "AI-powered static analysis for AI coding agents. Whole-codebase evaluation that finds circular dependencies, dead code, hardwired values, and architectural issues.",
+          "codeRepository": "https://github.com/Draivix/aigiscode",
+          "programmingLanguage": ["Rust", "TypeScript"],
+          "runtimePlatform": "Rust",
+          "license": "https://opensource.org/licenses/MIT",
+          "version": "0.1.0",
+          "dateCreated": "2025-01-01",
+          "dateModified": "2026-03-09",
+          "author": { "@id": "https://aigiscode.com/#organization" }
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://aigiscode.com/#webpage",
+          "url": "https://aigiscode.com",
+          "name": "AigisCode - AI-Powered Code Guardian | Static Analysis for AI Agents",
+          "description": "AI-powered static analysis that watches your entire codebase for dead code, circular dependencies, and architectural issues.",
+          "isPartOf": { "@id": "https://aigiscode.com/#website" },
+          "about": { "@id": "https://aigiscode.com/#software" },
+          "inLanguage": "en"
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 transition-colors duration-300">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

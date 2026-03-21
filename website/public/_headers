@@ -1,0 +1,31 @@
+# Security headers for all pages
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+# HTML pages - short cache, must revalidate
+/*.html
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# SPA fallback
+/index.html
+  Cache-Control: public, max-age=3600, must-revalidate
+
+# Hashed JS/CSS assets - long cache, immutable (Vite adds content hashes)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Static assets in public dir
+/favicon.svg
+  Cache-Control: public, max-age=604800
+
+/robots.txt
+  Cache-Control: public, max-age=86400
+
+/sitemap.xml
+  Cache-Control: public, max-age=86400

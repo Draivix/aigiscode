@@ -1,0 +1,566 @@
+{
+  "nav": {
+    "features": "Características",
+    "howItWorks": "Cómo funciona",
+    "languages": "Lenguajes",
+    "getStarted": "Empezar",
+    "docs": "Documentación",
+    "useCases": "Casos de uso",
+    "blog": "Blog",
+    "toggleTheme": "Cambiar tema",
+    "subscribe": "Suscribirse"
+  },
+  "hero": {
+    "title1": "Tu código merece",
+    "title2": "un guardián",
+    "subtitle": "Análisis estático impulsado por IA que vigila todo tu código — código muerto, dependencias circulares y problemas de arquitectura.",
+    "cta1": "Empezar",
+    "cta2": "Ver en GitHub",
+    "install": "curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash"
+  },
+  "trustedBy": {
+    "title": "Analiza código escrito en"
+  },
+  "features": {
+    "title": "Todo lo que tu código necesita",
+    "subtitle": "Seis detectores potentes trabajando juntos para mantener tu código limpio, mantenible y arquitectónicamente sólido.",
+    "circular": {
+      "title": "Dependencias circulares",
+      "description": "Detecta ciclos arquitectónicos entre módulos que crean acoplamiento fuerte y hacen peligroso el refactoring."
+    },
+    "deadCode": {
+      "title": "Detección de código muerto",
+      "description": "Encuentra imports no usados, clases abandonadas, métodos inalcanzables y archivos huérfanos en todo tu proyecto."
+    },
+    "hardwiring": {
+      "title": "Detección de valores fijos",
+      "description": "Captura cadenas mágicas, literales repetidos, IPs codificadas y llamadas a entorno fuera de archivos de configuración."
+    },
+    "aiReview": {
+      "title": "Revisión asistida por IA",
+      "description": "La IA clasifica hallazgos como verdaderos positivos, falsos positivos o que necesitan contexto — reduciendo ruido para enfocarte en problemas reales."
+    },
+    "policy": {
+      "title": "Análisis dirigido por políticas",
+      "description": "Personaliza el comportamiento por proyecto con políticas en capas. Plugins integrados para Laravel, Django y WordPress."
+    },
+    "multiLang": {
+      "title": "Soporte multi-lenguaje",
+      "description": "Analiza archivos PHP, Python, TypeScript, JavaScript y Vue en una sola pasada con grafos de dependencias unificados."
+    }
+  },
+  "pipeline": {
+    "title": "Cómo funciona",
+    "subtitle": "Seis etapas, un comando. Del código fuente a información accionable.",
+    "stages": {
+      "index": {
+        "title": "Indexar",
+        "description": "Parsear archivos, extraer símbolos, almacenar en SQLite"
+      },
+      "graph": {
+        "title": "Grafo",
+        "description": "Construir grafo de dependencias a nivel de archivo, calcular métricas"
+      },
+      "detect": {
+        "title": "Detectar",
+        "description": "Ejecutar detectores de código muerto y valores fijos"
+      },
+      "rules": {
+        "title": "Reglas",
+        "description": "Aplicar reglas de exclusión de revisiones anteriores"
+      },
+      "review": {
+        "title": "Revisión IA",
+        "description": "La IA clasifica hallazgos restantes para mayor precisión"
+      },
+      "report": {
+        "title": "Reporte",
+        "description": "Generar reportes en Markdown y JSON"
+      }
+    }
+  },
+  "cta": {
+    "title": "Empieza a proteger tu código",
+    "subtitle": "Un comando para analizar todo tu proyecto. Código abierto, gratis para siempre.",
+    "button": "Empezar"
+  },
+  "menu": {
+    "blog": "Blog",
+    "analysis": {
+      "name": "Análisis",
+      "circular": {
+        "title": "Dependencias circulares",
+        "desc": "Detecta ciclos arquitectónicos entre módulos que crean acoplamiento fuerte y dificultan la refactorización"
+      },
+      "deadCode": {
+        "title": "Detección de código muerto",
+        "desc": "Encuentra imports no usados, clases abandonadas, métodos inalcanzables y archivos huérfanos en todo tu proyecto"
+      },
+      "hardwiring": {
+        "title": "Detección de valores fijos",
+        "desc": "Captura cadenas mágicas, literales repetidos, IPs codificadas y llamadas a entorno fuera de archivos de configuración"
+      },
+      "aiReview": {
+        "title": "Revisión asistida por IA",
+        "desc": "La IA clasifica hallazgos como verdaderos positivos, falsos positivos o que necesitan contexto para reducir el ruido"
+      },
+      "godClasses": {
+        "title": "Detección de clases dios",
+        "desc": "Identifica clases con responsabilidad excesiva que violan el principio de responsabilidad única"
+      },
+      "bottlenecks": {
+        "title": "Detección de cuellos de botella",
+        "desc": "Encuentra archivos con alto acoplamiento fan-in que crean puntos únicos de fallo en tu arquitectura"
+      },
+      "layers": {
+        "title": "Violaciones de capas",
+        "desc": "Detecta cuando el código rompe los límites establecidos de capas arquitectónicas y patrones de acceso"
+      },
+      "orphans": {
+        "title": "Detección de huérfanos",
+        "desc": "Descubre archivos sin dependencias entrantes que pueden ser peso muerto en tu proyecto"
+      }
+    },
+    "useCases": {
+      "name": "Casos de uso",
+      "circularDeps": {
+        "title": "Detección de dependencias circulares",
+        "desc": "Rompe los ciclos arquitectónicos antes de que creen código espagueti inmantenible"
+      },
+      "deadCode": {
+        "title": "Eliminación de código muerto",
+        "desc": "Elimina código no utilizado para reducir el tamaño del bundle y la carga de mantenimiento"
+      },
+      "hardwiredValues": {
+        "title": "Detección de valores fijos",
+        "desc": "Encuentra y externaliza cadenas mágicas, IPs y literales repetidos"
+      },
+      "codeReview": {
+        "title": "Revisión de código con IA",
+        "desc": "Clasificación de hallazgos asistida por IA para revisiones más rápidas y precisas"
+      },
+      "laravel": {
+        "title": "Análisis de Laravel",
+        "desc": "Análisis profundo de proyectos Laravel con políticas integradas para el framework"
+      },
+      "django": {
+        "title": "Análisis de Django",
+        "desc": "Analiza proyectos Django con construcción nativa del grafo de dependencias en Python"
+      },
+      "wordpress": {
+        "title": "Análisis de WordPress",
+        "desc": "Escanea plugins y temas de WordPress en busca de problemas arquitectónicos"
+      },
+      "typescript": {
+        "title": "Monorepo TypeScript",
+        "desc": "Analiza monorepos TypeScript complejos con seguimiento de dependencias entre paquetes"
+      },
+      "cicd": {
+        "title": "Integración CI/CD",
+        "desc": "Ejecuta AigisCode como parte de tu pipeline de integración continua"
+      },
+      "python": {
+        "title": "Análisis de Python",
+        "desc": "Análisis completo de proyectos Python con parsing a nivel de AST"
+      }
+    },
+    "languages": {
+      "name": "Lenguajes",
+      "php": {
+        "title": "PHP",
+        "desc": "Soporte completo de PHP con parsing tree-sitter, resolución de namespaces y detección de frameworks"
+      },
+      "python": {
+        "title": "Python",
+        "desc": "Parsing nativo de AST de Python con resolución de imports y análisis con reconocimiento de tipos"
+      },
+      "typescript": {
+        "title": "TypeScript",
+        "desc": "Análisis de TypeScript con resolución de alias de rutas y soporte de archivos de declaración"
+      },
+      "javascript": {
+        "title": "JavaScript",
+        "desc": "Análisis de JavaScript incluyendo sistemas de módulos ESM y CommonJS"
+      },
+      "vue": {
+        "title": "Vue",
+        "desc": "Análisis de componentes Vue single-file con extracción de scripts, plantillas y estilos"
+      },
+      "ruby": {
+        "title": "Ruby",
+        "desc": "Soporte de Ruby con seguimiento de dependencias gem y análisis compatible con Rails"
+      }
+    },
+    "integrations": {
+      "name": "Integraciones",
+      "cicd": {
+        "title": "Pipelines CI/CD",
+        "desc": "Integra con cualquier sistema CI/CD — GitHub Actions, GitLab CI, Jenkins y más"
+      },
+      "githubActions": {
+        "title": "GitHub Actions",
+        "desc": "GitHub Action preconstruida para análisis automático en cada pull request"
+      },
+      "gitlabCi": {
+        "title": "GitLab CI",
+        "desc": "Plantilla de GitLab CI/CD para integración perfecta en tu pipeline"
+      },
+      "aiAgents": {
+        "title": "Agentes de IA",
+        "desc": "Salida JSON legible por máquinas diseñada para consumo y acción de agentes de IA"
+      },
+      "idePlugins": {
+        "title": "Plugins para IDE",
+        "desc": "Integraciones con editores para retroalimentación de análisis en tiempo real"
+      },
+      "preCommit": {
+        "title": "Hooks pre-commit",
+        "desc": "Bloquea código problemático antes de que entre en tu repositorio"
+      },
+      "restApi": {
+        "title": "REST API",
+        "desc": "Acceso programático a resultados de análisis a través de una interfaz REST limpia"
+      },
+      "webhooks": {
+        "title": "Webhooks",
+        "desc": "Notificaciones en tiempo real cuando el análisis encuentra problemas críticos"
+      }
+    },
+    "platform": {
+      "name": "Plataforma",
+      "openSource": {
+        "title": "Código abierto",
+        "desc": "Licencia MIT, desarrollo impulsado por la comunidad en GitHub"
+      },
+      "plugins": {
+        "title": "Sistema de plugins",
+        "desc": "Extiende AigisCode con detectores personalizados y plugins específicos para frameworks"
+      },
+      "policy": {
+        "title": "Motor de políticas",
+        "desc": "Configuración de políticas basada en JSON que adapta el análisis a cada proyecto"
+      },
+      "reporting": {
+        "title": "Generador de reportes",
+        "desc": "Genera reportes en Markdown y JSON con hallazgos accionables y métricas"
+      },
+      "architecture": {
+        "title": "Análisis de arquitectura",
+        "desc": "Visualiza y analiza el grafo de dependencias y la estructura de tu proyecto"
+      },
+      "cli": {
+        "title": "Herramientas CLI",
+        "desc": "Potente interfaz de línea de comandos con seis comandos de análisis"
+      },
+      "detectors": {
+        "title": "Detectores personalizados",
+        "desc": "Crea detectores específicos para tu proyecto usando la API de extensiones"
+      },
+      "extensionApi": {
+        "title": "API de extensiones",
+        "desc": "API completa para construir extensiones de análisis personalizadas"
+      }
+    },
+    "about": {
+      "name": "Acerca de",
+      "company": {
+        "title": "Sobre Draivix",
+        "desc": "Nuestra misión, visión y la historia detrás de AigisCode y Draivix Corporation"
+      },
+      "leadership": {
+        "title": "Equipo directivo",
+        "desc": "Conoce a los fundadores y al equipo ejecutivo que impulsa el análisis de código con IA"
+      },
+      "careers": {
+        "title": "Carreras",
+        "desc": "Únete a nuestro equipo y ayuda a construir el futuro de las herramientas de desarrollo con IA"
+      },
+      "press": {
+        "title": "Prensa y medios",
+        "desc": "Últimas noticias, comunicados de prensa y recursos para medios"
+      },
+      "investors": {
+        "title": "Inversores",
+        "desc": "Relaciones con inversores, finanzas y rendimiento de la empresa"
+      },
+      "partners": {
+        "title": "Socios",
+        "desc": "Ecosistema de socios, integraciones y alianzas tecnológicas"
+      },
+      "contact": {
+        "title": "Contáctanos",
+        "desc": "Ponte en contacto con ventas, soporte o nuestro equipo de ingeniería"
+      },
+      "blog": {
+        "title": "Blog",
+        "desc": "Perspectivas sobre análisis de código con IA, arquitectura y productividad del desarrollador"
+      },
+      "events": {
+        "title": "Eventos",
+        "desc": "Próximos webinars, conferencias y encuentros de la comunidad"
+      },
+      "stories": {
+        "title": "Historias de clientes",
+        "desc": "Descubre cómo los equipos de ingeniería líderes usan AigisCode para mejorar la calidad del código"
+      }
+    },
+    "docs": {
+      "name": "Documentación",
+      "gettingStarted": {
+        "title": "Primeros pasos",
+        "desc": "Guía rápida de instalación y ejecución de tu primer análisis con AigisCode"
+      },
+      "apiReference": {
+        "title": "Referencia de API",
+        "desc": "Documentación completa de la API REST con endpoints y ejemplos"
+      },
+      "cliReference": {
+        "title": "Referencia de CLI",
+        "desc": "Documentación detallada de los seis comandos CLI y sus opciones"
+      },
+      "pluginDev": {
+        "title": "Desarrollo de plugins",
+        "desc": "Crea plugins personalizados para extender AigisCode con nuevos detectores"
+      },
+      "tutorials": {
+        "title": "Tutoriales y guías",
+        "desc": "Instrucciones paso a paso para flujos de trabajo de análisis comunes"
+      },
+      "knowledgeBase": {
+        "title": "Base de conocimiento",
+        "desc": "Artículos detallados sobre configuración, mejores prácticas y consejos"
+      },
+      "videoTutorials": {
+        "title": "Tutoriales en video",
+        "desc": "Demostraciones visuales del producto para cada funcionalidad"
+      },
+      "support": {
+        "title": "Centro de soporte",
+        "desc": "Obtén ayuda de nuestro equipo a través de GitHub issues, email o la comunidad"
+      },
+      "faq": {
+        "title": "Preguntas frecuentes",
+        "desc": "Respuestas a las preguntas más comunes sobre AigisCode"
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Guardián de código impulsado por IA que vigila todo tu proyecto. Un producto de Draivix Corporation.",
+    "newsletter": "Mantente al día",
+    "emailPlaceholder": "tu@empresa.com",
+    "subscribe": "Suscribirse",
+    "product": "Producto",
+    "productLinks": {
+      "analysis": "Análisis de código",
+      "useCases": "Casos de uso",
+      "languages": "Lenguajes",
+      "integrations": "Integraciones",
+      "plugins": "Sistema de plugins",
+      "policy": "Motor de políticas",
+      "reporting": "Reportes",
+      "pricing": "Precios",
+      "whatsNew": "Novedades"
+    },
+    "company": "Empresa",
+    "companyLinks": {
+      "about": "Sobre Draivix",
+      "leadership": "Equipo directivo",
+      "careers": "Carreras",
+      "hiring": "Contrataciones",
+      "press": "Prensa y medios",
+      "blog": "Blog",
+      "stories": "Historias de clientes",
+      "partners": "Socios",
+      "investors": "Inversores",
+      "events": "Eventos",
+      "contact": "Contacto"
+    },
+    "resources": "Recursos",
+    "resourceLinks": {
+      "docs": "Documentación",
+      "api": "Referencia de API",
+      "help": "Centro de ayuda",
+      "community": "Comunidad",
+      "devHub": "Hub de desarrolladores",
+      "integrations": "Integraciones",
+      "status": "Estado del servicio",
+      "changelog": "Registro de cambios",
+      "webinars": "Seminarios web",
+      "templates": "Plantillas"
+    },
+    "legal": "Legal",
+    "legalLinks": {
+      "terms": "Términos de servicio",
+      "privacy": "Política de privacidad",
+      "cookies": "Política de cookies",
+      "gdpr": "Cumplimiento GDPR",
+      "soc2": "SOC 2 Type II",
+      "iso": "ISO 27001",
+      "dpa": "Acuerdo de procesamiento de datos",
+      "security": "Resumen de seguridad",
+      "ai": "Política de IA responsable",
+      "accessibility": "Accesibilidad"
+    },
+    "copyright": "© {{year}} Draivix Corporation. Todos los derechos reservados.",
+    "sitemap": "Mapa del sitio",
+    "doNotSell": "No vender mi información",
+    "cookiePrefs": "Preferencias de cookies"
+  },
+  "meta": {
+    "title": "AigisCode — Guardián de código impulsado por IA",
+    "description": "Análisis estático impulsado por IA que vigila todo tu código. Código muerto, dependencias circulares, problemas de arquitectura. Código abierto."
+  },
+  "docs": {
+    "title": "Documentación",
+    "subtitle": "Todo lo que necesitas para empezar con AigisCode",
+    "quickStart": {
+      "title": "Inicio rápido",
+      "step1": "Instala AigisCode desde GitHub",
+      "step2": "Ejecuta el análisis en tu proyecto",
+      "step3": "Lee el reporte JSON"
+    },
+    "cli": {
+      "title": "Comandos CLI",
+      "index": "Parsear y almacenar el índice del codebase",
+      "analyze": "Pipeline completo: index + grafo + detección + revisión + reporte",
+      "report": "Re-generar reporte desde el índice existente",
+      "tune": "Ajuste de políticas guiado por IA",
+      "info": "Mostrar estadísticas del índice y cobertura de detectores",
+      "plugins": "Listar plugins disponibles"
+    },
+    "config": {
+      "title": "Configuración",
+      "description": "AigisCode es dirigido por políticas. Personaliza el comportamiento por proyecto con políticas JSON."
+    },
+    "languages": {
+      "title": "Lenguajes soportados"
+    }
+  },
+  "useCases": {
+    "title": "Casos de uso",
+    "subtitle": "Descubre cómo AigisCode ayuda a los equipos a mantener codebases limpios y mantenibles",
+    "viewAll": "Ver todos los casos de uso",
+    "readMore": "Leer más"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Perspectivas sobre análisis de código con IA, arquitectura y productividad del desarrollador",
+    "readMore": "Leer artículo",
+    "minRead": "min de lectura",
+    "publishedOn": "Publicado el",
+    "backToBlog": "Volver al blog",
+    "relatedPosts": "Artículos relacionados",
+    "tags": "Etiquetas"
+  },
+  "common": {
+    "getStarted": "Empezar",
+    "learnMore": "Saber más",
+    "viewOnGithub": "Ver en GitHub",
+    "backToHome": "Volver al inicio",
+    "share": "Compartir",
+    "tableOfContents": "Tabla de contenidos"
+  },
+  "about": {
+    "breadcrumb": "Acerca de",
+    "meta": {
+      "title": "Acerca de Draivix - AigisCode",
+      "description": "Conoce Draivix Corporation, la empresa de software enfocada en IA detrás de AigisCode. Conoce a nuestro equipo directivo, explora nuestras alianzas y descubre oportunidades de carrera."
+    },
+    "hero": {
+      "title1": "Acerca de",
+      "title2": "Draivix",
+      "subtitle": "Creamos herramientas para desarrolladores impulsadas por IA que hacen que cada equipo de ingeniería sea más productivo. Desde el análisis de código hasta los insights arquitectónicos, protegemos lo que más importa."
+    },
+    "toc": {
+      "company": "Empresa",
+      "leadership": "Equipo directivo",
+      "vision": "Visión y misión",
+      "partners": "Socios",
+      "careers": "Carreras",
+      "events": "Eventos",
+      "stories": "Historias de clientes",
+      "press": "Prensa y medios",
+      "contact": "Contacto"
+    },
+    "company": {
+      "title": "La empresa",
+      "p1": "Draivix Corporation es una empresa de software enfocada en IA que crea herramientas para desarrolladores que analizan, comprenden y protegen codebases a escala. Nuestro producto insignia, AigisCode, trae el análisis estático impulsado por IA a equipos de ingeniería de cualquier tamaño.",
+      "p2": "Fundada por David Strejc, Draivix se guía por una creencia simple: la salud estructural de un codebase debe ser visible, medible y vigilada continuamente. Combinamos parsers probados como tree-sitter con backends de IA modernos para detectar problemas que los linters de un solo archivo pasan por alto.",
+      "aigisDesc": "Evaluador de codebase impulsado por IA. Pipeline de seis etapas que cubre dependencias circulares, código muerto, valores fijos, clases dios, archivos cuello de botella y módulos huérfanos. Código abierto bajo licencia MIT.",
+      "platformName": "Draivix Platform",
+      "platformDesc": "El ecosistema más amplio de Draivix con herramientas para desarrolladores impulsadas por IA, automatización de infraestructura y flujos de trabajo inteligentes diseñados para equipos de ingeniería modernos."
+    },
+    "leadership": {
+      "title": "Equipo directivo",
+      "intro": "Draivix está liderada por ingenieros e investigadores que creen que la IA debe ampliar las capacidades de los desarrolladores, no reemplazarlos.",
+      "founderRole": "Fundador y CEO",
+      "founderBio": "Investigador de IA y desarrollador full-stack con profunda experiencia en análisis estático, teoría de grafos y herramientas para desarrolladores. David fundó Draivix para llevar el análisis de código con IA a cada equipo de ingeniería, combinando el parsing de tree-sitter con backends de IA modernos para detectar los problemas estructurales que los linters de un solo archivo pasan por alto."
+    },
+    "vision": {
+      "title": "Visión y misión",
+      "missionLabel": "Nuestra misión",
+      "mission": "Hacer que las herramientas para desarrolladores impulsadas por IA sean accesibles para cada equipo de ingeniería. La calidad del código no debería ser un lujo reservado para empresas que pueden permitirse comités de revisión arquitectónica dedicados.",
+      "visionLabel": "Nuestra visión",
+      "vision": "Un mundo donde cada codebase tenga un guardián. Donde las dependencias circulares, el código muerto y la deriva arquitectónica se detecten antes de convertirse en deuda técnica. Donde la IA y el análisis determinista trabajen juntos para mejorar el software."
+    },
+    "partners": {
+      "title": "Socios tecnológicos",
+      "intro": "AigisCode está construido sobre tecnologías open source de primer nivel. Integramos herramientas probadas en lugar de reinventar la rueda, para que nuestro análisis sea confiable, rápido y preciso."
+    },
+    "careers": {
+      "title": "Únete a nosotros",
+      "intro": "Siempre estamos buscando desarrolladores apasionados, investigadores y colaboradores open source que quieran ampliar los límites de las herramientas para desarrolladores impulsadas por IA. Ya sea que quieras contribuir a AigisCode o unirte al equipo de Draivix a tiempo completo, hay un lugar para ti.",
+      "benefit1Title": "Construye herramientas de vanguardia",
+      "benefit1Desc": "Trabaja en análisis estático impulsado por IA que amplía los límites de lo que las herramientas para desarrolladores pueden hacer.",
+      "benefit2Title": "Totalmente remoto",
+      "benefit2Desc": "Trabaja desde cualquier parte del mundo. Somos un equipo distribuido que valora los resultados por encima de las horas de oficina.",
+      "benefit3Title": "Open Source primero",
+      "benefit3Desc": "Tu trabajo se publica como open source. Contribuye a la comunidad de desarrolladores mientras construyes tu carrera.",
+      "benefit4Title": "Muévete rápido",
+      "benefit4Desc": "Equipo pequeño, gran impacto. Lanza funcionalidades semanalmente, no trimestralmente. Tus ideas van del concepto a producción rápidamente.",
+      "ossTitle": "Contribuye a AigisCode",
+      "ossDesc": "AigisCode es open source bajo la licencia MIT. Contribuye con detectores, soporte de lenguajes, plugins o documentación. Cada pull request mejora la herramienta para toda la comunidad.",
+      "ossButton": "Ver en GitHub"
+    },
+    "events": {
+      "title": "Eventos",
+      "intro": "Únete a nosotros en las próximas conferencias, webinars y encuentros comunitarios donde demostramos AigisCode y discutimos el futuro de las herramientas para desarrolladores impulsadas por IA."
+    },
+    "stories": {
+      "title": "Historias de clientes",
+      "intro": "Equipos de ingeniería de todo el mundo usan AigisCode para encontrar y corregir problemas estructurales que otras herramientas pasan por alto. Aquí hay algunas de sus experiencias.",
+      "quote1": "AigisCode encontró 47 dependencias circulares en nuestro monolito Laravel que habíamos ignorado durante años. La etapa de revisión por IA reclasificó 8 hallazgos como falsos positivos, ahorrándonos horas de triaje manual.",
+      "author1": "Líder de Ingeniería Senior",
+      "company1": "Plataforma SaaS",
+      "quote2": "Integramos AigisCode en nuestro pipeline de CI e inmediatamente detectamos 23 imports muertos en nuestro monorepo TypeScript. El motor de políticas nos permitió suprimir patrones específicos del framework sin perder cobertura de detección.",
+      "author2": "Ingeniero principal",
+      "company2": "Startup FinTech",
+      "quote3": "El detector de hardcoding encontró accesos a variables de entorno fuera de nuestra capa de configuración. Externalizamos 15 valores fijos en una sola tarde, mejorando la flexibilidad de despliegue entre entornos.",
+      "author3": "Líder DevOps",
+      "company3": "Software empresarial"
+    },
+    "press": {
+      "title": "Prensa y medios",
+      "intro": "Para consultas de prensa, recursos de medios e información de la empresa, contacta con nuestro equipo de comunicación. Estaremos encantados de proporcionar demos del producto, entrevistas con directivos y análisis técnicos en profundidad.",
+      "inquiriesTitle": "Consultas de prensa",
+      "inquiriesDesc": "Para entrevistas, reseñas de productos y cobertura mediática.",
+      "resourcesTitle": "Recursos de marca",
+      "resourcesDesc": "Logos, capturas de pantalla y ficha informativa de la empresa para uso mediático.",
+      "comingSoon": "Próximamente"
+    },
+    "investors": {
+      "title": "Relaciones con inversores",
+      "desc": "Draivix Corporation es una empresa de capital privado. Para consultas de inversores y oportunidades de colaboración, contáctenos en investors@aigiscode.com."
+    },
+    "contact": {
+      "title": "Contáctanos",
+      "intro": "¿Tienes preguntas sobre AigisCode, quieres discutir una colaboración o necesitas soporte empresarial? Nos encantaría saber de ti.",
+      "emailLabel": "Correo electrónico"
+    },
+    "cta": {
+      "title": "Empieza a proteger tu código",
+      "desc": "Instala AigisCode en segundos y ejecuta tu primer análisis. Código abierto, licencia MIT, gratis para siempre.",
+      "github": "Ver en GitHub"
+    }
+  }
+}

@@ -1,0 +1,566 @@
+{
+  "nav": {
+    "features": "Funkce",
+    "howItWorks": "Jak to funguje",
+    "languages": "Jazyky",
+    "getStarted": "Zacít",
+    "docs": "Dokumentace",
+    "useCases": "Případy užití",
+    "blog": "Blog",
+    "toggleTheme": "Přepnout motiv",
+    "subscribe": "Odebírat"
+  },
+  "hero": {
+    "title1": "Váš kód si zaslouží",
+    "title2": "strážce",
+    "subtitle": "Statická analýza poháněná AI, která hlídá celý váš kód — mrtvý kód, cyklické závislosti a architektonické problémy.",
+    "cta1": "Zacít",
+    "cta2": "Zobrazit na GitHubu",
+    "install": "curl -fsSL https://raw.githubusercontent.com/Draivix/aigiscode/main/install.sh | bash"
+  },
+  "trustedBy": {
+    "title": "Analyzuje kód napsaný v"
+  },
+  "features": {
+    "title": "Vše, co váš kód potřebuje",
+    "subtitle": "Šest výkonných detektorů spolupracuje, aby udrželo váš kód čistý, udržitelný a architektonicky zdravý.",
+    "circular": {
+      "title": "Cyklické závislosti",
+      "description": "Odhalte architektonické cykly mezi moduly, které vytvářejí těsnou provázanost a ztěžují refaktoring."
+    },
+    "deadCode": {
+      "title": "Detekce mrtvého kódu",
+      "description": "Najděte nepoužívané importy, opuštěné třídy, nedosažitelné metody a osiřelé soubory napříč celým projektem."
+    },
+    "hardwiring": {
+      "title": "Detekce hardcodingu",
+      "description": "Zachytěte magické řetězce, opakované literály, hardcodované IP adresy a volání prostředí mimo konfigurační soubory."
+    },
+    "aiReview": {
+      "title": "AI asistované review",
+      "description": "AI klasifikuje nálezy jako skutečné problémy, falešné poplachy nebo vyžadující kontext — snižuje šum, abyste se soustředili na skutečné problémy."
+    },
+    "policy": {
+      "title": "Analýza řízená politikami",
+      "description": "Přizpůsobte chování pro každý projekt pomocí vrstvených politik. Vestavěné pluginy pro Laravel, Django a WordPress."
+    },
+    "multiLang": {
+      "title": "Podpora více jazyků",
+      "description": "Analyzujte PHP, Python, TypeScript, JavaScript a Vue soubory v jednom průchodu s jednotným grafem závislostí."
+    }
+  },
+  "pipeline": {
+    "title": "Jak to funguje",
+    "subtitle": "Šest fází, jeden příkaz. Od zdrojového kódu k praktickým poznatkům.",
+    "stages": {
+      "index": {
+        "title": "Indexace",
+        "description": "Parsování souborů, extrakce symbolů, uložení do SQLite"
+      },
+      "graph": {
+        "title": "Graf",
+        "description": "Sestavení grafu závislostí na úrovni souborů, výpočet metrik"
+      },
+      "detect": {
+        "title": "Detekce",
+        "description": "Spuštění detektorů mrtvého kódu a hardcodingu"
+      },
+      "rules": {
+        "title": "Pravidla",
+        "description": "Aplikace uložených vylučovacích pravidel z předchozích review"
+      },
+      "review": {
+        "title": "AI revize",
+        "description": "AI klasifikuje zbývající nálezy pro přesnost"
+      },
+      "report": {
+        "title": "Zpráva",
+        "description": "Generování Markdown a JSON reportů"
+      }
+    }
+  },
+  "cta": {
+    "title": "Začněte chránit svůj kód",
+    "subtitle": "Jeden příkaz pro analýzu celého vašeho projektu. Open source, navždy zdarma.",
+    "button": "Zacít"
+  },
+  "menu": {
+    "blog": "Blog",
+    "analysis": {
+      "name": "Analýza",
+      "circular": {
+        "title": "Cyklické závislosti",
+        "desc": "Odhalte architektonické cykly mezi moduly, které vytvářejí těsnou provázanost a ztěžují refaktoring"
+      },
+      "deadCode": {
+        "title": "Detekce mrtvého kódu",
+        "desc": "Najděte nepoužívané importy, opuštěné třídy, nedosažitelné metody a osiřelé soubory v celém projektu"
+      },
+      "hardwiring": {
+        "title": "Detekce hardcodingu",
+        "desc": "Zachytěte magické řetězce, opakované literály, hardcodované IP adresy a volání prostředí mimo konfigurační soubory"
+      },
+      "aiReview": {
+        "title": "AI asistované review",
+        "desc": "AI klasifikuje nálezy jako skutečné problémy, falešné poplachy nebo vyžadující kontext pro snížení šumu"
+      },
+      "godClasses": {
+        "title": "Detekce god tříd",
+        "desc": "Identifikujte třídy s nadměrnou odpovědností, které porušují princip jedné odpovědnosti"
+      },
+      "bottlenecks": {
+        "title": "Detekce úzkých míst",
+        "desc": "Najděte soubory s vysokým fan-in provázáním, které vytvářejí jediné body selhání ve vaší architektuře"
+      },
+      "layers": {
+        "title": "Porušení vrstev",
+        "desc": "Odhalte, kdy kód porušuje stanovené hranice architektonických vrstev a přístupové vzory"
+      },
+      "orphans": {
+        "title": "Detekce osiřelých souborů",
+        "desc": "Objevte soubory bez příchozích závislostí, které mohou být mrtvá zátěž ve vašem projektu"
+      }
+    },
+    "useCases": {
+      "name": "Případy užití",
+      "circularDeps": {
+        "title": "Detekce cyklických závislostí",
+        "desc": "Rozbijte architektonické cykly dřív, než vytvoří neúdržitelný spletitý kód"
+      },
+      "deadCode": {
+        "title": "Eliminace mrtvého kódu",
+        "desc": "Odstraňte nepoužívaný kód pro snížení velikosti balíčku a zátěže údržby"
+      },
+      "hardwiredValues": {
+        "title": "Detekce pevně zadaných hodnot",
+        "desc": "Najděte a externalizujte magické řetězce, IP adresy a opakované literály"
+      },
+      "codeReview": {
+        "title": "AI revize kódu",
+        "desc": "AI asistovaná klasifikace nálezů pro rychlejší a přesnější revize"
+      },
+      "laravel": {
+        "title": "Analýza Laravelu",
+        "desc": "Hloubková analýza Laravel projektů s vestavěnými politikami pro framework"
+      },
+      "django": {
+        "title": "Analýza Djanga",
+        "desc": "Analyzujte Django projekty s nativní konstrukcí grafu závislostí pro Python"
+      },
+      "wordpress": {
+        "title": "Analýza WordPressu",
+        "desc": "Skenujte WordPress pluginy a šablony pro architektonické problémy"
+      },
+      "typescript": {
+        "title": "TypeScript monorepo",
+        "desc": "Analyzujte složité TypeScript monorepa se sledováním závislostí mezi balíčky"
+      },
+      "cicd": {
+        "title": "CI/CD integrace",
+        "desc": "Spouštějte AigisCode jako součást vašeho pipeline průběžné integrace"
+      },
+      "python": {
+        "title": "Analýza Pythonu",
+        "desc": "Kompletní analýza Python projektů s parsováním na úrovni AST"
+      }
+    },
+    "languages": {
+      "name": "Jazyky",
+      "php": {
+        "title": "PHP",
+        "desc": "Plná podpora PHP s tree-sitter parsováním, rozlišením namespace a detekcí frameworku"
+      },
+      "python": {
+        "title": "Python",
+        "desc": "Nativní parsování tree-sitter-python s rozlišením importů a typovou analýzou"
+      },
+      "typescript": {
+        "title": "TypeScript",
+        "desc": "Analýza TypeScriptu s rozlišením aliasů cest a podporou deklaračních souborů"
+      },
+      "javascript": {
+        "title": "JavaScript",
+        "desc": "Analýza JavaScriptu včetně modulárních systémů ESM a CommonJS"
+      },
+      "vue": {
+        "title": "Vue",
+        "desc": "Analýza Vue single-file komponent s extrakcí skriptů, šablon a stylů"
+      },
+      "ruby": {
+        "title": "Ruby",
+        "desc": "Podpora Ruby se sledováním gem závislostí a analýzou pro Rails"
+      }
+    },
+    "integrations": {
+      "name": "Integrace",
+      "cicd": {
+        "title": "CI/CD pipeline",
+        "desc": "Integrace s jakýmkoli CI/CD systémem — GitHub Actions, GitLab CI, Jenkins a další"
+      },
+      "githubActions": {
+        "title": "GitHub Actions",
+        "desc": "Připravená GitHub Action pro automatickou analýzu při každém pull requestu"
+      },
+      "gitlabCi": {
+        "title": "GitLab CI",
+        "desc": "Šablona GitLab CI/CD pro bezproblémovou integraci do vašeho pipeline"
+      },
+      "aiAgents": {
+        "title": "AI kódovací agenti",
+        "desc": "Strojově čitelný JSON výstup navržený pro spotřebu a akce AI agentů"
+      },
+      "idePlugins": {
+        "title": "IDE pluginy",
+        "desc": "Integrace do editorů pro zpětnou vazbu analýzy v reálném čase"
+      },
+      "preCommit": {
+        "title": "Pre-commit hooky",
+        "desc": "Zablokujte problematický kód dřív, než se dostane do vašeho repozitáře"
+      },
+      "restApi": {
+        "title": "REST API",
+        "desc": "Programatický přístup k výsledkům analýzy přes čisté REST rozhraní"
+      },
+      "webhooks": {
+        "title": "Webhooky",
+        "desc": "Notifikace v reálném čase, když analýza najde kritické problémy"
+      }
+    },
+    "platform": {
+      "name": "Platforma",
+      "openSource": {
+        "title": "Open Source",
+        "desc": "MIT licence, komunitně řízený vývoj na GitHubu"
+      },
+      "plugins": {
+        "title": "Systém pluginů",
+        "desc": "Rozšiřte AigisCode o vlastní detektory a pluginy specifické pro framework"
+      },
+      "policy": {
+        "title": "Motor politik",
+        "desc": "Konfigurace politik založená na JSON, která přizpůsobí analýzu každému projektu"
+      },
+      "reporting": {
+        "title": "Generátor reportů",
+        "desc": "Generujte Markdown a JSON reporty s akcími nálezy a metrikami"
+      },
+      "architecture": {
+        "title": "Analýza architektury",
+        "desc": "Vizualizujte a analyzujte graf závislostí a strukturu vašeho projektu"
+      },
+      "cli": {
+        "title": "CLI nástroje",
+        "desc": "Výkonné rozhraní příkazové řádky se šesti analytickými příkazy"
+      },
+      "detectors": {
+        "title": "Vlastní detektory",
+        "desc": "Vytvářejte detektory specifické pro projekt pomocí API pro rozšíření"
+      },
+      "extensionApi": {
+        "title": "API pro rozšíření",
+        "desc": "Plně vybavené API pro tvorbu vlastních analytických rozšíření"
+      }
+    },
+    "about": {
+      "name": "O nás",
+      "company": {
+        "title": "O společnosti Draivix",
+        "desc": "Naše mise, vize a příběh AigisCode a Draivix Corporation"
+      },
+      "leadership": {
+        "title": "Vedení",
+        "desc": "Seznamte se se zakladateli a vedoucím týmem, který pohoní AI analýzu kódu"
+      },
+      "careers": {
+        "title": "Kariéra",
+        "desc": "Přidejte se k nám a pomozte budovat budoucnost AI nástrojů pro vývojáře"
+      },
+      "press": {
+        "title": "Tisk a média",
+        "desc": "Nejnovější zprávy, tiskové zprávy a materiály pro média"
+      },
+      "investors": {
+        "title": "Investoři",
+        "desc": "Vztahy s investory, finance a výkonnost společnosti"
+      },
+      "partners": {
+        "title": "Partneři",
+        "desc": "Partnerský ekosystém, integrace a technologické aliance"
+      },
+      "contact": {
+        "title": "Kontaktujte nás",
+        "desc": "Obraťte se na obchod, podporu nebo náš inženýrský tým"
+      },
+      "blog": {
+        "title": "Blog",
+        "desc": "Poznatky o AI analýze kódu, architektuře a produktivitě vývojářů"
+      },
+      "events": {
+        "title": "Akce",
+        "desc": "Nadcházející webináře, konference a komunitní setkání"
+      },
+      "stories": {
+        "title": "Příběhy zákazníků",
+        "desc": "Podívejte se, jak přední inženýrské týmy používají AigisCode ke zlepšení kvality kódu"
+      }
+    },
+    "docs": {
+      "name": "Dokumentace",
+      "gettingStarted": {
+        "title": "Začínáme",
+        "desc": "Rychlý průvodce instalací a spuštěním první analýzy AigisCode"
+      },
+      "apiReference": {
+        "title": "Referenční příručka API",
+        "desc": "Kompletní dokumentace REST API s endpointy a příklady"
+      },
+      "cliReference": {
+        "title": "Referenční příručka CLI",
+        "desc": "Podrobná dokumentace všech šesti CLI příkazů a jejich možností"
+      },
+      "pluginDev": {
+        "title": "Vývoj pluginů",
+        "desc": "Vytvářejte vlastní pluginy pro rozšíření AigisCode o nové detektory"
+      },
+      "tutorials": {
+        "title": "Tutoriály a průvodci",
+        "desc": "Podrobné návody pro běžné analytické postupy"
+      },
+      "knowledgeBase": {
+        "title": "Znalostí báze",
+        "desc": "Podrobné články o konfiguraci, osvědčených postupech a tipech"
+      },
+      "videoTutorials": {
+        "title": "Video tutoriály",
+        "desc": "Vizuální návody a ukázky produktu pro každou funkci"
+      },
+      "support": {
+        "title": "Centrum podpory",
+        "desc": "Získejte pomoc od našeho týmu přes GitHub issues, e-mail nebo komunitu"
+      },
+      "faq": {
+        "title": "Často kladené dotazy",
+        "desc": "Odpovědi na nejčastější otázky o AigisCode"
+      }
+    }
+  },
+  "footer": {
+    "tagline": "AI strážce kódu, který hlídá celý váš projekt. Produkt společnosti Draivix Corporation.",
+    "newsletter": "Zůstaňte v obraze",
+    "emailPlaceholder": "vy@firma.cz",
+    "subscribe": "Odebírat",
+    "product": "Produkt",
+    "productLinks": {
+      "analysis": "Analýza kódu",
+      "useCases": "Případy užití",
+      "languages": "Jazyky",
+      "integrations": "Integrace",
+      "plugins": "Systém pluginů",
+      "policy": "Motor politik",
+      "reporting": "Reporty",
+      "pricing": "Ceník",
+      "whatsNew": "Co je nového"
+    },
+    "company": "Společnost",
+    "companyLinks": {
+      "about": "O společnosti Draivix",
+      "leadership": "Vedení",
+      "careers": "Kariéra",
+      "hiring": "Nabírame",
+      "press": "Tisk a média",
+      "blog": "Blog",
+      "stories": "Příběhy zákazníků",
+      "partners": "Partneři",
+      "investors": "Investoři",
+      "events": "Akce",
+      "contact": "Kontakt"
+    },
+    "resources": "Zdroje",
+    "resourceLinks": {
+      "docs": "Dokumentace",
+      "api": "Referenční příručka API",
+      "help": "Centrum nápovědy",
+      "community": "Komunita",
+      "devHub": "Vývojářský hub",
+      "integrations": "Integrace",
+      "status": "Stav služeb",
+      "changelog": "Historie změn",
+      "webinars": "Webináře",
+      "templates": "Šablony"
+    },
+    "legal": "Právní informace",
+    "legalLinks": {
+      "terms": "Podmínky služby",
+      "privacy": "Zásady ochrany soukromí",
+      "cookies": "Zásady cookies",
+      "gdpr": "Soulad s GDPR",
+      "soc2": "SOC 2 Type II",
+      "iso": "ISO 27001",
+      "dpa": "Smlouva o zpracování dat",
+      "security": "Přehled zabezpečení",
+      "ai": "Zásady zodpovědné AI",
+      "accessibility": "Přístupnost"
+    },
+    "copyright": "© {{year}} Draivix Corporation. Všechna práva vyhrazena.",
+    "sitemap": "Mapa stránek",
+    "doNotSell": "Neprodávejte mé údaje",
+    "cookiePrefs": "Předvolby cookies"
+  },
+  "meta": {
+    "title": "AigisCode — AI strážce kódu",
+    "description": "Statická analýza poháněná AI, která hlídá celý váš kód. Mrtvý kód, cyklické závislosti, architektonické problémy. Open source."
+  },
+  "docs": {
+    "title": "Dokumentace",
+    "subtitle": "Vše, co potřebujete k začátku s AigisCode",
+    "quickStart": {
+      "title": "Rychlý start",
+      "step1": "Nainstalujte AigisCode z GitHubu",
+      "step2": "Spusťte analýzu na vašem projektu",
+      "step3": "Přečtěte si JSON report"
+    },
+    "cli": {
+      "title": "CLI příkazy",
+      "index": "Parsování a uložení indexu codebase",
+      "analyze": "Kompletní pipeline: index + graf + detekce + review + report",
+      "report": "Opětovné generování reportu z existujícího indexu",
+      "tune": "AI řízené ladění politik",
+      "info": "Zobrazení statistik indexu a pokrytí detektorů",
+      "plugins": "Seznam dostupných pluginů"
+    },
+    "config": {
+      "title": "Konfigurace",
+      "description": "AigisCode je řízený politikami. Přizpůsobte chování pro každý projekt pomocí JSON politik."
+    },
+    "languages": {
+      "title": "Podporované jazyky"
+    }
+  },
+  "useCases": {
+    "title": "Případy užití",
+    "subtitle": "Podívejte se, jak AigisCode pomáhá týmům udržovat čisté a udržitelné codebase",
+    "viewAll": "Zobrazit všechny případy užití",
+    "readMore": "Číst dále"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Poznatky o AI analýze kódu, architektuře a produktivitě vývojářů",
+    "readMore": "Číst článek",
+    "minRead": "min čtení",
+    "publishedOn": "Publikováno",
+    "backToBlog": "Zpět na blog",
+    "relatedPosts": "Související články",
+    "tags": "Štítky"
+  },
+  "common": {
+    "getStarted": "Zacít",
+    "learnMore": "Zjistit více",
+    "viewOnGithub": "Zobrazit na GitHubu",
+    "backToHome": "Zpět na úvod",
+    "share": "Sdílet",
+    "tableOfContents": "Obsah"
+  },
+  "about": {
+    "breadcrumb": "O nás",
+    "meta": {
+      "title": "O společnosti Draivix - AigisCode",
+      "description": "Seznamte se s Draivix Corporation, softwarovou společností zaměřenou na AI, která stojí za AigisCode. Poznejte náš vedoucí tým, prozkoumejte partnerství a objevte kariérní příležitosti."
+    },
+    "hero": {
+      "title1": "O společnosti",
+      "title2": "Draivix",
+      "subtitle": "Vytváříme vývojářské nástroje poháněné AI, které zvyšují produktivitu každého inženýrského týmu. Od analýzy kódu po architektonické poznatky — hlídáme to, na čem záleží nejvíce."
+    },
+    "toc": {
+      "company": "Společnost",
+      "leadership": "Vedení",
+      "vision": "Vize a mise",
+      "partners": "Partneři",
+      "careers": "Kariéra",
+      "events": "Akce",
+      "stories": "Příběhy zákazníků",
+      "press": "Tisk a média",
+      "contact": "Kontakt"
+    },
+    "company": {
+      "title": "Společnost",
+      "p1": "Draivix Corporation je softwarová společnost zaměřená na AI, která buduje vývojářské nástroje pro analýzu, porozumění a ochranu codebases ve velkém měřítku. Náš vlajkový produkt AigisCode přináší statickou analýzu poháněnou AI inženýrským týmům všech velikostí.",
+      "p2": "Společnost Draivix založil David Strejc a je poháněna jednoduchým přesvědčením: strukturální zdraví codebase by mělo být viditelné, měřitelné a kontinuálně hlídané. Kombinujeme prověřené parsery jako tree-sitter s moderními AI backendy pro detekci problémů, které jednorázové lintery úplně přehlédnou.",
+      "aigisDesc": "AI evaluátor codebase. Šestistupňový pipeline pokrývající cyklické závislosti, mrtvý kód, pevně zadané hodnoty, god třídy, úzká místa souborů a osiřelé moduly. Open source pod MIT licencí.",
+      "platformName": "Draivix Platform",
+      "platformDesc": "Širší ekosystém Draivix zahrnující vývojářské nástroje poháněné AI, automatizaci infrastruktury a inteligentní workflow navržené pro moderní inženýrské týmy."
+    },
+    "leadership": {
+      "title": "Vedení",
+      "intro": "Draivix vedou inženýři a výzkumníci, kteří věří, že AI by měla rozšiřovat schopnosti vývojářů, nikoli je nahrazovat.",
+      "founderRole": "Zakladatel a CEO",
+      "founderBio": "AI výzkumník a full-stack vývojář s hlubokou expertízou ve statické analýze, teorii grafů a vývojářských nástrojích. David založil Draivix, aby přinesl AI analýzu kódu každému inženýrskému týmu — kombinací tree-sitter parsování s moderními AI backendy pro zachycení strukturálních problémů, které jednorázové lintery přehlédnou."
+    },
+    "vision": {
+      "title": "Vize a mise",
+      "missionLabel": "Naše mise",
+      "mission": "Zpřístupnit vývojářské nástroje poháněné AI každému inženýrskému týmu. Kvalita kódu by neměla být luxus vyhrazený firmám, které si mohou dovolit specializované architektonické review boardy.",
+      "visionLabel": "Naše vize",
+      "vision": "Svět, kde každý codebase má svého strážce. Kde se cyklické závislosti, mrtvý kód a architektonický drift zachytí dřív, než se stanou technickým dluhem. Kde AI a deterministická analýza spolupracují na lepším softwaru."
+    },
+    "partners": {
+      "title": "Technologičtí partneři",
+      "intro": "AigisCode je postaven na špičkových open source technologiích. Integrujeme prověřené nástroje místo vynalézání kola, aby naše analýza byla spolehlivá, rychlá a přesná."
+    },
+    "careers": {
+      "title": "Přidejte se k nám",
+      "intro": "Neustále hledáme zapálené vývojáře, výzkumníky a open source přispěvatele, kteří chtějí posouvat hranice vývojářských nástrojů poháněných AI. Ať už chcete přispívat do AigisCode nebo se připojit k týmu Draivix na plný úvazek, máme pro vás místo.",
+      "benefit1Title": "Budujte špičkové nástroje",
+      "benefit1Desc": "Pracujte na statické analýze poháněné AI, která posouvá hranice možností vývojářských nástrojů.",
+      "benefit2Title": "Plně vzdáleně",
+      "benefit2Desc": "Pracujte odkudkoli na světě. Jsme distribuovaný tým, který oceňuje výsledky před odpracovanými hodinami.",
+      "benefit3Title": "Open Source na prvním místě",
+      "benefit3Desc": "Vaše práce je vydávána jako open source. Přispívejte vývojářské komunitě a zároveň budujte svou kariéru.",
+      "benefit4Title": "Rychlé tempo",
+      "benefit4Desc": "Malý tým, velký dopad. Vydávejte funkce týdně, ne čtvrtletně. Vaše nápady jdou od konceptu do produkce rychle.",
+      "ossTitle": "Přispějte do AigisCode",
+      "ossDesc": "AigisCode je open source pod MIT licencí. Přispějte detektory, jazykovou podporu, pluginy nebo dokumentaci. Každý pull request činí nástroj lepším pro celou komunitu.",
+      "ossButton": "Zobrazit na GitHubu"
+    },
+    "events": {
+      "title": "Akce",
+      "intro": "Připojte se k nám na nadcházejících konferencích, webinářích a komunitních setkáních, kde předvádíme AigisCode a diskutujeme o budoucnosti vývojářských nástrojů poháněných AI."
+    },
+    "stories": {
+      "title": "Příběhy zákazníků",
+      "intro": "Inženýrské týmy po celém světě používají AigisCode k nalezení a opravě strukturálních problémů, které ostatní nástroje přehlédnou. Zde jsou některé z jejich zkušeností.",
+      "quote1": "AigisCode našel 47 cyklických závislostí v našem Laravel monolitu, které jsme roky ignorovali. AI review fáze překlasifikovala 8 nálezů jako falešné poplachy, čímž nám ušetřila hodiny manuálního třídění.",
+      "author1": "Senior inženýrský vedoucí",
+      "company1": "SaaS platforma",
+      "quote2": "Integrovali jsme AigisCode do našeho CI pipeline a okamžitě jsme zachytili 23 mrtvých importů v našem TypeScript monorepu. Motor politik nám umožnil potlačit vzory specifické pro framework bez ztráty detekce.",
+      "author2": "Stážový inženýr",
+      "company2": "FinTech startup",
+      "quote3": "Detektor hardcodingu zachytil přístup k proměnným prostředí mimo naši konfigurační vrstvu. Externalizovali jsme 15 pevně zadaných hodnot za jediné odpoledne, čímž jsme zlepšili flexibilitu nasazení napříč prostředími.",
+      "author3": "Vedoucí DevOps",
+      "company3": "Enterprise software"
+    },
+    "press": {
+      "title": "Tisk a média",
+      "intro": "Pro tiskové dotazy, mediální materiály a informace o společnosti se obraťte na náš komunikační tým. Rádi poskytneme produktové ukázky, rozhovory s vedením a technické hloubkové analýzy.",
+      "inquiriesTitle": "Tiskové dotazy",
+      "inquiriesDesc": "Pro rozhovory, recenze produktů a mediální pokrytí.",
+      "resourcesTitle": "Materiály značky",
+      "resourcesDesc": "Loga, snímky obrazovky a informační list společnosti pro mediální použití.",
+      "comingSoon": "Již brzy"
+    },
+    "investors": {
+      "title": "Vztahy s investory",
+      "desc": "Draivix Corporation je soukromě vlastněná společnost. Pro investorské dotazy a možnosti partnerství nás prosím kontaktujte na investors@aigiscode.com."
+    },
+    "contact": {
+      "title": "Kontaktujte nás",
+      "intro": "Máte otázky ohledně AigisCode, chcete prodiskutovat partnerství nebo potřebujete enterprise podporu? Rádi se vám ozveme.",
+      "emailLabel": "E-mail"
+    },
+    "cta": {
+      "title": "Začněte chránit svůj kód",
+      "desc": "Nainstalujte AigisCode během pár sekund a spusťte svou první analýzu. Open source, MIT licence, navždy zdarma.",
+      "github": "Zobrazit na GitHubu"
+    }
+  }
+}
