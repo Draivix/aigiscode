@@ -1,5 +1,9 @@
 # AigisCode
 
+[![CI](https://github.com/Draivix/aigiscode/actions/workflows/ci.yml/badge.svg)](https://github.com/Draivix/aigiscode/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/rust-1.82%2B-orange)](https://www.rust-lang.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Native Rust whole-codebase analysis for AI agents.
 
 AigisCode scans mixed-language repositories, builds a semantic graph, and emits
@@ -85,7 +89,8 @@ native artifact family.
 family, and prints `agentic-review.json` as the primary machine contract for an
 AI reviewer. The AI contract is graph-backed, includes diff-aware task packets,
 trace-style evidence chains, bounded typed multi-path graph traces, and bounded
-code-flow style evidence paths, and now carries an adapter catalog with:
+code-flow style evidence paths plus explicit source/sink endpoints, and now
+carries an adapter catalog with:
 - local `codex exec`
 - direct OpenAI Responses HTTP
 - optional TypeScript Codex SDK sidecar
