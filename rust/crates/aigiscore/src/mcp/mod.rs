@@ -1089,14 +1089,16 @@ fn main() {
         let finding_json: Value = serde_json::from_str(&finding_payload).unwrap();
         assert_eq!(finding_json["finding"]["id"], Value::String(finding_id));
 
-        let cypher = server
-            .cypher_query(Parameters(CypherQueryParams {
-                query: String::from("MATCH (n:CodeNode) RETURN n.kind AS kind, count(*) AS count ORDER BY count DESC"),
-            }))
-            .await
-            .unwrap()
-            .0;
-        assert!(cypher.row_count >= 1);
+        if is_kuzu_available() {
+            let cypher = server
+                .cypher_query(Parameters(CypherQueryParams {
+                    query: String::from("MATCH (n:CodeNode) RETURN n.kind AS kind, count(*) AS count ORDER BY count DESC"),
+                }))
+                .await
+                .unwrap()
+                .0;
+            assert!(cypher.row_count >= 1);
+        }
     }
 
     #[tokio::test]
