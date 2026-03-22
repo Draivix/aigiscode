@@ -880,7 +880,8 @@ fn main() {
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server =
+            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
 
         let overview = server.repo_overview().await.0;
         assert_eq!(overview.root, fixture.display().to_string());
