@@ -842,6 +842,7 @@ mod tests {
         EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_SCHEMA_URI, GUARD_URI,
         HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI,
     };
+    use crate::kuzu_index::is_kuzu_available;
     use rmcp::handler::server::wrapper::Parameters;
     use serde_json::Value;
     use std::fs;
@@ -879,7 +880,7 @@ fn main() {
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
 
         let overview = server.repo_overview().await.0;
         assert_eq!(overview.root, fixture.display().to_string());
@@ -977,7 +978,7 @@ fn main() {
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
 
         let resources = server.resource_catalog();
         assert!(resources
@@ -1108,7 +1109,7 @@ fn main() {
         .unwrap();
         fs::write(fixture.join("src/b.rs"), b"pub fn helper() {}\n").unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
         let output = server
             .show_hotspots(Parameters(ShowHotspotsParams { max_items: Some(1) }))
             .await

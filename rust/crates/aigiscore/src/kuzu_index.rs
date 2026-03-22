@@ -368,6 +368,13 @@ fn run_bridge_command(args: &[String]) -> Result<String, KuzuIndexError> {
     )))
 }
 
+/// Returns `true` when the Kuzu Node.js bridge is reachable (node_modules +
+/// helper script both exist).  Tests that depend on Kuzu should early-return
+/// when this is `false` so CI passes on runners without the local dependency.
+pub fn is_kuzu_available() -> bool {
+    discover_node_path().is_ok() && helper_script_path().is_ok()
+}
+
 fn discover_node_path() -> Result<String, KuzuIndexError> {
     if let Ok(value) = env::var(NODE_PATH_ENV) {
         if !value.trim().is_empty() {
@@ -839,6 +846,10 @@ mod tests {
 
     #[test]
     fn materializes_semantic_graph_and_answers_cypher() {
+        if !super::is_kuzu_available() {
+            eprintln!("skipping: Kuzu bridge not available");
+            return;
+        }
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src")).unwrap();
         fs::write(
