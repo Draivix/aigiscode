@@ -203,7 +203,7 @@ impl AigiscodeMcpServer {
                 output_dir,
             }
         };
-        let kuzu_path = if write_artifacts || write_kuzu {
+        let kuzu_path = if write_kuzu {
             Some(write_semantic_graph_kuzu_artifact(
                 &analysis.root,
                 &analysis.semantic_graph,
