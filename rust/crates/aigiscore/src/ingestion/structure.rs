@@ -83,7 +83,7 @@ pub fn parent_path(path: &Path) -> Option<PathBuf> {
 mod tests {
     use super::{build_structure_graph, parent_path, StructureNodeKind};
     use crate::ingestion::scan::ScannedFile;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn creates_directory_and_file_nodes() {
@@ -101,26 +101,28 @@ mod tests {
         assert!(graph
             .nodes
             .iter()
-            .any(|node| node.path == PathBuf::new() && node.kind == StructureNodeKind::Directory));
+            .any(|node| node.path == Path::new("") && node.kind == StructureNodeKind::Directory));
+        assert!(
+            graph
+                .nodes
+                .iter()
+                .any(|node| node.path == Path::new("src")
+                    && node.kind == StructureNodeKind::Directory)
+        );
         assert!(graph
             .nodes
             .iter()
-            .any(|node| node.path == PathBuf::from("src")
+            .any(|node| node.path == Path::new("src/core")
                 && node.kind == StructureNodeKind::Directory));
         assert!(graph
             .nodes
             .iter()
-            .any(|node| node.path == PathBuf::from("src/core")
-                && node.kind == StructureNodeKind::Directory));
-        assert!(graph
-            .nodes
-            .iter()
-            .any(|node| node.path == PathBuf::from("src/main.py")
+            .any(|node| node.path == Path::new("src/main.py")
                 && node.kind == StructureNodeKind::File));
         assert!(graph
             .nodes
             .iter()
-            .any(|node| node.path == PathBuf::from("src/core/utils.rs")
+            .any(|node| node.path == Path::new("src/core/utils.rs")
                 && node.kind == StructureNodeKind::File));
     }
 
@@ -134,17 +136,16 @@ mod tests {
         assert!(graph
             .contains_edges
             .iter()
-            .any(|edge| edge.parent == PathBuf::new() && edge.child == PathBuf::from("src")));
+            .any(|edge| edge.parent == Path::new("") && edge.child == Path::new("src")));
         assert!(graph
             .contains_edges
             .iter()
-            .any(|edge| edge.parent == PathBuf::from("src")
-                && edge.child == PathBuf::from("src/core")));
+            .any(|edge| edge.parent == Path::new("src") && edge.child == Path::new("src/core")));
         assert!(graph
             .contains_edges
             .iter()
-            .any(|edge| edge.parent == PathBuf::from("src/core")
-                && edge.child == PathBuf::from("src/core/utils.rs")));
+            .any(|edge| edge.parent == Path::new("src/core")
+                && edge.child == Path::new("src/core/utils.rs")));
     }
 
     #[test]

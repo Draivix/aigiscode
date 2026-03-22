@@ -1,3 +1,4 @@
+use crate::agentic::{build_agentic_review_artifact, AgenticReviewArtifact};
 use crate::assessment::ArchitecturalAssessment;
 use crate::contracts::ContractInventory;
 use crate::detectors::dead_code::DeadCodeResult;
@@ -40,6 +41,12 @@ pub const REVIEW_SURFACE_FILE: &str = "review-surface.json";
 pub const CONVERGENCE_HISTORY_FILE: &str = "convergence-history.json";
 pub const GUARD_DECISION_FILE: &str = "guard-decision.json";
 pub const AGENT_HANDOFF_FILE: &str = "aigiscode-handoff.json";
+pub const AGENTIC_REVIEW_FILE: &str = "agentic-review.json";
+pub const AGENT_REVIEW_JSON_FILE: &str = "agent-review.json";
+pub const AGENT_REVIEW_MARKDOWN_FILE: &str = "agent-review.md";
+pub const AGENT_OUTPUT_SCHEMA_FILE: &str = "agent-output-schema.json";
+pub const AGENT_EXECUTION_EVENTS_FILE: &str = "agent-execution.jsonl";
+pub const AGENT_SPIDER_REPORT_FILE: &str = "agent-spider-report.json";
 pub const AIGISCODE_REPORT_FILE: &str = "aigiscode-report.json";
 pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 
@@ -59,8 +66,18 @@ pub struct ArtifactPaths {
     pub convergence_history: PathBuf,
     pub guard_decision: PathBuf,
     pub agent_handoff: PathBuf,
+    pub agentic_review: PathBuf,
     pub aigiscode_report: PathBuf,
     pub aigiscode_report_markdown: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgentRunPaths {
+    pub output_dir: PathBuf,
+    pub review_json: PathBuf,
+    pub review_markdown: PathBuf,
+    pub output_schema: PathBuf,
+    pub execution_events: PathBuf,
 }
 
 #[derive(Debug, Serialize)]
@@ -109,6 +126,7 @@ pub struct AigiscodeReportArtifact<'a> {
     pub convergence_history: &'a ConvergenceHistoryArtifact,
     pub guard_decision: &'a GuardDecisionArtifact,
     pub agent_handoff: &'a AgentHandoffArtifact,
+    pub agentic_review: &'a AgenticReviewArtifact,
     pub timings: &'a [PhaseTiming],
 }
 
@@ -416,6 +434,26 @@ pub fn default_output_dir(root: &Path) -> PathBuf {
     root.join(DEFAULT_OUTPUT_DIR_NAME)
 }
 
+pub fn default_agent_run_paths(root: &Path, output_dir: Option<&Path>) -> AgentRunPaths {
+    let output_dir = output_dir
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| default_output_dir(root));
+    AgentRunPaths {
+        review_json: output_dir.join(AGENT_REVIEW_JSON_FILE),
+        review_markdown: output_dir.join(AGENT_REVIEW_MARKDOWN_FILE),
+        output_schema: output_dir.join(AGENT_OUTPUT_SCHEMA_FILE),
+        execution_events: output_dir.join(AGENT_EXECUTION_EVENTS_FILE),
+        output_dir,
+    }
+}
+
+pub fn default_agent_spider_report_path(root: &Path, output_dir: Option<&Path>) -> PathBuf {
+    output_dir
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| default_output_dir(root))
+        .join(AGENT_SPIDER_REPORT_FILE)
+}
+
 pub fn write_project_analysis_artifacts(
     analysis: &ProjectAnalysis,
     output_dir: Option<&Path>,
@@ -439,6 +477,7 @@ pub fn write_project_analysis_artifacts(
         convergence_history: output_dir.join(CONVERGENCE_HISTORY_FILE),
         guard_decision: output_dir.join(GUARD_DECISION_FILE),
         agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
+        agentic_review: output_dir.join(AGENTIC_REVIEW_FILE),
         aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
         aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
         output_dir,
@@ -491,6 +530,13 @@ pub fn write_project_analysis_artifacts(
     let guard_decision = build_guard_decision_artifact(&analysis.root, &convergence_history);
     let feedback_loop = build_feedback_loop_summary(&review_surface);
     let agent_handoff = build_agent_handoff_artifact(analysis, &review_surface, &doctrine_registry);
+    let agentic_review = build_agentic_review_artifact(
+        analysis,
+        &doctrine_registry,
+        &agent_handoff,
+        &guard_decision,
+        &convergence_history,
+    );
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
@@ -583,6 +629,7 @@ pub fn write_project_analysis_artifacts(
         convergence_history: &convergence_history,
         guard_decision: &guard_decision,
         agent_handoff: &agent_handoff,
+        agentic_review: &agentic_review,
         timings: &analysis.timings,
     };
 
@@ -599,6 +646,7 @@ pub fn write_project_analysis_artifacts(
     write_json(&paths.convergence_history, &convergence_history)?;
     write_json(&paths.guard_decision, &guard_decision)?;
     write_json(&paths.agent_handoff, &agent_handoff)?;
+    write_json(&paths.agentic_review, &agentic_review)?;
     write_json(&paths.aigiscode_report, &report)?;
     write_markdown(
         &paths.aigiscode_report_markdown,
@@ -619,6 +667,7 @@ pub fn build_feedback_loop_summary(review_surface: &ReviewSurface) -> FeedbackLo
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn build_convergence_history_artifact(
     root: &Path,
     semantic_graph: &crate::graph::SemanticGraph,
@@ -1903,7 +1952,7 @@ fn build_guardian_packets(
             suppressibility: guardian_packet_suppressibility("security_hotspot"),
             investigation_questions: guardian_packet_questions(
                 "security_hotspot",
-                &file,
+                file,
                 &context_labels,
             ),
             context_labels,
@@ -2469,9 +2518,21 @@ fn build_guardian_packets(
                     .warning_families
                     .iter()
                     .any(|family| family == "concern:custom_scheduler_dsl");
+                let is_filesystem_page_resolution = finding
+                    .warning_families
+                    .iter()
+                    .any(|family| family == "concern:filesystem_page_resolution");
+                let is_manifest_backed_policy_engine = finding
+                    .warning_families
+                    .iter()
+                    .any(|family| family == "concern:manifest_backed_policy_engine");
                 let doctrine_refs = vec![
                     String::from("guardian.native-vs-library"),
-                    String::from(if is_schema_validation {
+                    String::from(if is_manifest_backed_policy_engine {
+                        "guardian.avoid-manifest-backed-policy-engine"
+                    } else if is_filesystem_page_resolution {
+                        "guardian.avoid-filesystem-page-resolution"
+                    } else if is_schema_validation {
                         "guardian.avoid-homegrown-schema-validation"
                     } else if is_scheduler_dsl {
                         "guardian.avoid-homegrown-scheduler-dsl"
@@ -2505,7 +2566,11 @@ fn build_guardian_packets(
                     summary: format!(
                         "{} appears to own a homegrown {}. Verify whether a battle-tested native/framework/library mechanism should replace it.",
                         finding.file_path.display(),
-                        if is_schema_validation {
+                        if is_manifest_backed_policy_engine {
+                            "manifest-backed template policy/runtime engine"
+                        } else if is_filesystem_page_resolution {
+                            "filesystem-backed page or route resolution layer"
+                        } else if is_schema_validation {
                             "schema or validation contract stack"
                         } else if is_scheduler_dsl {
                             "scheduler or job-definition DSL"
@@ -3492,11 +3557,12 @@ mod tests {
         write_dependency_graph_artifact, write_evidence_graph_artifact,
         write_project_analysis_artifacts, write_semantic_graph_artifact, ContractValueDelta,
         ConvergenceContractDelta, ConvergenceGraphDelta, ConvergenceHistoryArtifact,
-        ConvergenceRequiredRadius, ConvergenceSummary, GuardVerdict, AGENT_HANDOFF_FILE,
-        AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE, ARCHITECTURE_SURFACE_FILE,
-        CONTRACT_INVENTORY_FILE, CONVERGENCE_HISTORY_FILE, DEPENDENCY_GRAPH_FILE,
-        DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE, EVIDENCE_GRAPH_FILE,
-        EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
+        ConvergenceRequiredRadius, ConvergenceSummary, GuardVerdict, AGENTIC_REVIEW_FILE,
+        AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
+        ARCHITECTURE_SURFACE_FILE, CONTRACT_INVENTORY_FILE, CONVERGENCE_HISTORY_FILE,
+        DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE,
+        EVIDENCE_GRAPH_FILE, EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE,
+        SEMANTIC_GRAPH_FILE,
     };
     use crate::doctrine::{built_in_doctrine_registry, load_doctrine_registry};
     use crate::ingestion::pipeline::{analyze_project, build_semantic_graph_project};
@@ -3552,6 +3618,7 @@ fn main() {
             .ends_with(CONVERGENCE_HISTORY_FILE));
         assert!(paths.guard_decision.ends_with(GUARD_DECISION_FILE));
         assert!(paths.agent_handoff.ends_with(AGENT_HANDOFF_FILE));
+        assert!(paths.agentic_review.ends_with(AGENTIC_REVIEW_FILE));
         assert!(paths.aigiscode_report.ends_with(AIGISCODE_REPORT_FILE));
         assert!(paths
             .aigiscode_report_markdown
@@ -3601,6 +3668,11 @@ fn main() {
         assert!(report_payload["agent_handoff"]["top_findings"]
             .as_array()
             .is_some());
+        assert!(
+            report_payload["agentic_review"]["transport"]["recommended_protocol"]
+                .as_str()
+                .is_some()
+        );
         assert!(
             report_payload["convergence_history"]["summary"]["new_findings"]
                 .as_u64()

@@ -198,6 +198,7 @@ fn walk_children(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     context: &RubyContext<'_>,
     kind: SymbolKind,
@@ -450,13 +451,13 @@ fn leaf_ruby_constant(value: &str) -> String {
 fn parameter_count(node: Node<'_>) -> usize {
     node.child_by_field_name("parameters")
         .map(|parameters| parameters.named_child_count())
-        .unwrap_or(0) as usize
+        .unwrap_or(0)
 }
 
 fn argument_count(node: Node<'_>) -> usize {
     node.child_by_field_name("arguments")
         .map(|arguments| arguments.named_child_count())
-        .unwrap_or(0) as usize
+        .unwrap_or(0)
 }
 
 #[cfg(test)]

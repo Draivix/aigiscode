@@ -1,13 +1,19 @@
+use crate::agent_runtime::{
+    parse_agent_adapter_id, run_agent_review, run_agent_spider, AgentRunResult,
+    AgentSpiderRunResult,
+};
+use crate::agentic::build_agentic_review_artifact;
 use crate::artifacts::{
     default_output_dir, write_architecture_surface_artifact, write_dependency_graph_artifact,
     write_evidence_graph_artifact, write_project_analysis_artifacts, write_semantic_graph_artifact,
-    ArtifactPaths, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
-    ARCHITECTURE_SURFACE_FILE, CONTRACT_INVENTORY_FILE, CONVERGENCE_HISTORY_FILE,
-    DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE, DETERMINISTIC_FINDINGS_FILE,
-    DOCTRINE_REGISTRY_FILE, EVIDENCE_GRAPH_FILE, EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE,
-    REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
+    ArtifactPaths, AGENTIC_REVIEW_FILE, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE,
+    AIGISCODE_REPORT_MARKDOWN_FILE, ARCHITECTURE_SURFACE_FILE, CONTRACT_INVENTORY_FILE,
+    CONVERGENCE_HISTORY_FILE, DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE,
+    DETERMINISTIC_FINDINGS_FILE, DOCTRINE_REGISTRY_FILE, EVIDENCE_GRAPH_FILE,
+    EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
 };
 use crate::assessment::build_architectural_assessment;
+use crate::doctrine::load_doctrine_registry;
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
     analyze_project, analyze_rust_project, build_semantic_graph_project, PhaseTiming,
@@ -20,6 +26,8 @@ use crate::plugins::built_in_runtime_plugins;
 use crate::policy::tune::{
     load_or_build_review_surface, suggest_policy_patch, write_policy_suggestion,
 };
+use crate::policy::PolicyBundle;
+use crate::review::build_review_surface;
 use crate::semantic_models::built_in_semantic_model_packs;
 use serde::Serialize;
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
@@ -146,6 +154,18 @@ where
             let (path, output_dir) = parse_path_and_output_dir_only(args);
             run_info_command(path, output_dir)
         }
+        "agent" => {
+            let (path, options) = parse_path_and_options(args);
+            run_agent_command(path, options)
+        }
+        "agent-run" => {
+            let (path, options) = parse_agent_run_args(args);
+            run_agent_run_command(path, options)
+        }
+        "agent-spider" => {
+            let (path, options) = parse_agent_spider_args(args);
+            run_agent_spider_command(path, options)
+        }
         "plugins" => run_plugins_command(),
         "tune" => {
             let (path, output_dir) = parse_path_and_output_dir_only(args);
@@ -165,6 +185,21 @@ struct ArtifactOptions {
     write_artifacts: bool,
     write_kuzu: bool,
     external_tools: Vec<String>,
+}
+
+#[derive(Debug)]
+struct AgentRunOptions {
+    output_dir: Option<PathBuf>,
+    adapter: crate::agentic::AgenticAdapterId,
+    model: Option<String>,
+}
+
+#[derive(Debug)]
+struct AgentSpiderOptions {
+    output_dir: Option<PathBuf>,
+    adapter: crate::agentic::AgenticAdapterId,
+    model: Option<String>,
+    limit: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -212,6 +247,7 @@ struct AnalyzeArtifactOutput {
     convergence_history: PathBuf,
     guard_decision: PathBuf,
     agent_handoff: PathBuf,
+    agentic_review: PathBuf,
     aigiscode_report: PathBuf,
     aigiscode_report_markdown: PathBuf,
 }
@@ -275,9 +311,30 @@ struct InfoArtifactPresence {
     convergence_history: bool,
     guard_decision: bool,
     agent_handoff: bool,
+    agentic_review: bool,
     aigiscode_report: bool,
     aigiscode_report_markdown: bool,
     kuzu_graph: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct AgentRunCommandOutput {
+    root: PathBuf,
+    adapter: String,
+    review_json: PathBuf,
+    review_markdown: PathBuf,
+    output_schema: PathBuf,
+    execution_events: PathBuf,
+}
+
+#[derive(Debug, Serialize)]
+struct AgentSpiderCommandOutput {
+    root: PathBuf,
+    adapter: String,
+    aggregate_report: PathBuf,
+    packet_limit: usize,
+    completed_packets: usize,
+    failed_packets: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -463,6 +520,156 @@ where
     (path, output_dir)
 }
 
+fn parse_agent_run_args<I>(args: I) -> (PathBuf, AgentRunOptions)
+where
+    I: IntoIterator<Item = String>,
+{
+    let mut path: Option<PathBuf> = None;
+    let mut output_dir: Option<PathBuf> = None;
+    let mut adapter = crate::agentic::AgenticAdapterId::CodexExecCli;
+    let mut model: Option<String> = None;
+    let mut args = args.into_iter();
+
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--output-dir" => {
+                let Some(dir) = args.next() else {
+                    eprintln!("missing value for --output-dir");
+                    print_usage_and_exit();
+                };
+                output_dir = Some(PathBuf::from(dir));
+            }
+            "--adapter" => {
+                let Some(value) = args.next() else {
+                    eprintln!("missing value for --adapter");
+                    print_usage_and_exit();
+                };
+                adapter = match parse_agent_adapter_id(&value) {
+                    Ok(adapter) => adapter,
+                    Err(error) => {
+                        eprintln!("{error}");
+                        print_usage_and_exit();
+                    }
+                };
+            }
+            "--model" => {
+                let Some(value) = args.next() else {
+                    eprintln!("missing value for --model");
+                    print_usage_and_exit();
+                };
+                model = Some(value);
+            }
+            "--help" | "-h" => print_usage_and_exit(),
+            value if value.starts_with('-') => {
+                eprintln!("unknown option: {value}");
+                print_usage_and_exit();
+            }
+            value => {
+                if path.is_some() {
+                    eprintln!("unexpected argument: {value}");
+                    print_usage_and_exit();
+                }
+                path = Some(PathBuf::from(value));
+            }
+        }
+    }
+
+    let Some(path) = path else {
+        eprintln!("missing repository path");
+        print_usage_and_exit();
+    };
+
+    (
+        path,
+        AgentRunOptions {
+            output_dir,
+            adapter,
+            model,
+        },
+    )
+}
+
+fn parse_agent_spider_args<I>(args: I) -> (PathBuf, AgentSpiderOptions)
+where
+    I: IntoIterator<Item = String>,
+{
+    let mut path: Option<PathBuf> = None;
+    let mut output_dir: Option<PathBuf> = None;
+    let mut adapter = crate::agentic::AgenticAdapterId::CodexExecCli;
+    let mut model: Option<String> = None;
+    let mut limit: usize = 3;
+    let mut args = args.into_iter();
+
+    while let Some(argument) = args.next() {
+        match argument.as_str() {
+            "--output-dir" => {
+                let Some(dir) = args.next() else {
+                    eprintln!("missing value for --output-dir");
+                    print_usage_and_exit();
+                };
+                output_dir = Some(PathBuf::from(dir));
+            }
+            "--adapter" => {
+                let Some(value) = args.next() else {
+                    eprintln!("missing value for --adapter");
+                    print_usage_and_exit();
+                };
+                adapter = match parse_agent_adapter_id(&value) {
+                    Ok(adapter) => adapter,
+                    Err(error) => {
+                        eprintln!("{error}");
+                        print_usage_and_exit();
+                    }
+                };
+            }
+            "--model" => {
+                let Some(value) = args.next() else {
+                    eprintln!("missing value for --model");
+                    print_usage_and_exit();
+                };
+                model = Some(value);
+            }
+            "--limit" => {
+                let Some(value) = args.next() else {
+                    eprintln!("missing value for --limit");
+                    print_usage_and_exit();
+                };
+                limit = value.parse::<usize>().unwrap_or_else(|_| {
+                    eprintln!("invalid --limit value: {value}");
+                    print_usage_and_exit();
+                });
+            }
+            "--help" | "-h" => print_usage_and_exit(),
+            value if value.starts_with('-') => {
+                eprintln!("unknown option: {value}");
+                print_usage_and_exit();
+            }
+            value => {
+                if path.is_some() {
+                    eprintln!("unexpected argument: {value}");
+                    print_usage_and_exit();
+                }
+                path = Some(PathBuf::from(value));
+            }
+        }
+    }
+
+    let Some(path) = path else {
+        eprintln!("missing repository path");
+        print_usage_and_exit();
+    };
+
+    (
+        path,
+        AgentSpiderOptions {
+            output_dir,
+            adapter,
+            model,
+            limit,
+        },
+    )
+}
+
 fn print_usage_and_exit() -> ! {
     eprintln!(
         "usage: aigiscode <command> <path> [--output-dir <dir>] [--no-write] [--external-tool <name>]\n\
@@ -470,6 +677,9 @@ fn print_usage_and_exit() -> ! {
          analyze       run full deterministic analysis and write native artifacts\n\
           report        compatibility alias for analyze that also writes aigiscode-report.json\n\
          analyze-rust  compatibility alias for analyze\n\
+         agent         run full analysis and print the graph-backed AI review contract\n\
+         agent-run     run the graph-backed AI review through a concrete agent adapter and write reports\n\
+         agent-spider  crawl top task packets through a concrete agent adapter and write per-packet reports\n\
          graph         build and optionally write semantic-graph.json, dependency-graph.json, and evidence-graph.json without running detector/report phases\n\
           cypher        materialize/query the optional Kuzu graph index for code understanding\n\
           info          inspect existing Rust-native artifact state for one repository\n\
@@ -479,7 +689,14 @@ fn print_usage_and_exit() -> ! {
           mcp           start the native Rust stdio MCP server for one repository\n\
           version       print CLI version\n\
          graph options:\n\
-          --kuzu                    materialize the optional Kuzu graph artifact beside JSON output\n\
+         --kuzu                    materialize the optional Kuzu graph artifact beside JSON output\n\
+         agent-run options:\n\
+          --adapter <name>         one of: codex-exec, responses-http, codex-sdk\n\
+          --model <model>          override the adapter's default model\n\
+         agent-spider options:\n\
+          --adapter <name>         one of: codex-exec, responses-http, codex-sdk\n\
+          --model <model>          override the adapter's default model\n\
+          --limit <n>              crawl only the top N task packets (default: 3)\n\
          external tools:\n\
           --external-tool <name>   repeatable; supported: opengrep, trivy, grype, ruff, gitleaks, pip-audit, osv-scanner, composer-audit, npm-audit, cargo-deny, cargo-clippy\n\
           --external-tools <csv>   comma-separated alias; use 'all' to run every supported adapter"
@@ -510,6 +727,7 @@ fn build_analysis_command_output(
             convergence_history: paths.convergence_history.clone(),
             guard_decision: paths.guard_decision.clone(),
             agent_handoff: paths.agent_handoff.clone(),
+            agentic_review: paths.agentic_review.clone(),
             aigiscode_report: paths.aigiscode_report.clone(),
             aigiscode_report_markdown: paths.aigiscode_report_markdown.clone(),
         }),
@@ -787,6 +1005,288 @@ fn run_info_command(path: PathBuf, output_dir: Option<PathBuf>) -> i32 {
     }
 }
 
+fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
+    if !options.write_artifacts && !options.external_tools.is_empty() {
+        eprintln!("external-tool execution requires artifact writing; remove --no-write");
+        return 1;
+    }
+    if !options.write_artifacts && options.write_kuzu {
+        eprintln!("--kuzu requires artifact writing; remove --no-write");
+        return 1;
+    }
+
+    match analyze_project(path, &ScanConfig::default()) {
+        Ok(mut result) => {
+            if !options.external_tools.is_empty() {
+                let output_dir = options
+                    .output_dir
+                    .clone()
+                    .unwrap_or_else(|| default_output_dir(&result.root));
+                match collect_external_analysis(&result.root, &output_dir, &options.external_tools)
+                {
+                    Ok(external_analysis) => {
+                        result.external_analysis = external_analysis;
+                        result.architectural_assessment = build_architectural_assessment(
+                            &result.graph_analysis,
+                            &result.dead_code,
+                            &result.hardwiring,
+                            &result.external_analysis,
+                            &result.parsed_sources,
+                        );
+                    }
+                    Err(error) => {
+                        eprintln!("{error}");
+                        return 1;
+                    }
+                }
+            }
+
+            let agentic_review = if options.write_artifacts {
+                let artifact_paths = match write_project_analysis_artifacts(
+                    &result,
+                    options.output_dir.as_deref(),
+                ) {
+                    Ok(paths) => paths,
+                    Err(error) => {
+                        eprintln!("{error}");
+                        return 1;
+                    }
+                };
+                if options.write_kuzu {
+                    if let Err(error) = write_semantic_graph_kuzu_artifact(
+                        &result.root,
+                        &result.semantic_graph,
+                        options.output_dir.as_deref(),
+                    ) {
+                        eprintln!("{error}");
+                        return 1;
+                    }
+                }
+                match fs::read(&artifact_paths.agentic_review) {
+                    Ok(payload) => match serde_json::from_slice::<JsonValue>(&payload) {
+                        Ok(agentic_review) => agentic_review,
+                        Err(error) => {
+                            eprintln!(
+                                "failed to parse {}: {error}",
+                                artifact_paths.agentic_review.display()
+                            );
+                            return 1;
+                        }
+                    },
+                    Err(error) => {
+                        eprintln!(
+                            "failed to read {}: {error}",
+                            artifact_paths.agentic_review.display()
+                        );
+                        return 1;
+                    }
+                }
+            } else {
+                let surface = result.architecture_surface();
+                let doctrine = match load_doctrine_registry(&result.root) {
+                    Ok(registry) => registry,
+                    Err(error) => {
+                        eprintln!("{error}");
+                        return 1;
+                    }
+                };
+                let review_surface =
+                    build_review_surface(&result, &surface, &PolicyBundle::default());
+                let convergence = crate::artifacts::build_convergence_history_artifact(
+                    &result.root,
+                    &result.semantic_graph,
+                    None,
+                    None,
+                    None,
+                    &surface,
+                    &review_surface,
+                    &result.contract_inventory,
+                    &doctrine,
+                );
+                let guard =
+                    crate::artifacts::build_guard_decision_artifact(&result.root, &convergence);
+                let handoff = crate::artifacts::build_agent_handoff_artifact(
+                    &result,
+                    &review_surface,
+                    &doctrine,
+                );
+                serde_json::to_value(build_agentic_review_artifact(
+                    &result,
+                    &doctrine,
+                    &handoff,
+                    &guard,
+                    &convergence,
+                ))
+                .expect("failed to serialize in-memory agentic review")
+            };
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&agentic_review)
+                    .expect("failed to serialize agentic review output")
+            );
+            0
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
+    match analyze_project(path.clone(), &ScanConfig::default()) {
+        Ok(result) => {
+            if let Err(error) =
+                write_project_analysis_artifacts(&result, options.output_dir.as_deref())
+            {
+                eprintln!("{error}");
+                return 1;
+            }
+            let surface = result.architecture_surface();
+            let doctrine = match load_doctrine_registry(&result.root) {
+                Ok(registry) => registry,
+                Err(error) => {
+                    eprintln!("{error}");
+                    return 1;
+                }
+            };
+            let review_surface = build_review_surface(&result, &surface, &PolicyBundle::default());
+            let convergence = crate::artifacts::build_convergence_history_artifact(
+                &result.root,
+                &result.semantic_graph,
+                None,
+                None,
+                None,
+                &surface,
+                &review_surface,
+                &result.contract_inventory,
+                &doctrine,
+            );
+            let guard = crate::artifacts::build_guard_decision_artifact(&result.root, &convergence);
+            let handoff =
+                crate::artifacts::build_agent_handoff_artifact(&result, &review_surface, &doctrine);
+            let review =
+                build_agentic_review_artifact(&result, &doctrine, &handoff, &guard, &convergence);
+            let run_result = match run_agent_review(
+                &review,
+                &result.root,
+                options.output_dir.as_deref(),
+                options.adapter,
+                options.model.as_deref(),
+            ) {
+                Ok(result) => result,
+                Err(error) => {
+                    eprintln!("{error}");
+                    return 1;
+                }
+            };
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&build_agent_run_command_output(
+                    &result.root,
+                    &run_result
+                ))
+                .expect("failed to serialize agent-run output")
+            );
+            0
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+fn run_agent_spider_command(path: PathBuf, options: AgentSpiderOptions) -> i32 {
+    match analyze_project(path.clone(), &ScanConfig::default()) {
+        Ok(result) => {
+            if let Err(error) =
+                write_project_analysis_artifacts(&result, options.output_dir.as_deref())
+            {
+                eprintln!("{error}");
+                return 1;
+            }
+            let surface = result.architecture_surface();
+            let doctrine = match load_doctrine_registry(&result.root) {
+                Ok(registry) => registry,
+                Err(error) => {
+                    eprintln!("{error}");
+                    return 1;
+                }
+            };
+            let review_surface = build_review_surface(&result, &surface, &PolicyBundle::default());
+            let convergence = crate::artifacts::build_convergence_history_artifact(
+                &result.root,
+                &result.semantic_graph,
+                None,
+                None,
+                None,
+                &surface,
+                &review_surface,
+                &result.contract_inventory,
+                &doctrine,
+            );
+            let guard = crate::artifacts::build_guard_decision_artifact(&result.root, &convergence);
+            let handoff =
+                crate::artifacts::build_agent_handoff_artifact(&result, &review_surface, &doctrine);
+            let review =
+                build_agentic_review_artifact(&result, &doctrine, &handoff, &guard, &convergence);
+            let spider_result = match run_agent_spider(
+                &review,
+                &result.root,
+                options.output_dir.as_deref(),
+                options.adapter,
+                options.model.as_deref(),
+                options.limit,
+            ) {
+                Ok(result) => result,
+                Err(error) => {
+                    eprintln!("{error}");
+                    return 1;
+                }
+            };
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&build_agent_spider_command_output(
+                    &result.root,
+                    &spider_result,
+                ))
+                .expect("failed to serialize agent-spider output")
+            );
+            0
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            1
+        }
+    }
+}
+
+fn build_agent_run_command_output(root: &Path, result: &AgentRunResult) -> AgentRunCommandOutput {
+    AgentRunCommandOutput {
+        root: root.to_path_buf(),
+        adapter: format!("{:?}", result.adapter),
+        review_json: result.review_json.clone(),
+        review_markdown: result.review_markdown.clone(),
+        output_schema: result.output_schema.clone(),
+        execution_events: result.execution_events.clone(),
+    }
+}
+
+fn build_agent_spider_command_output(
+    root: &Path,
+    result: &AgentSpiderRunResult,
+) -> AgentSpiderCommandOutput {
+    AgentSpiderCommandOutput {
+        root: root.to_path_buf(),
+        adapter: format!("{:?}", result.adapter),
+        aggregate_report: result.aggregate_report.clone(),
+        packet_limit: result.packet_limit,
+        completed_packets: result.completed_packets,
+        failed_packets: result.failed_packets,
+    }
+}
+
 fn run_plugins_command() -> i32 {
     let output = build_plugins_command_output();
     println!(
@@ -876,12 +1376,14 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
     let doctrine_registry = read_json_if_exists(&artifact_paths.doctrine_registry)?;
     let convergence_history = read_json_if_exists(&artifact_paths.convergence_history)?;
     let guard_decision = read_json_if_exists(&artifact_paths.guard_decision)?;
+    let agentic_review = read_json_if_exists(&artifact_paths.agentic_review)?;
 
     if report.is_none()
         && surface.is_none()
         && contract_inventory.is_none()
         && doctrine_registry.is_none()
         && guard_decision.is_none()
+        && agentic_review.is_none()
     {
         return Err(format!(
             "no analysis artifacts found under {}; run `aigiscode analyze {}` first",
@@ -914,6 +1416,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
             convergence_history: artifact_paths.convergence_history.exists(),
             guard_decision: artifact_paths.guard_decision.exists(),
             agent_handoff: artifact_paths.agent_handoff.exists(),
+            agentic_review: artifact_paths.agentic_review.exists(),
             aigiscode_report: artifact_paths.aigiscode_report.exists(),
             aigiscode_report_markdown: artifact_paths.aigiscode_report_markdown.exists(),
             kuzu_graph: kuzu_graph.exists(),
@@ -922,6 +1425,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
         "feedback_loop": report.as_ref().and_then(|payload| payload.get("feedback_loop")).cloned().unwrap_or(JsonValue::Null),
         "convergence": convergence_history.as_ref().and_then(|payload| payload.get("summary")).cloned().unwrap_or(JsonValue::Null),
         "guard_decision": guard_decision.unwrap_or(JsonValue::Null),
+        "agentic_review": agentic_review.unwrap_or(JsonValue::Null),
         "convergence_attention": convergence_history.as_ref().map(|payload| {
             json!({
                 "attention_items_count": payload
@@ -974,6 +1478,7 @@ fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPa
         convergence_history: output_dir.join(CONVERGENCE_HISTORY_FILE),
         guard_decision: output_dir.join(GUARD_DECISION_FILE),
         agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
+        agentic_review: output_dir.join(AGENTIC_REVIEW_FILE),
         aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
         aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
     }
@@ -992,7 +1497,10 @@ fn read_json_if_exists(path: &Path) -> Result<Option<JsonValue>, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_info_command_output, build_plugins_command_output, run, run_tune_command};
+    use super::{
+        build_info_command_output, build_plugins_command_output, run, run_agent_command,
+        run_tune_command, ArtifactOptions,
+    };
     use crate::artifacts::write_project_analysis_artifacts;
     use crate::ingestion::pipeline::analyze_project;
     use crate::ingestion::scan::ScanConfig;
@@ -1112,6 +1620,71 @@ const s = "kappa"; const t = "kappa";"#,
 
         assert_eq!(run(["plugins"]), 0);
         assert_eq!(run(["tune", fixture.to_string_lossy().as_ref()]), 0);
+        assert_eq!(run(["agent", fixture.to_string_lossy().as_ref()]), 0);
+    }
+
+    #[test]
+    fn agent_command_writes_and_prints_agentic_review() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"fn main() { let mode = std::env::var("APP_MODE").unwrap_or_default(); println!("{}", mode); }"#,
+        )
+        .unwrap();
+
+        let output_dir = fixture.join(".aigiscode-agent");
+        assert_eq!(
+            run_agent_command(
+                fixture.clone(),
+                ArtifactOptions {
+                    output_dir: Some(output_dir.clone()),
+                    write_artifacts: true,
+                    write_kuzu: false,
+                    external_tools: Vec::new(),
+                },
+            ),
+            0
+        );
+
+        let payload: Value = serde_json::from_str(
+            &fs::read_to_string(output_dir.join("agentic-review.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            payload["transport"]["provider_family"],
+            Value::from("openai")
+        );
+        assert_eq!(
+            payload["transport"]["recommended_protocol"],
+            Value::from("responses_api")
+        );
+        assert_eq!(payload["execution"]["provider"], Value::from("openai"));
+        assert_eq!(
+            payload["execution"]["openai_responses"]["endpoint"],
+            Value::from("https://api.openai.com/v1/responses")
+        );
+        assert_eq!(
+            payload["execution"]["report_targets"][0]["file_name"],
+            Value::from("agent-review.md")
+        );
+    }
+
+    #[test]
+    fn agent_command_supports_no_write_mode() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"fn main() { let mode = std::env::var("APP_MODE").unwrap_or_default(); println!("{}", mode); }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            run(["agent", fixture.to_string_lossy().as_ref(), "--no-write"]),
+            0
+        );
+        assert!(!fixture.join(".aigiscode").exists());
     }
 
     fn create_fixture() -> PathBuf {

@@ -25,6 +25,9 @@
 
 ```bash
 aigiscode analyze /path/to/project
+aigiscode agent /path/to/project
+aigiscode agent-run /path/to/project
+aigiscode agent-spider /path/to/project
 aigiscode report /path/to/project
 aigiscode info /path/to/project
 aigiscode plugins
@@ -48,6 +51,7 @@ aigiscode --version
 - `.aigiscode/convergence-history.json`
 - `.aigiscode/guard-decision.json`
 - `.aigiscode/aigiscode-handoff.json`
+- `.aigiscode/agentic-review.json`
 - `.aigiscode/aigiscode-report.json`
 - `.aigiscode/aigiscode-report.md`
 
@@ -64,8 +68,12 @@ aigiscode --version
 9. Use `.aigiscode/convergence-history.json` to compare the current run against the previous artifact baseline in the same output directory.
 10. Use `.aigiscode/guard-decision.json` for the current allow/warn/block judgment and required review radius.
 11. Use `.aigiscode/aigiscode-handoff.json` when handing the repository to another agent.
-12. Use `aigiscode tune /repo` when you want a conservative starting patch for `.aigiscode/policy.json`.
-13. Re-run `aigiscode report /repo` after fixes.
+12. Use `.aigiscode/agentic-review.json` or `aigiscode agent /repo` when you want the graph-backed AI review contract, prompts, diff-aware task packets, evidence chains, bounded typed multi-path graph traces, bounded code flows, artifact priorities, and the adapter catalog for execution.
+13. Use `aigiscode agent-run /repo --adapter codex-exec` when you want AigisCode to execute a real local agent review and write `agent-review.json`, `agent-review.md`, `agent-output-schema.json`, and `agent-execution.jsonl`.
+14. Use `aigiscode agent-run /repo --adapter responses-http` when you want the same graph-backed review executed through the direct Rust OpenAI Responses adapter. This path requires `OPENAI_API_KEY`.
+15. Use `aigiscode agent-spider /repo --adapter ... --limit N` when you want AigisCode to crawl the top graph-backed task packets and persist one report per packet plus `agent-spider-report.json`.
+16. Use `aigiscode tune /repo` when you want a conservative starting patch for `.aigiscode/policy.json`.
+17. Re-run `aigiscode report /repo` after fixes.
 
 ## Project Structure
 

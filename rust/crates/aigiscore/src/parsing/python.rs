@@ -187,6 +187,7 @@ fn push_children<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     context: &PythonContext<'_>,
     kind: SymbolKind,
@@ -701,7 +702,7 @@ fn trace(message: &str) {
 mod tests {
     use super::parse_python_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind, Visibility};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn parses_python_symbols_and_imports() {
@@ -766,16 +767,13 @@ def helper():
     #[test]
     fn parses_deeply_nested_python_without_recursive_walker_overflow() {
         let depth = 6000;
-        let source = format!(
-            "value = {}\n",
-            format!("{}1{}", "(".repeat(depth), ")".repeat(depth))
-        );
+        let source = format!("value = {}1{}\n", "(".repeat(depth), ")".repeat(depth));
 
         let graph = parse_python_to_graph(PathBuf::from("app/deep.py"), &source).unwrap();
 
         assert!(graph
             .files
             .iter()
-            .any(|file| file.path == PathBuf::from("app/deep.py")));
+            .any(|file| file.path == Path::new("app/deep.py")));
     }
 }

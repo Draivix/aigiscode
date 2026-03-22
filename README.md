@@ -25,6 +25,9 @@ cargo run --bin aigiscode -- analyze .
 
 ```text
 aigiscode analyze <path>      Run deterministic analysis and write native artifacts
+aigiscode agent <path>        Print the graph-backed AI review contract
+aigiscode agent-run <path>    Execute the AI review through a concrete adapter and write agent reports
+aigiscode agent-spider <path> Crawl top task packets through a concrete adapter and write per-packet reports
 aigiscode report <path>       Compatibility alias that also writes aigiscode-report.json
 aigiscode analyze-rust <path> Compatibility alias for analyze
 aigiscode info <path>         Inspect existing Rust-native artifact state
@@ -58,6 +61,7 @@ external adapters alongside deterministic analysis.
 .aigiscode/convergence-history.json
 .aigiscode/guard-decision.json
 .aigiscode/aigiscode-handoff.json
+.aigiscode/agentic-review.json
 .aigiscode/aigiscode-report.json
 .aigiscode/aigiscode-report.md
 ```
@@ -76,6 +80,43 @@ When external tools are enabled, raw scanner artifacts are archived under:
 
 `aigiscode mcp` serves tools, resources, and prompts over stdio from the same
 native artifact family.
+
+`aigiscode agent` runs the normal analysis pipeline, writes the same artifact
+family, and prints `agentic-review.json` as the primary machine contract for an
+AI reviewer. The AI contract is graph-backed, includes diff-aware task packets,
+trace-style evidence chains, bounded typed multi-path graph traces, and bounded
+code-flow style evidence paths, and now carries an adapter catalog with:
+- local `codex exec`
+- direct OpenAI Responses HTTP
+- optional TypeScript Codex SDK sidecar
+
+`aigiscode agent-run` is the first real executor. It materializes the normal
+artifact family, selects an adapter, and writes:
+
+```text
+.aigiscode/agent-review.json
+.aigiscode/agent-review.md
+.aigiscode/agent-output-schema.json
+.aigiscode/agent-execution.jsonl
+```
+
+`aigiscode agent-spider` crawls the top task packets from `agentic-review.json`
+through the same adapter boundary and writes:
+
+```text
+.aigiscode/agent-spider-report.json
+.aigiscode/agent-spider/<packet>/agent-review.json
+.aigiscode/agent-spider/<packet>/agent-review.md
+.aigiscode/agent-spider/<packet>/agent-output-schema.json
+.aigiscode/agent-spider/<packet>/agent-execution.jsonl
+```
+
+Current working adapters:
+- `codex-exec` for local Codex CLI execution
+- `responses-http` for direct Rust `v1/responses` execution with `OPENAI_API_KEY`
+
+Planned adapter:
+- `codex-sdk` as a thin optional TypeScript sidecar around the official Codex SDK
 
 ## What It Finds
 

@@ -813,6 +813,14 @@ fn surface_finding_from_architectural_assessment(
                 .warning_families
                 .iter()
                 .any(|family| family == "concern:custom_scheduler_dsl");
+            let is_filesystem_page_resolution = finding
+                .warning_families
+                .iter()
+                .any(|family| family == "concern:filesystem_page_resolution");
+            let is_manifest_backed_policy_engine = finding
+                .warning_families
+                .iter()
+                .any(|family| family == "concern:manifest_backed_policy_engine");
             SurfaceFinding {
                 id: format!(
                     "architecture:hand-rolled-parsing:{}:{}",
@@ -824,7 +832,11 @@ fn surface_finding_from_architectural_assessment(
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
-                title: String::from(if is_schema_validation {
+                title: String::from(if is_manifest_backed_policy_engine {
+                    "Manifest-backed policy engine"
+                } else if is_filesystem_page_resolution {
+                    "Filesystem page resolution layer"
+                } else if is_schema_validation {
                     "Homegrown schema validation"
                 } else if is_scheduler_dsl {
                     "Homegrown scheduler DSL"
@@ -836,7 +848,11 @@ fn surface_finding_from_architectural_assessment(
                 summary: format!(
                     "{} appears to own a custom {} ({})",
                     finding.file_path.display(),
-                    if is_schema_validation {
+                    if is_manifest_backed_policy_engine {
+                        "manifest-backed template policy/runtime engine"
+                    } else if is_filesystem_page_resolution {
+                        "filesystem-backed page or route resolution layer"
+                    } else if is_schema_validation {
                         "schema or validation contract stack"
                     } else if is_scheduler_dsl {
                         "scheduler or job-definition DSL"
@@ -860,7 +876,11 @@ fn surface_finding_from_architectural_assessment(
                 ],
                 doctrine_refs: vec![
                     String::from("pattern.coherence"),
-                    String::from(if is_schema_validation {
+                    String::from(if is_manifest_backed_policy_engine {
+                        "guardian.avoid-manifest-backed-policy-engine"
+                    } else if is_filesystem_page_resolution {
+                        "guardian.avoid-filesystem-page-resolution"
+                    } else if is_schema_validation {
                         "guardian.avoid-homegrown-schema-validation"
                     } else if is_scheduler_dsl {
                         "guardian.avoid-homegrown-scheduler-dsl"
@@ -1425,7 +1445,7 @@ mod tests {
     use crate::ingestion::pipeline::analyze_project;
     use crate::ingestion::scan::ScanConfig;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
@@ -1497,10 +1517,13 @@ def execute():
         assert!(surface
             .hotspots
             .iter()
-            .any(|hotspot| hotspot.file_path == PathBuf::from("src/service.ts")));
-        assert!(surface.atlas.edges.iter().any(|edge| edge.source_file_path
-            == PathBuf::from("src/service.ts")
-            && edge.target_file_path == PathBuf::from("src/factory.ts")));
+            .any(|hotspot| hotspot.file_path == Path::new("src/service.ts")));
+        assert!(surface
+            .atlas
+            .edges
+            .iter()
+            .any(|edge| edge.source_file_path == Path::new("src/service.ts")
+                && edge.target_file_path == Path::new("src/factory.ts")));
         assert!(surface
             .highlights
             .iter()

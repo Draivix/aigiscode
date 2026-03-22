@@ -294,6 +294,7 @@ fn walk_children(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     context: &RustExtractionContext<'_>,
     kind: SymbolKind,

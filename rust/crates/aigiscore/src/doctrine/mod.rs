@@ -136,6 +136,28 @@ pub fn built_in_doctrine_registry() -> DoctrineRegistry {
                     "Prefer framework scheduler, queues, and first-class job declarations over custom manifest-backed scheduler registries and executors.",
                 ],
             ),
+            clause_with_preferred(
+                "guardian.avoid-filesystem-page-resolution",
+                "Avoid filesystem-backed page resolution layers",
+                "Do not build hidden filesystem-backed page or route ownership layers when the sanctioned framework routing stack can expose the same transport contract explicitly or through typed compiled discovery.",
+                DoctrineCategory::MechanismChoice,
+                DoctrineDisposition::Warn,
+                "compiled_typed_route_contract",
+                &[
+                    "Prefer explicit or typed compiled route/page contracts over runtime filesystem probing and fallback resolution.",
+                ],
+            ),
+            clause_with_preferred(
+                "guardian.avoid-manifest-backed-policy-engine",
+                "Avoid manifest-backed policy engines",
+                "Do not build manifest-registered policy resolver registries plus custom node/edge template runtimes when a smaller typed domain workflow or configuration contract would cover the same behavior.",
+                DoctrineCategory::MechanismChoice,
+                DoctrineDisposition::Warn,
+                "typed_domain_workflow_contract",
+                &[
+                    "Prefer typed compiled domain workflow/config contracts over manifest-backed resolver registries and private node/edge runtimes.",
+                ],
+            ),
             clause(
                 "guardian.boundary-stability",
                 "Boundary stability",

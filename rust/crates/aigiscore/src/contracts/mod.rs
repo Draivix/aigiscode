@@ -717,7 +717,7 @@ fn multiline_union_start_pattern() -> &'static Regex {
 #[cfg(test)]
 mod tests {
     use super::{build_contract_inventory, ContractCategorySummary};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn builds_contract_inventory_for_routes_hooks_and_runtime_keys() {
@@ -1010,7 +1010,7 @@ public function register_routes() {
             item.value == "wordpress.rest_route"
                 && item.locations.iter().any(|location| {
                     location.file_path
-                    == PathBuf::from(
+                    == Path::new(
                         "wp-includes/rest-api/endpoints/class-wp-rest-widget-types-controller.php",
                     )
                     && location.line == 3

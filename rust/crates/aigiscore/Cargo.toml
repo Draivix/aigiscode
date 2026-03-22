@@ -8,6 +8,7 @@ rust-version.workspace = true
 [dependencies]
 globset.workspace = true
 petgraph.workspace = true
+reqwest.workspace = true
 regex.workspace = true
 rmcp.workspace = true
 sarif_rust.workspace = true

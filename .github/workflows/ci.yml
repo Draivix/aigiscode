@@ -6,41 +6,46 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
-  test:
+  rust:
+    name: Rust — fmt, clippy, test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.77.0
+          components: rustfmt, clippy
 
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
 
-      - name: Run fmt check
-        run: cargo fmt --check
-
-      - name: Run tests
-        run: cargo test
-
-      - name: Verify native CLI
-        run: cargo run --quiet --bin aigiscode -- --version
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - run: cargo run --quiet --bin aigiscode -- --version
 
   website:
+    name: Website — lint, build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
 
-      - name: Install and build website
-        working-directory: website
-        run: |
-          npm ci
-          npm run build
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build

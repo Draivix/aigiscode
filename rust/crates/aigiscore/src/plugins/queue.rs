@@ -4,7 +4,7 @@ use crate::graph::{
 };
 use crate::plugins::{RepoContext, RuntimePlugin};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub struct QueueDispatchPlugin;
 
@@ -83,18 +83,18 @@ fn is_queue_dispatch_call(target_name: &str) -> bool {
 }
 
 fn resolve_dispatch_target(
-    file_path: &PathBuf,
+    file_path: &Path,
     receiver_name: &str,
     import_targets: &HashMap<(PathBuf, String), (String, PathBuf)>,
     same_file_symbols: &HashMap<(PathBuf, String), (String, PathBuf)>,
 ) -> Option<(String, PathBuf)> {
     let binding_name = leaf_symbol_name(receiver_name);
     import_targets
-        .get(&(file_path.clone(), binding_name.clone()))
+        .get(&(file_path.to_path_buf(), binding_name.clone()))
         .cloned()
         .or_else(|| {
             same_file_symbols
-                .get(&(file_path.clone(), binding_name))
+                .get(&(file_path.to_path_buf(), binding_name))
                 .cloned()
         })
 }

@@ -5,7 +5,7 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct GraphAnalysis {
@@ -432,7 +432,7 @@ fn calculate_coupling(graph: &DiGraph<PathBuf, ()>) -> Vec<CouplingMetric> {
     metrics
 }
 
-fn top_level_module(path: &PathBuf) -> String {
+fn top_level_module(path: &Path) -> String {
     path.iter()
         .next()
         .map(|segment| segment.to_string_lossy().to_string())
@@ -484,7 +484,7 @@ fn find_orphan_files(graph: &DiGraph<PathBuf, ()>) -> (Vec<PathBuf>, Vec<PathBuf
     (orphans, runtime_entry_candidates)
 }
 
-fn is_default_entry_point(path: &PathBuf) -> bool {
+fn is_default_entry_point(path: &Path) -> bool {
     let normalized = format!("/{}", path.to_string_lossy().replace('\\', "/"));
     ENTRY_POINT_PATTERNS
         .iter()
@@ -646,7 +646,7 @@ fn architectural_smell_fingerprint(smell: &ArchitecturalSmell) -> String {
     stable_fingerprint(&parts)
 }
 
-fn bottleneck_fingerprint(path: &PathBuf) -> String {
+fn bottleneck_fingerprint(path: &Path) -> String {
     stable_fingerprint(&["graph", "bottleneck", &normalized_path(path)])
 }
 

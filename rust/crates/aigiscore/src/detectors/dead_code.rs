@@ -2,7 +2,7 @@ use crate::graph::{ReferenceKind, SemanticGraph, SymbolKind, Visibility};
 use crate::identity::{normalized_path, stable_fingerprint};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeadCodeCategory {
@@ -208,7 +208,7 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
     DeadCodeResult { findings }
 }
 
-fn dead_code_fingerprint(category: DeadCodeCategory, file_path: &PathBuf, name: &str) -> String {
+fn dead_code_fingerprint(category: DeadCodeCategory, file_path: &Path, name: &str) -> String {
     stable_fingerprint(&[
         "dead-code",
         dead_code_category_label(category),

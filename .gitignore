@@ -9,6 +9,4 @@ website/.memories/
 website/.plan/
 docs/plans/
 target/
-reports/**/*.db
-reports/**/*.db-shm
-reports/**/*.db-wal
+reports/

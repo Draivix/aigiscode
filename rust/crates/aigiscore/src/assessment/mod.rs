@@ -87,6 +87,22 @@ pub fn build_architectural_assessment(
     findings.extend(duplicate_mechanisms);
     findings.extend(sanctioned_path_bypasses);
     findings.extend(hand_rolled_parsing);
+    findings.extend(detect_filesystem_page_resolution_stacks(
+        &graph_analysis
+            .bottleneck_files
+            .iter()
+            .map(|bottleneck| (bottleneck.file_path.clone(), bottleneck.centrality_millis))
+            .collect::<HashMap<_, _>>(),
+        parsed_sources,
+    ));
+    findings.extend(detect_manifest_backed_policy_engine_stacks(
+        &graph_analysis
+            .bottleneck_files
+            .iter()
+            .map(|bottleneck| (bottleneck.file_path.clone(), bottleneck.centrality_millis))
+            .collect::<HashMap<_, _>>(),
+        parsed_sources,
+    ));
     findings.extend(abstraction_sprawl);
     for finding in &mut findings {
         finding.fingerprint = architectural_assessment_fingerprint(finding);
@@ -351,9 +367,7 @@ fn detect_split_identity_models(
 
             let mut file_counts = group.file_counts.into_iter().collect::<Vec<_>>();
             file_counts.sort_by(|left, right| right.1.cmp(&left.1).then(left.0.cmp(&right.0)));
-            let Some((primary_file, _)) = file_counts.first() else {
-                return None;
-            };
+            let (primary_file, _) = file_counts.first()?;
             if file_counts.len() < 2 {
                 return None;
             }
@@ -597,9 +611,7 @@ fn detect_duplicate_mechanisms(
                     .then(left.0.cmp(&right.0))
             });
 
-            let Some((primary_file, _, _, primary_centrality, _)) = ranked_files.first() else {
-                return None;
-            };
+            let (primary_file, _, _, primary_centrality, _) = ranked_files.first()?;
 
             let related_file_paths = ranked_files
                 .iter()
@@ -839,10 +851,7 @@ fn detect_abstraction_sprawl(
                     .then(left.0.cmp(&right.0))
             });
 
-            let Some((primary_file, primary_roles, _, primary_centrality)) = ranked_files.first()
-            else {
-                return None;
-            };
+            let (primary_file, primary_roles, _, primary_centrality) = ranked_files.first()?;
             if primary_roles.len() < 2 && *primary_centrality < 250 {
                 return None;
             }
@@ -1013,11 +1022,7 @@ fn detect_hand_rolled_parsing(
             }
 
             let total_score = group.file_scores.values().sum::<usize>();
-            let minimum_total_score = if is_primary_parser_cluster {
-                8
-            } else if is_definition_engine_cluster {
-                5
-            } else if is_contract_stack_cluster {
+            let minimum_total_score = if is_definition_engine_cluster || is_contract_stack_cluster {
                 5
             } else {
                 8
@@ -1049,11 +1054,7 @@ fn detect_hand_rolled_parsing(
                     .then(left.0.cmp(&right.0))
             });
 
-            let Some((primary_file, _, primary_score, primary_centrality, _)) =
-                ranked_files.first()
-            else {
-                return None;
-            };
+            let (primary_file, _, primary_score, primary_centrality, _) = ranked_files.first()?;
 
             let related_file_paths = ranked_files
                 .iter()
@@ -1224,6 +1225,277 @@ fn detect_scheduler_dsl_stacks(
         + (role_set.len().min(5) * 80)
         + (ranked_files.len().min(4) * 100)
         + (total_score.min(12) * 18)
+        + ((*primary_centrality / 250).min(140) as usize))
+        .min(1000) as u16;
+
+    vec![ArchitecturalAssessmentFinding {
+        kind: ArchitecturalAssessmentKind::HandRolledParsing,
+        file_path: primary_file.clone(),
+        related_file_paths,
+        related_identifiers,
+        warning_count: ranked_files.len(),
+        warning_weight: total_score.max(*primary_score),
+        bottleneck_centrality_millis: *primary_centrality,
+        warning_families,
+        severity_millis: severity,
+        fingerprint: String::new(),
+    }]
+}
+
+fn detect_filesystem_page_resolution_stacks(
+    bottleneck_by_path: &HashMap<PathBuf, u32>,
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<ArchitecturalAssessmentFinding> {
+    let mut ranked_files = parsed_sources
+        .iter()
+        .filter_map(|(path, content)| {
+            if is_low_signal_identity_path(path) {
+                return None;
+            }
+            let roles = filesystem_page_resolution_roles(path);
+            if roles.is_empty() {
+                return None;
+            }
+            let has_transport_role = roles
+                .iter()
+                .any(|role| matches!(role.as_str(), "route" | "router" | "page" | "action"));
+            if !has_transport_role {
+                return None;
+            }
+            let concepts = filesystem_page_resolution_concepts(path, content);
+            if concepts.is_empty() {
+                return None;
+            }
+            let has_transport_concept = concepts
+                .iter()
+                .any(|concept| matches!(concept.as_str(), "page" | "route" | "action"));
+            if !has_transport_concept {
+                return None;
+            }
+            let score = filesystem_page_resolution_score(content);
+            if score < filesystem_page_resolution_minimum_score(&roles) {
+                return None;
+            }
+            let centrality = bottleneck_by_path.get(path).copied().unwrap_or_default();
+            let primary_bonus = filesystem_page_resolution_primary_bonus(&roles, content);
+            Some((
+                path.clone(),
+                roles,
+                concepts,
+                score,
+                centrality,
+                primary_bonus,
+            ))
+        })
+        .collect::<Vec<_>>();
+
+    if ranked_files.len() < 2 {
+        return Vec::new();
+    }
+
+    let role_set = ranked_files
+        .iter()
+        .flat_map(|(_, roles, _, _, _, _)| roles.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    let concept_set = ranked_files
+        .iter()
+        .flat_map(|(_, _, concepts, _, _, _)| concepts.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    let total_score = ranked_files
+        .iter()
+        .map(|(_, _, _, score, _, _)| *score)
+        .sum::<usize>();
+
+    let has_registry_or_resolver = role_set
+        .iter()
+        .any(|role| matches!(role.as_str(), "registry" | "resolver"));
+    let has_route_surface = role_set
+        .iter()
+        .any(|role| matches!(role.as_str(), "route" | "router" | "page" | "action"));
+    let has_page_and_route_concepts = concept_set.contains("page")
+        && (concept_set.contains("route") || concept_set.contains("action"));
+    let has_module_or_fallback = concept_set.contains("module")
+        || concept_set.contains("fallback")
+        || concept_set.contains("inertia");
+
+    if !has_registry_or_resolver
+        || !has_route_surface
+        || !has_page_and_route_concepts
+        || !has_module_or_fallback
+        || total_score < 8
+    {
+        return Vec::new();
+    }
+
+    ranked_files.sort_by(|left, right| {
+        right
+            .4
+            .cmp(&left.4)
+            .then(right.5.cmp(&left.5))
+            .then(right.3.cmp(&left.3))
+            .then(right.1.len().cmp(&left.1.len()))
+            .then(left.0.cmp(&right.0))
+    });
+
+    let Some((primary_file, _, _, primary_score, primary_centrality, _)) = ranked_files.first()
+    else {
+        return Vec::new();
+    };
+
+    let related_file_paths = ranked_files
+        .iter()
+        .skip(1)
+        .take(6)
+        .map(|(path, _, _, _, _, _)| path.clone())
+        .collect::<Vec<_>>();
+    let mut related_identifiers = vec![String::from("concern:page_resolution")];
+    related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
+    related_identifiers.extend(
+        concept_set
+            .iter()
+            .take(8)
+            .map(|concept| format!("concept:{concept}")),
+    );
+    let mut warning_families = role_set
+        .iter()
+        .map(|role| format!("parsing_role:{role}"))
+        .collect::<Vec<_>>();
+    warning_families.push(String::from("concern:filesystem_page_resolution"));
+
+    let severity = (440
+        + (role_set.len().min(6) * 70)
+        + (ranked_files.len().min(4) * 90)
+        + (total_score.min(14) * 18)
+        + ((*primary_centrality / 250).min(140) as usize))
+        .min(1000) as u16;
+
+    vec![ArchitecturalAssessmentFinding {
+        kind: ArchitecturalAssessmentKind::HandRolledParsing,
+        file_path: primary_file.clone(),
+        related_file_paths,
+        related_identifiers,
+        warning_count: ranked_files.len(),
+        warning_weight: total_score.max(*primary_score),
+        bottleneck_centrality_millis: *primary_centrality,
+        warning_families,
+        severity_millis: severity,
+        fingerprint: String::new(),
+    }]
+}
+
+fn detect_manifest_backed_policy_engine_stacks(
+    bottleneck_by_path: &HashMap<PathBuf, u32>,
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<ArchitecturalAssessmentFinding> {
+    let mut ranked_files = parsed_sources
+        .iter()
+        .filter_map(|(path, content)| {
+            if is_low_signal_identity_path(path) {
+                return None;
+            }
+            let roles = manifest_policy_engine_roles(path);
+            if roles.is_empty() {
+                return None;
+            }
+            let concepts = manifest_policy_engine_concepts(path, content);
+            if !concepts.contains("template") {
+                return None;
+            }
+            let score = manifest_policy_engine_score(content);
+            if score < manifest_policy_engine_minimum_score(&roles) {
+                return None;
+            }
+            let centrality = bottleneck_by_path.get(path).copied().unwrap_or_default();
+            let primary_bonus = manifest_policy_engine_primary_bonus(&roles, content);
+            Some((
+                path.clone(),
+                roles,
+                concepts,
+                score,
+                centrality,
+                primary_bonus,
+            ))
+        })
+        .collect::<Vec<_>>();
+
+    if ranked_files.len() < 3 {
+        return Vec::new();
+    }
+
+    let role_set = ranked_files
+        .iter()
+        .flat_map(|(_, roles, _, _, _, _)| roles.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    let concept_set = ranked_files
+        .iter()
+        .flat_map(|(_, _, concepts, _, _, _)| concepts.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    let total_score = ranked_files
+        .iter()
+        .map(|(_, _, _, score, _, _)| *score)
+        .sum::<usize>();
+
+    let has_registry = role_set.contains("registry");
+    let has_compiler = role_set.contains("compiler");
+    let has_runtime = role_set
+        .iter()
+        .any(|role| matches!(role.as_str(), "instantiation" | "runtime" | "service"));
+    let has_policy_and_manifest =
+        concept_set.contains("policy") && concept_set.contains("manifest");
+    let has_graph_runtime_shape = concept_set.contains("node")
+        && (concept_set.contains("edge")
+            || concept_set.contains("workflow")
+            || concept_set.contains("instantiation"));
+
+    if !has_registry
+        || !has_compiler
+        || !has_runtime
+        || !has_policy_and_manifest
+        || !has_graph_runtime_shape
+        || total_score < 10
+    {
+        return Vec::new();
+    }
+
+    ranked_files.sort_by(|left, right| {
+        right
+            .5
+            .cmp(&left.5)
+            .then(right.4.cmp(&left.4))
+            .then(right.3.cmp(&left.3))
+            .then(right.1.len().cmp(&left.1.len()))
+            .then(left.0.cmp(&right.0))
+    });
+
+    let Some((primary_file, _, _, primary_score, primary_centrality, _)) = ranked_files.first()
+    else {
+        return Vec::new();
+    };
+
+    let related_file_paths = ranked_files
+        .iter()
+        .skip(1)
+        .take(6)
+        .map(|(path, _, _, _, _, _)| path.clone())
+        .collect::<Vec<_>>();
+    let mut related_identifiers = vec![String::from("concern:policy_engine")];
+    related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
+    related_identifiers.extend(
+        concept_set
+            .iter()
+            .take(6)
+            .map(|concept| format!("concept:{concept}")),
+    );
+    let mut warning_families = role_set
+        .iter()
+        .map(|role| format!("parsing_role:{role}"))
+        .collect::<Vec<_>>();
+    warning_families.push(String::from("concern:manifest_backed_policy_engine"));
+
+    let severity = (460
+        + (role_set.len().min(6) * 70)
+        + (ranked_files.len().min(4) * 90)
+        + (total_score.min(16) * 16)
         + ((*primary_centrality / 250).min(140) as usize))
         .min(1000) as u16;
 
@@ -1512,6 +1784,227 @@ fn scheduler_stack_pattern() -> &'static Regex {
             r#"(?i)cronexpression|schedule:run|scheduled_jobs|scheduled[- ]job|config\('jobs|config\("jobs|manifest\['jobs'\]|artisan::call|dispatch\s*\(\s*new\s+[A-Za-z_\\]|cache::lock|->isdue\("#,
         )
         .expect("scheduler stack pattern should compile")
+    })
+}
+
+fn filesystem_page_resolution_roles(path: &Path) -> BTreeSet<String> {
+    let mut roles = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        roles.extend(split_identifier_words(stem).into_iter().filter(|word| {
+            matches!(
+                word.as_str(),
+                "resolver" | "registry" | "route" | "router" | "page" | "action"
+            )
+        }));
+    }
+    roles
+}
+
+fn filesystem_page_resolution_score(content: &str) -> usize {
+    filesystem_page_resolution_pattern()
+        .find_iter(content)
+        .count()
+}
+
+fn filesystem_page_resolution_minimum_score(roles: &BTreeSet<String>) -> usize {
+    if roles
+        .iter()
+        .any(|role| matches!(role.as_str(), "resolver" | "registry"))
+    {
+        3
+    } else {
+        2
+    }
+}
+
+fn filesystem_page_resolution_primary_bonus(roles: &BTreeSet<String>, content: &str) -> usize {
+    let mut bonus = roles
+        .iter()
+        .filter(|role| matches!(role.as_str(), "resolver" | "registry"))
+        .count();
+    let normalized = content.to_ascii_lowercase();
+    if normalized.contains("file::allfiles")
+        || normalized.contains("file::exists")
+        || normalized.contains("resources/js/pages")
+    {
+        bonus += 1;
+    }
+    bonus
+}
+
+fn filesystem_page_resolution_concepts(path: &Path, content: &str) -> BTreeSet<String> {
+    let mut concepts = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        concepts.extend(split_identifier_words(stem).into_iter().filter(|word| {
+            matches!(
+                word.as_str(),
+                "page" | "route" | "module" | "action" | "fallback"
+            )
+        }));
+    }
+    let normalized = path
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_ascii_lowercase();
+    if normalized.contains("/pages/") || normalized.ends_with(".page.php") {
+        concepts.insert(String::from("page"));
+    }
+    if normalized.contains("/actions/") {
+        concepts.insert(String::from("action"));
+    }
+    let normalized_content = content.to_ascii_lowercase();
+    if normalized_content.contains("@route") || normalized_content.contains("route::match") {
+        concepts.insert(String::from("route"));
+    }
+    if normalized_content.contains("module page")
+        || normalized_content.contains("app/modules/")
+        || normalized_content.contains("getenabledmodules")
+    {
+        concepts.insert(String::from("module"));
+    }
+    if normalized_content.contains("fallback") {
+        concepts.insert(String::from("fallback"));
+    }
+    if normalized_content.contains("inertia") || normalized_content.contains("resources/js/pages") {
+        concepts.insert(String::from("inertia"));
+        concepts.insert(String::from("page"));
+    }
+    concepts
+}
+
+fn filesystem_page_resolution_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(file::allfiles|file::exists|base_path\s*\(|storage_path\s*\(|resources/js/pages|\.page\.php|@route\b|route::match|parseroute|parsepagefile|parseactionfile|extractclassinfo|require_once|fallback|module page|action route|page route)"#,
+        )
+        .expect("filesystem page resolution pattern should compile")
+    })
+}
+
+fn manifest_policy_engine_roles(path: &Path) -> BTreeSet<String> {
+    let mut roles = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        roles.extend(split_identifier_words(stem).into_iter().filter(|word| {
+            matches!(
+                word.as_str(),
+                "template"
+                    | "policy"
+                    | "registry"
+                    | "compiler"
+                    | "instantiation"
+                    | "runtime"
+                    | "resolver"
+                    | "service"
+            )
+        }));
+    }
+    roles
+}
+
+fn manifest_policy_engine_score(content: &str) -> usize {
+    manifest_policy_engine_pattern().find_iter(content).count()
+}
+
+fn manifest_policy_engine_minimum_score(roles: &BTreeSet<String>) -> usize {
+    if roles.iter().any(|role| {
+        matches!(
+            role.as_str(),
+            "registry" | "compiler" | "instantiation" | "runtime"
+        )
+    }) {
+        2
+    } else {
+        1
+    }
+}
+
+fn manifest_policy_engine_primary_bonus(roles: &BTreeSet<String>, content: &str) -> usize {
+    let mut bonus = roles
+        .iter()
+        .filter(|role| {
+            matches!(
+                role.as_str(),
+                "registry" | "compiler" | "instantiation" | "runtime"
+            )
+        })
+        .count();
+    let normalized = content.to_ascii_lowercase();
+    if normalized.contains("templatepolicies")
+        || normalized.contains("assignmentresolvers")
+        || normalized.contains("deadline resolvers")
+        || normalized.contains("resolveassignmentresolver")
+        || normalized.contains("resolvedeadlineresolver")
+    {
+        bonus += 2;
+    }
+    if normalized.contains("topologicalsort")
+        || normalized.contains("normalizenodes")
+        || normalized.contains("normalizeedges")
+        || normalized.contains("applyassignmentpolicy")
+        || normalized.contains("applydeadlinepolicy")
+    {
+        bonus += 1;
+    }
+    bonus
+}
+
+fn manifest_policy_engine_concepts(path: &Path, content: &str) -> BTreeSet<String> {
+    let mut concepts = BTreeSet::new();
+    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
+        concepts.extend(split_identifier_words(stem).into_iter().filter(|word| {
+            matches!(
+                word.as_str(),
+                "template"
+                    | "policy"
+                    | "manifest"
+                    | "node"
+                    | "edge"
+                    | "workflow"
+                    | "instantiation"
+                    | "resolver"
+            )
+        }));
+    }
+    let normalized_content = content.to_ascii_lowercase();
+    if normalized_content.contains("templatepolicies")
+        || normalized_content.contains("manifest['templatepolicies']")
+        || normalized_content.contains("manifest[\"templatepolicies\"]")
+        || normalized_content.contains("moduleregistry")
+    {
+        concepts.insert(String::from("manifest"));
+        concepts.insert(String::from("policy"));
+        concepts.insert(String::from("template"));
+    }
+    if normalized_content.contains("nodesbykey")
+        || normalized_content.contains("normalizenodes")
+        || normalized_content.contains("nodekey")
+    {
+        concepts.insert(String::from("node"));
+    }
+    if normalized_content.contains("normalizeedges")
+        || normalized_content.contains("deferrededges")
+        || normalized_content.contains("edge references")
+    {
+        concepts.insert(String::from("edge"));
+    }
+    if normalized_content.contains("topologicalsort")
+        || normalized_content.contains("dependson")
+        || normalized_content.contains("instantiate(")
+    {
+        concepts.insert(String::from("workflow"));
+        concepts.insert(String::from("instantiation"));
+    }
+    concepts
+}
+
+fn manifest_policy_engine_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| {
+        Regex::new(
+            r#"(?i)(templatePolicies|assignmentResolvers|deadlineResolvers|resolveAssignmentResolver|resolveDeadlineResolver|normalizeNodes|normalizeEdges|topologicalSort|deferredEdges|dependsOn|applyAssignmentPolicy|applyDeadlinePolicy|extractPolicy|createdByNode|nodeKey|moduleRegistry->getEnabledModules|manifest\['templatePolicies'\]|manifest\["templatePolicies"\])"#,
+        )
+        .expect("manifest policy engine pattern should compile")
     })
 }
 
@@ -1866,7 +2359,7 @@ mod tests {
     };
     use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
     use serde_json::Map;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn detects_warning_heavy_hotspots_from_centrality_and_findings() {
@@ -2151,7 +2644,7 @@ mod tests {
 
         assert!(assessment.findings.iter().any(|finding| {
             finding.kind == ArchitecturalAssessmentKind::CompatibilityScar
-                && finding.file_path == PathBuf::from("app/Services/EntityNormalizer.php")
+                && finding.file_path == Path::new("app/Services/EntityNormalizer.php")
         }));
     }
 
@@ -2203,11 +2696,9 @@ mod tests {
             .find(|finding| finding.kind == ArchitecturalAssessmentKind::DuplicateMechanism)
             .expect("expected duplicate mechanism finding");
         assert!(
-            finding.file_path
-                == PathBuf::from("app/Notifications/AssignmentNotificationService.php")
-                || finding.file_path
-                    == PathBuf::from("app/Hooks/assignment_notifications.hook.php")
-                || finding.file_path == PathBuf::from("app/Jobs/AssignmentNotificationJob.php")
+            finding.file_path == Path::new("app/Notifications/AssignmentNotificationService.php")
+                || finding.file_path == Path::new("app/Hooks/assignment_notifications.hook.php")
+                || finding.file_path == Path::new("app/Jobs/AssignmentNotificationJob.php")
         );
         assert!(finding
             .warning_families
@@ -2543,6 +3034,255 @@ def build_report():
             .related_identifiers
             .iter()
             .any(|identifier| identifier == "concept:schedule" || identifier == "concept:job"));
+    }
+
+    #[test]
+    fn detects_filesystem_page_resolution_layer() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Services/_Core/ModulePageResolver.php"),
+                    centrality_millis: 560,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Services/_Core/ModulePageResolver.php"),
+                    String::from(
+                        r#"
+                        final class ModulePageResolver {
+                            public static function resolve(string $entityType, string $action): string {
+                                $pagePath = base_path("app/Modules/{$moduleName}/resources/js/Pages/{$entityType}/{$action}.vue");
+                                if (File::exists($pagePath)) {
+                                    return "{$moduleName}/{$entityType}/{$action}";
+                                }
+                                return "Entity/{$action}";
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Page/PageRouteRegistry.php"),
+                    String::from(
+                        r#"
+                        final class PageRouteRegistry {
+                            public function build(): array {
+                                foreach (File::allFiles(app_path('Pages')) as $file) {
+                                    if (str_ends_with($file->getPathname(), '.page.php')) {
+                                        $definition = $this->parsePageFile($file->getPathname());
+                                    }
+                                }
+                                return [];
+                            }
+                            private function parseRoute(string $docblock): ?array {
+                                preg_match('/@route\s+([A-Z\|,\s]+)\s+([^\s]+)/', $docblock, $matches);
+                                return ['path' => $matches[2] ?? null];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/Action/ActionRouteRegistry.php"),
+                    String::from(
+                        r#"
+                        final class ActionRouteRegistry {
+                            public function registerRoutes(): void {
+                                Route::match(['POST'], 'actions/run', ExampleAction::class);
+                            }
+                            private function parseActionFile(string $path): ?array {
+                                require_once $path;
+                                return ['path' => 'actions/run'];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/I18n/LocaleResolver.php"),
+                    String::from(
+                        r#"
+                        final class LocaleResolver {
+                            public function getFallbackLanguage(): string {
+                                return 'en_US';
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::HandRolledParsing
+                    && finding
+                        .warning_families
+                        .contains(&String::from("concern:filesystem_page_resolution"))
+            })
+            .expect("expected filesystem page resolution finding");
+        assert_eq!(
+            finding.file_path,
+            PathBuf::from("app/Services/_Core/ModulePageResolver.php")
+        );
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier == "concept:page"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier == "concept:route"));
+    }
+
+    #[test]
+    fn ignores_plain_route_files_without_filesystem_page_resolution_layer() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("routes/web.php"),
+                    String::from(
+                        r#"
+                        Route::middleware(['auth'])->group(function (): void {
+                            Route::get('/dashboard', [DashboardController::class, 'index']);
+                            Route::post('/profile', [ProfileController::class, 'update']);
+                        });
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Http/Controllers/DashboardController.php"),
+                    String::from("final class DashboardController {}"),
+                ),
+            ],
+        );
+
+        assert!(assessment.findings.iter().all(|finding| {
+            finding.kind != ArchitecturalAssessmentKind::HandRolledParsing
+                || !finding
+                    .warning_families
+                    .contains(&String::from("concern:filesystem_page_resolution"))
+        }));
+    }
+
+    #[test]
+    fn detects_manifest_backed_policy_engine_layer() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![
+                    BottleneckFile {
+                        file_path: PathBuf::from(
+                            "app/Services/_Core/Templates/TemplatePolicyRegistry.php",
+                        ),
+                        centrality_millis: 610,
+                        fingerprint: String::new(),
+                    },
+                    BottleneckFile {
+                        file_path: PathBuf::from(
+                            "app/Services/_Core/Templates/TemplateInstantiationService.php",
+                        ),
+                        centrality_millis: 580,
+                        fingerprint: String::new(),
+                    },
+                ],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Services/_Core/Templates/TemplatePolicyRegistry.php"),
+                    String::from(
+                        r#"
+                        final class TemplatePolicyRegistry {
+                            private array $assignmentResolvers = [];
+                            private array $deadlineResolvers = [];
+
+                            private function loadIfNeeded(): void
+                            {
+                                foreach ($this->moduleRegistry->getEnabledModules() as $module) {
+                                    $manifest = $module['manifest'] ?? null;
+                                    $policies = $manifest['templatePolicies'] ?? null;
+                                }
+                            }
+
+                            public function resolveAssignmentResolver(?string $key): ?TemplateAssignmentResolverInterface
+                            {
+                                return null;
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/_Core/Templates/TemplateCompiler.php"),
+                    String::from(
+                        r#"
+                        final class TemplateCompiler {
+                            public function compile(array $definition): array
+                            {
+                                $nodesByKey = $this->normalizeNodes($definition['nodes'] ?? null);
+                                $edges = $this->normalizeEdges($definition['edges'] ?? null);
+                                $orderedKeys = $this->topologicalSort(array_keys($nodesByKey), []);
+                                return ['nodesByKey' => $nodesByKey, 'orderedKeys' => $orderedKeys, 'deferredEdges' => $edges];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/_Core/Templates/TemplateInstantiationService.php"),
+                    String::from(
+                        r#"
+                        final class TemplateInstantiationService {
+                            public function instantiate(array $definition): array
+                            {
+                                $compiled = $this->compiler->compile($definition);
+                                $fieldValues = $this->applyAssignmentPolicy([], [], [], []);
+                                $fieldValues = $this->applyDeadlinePolicy([], $fieldValues, [], []);
+                                return ['createdByNode' => ['root' => 1], 'nodeKey' => 'root'];
+                            }
+                        }
+                    "#,
+                    ),
+                ),
+            ],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::HandRolledParsing
+                    && finding
+                        .warning_families
+                        .contains(&String::from("concern:manifest_backed_policy_engine"))
+            })
+            .expect("expected manifest-backed policy engine finding");
+        assert_eq!(
+            finding.file_path,
+            PathBuf::from("app/Services/_Core/Templates/TemplatePolicyRegistry.php")
+        );
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier == "concept:manifest"));
+        assert!(finding.related_identifiers.iter().any(|identifier| {
+            identifier == "concept:workflow" || identifier == "concept:instantiation"
+        }));
     }
 
     #[test]

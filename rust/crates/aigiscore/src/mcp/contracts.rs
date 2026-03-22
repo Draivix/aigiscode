@@ -144,6 +144,7 @@ pub struct RepoOverviewOutput {
 }
 
 impl RepoOverviewOutput {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         root: &str,
         surface: &ArchitectureSurface,
@@ -318,6 +319,7 @@ pub struct ArtifactFileOutput {
     pub convergence_history: String,
     pub guard_decision: String,
     pub agent_handoff: String,
+    pub agentic_review: String,
     pub aigiscode_report: String,
     pub aigiscode_report_markdown: String,
 }
@@ -340,6 +342,7 @@ impl ArtifactFileOutput {
             convergence_history: display_path(&paths.convergence_history),
             guard_decision: display_path(&paths.guard_decision),
             agent_handoff: display_path(&paths.agent_handoff),
+            agentic_review: display_path(&paths.agentic_review),
             aigiscode_report: display_path(&paths.aigiscode_report),
             aigiscode_report_markdown: display_path(&paths.aigiscode_report_markdown),
         }

@@ -8,11 +8,12 @@ edition = "2021"
 license = "MIT"
 version = "0.1.0"
 authors = ["AigisCode"]
-rust-version = "1.77"
+rust-version = "1.82"
 
 [workspace.dependencies]
 globset = "0.4.18"
 petgraph = "0.8.3"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 regex = "1.12.3"
 rmcp = { version = "1.2.0", features = ["transport-io"] }
 sarif_rust = "0.3.0"

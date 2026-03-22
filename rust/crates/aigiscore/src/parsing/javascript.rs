@@ -226,6 +226,7 @@ fn walk_children(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     context: &JavaScriptContext<'_>,
     kind: SymbolKind,
@@ -272,17 +273,8 @@ fn record_import_statement(
     let import_source = context.string_value(source_node);
     for idx in 0..node.child_count() {
         if let Some(child) = node.child(idx as u32) {
-            match child.kind() {
-                "import_clause" => {
-                    record_import_clause(
-                        child,
-                        &import_source,
-                        context,
-                        graph,
-                        enclosing_symbol_id,
-                    );
-                }
-                _ => {}
+            if child.kind() == "import_clause" {
+                record_import_clause(child, &import_source, context, graph, enclosing_symbol_id);
             }
         }
     }

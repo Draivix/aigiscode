@@ -206,6 +206,7 @@ fn next_decorated_function_name(lines: &[String], start_index: usize) -> Option<
     None
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit_signal_edge(
     edges: &mut Vec<ResolvedEdge>,
     emitted: &mut HashSet<(PathBuf, String, usize, RelationKind)>,

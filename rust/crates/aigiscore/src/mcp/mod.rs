@@ -74,11 +74,17 @@ pub enum McpServerError {
     #[error("failed to materialize Kuzu graph artifact: {0}")]
     Kuzu(#[from] KuzuIndexError),
     #[error("failed to start MCP server: {0}")]
-    Startup(#[from] rmcp::service::ServerInitializeError),
+    Startup(Box<rmcp::service::ServerInitializeError>),
     #[error("MCP server task failed: {0}")]
     Join(#[from] tokio::task::JoinError),
     #[error("failed to create Tokio runtime: {0}")]
     Runtime(#[source] std::io::Error),
+}
+
+impl From<rmcp::service::ServerInitializeError> for McpServerError {
+    fn from(err: rmcp::service::ServerInitializeError) -> Self {
+        Self::Startup(Box::new(err))
+    }
 }
 
 pub fn run_stdio_server(
@@ -191,6 +197,7 @@ impl AigiscodeMcpServer {
                 convergence_history: output_dir.join("convergence-history.json"),
                 guard_decision: output_dir.join("guard-decision.json"),
                 agent_handoff: output_dir.join("aigiscode-handoff.json"),
+                agentic_review: output_dir.join("agentic-review.json"),
                 aigiscode_report: output_dir.join("aigiscode-report.json"),
                 aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
                 output_dir,

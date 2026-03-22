@@ -240,6 +240,7 @@ impl EdgeStrength {
 }
 
 impl ResolvedEdge {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         source_file_path: PathBuf,
         source_symbol_id: Option<String>,

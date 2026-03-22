@@ -279,6 +279,7 @@ fn push_children<'a>(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     context: &PhpContext<'_>,
     kind: SymbolKind,

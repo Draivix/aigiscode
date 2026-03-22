@@ -1417,7 +1417,7 @@ fn resolve_tsconfig_path_alias(
                 .targets
                 .iter()
                 .flat_map(|target| {
-                    let substituted = apply_ts_path_target(target, wildcard.as_deref());
+                    let substituted = apply_ts_path_target(target, wildcard);
                     javascript_candidate_paths(&normalize_relative_path(
                         &alias.base_dir.join(substituted),
                     ))
@@ -1525,7 +1525,7 @@ mod tests {
     use crate::parsing::python::parse_python_to_graph;
     use crate::parsing::ruby::parse_ruby_to_graph;
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
@@ -1585,12 +1585,12 @@ mod tests {
 
         assert!(graph.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("src/models.rs")
+                && edge.target_file_path == Path::new("src/models.rs")
                 && edge.resolution_tier == ResolutionTier::ImportScoped
         }));
         assert!(graph.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/main.rs")
+                && edge.target_file_path == Path::new("src/main.rs")
                 && edge.resolution_tier == ResolutionTier::SameFile
         }));
         assert!(!graph
@@ -1944,12 +1944,12 @@ def run(user: U):
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models.py")
+                && edge.target_file_path == Path::new("app/models.py")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/repo.py")
+                && edge.target_file_path == Path::new("app/repo.py")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2012,7 +2012,7 @@ export function buildUser(): User {
 
         let save_edge = service.resolved_edges.iter().find(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+                && edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id.contains("save")
         });
         assert!(save_edge.is_some());
@@ -2022,7 +2022,7 @@ export function buildUser(): User {
         );
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/repo.ts")
+                && edge.target_file_path == Path::new("src/repo.ts")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2087,12 +2087,12 @@ export class UserFactory {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+                && edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/repo.ts")
+                && edge.target_file_path == Path::new("src/repo.ts")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2142,7 +2142,7 @@ export function buildUser(): User {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+                && edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2194,7 +2194,7 @@ export class UserFactory {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+                && edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2245,7 +2245,7 @@ export function buildUser(): Promise<User> {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+                && edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2302,7 +2302,7 @@ def build_user() -> User:
 
         let save_edge = service.resolved_edges.iter().find(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models.py")
+                && edge.target_file_path == Path::new("app/models.py")
                 && edge.target_symbol_id.contains("save")
         });
         assert!(save_edge.is_some());
@@ -2312,7 +2312,7 @@ def build_user() -> User:
         );
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/repo.py")
+                && edge.target_file_path == Path::new("app/repo.py")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2357,7 +2357,7 @@ def build_user() -> User:
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models.py")
+                && edge.target_file_path == Path::new("app/models.py")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2404,7 +2404,7 @@ class UserFactory:
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models.py")
+                && edge.target_file_path == Path::new("app/models.py")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2451,7 +2451,7 @@ def build_user() -> Optional[User]:
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models.py")
+                && edge.target_file_path == Path::new("app/models.py")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2520,7 +2520,7 @@ class Repo {
 
         let save_edge = service.resolved_edges.iter().find(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/Models/User.php")
+                && edge.target_file_path == Path::new("app/Models/User.php")
                 && edge.target_symbol_id.contains("save")
         });
         assert!(save_edge.is_some());
@@ -2530,7 +2530,7 @@ class Repo {
         );
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/Repo.php")
+                && edge.target_file_path == Path::new("app/Repo.php")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2599,12 +2599,12 @@ class Repo {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/Models/User.php")
+                && edge.target_file_path == Path::new("app/Models/User.php")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/Repo.php")
+                && edge.target_file_path == Path::new("app/Repo.php")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2660,7 +2660,7 @@ class User {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/Models/User.php")
+                && edge.target_file_path == Path::new("app/Models/User.php")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2717,7 +2717,7 @@ class User {
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/Models/User.php")
+                && edge.target_file_path == Path::new("app/Models/User.php")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2763,12 +2763,12 @@ end
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models/user.rb")
+                && edge.target_file_path == Path::new("app/models/user.rb")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(!service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/repo.rb")
+                && edge.target_file_path == Path::new("app/repo.rb")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2801,7 +2801,7 @@ end
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("app/models/user.rb")
+                && edge.target_file_path == Path::new("app/models/user.rb")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -2897,12 +2897,11 @@ export class Service {
 
         assert!(app.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+                && edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id == "module:src/models.ts"
         }));
         assert!(app.resolved_edges.iter().any(|edge| {
-            edge.kind == ReferenceKind::Call
-                && edge.target_file_path == PathBuf::from("src/models.ts")
+            edge.kind == ReferenceKind::Call && edge.target_file_path == Path::new("src/models.ts")
         }));
     }
 
@@ -2942,7 +2941,7 @@ const _unused = user;
 
         assert!(app.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("packages/domain/models.ts")
+                && edge.target_file_path == Path::new("packages/domain/models.ts")
         }));
     }
 
@@ -2972,7 +2971,7 @@ def run(user: User):
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("app/models.py")
+                && edge.target_file_path == Path::new("app/models.py")
         }));
     }
 
@@ -3009,7 +3008,7 @@ def run(user: User):
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("src/domain/models.py")
+                && edge.target_file_path == Path::new("src/domain/models.py")
         }));
     }
 
@@ -3035,7 +3034,7 @@ use App\Models\User;
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("app/Models/User.php")
+                && edge.target_file_path == Path::new("app/Models/User.php")
         }));
     }
 
@@ -3071,7 +3070,7 @@ use Acme\Models\User;
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("app/Models/User.php")
+                && edge.target_file_path == Path::new("app/Models/User.php")
         }));
     }
 
@@ -3098,7 +3097,7 @@ end
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("app/models/user.rb")
+                && edge.target_file_path == Path::new("app/models/user.rb")
                 && edge.target_symbol_id == "module:app/models/user.rb"
         }));
     }
@@ -3133,7 +3132,7 @@ end
 
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Import
-                && edge.target_file_path == PathBuf::from("lib/support/user.rb")
+                && edge.target_file_path == Path::new("lib/support/user.rb")
                 && edge.target_symbol_id == "module:lib/support/user.rb"
         }));
     }

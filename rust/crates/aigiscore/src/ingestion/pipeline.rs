@@ -15,7 +15,7 @@ use crate::surface::{build_architecture_surface, ArchitectureSurface};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use thiserror::Error;
 
@@ -310,7 +310,7 @@ fn merge_semantic_graph(target: &mut SemanticGraph, mut parsed: SemanticGraph) {
 }
 
 fn load_supported_sources(
-    root: &PathBuf,
+    root: &Path,
     scan: &ScanResult,
 ) -> Result<Vec<(PathBuf, String)>, ProjectAnalysisError> {
     let mut parsed_sources = Vec::new();
@@ -358,7 +358,7 @@ mod tests {
             .structure
             .nodes
             .iter()
-            .any(|node| node.path == PathBuf::from("src/core/lib.rs")));
+            .any(|node| node.path == Path::new("src/core/lib.rs")));
         assert_eq!(result.timings.len(), 2);
         assert_eq!(result.timings[0].phase, IngestionPhase::Scan);
         assert_eq!(result.timings[1].phase, IngestionPhase::Structure);
@@ -485,7 +485,7 @@ end
             .semantic_graph
             .files
             .iter()
-            .any(|file| file.path == PathBuf::from("src/app.ts")));
+            .any(|file| file.path == Path::new("src/app.ts")));
         assert!(count_edges_to(&result, Path::new("src/models.ts")) >= 1);
         assert!(count_edges_to(&result, Path::new("app/models.py")) >= 1);
         assert!(count_edges_to(&result, Path::new("app/Models/User.php")) >= 1);
@@ -619,19 +619,19 @@ end
         let result = analyze_project(&fixture, &ScanConfig::default()).unwrap();
 
         assert!(result.semantic_graph.resolved_edges.iter().any(|edge| {
-            edge.target_file_path == PathBuf::from("src/models.ts")
+            edge.target_file_path == Path::new("src/models.ts")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(result.semantic_graph.resolved_edges.iter().any(|edge| {
-            edge.target_file_path == PathBuf::from("app/models.py")
+            edge.target_file_path == Path::new("app/models.py")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(result.semantic_graph.resolved_edges.iter().any(|edge| {
-            edge.target_file_path == PathBuf::from("app/Models/User.php")
+            edge.target_file_path == Path::new("app/Models/User.php")
                 && edge.target_symbol_id.contains("save")
         }));
         assert!(result.semantic_graph.resolved_edges.iter().any(|edge| {
-            edge.target_file_path == PathBuf::from("app/user.rb")
+            edge.target_file_path == Path::new("app/user.rb")
                 && edge.target_symbol_id.contains("save")
         }));
     }
@@ -684,7 +684,7 @@ final class SyncAccountJob
         assert!(result.semantic_graph.resolved_edges.iter().any(|edge| {
             edge.relation_kind == RelationKind::Dispatch
                 && edge.layer == GraphLayer::Runtime
-                && edge.target_file_path == PathBuf::from("app/Jobs/SyncAccountJob.php")
+                && edge.target_file_path == Path::new("app/Jobs/SyncAccountJob.php")
         }));
         assert!(result
             .graph_analysis
