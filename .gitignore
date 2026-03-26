@@ -1,5 +1,6 @@
 .aigiscode/
 .aigiscode-self/
+.plan/
 dist/
 node_modules/
 website/dist/
