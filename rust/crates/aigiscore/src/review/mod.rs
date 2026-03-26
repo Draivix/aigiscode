@@ -3,7 +3,8 @@ use crate::evidence::EvidenceAnchor;
 use crate::ingestion::pipeline::ProjectAnalysis;
 use crate::policy::{PolicyBundle, PolicyLoadError, SuppressionReason};
 use crate::surface::{
-    ArchitectureSurface, SurfaceFinding, SurfaceFindingFamily, SurfaceFindingSeverity,
+    effective_orphan_files, ArchitectureSurface, SurfaceFinding, SurfaceFindingFamily,
+    SurfaceFindingSeverity,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -168,11 +169,11 @@ fn suppression_by_id(
 ) -> HashMap<String, PolicyStatus> {
     let mut suppression = HashMap::new();
 
-    for path in &analysis.graph_analysis.orphan_files {
+    for path in effective_orphan_files(analysis) {
         let id = format!("graph:orphan:{}", path.display());
         suppression.insert(
             id,
-            PolicyStatus::from_suppression(policy_bundle.suppress_orphan_file(path)),
+            PolicyStatus::from_suppression(policy_bundle.suppress_orphan_file(&path)),
         );
     }
 
@@ -423,6 +424,30 @@ fn load() {}
         assert_eq!(finding.policy_status, PolicyStatus::AcceptedByPolicy);
         assert!(!finding.is_visible);
         assert_eq!(finding.review_status, ReviewStatus::Unreviewed);
+    }
+
+    #[test]
+    fn route_declared_php_attribute_controller_is_not_suppressed_as_orphan() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src/Controller")).unwrap();
+        fs::write(
+            fixture.join("src/Controller/TriggerFlowController.php"),
+            br#"<?php
+#[Route(path: '/api/_action/trigger-event/{eventName}')]
+final class TriggerFlowController {
+    public function __invoke(): void {}
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let review_surface = load_review_surface(&analysis).unwrap();
+
+        assert!(review_surface
+            .findings
+            .iter()
+            .all(|finding| finding.id != "graph:orphan:src/Controller/TriggerFlowController.php"));
     }
 
     fn create_fixture() -> PathBuf {

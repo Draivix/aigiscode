@@ -1,11 +1,16 @@
-use crate::graph::{GraphLayer, ReferenceKind, RelationKind, ResolvedEdge, SemanticGraph};
+use crate::graph::{
+    EdgeStrength, GraphLayer, ReferenceKind, RelationKind, ResolvedEdge, SemanticGraph,
+};
 use crate::identity::{normalized_path, stable_fingerprint};
+use crate::ingestion::scan::{AnalysisBoundaryTruth, AnalysisScope};
 use petgraph::algo::kosaraju_scc;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::EdgeRef;
+use petgraph::visit::{EdgeRef, NodeIndexable};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::env;
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct GraphAnalysis {
@@ -16,8 +21,14 @@ pub struct GraphAnalysis {
     pub architectural_smells: Vec<ArchitecturalSmell>,
     pub coupling_metrics: Vec<CouplingMetric>,
     pub bottleneck_files: Vec<BottleneckFile>,
+    #[serde(default)]
+    pub zero_inbound_candidate_files: Vec<PathBuf>,
     pub orphan_files: Vec<PathBuf>,
+    #[serde(default)]
+    pub boundary_truncated_files: Vec<PathBuf>,
     pub runtime_entry_candidates: Vec<PathBuf>,
+    #[serde(default)]
+    pub boundary_truth: AnalysisBoundaryTruth,
     pub node_count: usize,
     pub edge_count: usize,
     pub density_millis: u32,
@@ -78,7 +89,11 @@ pub struct BottleneckFile {
     pub fingerprint: String,
 }
 
-pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
+pub fn analyze_semantic_graph(
+    graph: &SemanticGraph,
+    analysis_scope: &AnalysisScope,
+) -> GraphAnalysis {
+    let file_graph_started = Instant::now();
     let file_graph = build_file_dependency_graph(graph.resolved_edges.iter(), |edge| {
         matches!(
             edge.kind,
@@ -89,25 +104,80 @@ pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
                 | ReferenceKind::Implements
         )
     });
+    trace(&format!(
+        "graph.file_graph elapsed_ms={}",
+        file_graph_started.elapsed().as_millis()
+    ));
+
+    let strong_graph_started = Instant::now();
     let strong_graph = build_file_dependency_graph(graph.resolved_edges.iter(), |edge| {
         matches!(
             edge.kind,
             ReferenceKind::Import
                 | ReferenceKind::Call
-                | ReferenceKind::Type
                 | ReferenceKind::Extends
                 | ReferenceKind::Implements
-        )
+        ) && edge.strength != EdgeStrength::Inferred
     });
+    trace(&format!(
+        "graph.strong_graph elapsed_ms={}",
+        strong_graph_started.elapsed().as_millis()
+    ));
 
-    let (orphan_files, runtime_entry_candidates) = find_orphan_files(&file_graph);
+    let orphan_started = Instant::now();
+    let (
+        zero_inbound_candidate_files,
+        orphan_files,
+        boundary_truncated_files,
+        runtime_entry_candidates,
+    ) = find_orphan_files(&file_graph, analysis_scope);
+    trace(&format!(
+        "graph.orphans elapsed_ms={}",
+        orphan_started.elapsed().as_millis()
+    ));
+    let cycles_started = Instant::now();
     let circular_dependencies = find_cycles(&file_graph);
+    trace(&format!(
+        "graph.cycles elapsed_ms={}",
+        cycles_started.elapsed().as_millis()
+    ));
+    let strong_cycles_started = Instant::now();
     let strong_circular_dependencies = find_cycles(&strong_graph);
+    trace(&format!(
+        "graph.strong_cycles elapsed_ms={}",
+        strong_cycles_started.elapsed().as_millis()
+    ));
+    let cycle_findings_started = Instant::now();
     let cycle_findings = classify_cycles(graph, &circular_dependencies);
+    trace(&format!(
+        "graph.cycle_findings elapsed_ms={}",
+        cycle_findings_started.elapsed().as_millis()
+    ));
+    let strong_cycle_findings_started = Instant::now();
     let strong_cycle_findings = classify_cycles(graph, &strong_circular_dependencies);
+    trace(&format!(
+        "graph.strong_cycle_findings elapsed_ms={}",
+        strong_cycle_findings_started.elapsed().as_millis()
+    ));
 
+    let coupling_started = Instant::now();
     let coupling_metrics = calculate_coupling(&file_graph);
+    trace(&format!(
+        "graph.coupling elapsed_ms={}",
+        coupling_started.elapsed().as_millis()
+    ));
+    let smells_started = Instant::now();
     let architectural_smells = detect_architectural_smells(&file_graph, &coupling_metrics);
+    trace(&format!(
+        "graph.architectural_smells elapsed_ms={}",
+        smells_started.elapsed().as_millis()
+    ));
+    let bottlenecks_started = Instant::now();
+    let bottleneck_files = find_bottlenecks(&file_graph, 20);
+    trace(&format!(
+        "graph.bottlenecks elapsed_ms={}",
+        bottlenecks_started.elapsed().as_millis()
+    ));
 
     GraphAnalysis {
         circular_dependencies,
@@ -116,9 +186,12 @@ pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
         strong_cycle_findings,
         architectural_smells,
         coupling_metrics,
-        bottleneck_files: find_bottlenecks(&file_graph, 20),
+        bottleneck_files,
+        zero_inbound_candidate_files,
         orphan_files,
+        boundary_truncated_files,
         runtime_entry_candidates,
+        boundary_truth: analysis_scope.boundary_truth,
         node_count: file_graph.node_count(),
         edge_count: file_graph.edge_count(),
         density_millis: density_millis(&file_graph),
@@ -127,6 +200,12 @@ pub fn analyze_semantic_graph(graph: &SemanticGraph) -> GraphAnalysis {
             .iter()
             .filter(|edge| edge.kind == ReferenceKind::Overrides)
             .count(),
+    }
+}
+
+fn trace(message: &str) {
+    if env::var_os("AIGISCORE_TRACE").is_some() {
+        eprintln!("[aigiscore] {message}");
     }
 }
 
@@ -243,6 +322,7 @@ where
 {
     let mut graph = DiGraph::<PathBuf, ()>::new();
     let mut indices: HashMap<PathBuf, NodeIndex> = HashMap::new();
+    let mut seen_edges: HashSet<(NodeIndex, NodeIndex)> = HashSet::new();
 
     for edge in edges {
         if !include(edge) {
@@ -255,7 +335,7 @@ where
             .entry(edge.target_file_path.clone())
             .or_insert_with(|| graph.add_node(edge.target_file_path.clone()));
 
-        if source != target && graph.find_edge(source, target).is_none() {
+        if source != target && seen_edges.insert((source, target)) {
             graph.add_edge(source, target, ());
         }
     }
@@ -455,8 +535,13 @@ const ENTRY_POINT_PATTERNS: [&str; 13] = [
     "/tests/",
 ];
 
-fn find_orphan_files(graph: &DiGraph<PathBuf, ()>) -> (Vec<PathBuf>, Vec<PathBuf>) {
+fn find_orphan_files(
+    graph: &DiGraph<PathBuf, ()>,
+    analysis_scope: &AnalysisScope,
+) -> (Vec<PathBuf>, Vec<PathBuf>, Vec<PathBuf>, Vec<PathBuf>) {
+    let mut zero_inbound_candidates = Vec::new();
     let mut orphans = Vec::new();
+    let mut boundary_truncated = Vec::new();
     let mut runtime_entry_candidates = Vec::new();
 
     for node_index in graph.node_indices() {
@@ -472,16 +557,26 @@ fn find_orphan_files(graph: &DiGraph<PathBuf, ()>) -> (Vec<PathBuf>, Vec<PathBuf
         let Some(path) = graph.node_weight(node_index).cloned() else {
             continue;
         };
+        zero_inbound_candidates.push(path.clone());
         if is_default_entry_point(&path) {
             runtime_entry_candidates.push(path);
+        } else if analysis_scope.boundary_truth == AnalysisBoundaryTruth::TruncatedSlice {
+            boundary_truncated.push(path);
         } else {
             orphans.push(path);
         }
     }
 
+    zero_inbound_candidates.sort();
     orphans.sort();
+    boundary_truncated.sort();
     runtime_entry_candidates.sort();
-    (orphans, runtime_entry_candidates)
+    (
+        zero_inbound_candidates,
+        orphans,
+        boundary_truncated,
+        runtime_entry_candidates,
+    )
 }
 
 fn is_default_entry_point(path: &Path) -> bool {
@@ -525,80 +620,62 @@ fn find_bottlenecks(graph: &DiGraph<PathBuf, ()>, top_n: usize) -> Vec<Bottlenec
 }
 
 fn brandes_betweenness_centrality(graph: &DiGraph<PathBuf, ()>) -> HashMap<NodeIndex, f64> {
-    let mut centrality = graph
-        .node_indices()
-        .map(|index| (index, 0.0))
-        .collect::<HashMap<_, _>>();
+    let node_bound = graph.node_bound();
+    let mut centrality = vec![0.0_f64; node_bound];
 
     for source in graph.node_indices() {
         let mut stack = Vec::new();
-        let mut predecessors = graph
-            .node_indices()
-            .map(|index| (index, Vec::<NodeIndex>::new()))
-            .collect::<HashMap<_, _>>();
-        let mut sigma = graph
-            .node_indices()
-            .map(|index| (index, 0.0))
-            .collect::<HashMap<_, _>>();
-        let mut distance = graph
-            .node_indices()
-            .map(|index| (index, -1_i32))
-            .collect::<HashMap<_, _>>();
+        let mut predecessors = vec![Vec::<NodeIndex>::new(); node_bound];
+        let mut sigma = vec![0.0_f64; node_bound];
+        let mut distance = vec![-1_i32; node_bound];
 
-        sigma.insert(source, 1.0);
-        distance.insert(source, 0);
+        sigma[source.index()] = 1.0;
+        distance[source.index()] = 0;
 
-        let mut queue = std::collections::VecDeque::from([source]);
+        let mut queue = VecDeque::from([source]);
         while let Some(vertex) = queue.pop_front() {
             stack.push(vertex);
-            let vertex_distance = *distance.get(&vertex).unwrap_or(&-1);
+            let vertex_distance = distance[vertex.index()];
             for edge in graph.edges(vertex) {
                 let neighbor = edge.target();
-                if *distance.get(&neighbor).unwrap_or(&-1) < 0 {
+                let neighbor_index = neighbor.index();
+                if distance[neighbor_index] < 0 {
                     queue.push_back(neighbor);
-                    distance.insert(neighbor, vertex_distance + 1);
+                    distance[neighbor_index] = vertex_distance + 1;
                 }
-                if *distance.get(&neighbor).unwrap_or(&-1) == vertex_distance + 1 {
-                    let sigma_vertex = *sigma.get(&vertex).unwrap_or(&0.0);
-                    sigma
-                        .entry(neighbor)
-                        .and_modify(|value| *value += sigma_vertex)
-                        .or_insert(sigma_vertex);
-                    predecessors.entry(neighbor).or_default().push(vertex);
+                if distance[neighbor_index] == vertex_distance + 1 {
+                    sigma[neighbor_index] += sigma[vertex.index()];
+                    predecessors[neighbor_index].push(vertex);
                 }
             }
         }
 
-        let mut dependency = graph
-            .node_indices()
-            .map(|index| (index, 0.0))
-            .collect::<HashMap<_, _>>();
+        let mut dependency = vec![0.0_f64; node_bound];
 
         while let Some(vertex) = stack.pop() {
-            let sigma_vertex = *sigma.get(&vertex).unwrap_or(&0.0);
+            let vertex_index = vertex.index();
+            let sigma_vertex = sigma[vertex_index];
             if sigma_vertex == 0.0 {
                 continue;
             }
-            let dependency_vertex = *dependency.get(&vertex).unwrap_or(&0.0);
-            let predecessors_for_vertex = predecessors.remove(&vertex).unwrap_or_default();
+            let dependency_vertex = dependency[vertex_index];
+            let predecessors_for_vertex = std::mem::take(&mut predecessors[vertex_index]);
             for predecessor in predecessors_for_vertex {
-                let sigma_predecessor = *sigma.get(&predecessor).unwrap_or(&0.0);
+                let predecessor_index = predecessor.index();
+                let sigma_predecessor = sigma[predecessor_index];
                 let contribution = (sigma_predecessor / sigma_vertex) * (1.0 + dependency_vertex);
-                dependency
-                    .entry(predecessor)
-                    .and_modify(|value| *value += contribution)
-                    .or_insert(contribution);
+                dependency[predecessor_index] += contribution;
             }
             if vertex != source {
-                centrality
-                    .entry(vertex)
-                    .and_modify(|value| *value += dependency_vertex)
-                    .or_insert(dependency_vertex);
+                centrality[vertex_index] += dependency_vertex;
             }
         }
     }
 
-    centrality
+    graph
+        .node_indices()
+        .map(|index| (index, centrality[index.index()]))
+        .collect()
 }
 
 fn density_millis(graph: &DiGraph<PathBuf, ()>) -> u32 {
@@ -702,6 +779,7 @@ mod tests {
         EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, RelationKind, ResolutionTier,
         ResolvedEdge, SemanticGraph,
     };
+    use crate::ingestion::scan::{AnalysisBoundaryReason, AnalysisBoundaryTruth, AnalysisScope};
     use std::path::PathBuf;
 
     #[test]
@@ -711,7 +789,7 @@ mod tests {
         graph.add_resolved_edge(edge("src/b.rs", "src/a.rs", ReferenceKind::Import));
         graph.add_resolved_edge(edge("src/b.rs", "src/c.rs", ReferenceKind::Call));
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert_eq!(
             analysis.circular_dependencies,
@@ -740,7 +818,7 @@ mod tests {
         graph.add_resolved_edge(edge("src/a.rs", "infra/c.rs", ReferenceKind::Call));
         graph.add_resolved_edge(edge("infra/c.rs", "domain/b.rs", ReferenceKind::Import));
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
         let modules = analysis
             .coupling_metrics
             .iter()
@@ -763,7 +841,7 @@ mod tests {
         graph.add_resolved_edge(edge("core/hub.rs", "infra/b.rs", ReferenceKind::Call));
         graph.add_resolved_edge(edge("core/hub.rs", "ui/c.rs", ReferenceKind::Import));
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert!(analysis.architectural_smells.iter().any(|smell| {
             smell.kind == ArchitecturalSmellKind::HubLikeDependency && smell.subject == "core"
@@ -791,7 +869,7 @@ mod tests {
         graph.add_resolved_edge(edge("ui/panel.rs", "infra/cache.rs", ReferenceKind::Call));
         graph.add_resolved_edge(edge("ui/panel.rs", "app/main.rs", ReferenceKind::Call));
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert!(analysis.architectural_smells.iter().any(|smell| {
             smell.kind == ArchitecturalSmellKind::UnstableDependency
@@ -806,7 +884,7 @@ mod tests {
         graph.add_resolved_edge(edge("src/a.py", "src/base.py", ReferenceKind::Extends));
         graph.add_resolved_edge(edge("src/a.py", "src/base.py", ReferenceKind::Overrides));
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert!(analysis.circular_dependencies.is_empty());
         assert_eq!(analysis.override_edges, 1);
@@ -825,7 +903,7 @@ mod tests {
             ),
         );
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert_eq!(analysis.strong_cycle_findings.len(), 1);
         assert_eq!(
@@ -836,13 +914,29 @@ mod tests {
     }
 
     #[test]
+    fn excludes_type_only_cycles_from_strong_cycles() {
+        let mut graph = SemanticGraph::default();
+        graph.add_resolved_edge(edge("src/a.rs", "src/b.rs", ReferenceKind::Type));
+        graph.add_resolved_edge(edge("src/b.rs", "src/a.rs", ReferenceKind::Type));
+
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
+
+        assert_eq!(
+            analysis.circular_dependencies,
+            vec![vec![PathBuf::from("src/a.rs"), PathBuf::from("src/b.rs")]]
+        );
+        assert!(analysis.strong_circular_dependencies.is_empty());
+        assert!(analysis.strong_cycle_findings.is_empty());
+    }
+
+    #[test]
     fn detects_orphans_runtime_entries_and_bottlenecks() {
         let mut graph = SemanticGraph::default();
         graph.add_resolved_edge(edge("src/a.rs", "src/b.rs", ReferenceKind::Import));
         graph.add_resolved_edge(edge("src/b.rs", "src/c.rs", ReferenceKind::Import));
         graph.add_resolved_edge(edge("src/main.rs", "src/b.rs", ReferenceKind::Call));
 
-        let analysis = analyze_semantic_graph(&graph);
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert!(analysis.orphan_files.contains(&PathBuf::from("src/a.rs")));
         assert!(analysis
@@ -857,6 +951,32 @@ mod tests {
         assert_eq!(analysis.node_count, 4);
         assert_eq!(analysis.edge_count, 3);
         assert!(analysis.density_millis > 0);
+    }
+
+    #[test]
+    fn treats_zero_inbound_files_as_boundary_truncated_in_scoped_analysis() {
+        let mut graph = SemanticGraph::default();
+        graph.add_resolved_edge(edge("src/a.rs", "src/b.rs", ReferenceKind::Import));
+        graph.add_resolved_edge(edge("src/main.rs", "src/b.rs", ReferenceKind::Call));
+
+        let analysis = analyze_semantic_graph(
+            &graph,
+            &AnalysisScope {
+                repository_root: Some(PathBuf::from("/tmp/repo")),
+                boundary_truth: AnalysisBoundaryTruth::TruncatedSlice,
+                reasons: vec![AnalysisBoundaryReason::CroppedRoot],
+                include_path_prefixes: Vec::new(),
+            },
+        );
+
+        assert!(analysis.orphan_files.is_empty());
+        assert!(analysis
+            .boundary_truncated_files
+            .contains(&PathBuf::from("src/a.rs")));
+        assert_eq!(
+            analysis.boundary_truth,
+            AnalysisBoundaryTruth::TruncatedSlice
+        );
     }
 
     fn edge(source: &str, target: &str, kind: ReferenceKind) -> ResolvedEdge {

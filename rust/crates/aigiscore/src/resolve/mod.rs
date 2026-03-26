@@ -4,10 +4,11 @@ use crate::graph::{
 };
 use regex::Regex;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SymbolDefinition {
@@ -256,10 +257,24 @@ pub fn resolve_graph(graph: &mut SemanticGraph) {
 pub fn resolve_graph_with_config(graph: &mut SemanticGraph, config: &ResolveConfig) {
     graph.resolved_edges.clear();
     let context = ResolutionContext::from_graph(graph, config);
+    let mut occurrence_counters = HashMap::<(PathBuf, usize, String), usize>::new();
     let resolved = graph
         .references
         .iter()
-        .filter_map(|reference| resolve_reference(reference, &context))
+        .filter_map(|reference| {
+            let occurrence_key = (
+                reference.file_path.clone(),
+                reference.line,
+                reference.target_name.clone(),
+            );
+            let occurrence_index = *occurrence_counters
+                .entry(occurrence_key)
+                .and_modify(|value| *value += 1)
+                .or_insert(0);
+            resolve_reference(reference, &context).map(|edge| {
+                edge.with_reference_identity(reference.target_name.clone(), occurrence_index)
+            })
+        })
         .collect::<Vec<_>>();
 
     for edge in resolved {
@@ -618,7 +633,10 @@ fn extract_candidate_type_names(type_expression: &str) -> Vec<String> {
         return vec![qualified.to_owned()];
     }
 
-    let matcher = Regex::new(r"[A-Za-z_\\][A-Za-z0-9_:\\\\]*").expect("valid type token regex");
+    static TYPE_TOKEN_REGEX: OnceLock<Regex> = OnceLock::new();
+    let matcher = TYPE_TOKEN_REGEX.get_or_init(|| {
+        Regex::new(r"[A-Za-z_\\][A-Za-z0-9_:\\\\]*").expect("valid type token regex")
+    });
     let ignored = [
         "Promise",
         "Option",
@@ -841,11 +859,10 @@ fn gather_ancestors_breadth_first(
     extends_by_child: &HashMap<String, Vec<String>>,
 ) -> Vec<String> {
     let mut order = Vec::new();
-    let mut queue = extends_by_child.get(class_id).cloned().unwrap_or_default();
+    let mut queue = VecDeque::from(extends_by_child.get(class_id).cloned().unwrap_or_default());
     let mut visited = HashSet::new();
 
-    while let Some(candidate_class_id) = queue.first().cloned() {
-        queue.remove(0);
+    while let Some(candidate_class_id) = queue.pop_front() {
         if !visited.insert(candidate_class_id.clone()) {
             continue;
         }

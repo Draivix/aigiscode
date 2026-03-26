@@ -557,7 +557,7 @@ fn external_match_path(finding: &ExternalFinding) -> String {
 #[cfg(test)]
 mod tests {
     use super::{PolicyBundle, SuppressionReason};
-    use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
+    use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier};
     use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
     use crate::external::{ExternalConfidence, ExternalFinding, ExternalSeverity};
     use crate::security::{
@@ -617,6 +617,7 @@ mod tests {
                 file_path: PathBuf::from("src/contracts/user.rs"),
                 name: String::from("load"),
                 line: 4,
+                proof_tier: DeadCodeProofTier::Strong,
                 fingerprint: String::from("dead-1"),
             }),
             Some(SuppressionReason::Policy)
@@ -628,6 +629,7 @@ mod tests {
                 file_path: PathBuf::from("src/lib.rs"),
                 name: String::from("RepoAlias"),
                 line: 2,
+                proof_tier: DeadCodeProofTier::Certain,
                 fingerprint: String::from("dead-2"),
             }),
             Some(SuppressionReason::Rule)
@@ -732,6 +734,7 @@ mod tests {
                 message: String::from("unsafe html"),
                 evidence: String::from("target.innerHTML = html"),
                 fingerprint: String::from("sec-1"),
+                supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
             }),
             Some(SuppressionReason::Policy)
@@ -746,6 +749,7 @@ mod tests {
                 message: String::from("command exec"),
                 evidence: String::from("system($cmd)"),
                 fingerprint: String::from("sec-2"),
+                supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
             }),
             Some(SuppressionReason::Policy)
@@ -777,6 +781,7 @@ mod tests {
                 message: String::from("command exec"),
                 evidence: String::from("system($cmd)"),
                 fingerprint: String::from("sec-fp-1"),
+                supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
             }),
             Some(SuppressionReason::Rule)
@@ -791,6 +796,7 @@ mod tests {
                 message: String::from("eval"),
                 evidence: String::from("eval($code)"),
                 fingerprint: String::from("sec-fp-2"),
+                supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
             }),
             Some(SuppressionReason::Rule)
@@ -832,6 +838,7 @@ mod tests {
                 file_path: PathBuf::from("src/lib.rs"),
                 name: String::from("RepoAlias"),
                 line: 2,
+                proof_tier: DeadCodeProofTier::Certain,
                 fingerprint: String::from("dead-3"),
             }),
             None

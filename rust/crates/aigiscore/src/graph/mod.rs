@@ -157,6 +157,7 @@ pub struct ResolvedEdge {
     pub source_symbol_id: Option<String>,
     pub target_file_path: PathBuf,
     pub target_symbol_id: String,
+    pub reference_target_name: Option<String>,
     pub kind: ReferenceKind,
     pub relation_kind: RelationKind,
     pub layer: GraphLayer,
@@ -166,6 +167,7 @@ pub struct ResolvedEdge {
     pub confidence_millis: u16,
     pub reason: String,
     pub line: usize,
+    pub occurrence_index: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -257,6 +259,7 @@ impl ResolvedEdge {
             source_symbol_id,
             target_file_path,
             target_symbol_id,
+            reference_target_name: None,
             kind,
             relation_kind: RelationKind::from_reference_kind(kind),
             layer: GraphLayer::Structural,
@@ -266,7 +269,14 @@ impl ResolvedEdge {
             confidence_millis,
             reason,
             line,
+            occurrence_index: 0,
         }
+    }
+
+    pub fn with_reference_identity(mut self, target_name: String, occurrence_index: usize) -> Self {
+        self.reference_target_name = Some(target_name);
+        self.occurrence_index = occurrence_index;
+        self
     }
 
     pub fn with_metadata(
@@ -297,6 +307,7 @@ struct ResolvedEdgeSerde {
     source_symbol_id: Option<String>,
     target_file_path: PathBuf,
     target_symbol_id: String,
+    reference_target_name: Option<String>,
     kind: ReferenceKind,
     relation_kind: Option<RelationKind>,
     layer: Option<GraphLayer>,
@@ -306,6 +317,7 @@ struct ResolvedEdgeSerde {
     confidence_millis: u16,
     reason: String,
     line: usize,
+    occurrence_index: Option<usize>,
 }
 
 impl<'de> Deserialize<'de> for ResolvedEdge {
@@ -319,6 +331,7 @@ impl<'de> Deserialize<'de> for ResolvedEdge {
             source_symbol_id: raw.source_symbol_id,
             target_file_path: raw.target_file_path,
             target_symbol_id: raw.target_symbol_id,
+            reference_target_name: raw.reference_target_name,
             kind: raw.kind,
             relation_kind: raw
                 .relation_kind
@@ -332,6 +345,7 @@ impl<'de> Deserialize<'de> for ResolvedEdge {
             confidence_millis: raw.confidence_millis,
             reason: raw.reason,
             line: raw.line,
+            occurrence_index: raw.occurrence_index.unwrap_or(0),
         }
         .normalized())
     }

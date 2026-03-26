@@ -3,6 +3,10 @@ use crate::detectors::hardwiring::{HardwiringCategory, HardwiringResult};
 use crate::external::{ExternalAnalysisResult, ExternalSeverity};
 use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
 use crate::identity::{normalized_path, stable_fingerprint};
+use crate::scanners::ast_grep::{
+    run_ast_grep_scan, AstGrepComplexitySubtype, AstGrepFindingKind, AstGrepFrameworkMisuseSubtype,
+    AstGrepScanResult,
+};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -19,6 +23,7 @@ pub enum ArchitecturalAssessmentKind {
     SanctionedPathBypass,
     HandRolledParsing,
     AbstractionSprawl,
+    AlgorithmicComplexityHotspot,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +64,25 @@ pub fn build_architectural_assessment(
     external_analysis: &ExternalAnalysisResult,
     parsed_sources: &[(PathBuf, String)],
 ) -> ArchitecturalAssessment {
+    let ast_grep_scan = run_ast_grep_scan(parsed_sources);
+    build_architectural_assessment_with_ast_grep(
+        graph_analysis,
+        dead_code,
+        hardwiring,
+        external_analysis,
+        parsed_sources,
+        &ast_grep_scan,
+    )
+}
+
+pub fn build_architectural_assessment_with_ast_grep(
+    graph_analysis: &GraphAnalysis,
+    dead_code: &DeadCodeResult,
+    hardwiring: &HardwiringResult,
+    external_analysis: &ExternalAnalysisResult,
+    parsed_sources: &[(PathBuf, String)],
+    ast_grep_scan: &AstGrepScanResult,
+) -> ArchitecturalAssessment {
     let mut findings = detect_warning_heavy_hotspots(
         &graph_analysis.bottleneck_files,
         dead_code,
@@ -77,6 +101,7 @@ pub fn build_architectural_assessment(
         &graph_analysis.bottleneck_files,
         hardwiring,
         parsed_sources,
+        ast_grep_scan,
     );
     let hand_rolled_parsing =
         detect_hand_rolled_parsing(&graph_analysis.bottleneck_files, parsed_sources);
@@ -104,6 +129,10 @@ pub fn build_architectural_assessment(
         parsed_sources,
     ));
     findings.extend(abstraction_sprawl);
+    findings.extend(detect_algorithmic_complexity_hotspots(
+        parsed_sources,
+        ast_grep_scan,
+    ));
     for finding in &mut findings {
         finding.fingerprint = architectural_assessment_fingerprint(finding);
     }
@@ -262,7 +291,438 @@ fn architectural_assessment_kind_label(kind: ArchitecturalAssessmentKind) -> &'s
         ArchitecturalAssessmentKind::SanctionedPathBypass => "sanctioned-path-bypass",
         ArchitecturalAssessmentKind::HandRolledParsing => "hand-rolled-parsing",
         ArchitecturalAssessmentKind::AbstractionSprawl => "abstraction-sprawl",
+        ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot => {
+            "algorithmic-complexity-hotspot"
+        }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ComplexityLanguage {
+    Brace,
+    Python,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum ComplexitySubtype {
+    NestedIteration,
+    CollectionScanInLoop,
+    SortInLoop,
+    RegexCompileInLoop,
+    JsonDecodeInLoop,
+    FilesystemReadInLoop,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum ComplexityObservationSource {
+    Native,
+    AstGrep,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ComplexityObservation {
+    subtype: ComplexitySubtype,
+    line: usize,
+    token: String,
+    source: ComplexityObservationSource,
+}
+
+fn detect_algorithmic_complexity_hotspots(
+    parsed_sources: &[(PathBuf, String)],
+    ast_grep_scan: &AstGrepScanResult,
+) -> Vec<ArchitecturalAssessmentFinding> {
+    let mut findings = Vec::new();
+    let ast_grep_by_path = build_ast_grep_complexity_lookup(ast_grep_scan);
+    for (path, source) in parsed_sources {
+        let Some(language) = complexity_language(path) else {
+            continue;
+        };
+        let mut observations = match language {
+            ComplexityLanguage::Brace => detect_brace_language_complexity(source),
+            ComplexityLanguage::Python => detect_python_complexity(source),
+        };
+        if let Some(scanner_observations) = ast_grep_by_path.get(path) {
+            observations.extend(scanner_observations.iter().cloned());
+        }
+        if observations.is_empty() {
+            continue;
+        }
+        observations.sort_by(|left, right| {
+            left.line
+                .cmp(&right.line)
+                .then(left.token.cmp(&right.token))
+                .then(left.source.cmp(&right.source))
+        });
+        observations.dedup_by(|left, right| {
+            left.subtype == right.subtype && left.line == right.line && left.token == right.token
+        });
+        let mut grouped = HashMap::<ComplexitySubtype, Vec<ComplexityObservation>>::new();
+        for observation in observations {
+            grouped
+                .entry(observation.subtype)
+                .or_default()
+                .push(observation);
+        }
+        for (subtype, mut subtype_observations) in grouped {
+            subtype_observations.sort_by(|left, right| left.line.cmp(&right.line));
+            subtype_observations
+                .first()
+                .expect("complexity subgroup must be non-empty");
+            let mut related_identifiers = subtype_observations
+                .iter()
+                .map(|observation| observation.token.clone())
+                .collect::<Vec<_>>();
+            related_identifiers.sort();
+            related_identifiers.dedup();
+            related_identifiers.truncate(4);
+            if related_identifiers.is_empty() {
+                related_identifiers.push(String::from("loop"));
+            }
+            let mut warning_families =
+                vec![format!("complexity:{}", complexity_subtype_label(subtype))];
+            if subtype_observations
+                .iter()
+                .any(|observation| observation.source == ComplexityObservationSource::AstGrep)
+            {
+                warning_families.push(String::from("scanner:ast_grep"));
+            }
+            findings.push(ArchitecturalAssessmentFinding {
+                kind: ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot,
+                file_path: path.clone(),
+                related_file_paths: Vec::new(),
+                related_identifiers,
+                warning_count: subtype_observations.len(),
+                warning_weight: complexity_weight(subtype) * subtype_observations.len(),
+                bottleneck_centrality_millis: 0,
+                warning_families,
+                severity_millis: complexity_severity_millis(subtype, subtype_observations.len()),
+                fingerprint: String::new(),
+            });
+        }
+    }
+    findings.sort_by(|left, right| {
+        right
+            .severity_millis
+            .cmp(&left.severity_millis)
+            .then(left.file_path.cmp(&right.file_path))
+            .then(left.warning_families.cmp(&right.warning_families))
+    });
+    findings
+}
+
+fn complexity_language(path: &Path) -> Option<ComplexityLanguage> {
+    match path.extension().and_then(|extension| extension.to_str()) {
+        Some("rs" | "js" | "jsx" | "ts" | "tsx" | "php") => Some(ComplexityLanguage::Brace),
+        Some("py") => Some(ComplexityLanguage::Python),
+        _ => None,
+    }
+}
+
+fn detect_brace_language_complexity(source: &str) -> Vec<ComplexityObservation> {
+    let mut findings = Vec::new();
+    let mut brace_depth = 0usize;
+    let mut loop_thresholds = Vec::<usize>::new();
+    for (index, raw_line) in source.lines().enumerate() {
+        let line_number = index + 1;
+        let line = raw_line.trim();
+        if line.is_empty() || line.starts_with("//") || line.starts_with('#') {
+            let (open_braces, close_braces) = brace_delta(raw_line);
+            brace_depth = brace_depth
+                .saturating_add(open_braces)
+                .saturating_sub(close_braces);
+            while loop_thresholds
+                .last()
+                .is_some_and(|threshold| brace_depth < *threshold)
+            {
+                loop_thresholds.pop();
+            }
+            continue;
+        }
+        while loop_thresholds
+            .last()
+            .is_some_and(|threshold| brace_depth < *threshold)
+        {
+            loop_thresholds.pop();
+        }
+        let in_loop = !loop_thresholds.is_empty();
+        if loop_line_pattern().is_match(line) && in_loop {
+            findings.push(ComplexityObservation {
+                subtype: ComplexitySubtype::NestedIteration,
+                line: line_number,
+                token: String::from("loop"),
+                source: ComplexityObservationSource::Native,
+            });
+        }
+        if in_loop {
+            if let Some(token) = first_regex_token(collection_scan_pattern(), line) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::CollectionScanInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(sort_in_loop_pattern(), line) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::SortInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(regex_compile_pattern(), line) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::RegexCompileInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(json_decode_pattern(), line) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::JsonDecodeInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(filesystem_read_pattern(), line) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::FilesystemReadInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+        }
+        let (open_braces, close_braces) = brace_delta(raw_line);
+        if loop_line_pattern().is_match(line) && open_braces > 0 {
+            loop_thresholds.push(brace_depth + open_braces);
+        }
+        brace_depth = brace_depth
+            .saturating_add(open_braces)
+            .saturating_sub(close_braces);
+        while loop_thresholds
+            .last()
+            .is_some_and(|threshold| brace_depth < *threshold)
+        {
+            loop_thresholds.pop();
+        }
+    }
+    findings
+}
+
+fn detect_python_complexity(source: &str) -> Vec<ComplexityObservation> {
+    let mut findings = Vec::new();
+    let mut loop_indents = Vec::<usize>::new();
+    for (index, raw_line) in source.lines().enumerate() {
+        let line_number = index + 1;
+        let trimmed = raw_line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let indent = raw_line.len().saturating_sub(raw_line.trim_start().len());
+        while loop_indents
+            .last()
+            .is_some_and(|active_indent| indent <= *active_indent)
+        {
+            loop_indents.pop();
+        }
+        let in_loop = !loop_indents.is_empty();
+        if python_loop_pattern().is_match(trimmed) && in_loop {
+            findings.push(ComplexityObservation {
+                subtype: ComplexitySubtype::NestedIteration,
+                line: line_number,
+                token: String::from("loop"),
+                source: ComplexityObservationSource::Native,
+            });
+        }
+        if in_loop {
+            if let Some(token) = first_regex_token(collection_scan_pattern(), trimmed) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::CollectionScanInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(sort_in_loop_pattern(), trimmed) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::SortInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(regex_compile_pattern(), trimmed) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::RegexCompileInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(json_decode_pattern(), trimmed) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::JsonDecodeInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+            if let Some(token) = first_regex_token(filesystem_read_pattern(), trimmed) {
+                findings.push(ComplexityObservation {
+                    subtype: ComplexitySubtype::FilesystemReadInLoop,
+                    line: line_number,
+                    token,
+                    source: ComplexityObservationSource::Native,
+                });
+            }
+        }
+        if python_loop_pattern().is_match(trimmed) {
+            loop_indents.push(indent);
+        }
+    }
+    findings
+}
+
+fn build_ast_grep_complexity_lookup(
+    ast_grep_scan: &AstGrepScanResult,
+) -> HashMap<PathBuf, Vec<ComplexityObservation>> {
+    let mut lookup = HashMap::<PathBuf, Vec<ComplexityObservation>>::new();
+    for finding in &ast_grep_scan.findings {
+        let AstGrepFindingKind::AlgorithmicComplexity { subtype, .. } = &finding.kind else {
+            continue;
+        };
+        lookup
+            .entry(finding.file_path.clone())
+            .or_default()
+            .push(ComplexityObservation {
+                subtype: ast_grep_complexity_subtype(*subtype),
+                line: finding.line,
+                token: finding.token.clone(),
+                source: ComplexityObservationSource::AstGrep,
+            });
+    }
+    lookup
+}
+
+fn ast_grep_complexity_subtype(subtype: AstGrepComplexitySubtype) -> ComplexitySubtype {
+    match subtype {
+        AstGrepComplexitySubtype::CollectionScanInLoop => ComplexitySubtype::CollectionScanInLoop,
+        AstGrepComplexitySubtype::SortInLoop => ComplexitySubtype::SortInLoop,
+        AstGrepComplexitySubtype::RegexCompileInLoop => ComplexitySubtype::RegexCompileInLoop,
+        AstGrepComplexitySubtype::JsonDecodeInLoop => ComplexitySubtype::JsonDecodeInLoop,
+        AstGrepComplexitySubtype::FilesystemReadInLoop => ComplexitySubtype::FilesystemReadInLoop,
+    }
+}
+
+fn brace_delta(line: &str) -> (usize, usize) {
+    let mut open_braces = 0usize;
+    let mut close_braces = 0usize;
+    for character in line.chars() {
+        match character {
+            '{' => open_braces += 1,
+            '}' => close_braces += 1,
+            _ => {}
+        }
+    }
+    (open_braces, close_braces)
+}
+
+fn complexity_weight(subtype: ComplexitySubtype) -> usize {
+    match subtype {
+        ComplexitySubtype::NestedIteration => 3,
+        ComplexitySubtype::CollectionScanInLoop => 2,
+        ComplexitySubtype::SortInLoop => 3,
+        ComplexitySubtype::RegexCompileInLoop => 2,
+        ComplexitySubtype::JsonDecodeInLoop => 2,
+        ComplexitySubtype::FilesystemReadInLoop => 2,
+    }
+}
+
+fn complexity_severity_millis(subtype: ComplexitySubtype, occurrences: usize) -> u16 {
+    let base = match subtype {
+        ComplexitySubtype::NestedIteration => 860u16,
+        ComplexitySubtype::CollectionScanInLoop => 740u16,
+        ComplexitySubtype::SortInLoop => 820u16,
+        ComplexitySubtype::RegexCompileInLoop => 760u16,
+        ComplexitySubtype::JsonDecodeInLoop => 780u16,
+        ComplexitySubtype::FilesystemReadInLoop => 800u16,
+    };
+    (base + (occurrences.saturating_sub(1) as u16 * 40)).min(980)
+}
+
+fn complexity_subtype_label(subtype: ComplexitySubtype) -> &'static str {
+    match subtype {
+        ComplexitySubtype::NestedIteration => "nested_iteration",
+        ComplexitySubtype::CollectionScanInLoop => "collection_scan_in_loop",
+        ComplexitySubtype::SortInLoop => "sort_in_loop",
+        ComplexitySubtype::RegexCompileInLoop => "regex_compile_in_loop",
+        ComplexitySubtype::JsonDecodeInLoop => "json_decode_in_loop",
+        ComplexitySubtype::FilesystemReadInLoop => "filesystem_read_in_loop",
+    }
+}
+
+fn first_regex_token(pattern: &Regex, line: &str) -> Option<String> {
+    pattern
+        .find(line)
+        .map(|matched| matched.as_str().trim().to_owned())
+}
+
+fn loop_line_pattern() -> &'static Regex {
+    static LOOP_LINE_PATTERN: OnceLock<Regex> = OnceLock::new();
+    LOOP_LINE_PATTERN
+        .get_or_init(|| Regex::new(r"\b(for(each)?|while)\b").expect("valid loop pattern"))
+}
+
+fn python_loop_pattern() -> &'static Regex {
+    static PYTHON_LOOP_PATTERN: OnceLock<Regex> = OnceLock::new();
+    PYTHON_LOOP_PATTERN
+        .get_or_init(|| Regex::new(r"^(for|while)\b").expect("valid python loop pattern"))
+}
+
+fn collection_scan_pattern() -> &'static Regex {
+    static COLLECTION_SCAN_PATTERN: OnceLock<Regex> = OnceLock::new();
+    COLLECTION_SCAN_PATTERN.get_or_init(|| {
+        Regex::new(r"(\.contains\s*\(|\.includes\s*\(|\.find\s*\(|\.any\s*\(|\.position\s*\(|in_array\s*\(|array_search\s*\()")
+            .expect("valid collection scan pattern")
+    })
+}
+
+fn sort_in_loop_pattern() -> &'static Regex {
+    static SORT_IN_LOOP_PATTERN: OnceLock<Regex> = OnceLock::new();
+    SORT_IN_LOOP_PATTERN.get_or_init(|| {
+        Regex::new(r"(\.sort(_by)?\s*\(|sort_by\s*\(|sort_unstable(_by)?\s*\(|usort\s*\(|ksort\s*\(|asort\s*\()")
+            .expect("valid sort in loop pattern")
+    })
+}
+
+fn regex_compile_pattern() -> &'static Regex {
+    static REGEX_COMPILE_PATTERN: OnceLock<Regex> = OnceLock::new();
+    REGEX_COMPILE_PATTERN.get_or_init(|| {
+        Regex::new(r"(Regex::new\s*\(|new\s+RegExp\s*\()").expect("valid regex compile pattern")
+    })
+}
+
+fn json_decode_pattern() -> &'static Regex {
+    static JSON_DECODE_PATTERN: OnceLock<Regex> = OnceLock::new();
+    JSON_DECODE_PATTERN.get_or_init(|| {
+        Regex::new(
+            r"(\bjson_decode\s*\(|\bjson\.loads\s*\(|\bjson\.load\s*\(|\bJSON\.parse\s*\(|\bserde_json::from_(str|slice|reader)\s*\()",
+        )
+        .expect("valid json decode pattern")
+    })
+}
+
+fn filesystem_read_pattern() -> &'static Regex {
+    static FILESYSTEM_READ_PATTERN: OnceLock<Regex> = OnceLock::new();
+    FILESYSTEM_READ_PATTERN.get_or_init(|| {
+        Regex::new(
+            r"(\bstd::fs::(read|read_to_string|metadata)\s*\(|\bfs::(read|read_to_string|metadata)\s*\(|\bfs\.(readFileSync|readFile|existsSync)\s*\(|\bfile_get_contents\s*\(|\bfile_exists\s*\(|\bos\.path\.exists\s*\(|\bPath\([^)]*\)\.(read_text|read_bytes|exists)\s*\(|\bPathBuf::from\([^)]*\)\.exists\s*\()",
+        )
+        .expect("valid filesystem read pattern")
+    })
 }
 
 fn sorted_display_parts(paths: &[PathBuf]) -> Vec<String> {
@@ -700,6 +1160,7 @@ fn detect_sanctioned_path_bypasses(
     bottlenecks: &[BottleneckFile],
     hardwiring: &HardwiringResult,
     parsed_sources: &[(PathBuf, String)],
+    ast_grep_scan: &AstGrepScanResult,
 ) -> Vec<ArchitecturalAssessmentFinding> {
     let bottleneck_by_path = bottlenecks
         .iter()
@@ -718,39 +1179,97 @@ fn detect_sanctioned_path_bypasses(
                 acc
             },
         );
+    let ast_grep_env_lines_by_path = build_ast_grep_framework_lookup(
+        ast_grep_scan,
+        AstGrepFrameworkMisuseSubtype::RawEnvOutsideConfig,
+    );
+    let ast_grep_container_lines_by_path = build_ast_grep_framework_lookup(
+        ast_grep_scan,
+        AstGrepFrameworkMisuseSubtype::RawContainerLookupOutsideBoundary,
+    );
 
     let mut findings = parsed_sources
         .iter()
         .filter_map(|(path, content)| {
-            if is_low_signal_identity_path(path) || is_configuration_boundary_path(path) {
+            if is_low_signal_identity_path(path) {
                 return None;
             }
-            let env_findings = env_findings_by_path.get(path)?;
-            let config_markers = sanctioned_config_markers(content);
-            if config_markers.is_empty() {
+            let native_lines = env_findings_by_path
+                .get(path)
+                .into_iter()
+                .flat_map(|findings| findings.iter().map(|finding| finding.line))
+                .collect::<BTreeSet<_>>();
+            let ast_grep_lines = ast_grep_env_lines_by_path
+                .get(path)
+                .cloned()
+                .unwrap_or_default();
+            let container_lines = ast_grep_container_lines_by_path
+                .get(path)
+                .cloned()
+                .unwrap_or_default();
+            if native_lines.is_empty() && ast_grep_lines.is_empty() && container_lines.is_empty() {
                 return None;
             }
             let centrality = bottleneck_by_path.get(path).copied().unwrap_or_default();
-            let mut related_identifiers = config_markers;
-            related_identifiers.push(String::from("raw_env"));
+            let mut related_identifiers = Vec::new();
+            let mut warning_families = Vec::new();
+            let mut warning_lines = BTreeSet::new();
+
+            if !is_configuration_boundary_path(path) {
+                let config_markers = sanctioned_config_markers(content);
+                if !config_markers.is_empty()
+                    && (!native_lines.is_empty() || !ast_grep_lines.is_empty())
+                {
+                    related_identifiers.extend(config_markers);
+                    related_identifiers.push(String::from("raw_env"));
+                    warning_families.extend([
+                        String::from("concern:configuration"),
+                        String::from("bypass:raw_env"),
+                        String::from("sanctioned:config_access"),
+                    ]);
+                    warning_lines.extend(native_lines.iter().copied());
+                    warning_lines.extend(ast_grep_lines.iter().copied());
+                    if !ast_grep_lines.is_empty() {
+                        warning_families.push(String::from("scanner:ast_grep"));
+                    }
+                }
+            }
+
+            if !is_dependency_boundary_path(path) {
+                let dependency_markers = sanctioned_dependency_markers(content);
+                if !dependency_markers.is_empty() && !container_lines.is_empty() {
+                    related_identifiers.extend(dependency_markers);
+                    related_identifiers.push(String::from("raw_container_lookup"));
+                    warning_families.extend([
+                        String::from("concern:dependency_resolution"),
+                        String::from("bypass:container_lookup"),
+                        String::from("sanctioned:dependency_injection"),
+                        String::from("scanner:ast_grep"),
+                    ]);
+                    warning_lines.extend(container_lines.iter().copied());
+                }
+            }
+
+            if warning_lines.is_empty() {
+                return None;
+            }
             related_identifiers.sort();
             related_identifiers.dedup();
+            warning_families.sort();
+            warning_families.dedup();
+            let warning_count = warning_lines.len();
 
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::SanctionedPathBypass,
                 file_path: path.clone(),
                 related_file_paths: Vec::new(),
                 related_identifiers,
-                warning_count: env_findings.len(),
-                warning_weight: env_findings.len() + 1,
+                warning_count,
+                warning_weight: warning_count + 1,
                 bottleneck_centrality_millis: centrality,
-                warning_families: vec![
-                    String::from("concern:configuration"),
-                    String::from("bypass:raw_env"),
-                    String::from("sanctioned:config_access"),
-                ],
+                warning_families,
                 severity_millis: (520
-                    + env_findings.len().min(4) as u16 * 70
+                    + warning_count.min(4) as u16 * 70
                     + ((centrality / 200).min(180) as u16))
                     .min(1000),
                 fingerprint: String::new(),
@@ -765,6 +1284,26 @@ fn detect_sanctioned_path_bypasses(
             .then(left.file_path.cmp(&right.file_path))
     });
     findings
+}
+
+fn build_ast_grep_framework_lookup(
+    ast_grep_scan: &AstGrepScanResult,
+    expected_subtype: AstGrepFrameworkMisuseSubtype,
+) -> HashMap<PathBuf, BTreeSet<usize>> {
+    let mut lookup = HashMap::<PathBuf, BTreeSet<usize>>::new();
+    for finding in &ast_grep_scan.findings {
+        let AstGrepFindingKind::FrameworkMisuse { subtype } = &finding.kind else {
+            continue;
+        };
+        if *subtype != expected_subtype {
+            continue;
+        }
+        lookup
+            .entry(finding.file_path.clone())
+            .or_default()
+            .insert(finding.line);
+    }
+    lookup
 }
 
 fn detect_abstraction_sprawl(
@@ -1531,6 +2070,27 @@ fn sanctioned_config_markers(content: &str) -> Vec<String> {
     markers
 }
 
+fn sanctioned_dependency_markers(content: &str) -> Vec<String> {
+    let normalized = content.to_ascii_lowercase();
+    let mut markers = Vec::new();
+    if normalized.contains("__construct(")
+        || normalized.contains("constructor(")
+        || normalized.contains("fn new(")
+    {
+        markers.push(String::from("constructor_injection"));
+    }
+    if normalized.contains("bind(")
+        || normalized.contains("singleton(")
+        || normalized.contains("scoped(")
+        || normalized.contains("register(")
+        || normalized.contains("serviceprovider")
+        || normalized.contains("provide(")
+    {
+        markers.push(String::from("provider_binding"));
+    }
+    markers
+}
+
 fn is_configuration_boundary_path(path: &Path) -> bool {
     let normalized = path
         .to_string_lossy()
@@ -1541,6 +2101,23 @@ fn is_configuration_boundary_path(path: &Path) -> bool {
         || normalized.ends_with("/settings.py")
         || normalized.ends_with("/wp-config.php")
         || normalized.ends_with("/config.php")
+}
+
+fn is_dependency_boundary_path(path: &Path) -> bool {
+    let normalized = path
+        .to_string_lossy()
+        .replace('\\', "/")
+        .to_ascii_lowercase();
+    normalized.contains("/providers/")
+        || normalized.contains("/bootstrap/")
+        || normalized.contains("/config/")
+        || normalized.contains("/settings/")
+        || normalized.contains("/initializers/")
+        || normalized.contains("/dependencyinjection/")
+        || normalized.contains("/container/")
+        || normalized.ends_with("serviceprovider.php")
+        || normalized.ends_with("/container.php")
+        || normalized.ends_with("/container.rs")
 }
 
 fn detect_mechanism_families(path: &Path, content: &str) -> BTreeSet<String> {
@@ -2352,7 +2929,9 @@ fn is_low_signal_identity_path(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{build_architectural_assessment, ArchitecturalAssessmentKind};
-    use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeResult};
+    use crate::detectors::dead_code::{
+        DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier, DeadCodeResult,
+    };
     use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding, HardwiringResult};
     use crate::external::{
         ExternalAnalysisResult, ExternalConfidence, ExternalFinding, ExternalSeverity,
@@ -2378,6 +2957,7 @@ mod tests {
                 file_path: PathBuf::from("src/service.ts"),
                 name: String::from("unused"),
                 line: 10,
+                proof_tier: DeadCodeProofTier::Strong,
                 fingerprint: String::new(),
             }],
         };
@@ -2461,6 +3041,7 @@ mod tests {
                     file_path: PathBuf::from("src/noisy.ts"),
                     name: String::from("unused"),
                     line: 10,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
                 DeadCodeFinding {
@@ -2469,6 +3050,7 @@ mod tests {
                     file_path: PathBuf::from("src/noisy.ts"),
                     name: String::from("unused2"),
                     line: 11,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
                 DeadCodeFinding {
@@ -2477,6 +3059,7 @@ mod tests {
                     file_path: PathBuf::from("src/noisy.ts"),
                     name: String::from("unused3"),
                     line: 12,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
             ],
@@ -2511,6 +3094,7 @@ mod tests {
                     file_path: PathBuf::from("src/busy.ts"),
                     name: String::from("unused"),
                     line: 10,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
                 DeadCodeFinding {
@@ -2519,6 +3103,7 @@ mod tests {
                     file_path: PathBuf::from("src/busy.ts"),
                     name: String::from("unused2"),
                     line: 11,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
                 DeadCodeFinding {
@@ -2527,6 +3112,7 @@ mod tests {
                     file_path: PathBuf::from("src/busy.ts"),
                     name: String::from("unused3"),
                     line: 12,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
                 DeadCodeFinding {
@@ -2535,6 +3121,7 @@ mod tests {
                     file_path: PathBuf::from("src/busy.ts"),
                     name: String::from("unused4"),
                     line: 13,
+                    proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
                 },
             ],
@@ -2801,6 +3388,146 @@ def build_report():
         assert!(finding
             .warning_families
             .contains(&String::from("concern:configuration")));
+    }
+
+    #[test]
+    fn ast_grep_detects_sanctioned_path_bypass_for_python_raw_env_when_native_hardwiring_is_silent()
+    {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Services/ReportService.py"),
+                    centrality_millis: 520,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Services/ReportService.py"),
+                String::from(
+                    r#"
+import os
+from django.conf import settings
+
+def build_report():
+    mode = os.environ.get("APP_MODE")
+    timeout = settings.REPORT_TIMEOUT
+    return mode, timeout
+"#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| finding.kind == ArchitecturalAssessmentKind::SanctionedPathBypass)
+            .expect("expected sanctioned path bypass finding");
+        assert_eq!(finding.warning_count, 1);
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "scanner:ast_grep"));
+        assert!(finding
+            .related_identifiers
+            .contains(&String::from("raw_env")));
+    }
+
+    #[test]
+    fn ast_grep_detects_sanctioned_path_bypass_for_php_container_lookup_outside_boundary() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Services/ReportService.php"),
+                    centrality_millis: 610,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Services/ReportService.php"),
+                String::from(
+                    r#"
+<?php
+
+final class ReportService
+{
+    public function __construct(private TenantManager $tenantManager) {}
+
+    public function build(): array
+    {
+        return app(TenantManager::class)->current();
+    }
+}
+"#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| finding.kind == ArchitecturalAssessmentKind::SanctionedPathBypass)
+            .expect("expected sanctioned path bypass finding");
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "concern:dependency_resolution"));
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "scanner:ast_grep"));
+        assert!(finding
+            .related_identifiers
+            .contains(&String::from("raw_container_lookup")));
+        assert!(finding
+            .related_identifiers
+            .contains(&String::from("constructor_injection")));
+    }
+
+    #[test]
+    fn ignores_php_container_lookup_inside_provider_boundary() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis {
+                bottleneck_files: vec![BottleneckFile {
+                    file_path: PathBuf::from("app/Providers/AppServiceProvider.php"),
+                    centrality_millis: 610,
+                    fingerprint: String::new(),
+                }],
+                ..GraphAnalysis::default()
+            },
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Providers/AppServiceProvider.php"),
+                String::from(
+                    r#"
+<?php
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        app(TenantManager::class);
+        $this->app->singleton(TenantManager::class);
+    }
+}
+"#,
+                ),
+            )],
+        );
+
+        assert!(assessment
+            .findings
+            .iter()
+            .all(|finding| finding.kind != ArchitecturalAssessmentKind::SanctionedPathBypass));
     }
 
     #[test]
@@ -3476,6 +4203,205 @@ def build_report():
             .related_identifiers
             .iter()
             .any(|identifier| identifier == "concept:preference"));
+    }
+
+    #[test]
+    fn detects_nested_iteration_as_algorithmic_complexity_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("src/solver.rs"),
+                String::from(
+                    r#"
+                    fn solve(items: &[u32], needles: &[u32]) -> usize {
+                        let mut matches = 0;
+                        for item in items {
+                            for needle in needles {
+                                if item == needle {
+                                    matches += 1;
+                                }
+                            }
+                        }
+                        matches
+                    }
+                "#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            })
+            .expect("expected algorithmic complexity hotspot");
+        assert_eq!(finding.file_path, PathBuf::from("src/solver.rs"));
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "complexity:nested_iteration"));
+    }
+
+    #[test]
+    fn detects_collection_scan_in_loop_as_algorithmic_complexity_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("src/filter.ts"),
+                String::from(
+                    r#"
+                    export function keepKnown(items: string[], allowList: string[]): string[] {
+                        const kept: string[] = [];
+                        for (const item of items) {
+                            if (allowList.includes(item)) {
+                                kept.push(item);
+                            }
+                        }
+                        return kept;
+                    }
+                "#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            })
+            .expect("expected algorithmic complexity hotspot");
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "complexity:collection_scan_in_loop"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier.contains(".includes(")));
+    }
+
+    #[test]
+    fn detects_json_decode_in_loop_as_algorithmic_complexity_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("src/importer.py"),
+                String::from(
+                    r#"
+                    import json
+
+                    def load_rows(lines):
+                        rows = []
+                        for line in lines:
+                            rows.append(json.loads(line))
+                        return rows
+                "#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            })
+            .expect("expected algorithmic complexity hotspot");
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "complexity:json_decode_in_loop"));
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "scanner:ast_grep"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier.contains("json.loads(")));
+    }
+
+    #[test]
+    fn detects_filesystem_read_in_loop_as_algorithmic_complexity_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("src/loader.ts"),
+                String::from(
+                    r#"
+                    import fs from "fs";
+
+                    export function loadAll(paths: string[]): string[] {
+                        const out: string[] = [];
+                        for (const path of paths) {
+                            out.push(fs.readFileSync(path, "utf8"));
+                        }
+                        return out;
+                    }
+                "#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            })
+            .expect("expected algorithmic complexity hotspot");
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "complexity:filesystem_read_in_loop"));
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "scanner:ast_grep"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier.contains("fs.readFileSync(")));
+    }
+
+    #[test]
+    fn ignores_simple_single_loop_without_expensive_inner_work() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("src/linear.py"),
+                String::from(
+                    r#"
+                    def accumulate(items):
+                        total = 0
+                        for item in items:
+                            total += item
+                        return total
+                "#,
+                ),
+            )],
+        );
+
+        assert!(assessment.findings.iter().all(|finding| {
+            finding.kind != ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+        }));
     }
 
     #[test]

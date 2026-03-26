@@ -3,6 +3,7 @@ use std::cell::Cell;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
 
@@ -40,6 +41,33 @@ impl Default for ScanConfig {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum AnalysisBoundaryTruth {
+    #[default]
+    CompleteRepository,
+    TruncatedSlice,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AnalysisBoundaryReason {
+    CroppedRoot,
+    IncludePathPrefixes,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct AnalysisScope {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repository_root: Option<PathBuf>,
+    #[serde(default)]
+    pub boundary_truth: AnalysisBoundaryTruth,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reasons: Vec<AnalysisBoundaryReason>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub include_path_prefixes: Vec<PathBuf>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScannedFile {
     pub relative_path: PathBuf,
@@ -58,6 +86,8 @@ pub struct ScanResult {
     pub root: PathBuf,
     pub files: Vec<ScannedFile>,
     pub summary: ScanSummary,
+    #[serde(default)]
+    pub scope: AnalysisScope,
 }
 
 #[derive(Debug, Error)]
@@ -154,12 +184,57 @@ pub fn scan_repository(
         skipped_dirs: skipped_dirs.get(),
         skipped_hidden_dirs: skipped_hidden_dirs.get(),
     };
+    let scope = build_analysis_scope(&root, &effective_config);
 
     Ok(ScanResult {
         root,
         files,
         summary,
+        scope,
     })
+}
+
+fn build_analysis_scope(root: &Path, config: &ScanConfig) -> AnalysisScope {
+    let repository_root = detect_repository_root(root);
+    let mut reasons = Vec::new();
+    if repository_root
+        .as_ref()
+        .is_some_and(|repo_root| repo_root != root)
+    {
+        reasons.push(AnalysisBoundaryReason::CroppedRoot);
+    }
+    if !config.include_path_prefixes.is_empty() {
+        reasons.push(AnalysisBoundaryReason::IncludePathPrefixes);
+    }
+    let boundary_truth = if reasons.is_empty() {
+        AnalysisBoundaryTruth::CompleteRepository
+    } else {
+        AnalysisBoundaryTruth::TruncatedSlice
+    };
+    AnalysisScope {
+        repository_root,
+        boundary_truth,
+        reasons,
+        include_path_prefixes: config.include_path_prefixes.clone(),
+    }
+}
+
+fn detect_repository_root(root: &Path) -> Option<PathBuf> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if path.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(path))
+    }
 }
 
 fn should_visit(
@@ -281,10 +356,11 @@ fn overlaps_include_prefixes(path: &Path, include_path_prefixes: &[PathBuf]) -> 
 
 #[cfg(test)]
 mod tests {
-    use super::{scan_repository, ScanConfig};
+    use super::{scan_repository, AnalysisBoundaryTruth, ScanConfig};
     use std::collections::HashSet;
     use std::fs;
     use std::path::PathBuf;
+    use std::process::Command;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
@@ -403,6 +479,32 @@ mod tests {
                 PathBuf::from("resources/js/app.ts")
             ]
         );
+        assert_eq!(
+            result.scope.boundary_truth,
+            AnalysisBoundaryTruth::TruncatedSlice
+        );
+    }
+
+    #[test]
+    fn marks_nested_git_subtree_scans_as_truncated() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src/module")).unwrap();
+        fs::write(fixture.join("src/module/main.rs"), b"fn main() {}").unwrap();
+        let init = Command::new("git")
+            .arg("-C")
+            .arg(&fixture)
+            .args(["init", "-q"])
+            .status()
+            .expect("git init should run in test fixture");
+        assert!(init.success(), "git init should succeed");
+
+        let result = scan_repository(fixture.join("src/module"), &ScanConfig::default()).unwrap();
+
+        assert_eq!(
+            result.scope.boundary_truth,
+            AnalysisBoundaryTruth::TruncatedSlice
+        );
+        assert!(result.scope.repository_root.is_some());
     }
 
     fn create_fixture() -> PathBuf {

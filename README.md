@@ -59,6 +59,7 @@ external adapters alongside deterministic analysis.
 .aigiscode/contract-inventory.json
 .aigiscode/doctrine-registry.json
 .aigiscode/deterministic-findings.json
+.aigiscode/ast-grep-scan.json
 .aigiscode/external-analysis.json
 .aigiscode/architecture-surface.json
 .aigiscode/review-surface.json
@@ -66,6 +67,8 @@ external adapters alongside deterministic analysis.
 .aigiscode/guard-decision.json
 .aigiscode/aigiscode-handoff.json
 .aigiscode/agentic-review.json
+.aigiscode/graph-packets.json
+.aigiscode/repository-topology.json
 .aigiscode/aigiscode-report.json
 .aigiscode/aigiscode-report.md
 ```
@@ -89,11 +92,61 @@ native artifact family.
 family, and prints `agentic-review.json` as the primary machine contract for an
 AI reviewer. The AI contract is graph-backed, includes diff-aware task packets,
 trace-style evidence chains, bounded typed multi-path graph traces, and bounded
-code-flow style evidence paths plus explicit source/sink endpoints, and now
+code-flow style evidence paths plus explicit source/sink endpoints, bounded
+semantic state-flow evidence for mutable carriers when the slice supports it, and now
 carries an adapter catalog with:
 - local `codex exec`
 - direct OpenAI Responses HTTP
 - optional TypeScript Codex SDK sidecar
+
+`ast-grep-scan.json` is the first secondary scanner-plane artifact. It carries
+typed, provenance-rich structural rule hits from in-process `ast-grep`
+evaluation. Today it covers three pilot families:
+- loop-local expensive-operation rules (`collection scan`, `sort`, `regex compile`,
+  `json decode/parse`, and `filesystem read/check` in loops) that strengthen
+  `AlgorithmicComplexityHotspot`
+- dangerous-API rules (`eval`, `exec/system`, unsafe deserialization, unsafe HTML
+  output`) that strengthen native `SecurityDangerousApi` findings
+- narrow framework-misuse rules (`raw env outside config/bootstrap`,
+  `raw container lookup outside provider/bootstrap or injection boundaries`)
+  that strengthen native `SanctionedPathBypass` findings
+
+The engine stays in core, but framework-specific rule catalogs are now allowed
+to contribute findings with explicit provenance such as
+`ast_grep.pattern.laravel` and `ast_grep.pattern.django`, so framework misuse
+can scale without turning the core scanner file into a framework registry.
+
+It is secondary evidence, not semantic-graph truth, reachability truth, or
+doctrine truth. `aigiscode-report.json.summary` and
+`architecture_surface.overview` now also break those scanner hits down by
+family so the scanner mix is visible without opening the raw artifact.
+
+`graph-packets.json` complements `agentic-review.json` with bounded,
+doctrine-aware graph neighborhoods for the current top packets and focus files.
+Fallback focus-file packets now also carry bounded traces, code flows,
+source/sink paths, and semantic state-flow evidence when guardian packets are
+absent, so the packet layer stays useful even on degraded or slice-only runs.
+
+`repository-topology.json` complements both with a flatter orchestration map
+over top-level zones, manifests, runtime entries, contract-bearing directories,
+cross-zone links, direct zone-to-finding / zone-to-packet links, zone-level
+triage briefs, structured triage steps, focus clusters for flat zones,
+explicit cross-zone pressure summaries with linked-zone previews, direct causal
+bridge summaries, topology-level semantic-state previews/counts and proof-aware
+summaries for mutable carriers, a topology recommended start slice, spillover observations,
+convergence-state hints, and lightweight ownership hints with explicit basis
+metadata so agents can reason about repository layout, cross-zone drag,
+semantic propagation, and the next slice without loading the full evidence
+graph. Route-declared files now also promote runtime-entry shape here, so
+modern Symfony/Laravel-style controller surfaces are no longer invisible in
+topology. Scoped/cropped analyses now also expose explicit `boundary_truncated`
+truth here instead of implying fake orphan debt for files
+whose real callers live outside the analyzed slice.
+Topology semantic-state previews now also expose stable flow IDs, flow kind,
+and proof tier (`exact_resolved`, `receiver_typed`, `heuristic`), and
+zones/steps/clusters carry proof summaries plus compact flow refs so agents can
+tell strong propagation evidence from weak heuristic hints and jump back to one
+exact flow instead of only reading labels.
 
 `aigiscode agent-run` is the first real executor. It materializes the normal
 artifact family, selects an adapter, and writes:
@@ -127,6 +180,7 @@ Planned adapter:
 
 - Circular dependencies
 - Bottlenecks and orphan files
+- Boundary-truncated files on scoped analyses
 - Dead code candidates
 - Hardwired values
 - Declared routes, hooks, env keys, config keys, and symbolic runtime contracts

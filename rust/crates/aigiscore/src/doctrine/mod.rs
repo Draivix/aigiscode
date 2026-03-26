@@ -271,6 +271,17 @@ pub fn built_in_doctrine_registry() -> DoctrineRegistry {
                 ],
             ),
             clause_with_preferred(
+                "guardian.superlinear-risk",
+                "Superlinear runtime risk",
+                "Avoid localized runtime patterns that likely scale poorly, especially nested iteration, repeated collection scans, sorting inside loops, repeated regex compilation, repeated JSON decode/parse, and repeated filesystem reads/checks inside loops.",
+                DoctrineCategory::Maintainability,
+                DoctrineDisposition::Warn,
+                "precomputed_index_or_single_pass_flow",
+                &[
+                    "Prefer precomputed indexes, hoisted work, batching, and single-pass accumulation over repeated loop-local scans, parse/decode, file reads, and re-sorting.",
+                ],
+            ),
+            clause_with_preferred(
                 "guardian.sanctioned-paths",
                 "Sanctioned paths",
                 "Sensitive runtime concerns should flow through sanctioned config, auth, queue, notification, and integration boundaries.",
@@ -352,6 +363,16 @@ pub fn built_in_doctrine_registry() -> DoctrineRegistry {
                 DoctrineDisposition::Warn,
                 &[
                     "Converge on the dominant pattern unless doctrine explicitly allows an exception.",
+                ],
+            ),
+            clause(
+                "performance.scaling",
+                "Performance scaling",
+                "Behavior that scales poorly with input growth should be made explicit and reduced before it becomes hidden operational debt.",
+                DoctrineCategory::Maintainability,
+                DoctrineDisposition::Warn,
+                &[
+                    "Prefer indexed, cached, batched, or single-pass work over repeated loop-local scans and recomputation.",
                 ],
             ),
             clause(
@@ -520,6 +541,7 @@ mod tests {
             "guardian.minimal-mechanism",
             "guardian.native-vs-library",
             "guardian.overengineering",
+            "guardian.superlinear-risk",
             "guardian.sanctioned-paths",
             "guardian.single-canonical-representation",
             "guardian.single-solution-path",
@@ -528,6 +550,7 @@ mod tests {
             "guardian.trust-boundaries",
             "maintainability.remove-dead-code",
             "pattern.coherence",
+            "performance.scaling",
             "security.coherence",
             "security.external-evidence",
             "structural.coherence",

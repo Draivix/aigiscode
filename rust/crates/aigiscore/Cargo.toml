@@ -6,6 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+ast-grep-language.workspace = true
 globset.workspace = true
 petgraph.workspace = true
 reqwest.workspace = true

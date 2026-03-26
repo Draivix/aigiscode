@@ -568,6 +568,9 @@ fn route_patterns(language: ContractLanguage) -> Vec<&'static Regex> {
     let patterns = PATTERNS
         .get_or_init(|| {
             vec![
+                Regex::new(r#"#\[\s*Route\s*\([^]]*?\bpath\s*:\s*['"](?P<value>/[^'"]*)['"]"#)
+                    .unwrap(),
+                Regex::new(r#"#\[\s*Route\s*\(\s*['"](?P<value>/[^'"]*)['"]"#).unwrap(),
                 Regex::new(r#"\b(?:Route|Router)(?:::|->)(?:get|post|put|patch|delete|options|any|match|resource|apiResource|view|redirect|prefix|group)\s*\(\s*['"](?P<value>/[^'"]*)['"]"#).unwrap(),
                 Regex::new(r#"\brouter\.(?:get|post|put|patch|delete|use|all)\s*\(\s*['"`](?P<value>/[^'"`]*)['"`]"#).unwrap(),
                 Regex::new(r#"\b(?:get|post|put|patch|delete|match)\s+['"](?P<value>/[^'"]*)['"]"#).unwrap(),
@@ -940,6 +943,43 @@ return [
             .semantic_model_packs
             .iter()
             .any(|pack| pack.id == "php_hook_maps"));
+    }
+
+    #[test]
+    fn captures_php_attribute_routes_for_symfony_style_controllers() {
+        let inventory = build_contract_inventory(&[(
+            PathBuf::from("src/Controller/TriggerFlowController.php"),
+            String::from(
+                r#"
+<?php
+
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route(defaults: ['_routeScope' => ['api']])]
+class TriggerFlowController
+{
+    #[Route(path: '/api/_action/trigger-event/{eventName}', name: 'api.action.trigger_event', methods: ['POST'])]
+    public function trigger(): void
+    {
+    }
+
+    #[Route('/api/_action/trigger-test', name: 'api.action.trigger_test', methods: ['GET'])]
+    public function triggerTest(): void
+    {
+    }
+}
+"#,
+            ),
+        )]);
+
+        assert!(inventory
+            .routes
+            .iter()
+            .any(|item| item.value == "/api/_action/trigger-event/{eventName}"));
+        assert!(inventory
+            .routes
+            .iter()
+            .any(|item| item.value == "/api/_action/trigger-test"));
     }
 
     #[test]

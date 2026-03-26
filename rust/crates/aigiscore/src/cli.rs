@@ -4,15 +4,18 @@ use crate::agent_runtime::{
 };
 use crate::agentic::build_agentic_review_artifact;
 use crate::artifacts::{
-    default_output_dir, write_architecture_surface_artifact, write_dependency_graph_artifact,
-    write_evidence_graph_artifact, write_project_analysis_artifacts, write_semantic_graph_artifact,
-    ArtifactPaths, AGENTIC_REVIEW_FILE, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE,
-    AIGISCODE_REPORT_MARKDOWN_FILE, ARCHITECTURE_SURFACE_FILE, CONTRACT_INVENTORY_FILE,
+    build_agent_handoff_artifact, build_convergence_history_artifact,
+    build_guard_decision_artifact, default_output_dir, write_architecture_surface_artifact,
+    write_dependency_graph_artifact, write_evidence_graph_artifact,
+    write_project_analysis_artifacts, write_semantic_graph_artifact, ArtifactPaths,
+    AGENTIC_REVIEW_FILE, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
+    ARCHITECTURE_SURFACE_FILE, AST_GREP_SCAN_FILE, CONTRACT_INVENTORY_FILE,
     CONVERGENCE_HISTORY_FILE, DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE,
     DETERMINISTIC_FINDINGS_FILE, DOCTRINE_REGISTRY_FILE, EVIDENCE_GRAPH_FILE,
-    EXTERNAL_ANALYSIS_FILE, GUARD_DECISION_FILE, REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
+    EXTERNAL_ANALYSIS_FILE, GRAPH_PACKETS_FILE, GUARD_DECISION_FILE, REPOSITORY_TOPOLOGY_FILE,
+    REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
 };
-use crate::assessment::build_architectural_assessment;
+use crate::assessment::build_architectural_assessment_with_ast_grep;
 use crate::doctrine::load_doctrine_registry;
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
@@ -33,6 +36,34 @@ use serde::Serialize;
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+struct AgentContext {
+    review: crate::agentic::AgenticReviewArtifact,
+}
+
+fn build_agent_context(result: &ProjectAnalysis) -> Result<AgentContext, i32> {
+    let surface = result.architecture_surface();
+    let doctrine = load_doctrine_registry(&result.root).map_err(|error| {
+        eprintln!("{error}");
+        1
+    })?;
+    let review_surface = build_review_surface(result, &surface, &PolicyBundle::default());
+    let convergence = build_convergence_history_artifact(
+        &result.root,
+        &result.semantic_graph,
+        None,
+        None,
+        None,
+        &surface,
+        &review_surface,
+        &result.contract_inventory,
+        &doctrine,
+    );
+    let guard = build_guard_decision_artifact(&result.root, &convergence);
+    let handoff = build_agent_handoff_artifact(result, &review_surface, &doctrine);
+    let review = build_agentic_review_artifact(result, &doctrine, &handoff, &guard, &convergence);
+    Ok(AgentContext { review })
+}
 
 pub fn run_with_default_stack() -> i32 {
     const STACK_SIZE_BYTES: usize = 256 * 1024 * 1024;
@@ -241,6 +272,7 @@ struct AnalyzeArtifactOutput {
     doctrine_registry: PathBuf,
     kuzu_graph: Option<PathBuf>,
     deterministic_findings: PathBuf,
+    ast_grep_scan: PathBuf,
     external_analysis: PathBuf,
     architecture_surface: PathBuf,
     review_surface: PathBuf,
@@ -248,6 +280,8 @@ struct AnalyzeArtifactOutput {
     guard_decision: PathBuf,
     agent_handoff: PathBuf,
     agentic_review: PathBuf,
+    graph_packets: PathBuf,
+    repository_topology: PathBuf,
     aigiscode_report: PathBuf,
     aigiscode_report_markdown: PathBuf,
 }
@@ -289,6 +323,11 @@ struct AnalyzeCommandSummary {
     duplicate_mechanism_count: usize,
     hand_rolled_parsing_count: usize,
     abstraction_sprawl_count: usize,
+    algorithmic_complexity_hotspot_count: usize,
+    ast_grep_finding_count: usize,
+    ast_grep_algorithmic_complexity_count: usize,
+    ast_grep_security_dangerous_api_count: usize,
+    ast_grep_framework_misuse_count: usize,
     dead_code_count: usize,
     hardwiring_count: usize,
     security_finding_count: usize,
@@ -305,6 +344,7 @@ struct InfoArtifactPresence {
     contract_inventory: bool,
     doctrine_registry: bool,
     deterministic_findings: bool,
+    ast_grep_scan: bool,
     external_analysis: bool,
     architecture_surface: bool,
     review_surface: bool,
@@ -312,6 +352,8 @@ struct InfoArtifactPresence {
     guard_decision: bool,
     agent_handoff: bool,
     agentic_review: bool,
+    graph_packets: bool,
+    repository_topology: bool,
     aigiscode_report: bool,
     aigiscode_report_markdown: bool,
     kuzu_graph: bool,
@@ -709,6 +751,7 @@ fn build_analysis_command_output(
     artifact_paths: Option<&ArtifactPaths>,
     kuzu_graph: Option<PathBuf>,
 ) -> AnalyzeCommandOutput {
+    let ast_grep_family_counts = result.ast_grep_scan.family_counts();
     AnalyzeCommandOutput {
         root: result.root.clone(),
         artifacts: artifact_paths.map(|paths| AnalyzeArtifactOutput {
@@ -721,6 +764,7 @@ fn build_analysis_command_output(
             doctrine_registry: paths.doctrine_registry.clone(),
             kuzu_graph: kuzu_graph.clone(),
             deterministic_findings: paths.deterministic_findings.clone(),
+            ast_grep_scan: paths.ast_grep_scan.clone(),
             external_analysis: paths.external_analysis.clone(),
             architecture_surface: paths.architecture_surface.clone(),
             review_surface: paths.review_surface.clone(),
@@ -728,6 +772,8 @@ fn build_analysis_command_output(
             guard_decision: paths.guard_decision.clone(),
             agent_handoff: paths.agent_handoff.clone(),
             agentic_review: paths.agentic_review.clone(),
+            graph_packets: paths.graph_packets.clone(),
+            repository_topology: paths.repository_topology.clone(),
             aigiscode_report: paths.aigiscode_report.clone(),
             aigiscode_report_markdown: paths.aigiscode_report_markdown.clone(),
         }),
@@ -758,6 +804,13 @@ fn build_analysis_command_output(
             abstraction_sprawl_count: result
                 .architectural_assessment
                 .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::AbstractionSprawl),
+            algorithmic_complexity_hotspot_count: result.architectural_assessment.count_by_kind(
+                crate::assessment::ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot,
+            ),
+            ast_grep_finding_count: result.ast_grep_scan.findings.len(),
+            ast_grep_algorithmic_complexity_count: ast_grep_family_counts.algorithmic_complexity,
+            ast_grep_security_dangerous_api_count: ast_grep_family_counts.security_dangerous_api,
+            ast_grep_framework_misuse_count: ast_grep_family_counts.framework_misuse,
             dead_code_count: result.dead_code.findings.len(),
             hardwiring_count: result.hardwiring.findings.len(),
             security_finding_count: result.security_analysis.findings.len(),
@@ -779,6 +832,7 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
     }
     match analyze_project(path, &ScanConfig::default()) {
         Ok(mut result) => {
+            trace_cli_step("analysis.returned");
             if !options.external_tools.is_empty() {
                 let output_dir = options
                     .output_dir
@@ -788,13 +842,15 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
                 {
                     Ok(external_analysis) => {
                         result.external_analysis = external_analysis;
-                        result.architectural_assessment = build_architectural_assessment(
-                            &result.graph_analysis,
-                            &result.dead_code,
-                            &result.hardwiring,
-                            &result.external_analysis,
-                            &result.parsed_sources,
-                        );
+                        result.architectural_assessment =
+                            build_architectural_assessment_with_ast_grep(
+                                &result.graph_analysis,
+                                &result.dead_code,
+                                &result.hardwiring,
+                                &result.external_analysis,
+                                &result.parsed_sources,
+                                &result.ast_grep_scan,
+                            );
                     }
                     Err(error) => {
                         eprintln!("{error}");
@@ -803,8 +859,12 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
                 }
             }
             let artifact_paths = if options.write_artifacts {
+                trace_cli_step("artifacts.start");
                 match write_project_analysis_artifacts(&result, options.output_dir.as_deref()) {
-                    Ok(paths) => Some(paths),
+                    Ok(paths) => {
+                        trace_cli_step("artifacts.done");
+                        Some(paths)
+                    }
                     Err(error) => {
                         eprintln!("{error}");
                         return 1;
@@ -840,6 +900,13 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
             1
         }
     }
+}
+
+fn trace_cli_step(step: &str) {
+    if std::env::var_os("AIGISCORE_TRACE").is_none() {
+        return;
+    }
+    eprintln!("[aigiscore] cli {step}");
 }
 
 fn run_graph_command(path: PathBuf, options: ArtifactOptions) -> i32 {
@@ -1026,13 +1093,15 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                 {
                     Ok(external_analysis) => {
                         result.external_analysis = external_analysis;
-                        result.architectural_assessment = build_architectural_assessment(
-                            &result.graph_analysis,
-                            &result.dead_code,
-                            &result.hardwiring,
-                            &result.external_analysis,
-                            &result.parsed_sources,
-                        );
+                        result.architectural_assessment =
+                            build_architectural_assessment_with_ast_grep(
+                                &result.graph_analysis,
+                                &result.dead_code,
+                                &result.hardwiring,
+                                &result.external_analysis,
+                                &result.parsed_sources,
+                                &result.ast_grep_scan,
+                            );
                     }
                     Err(error) => {
                         eprintln!("{error}");
@@ -1082,42 +1151,12 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                     }
                 }
             } else {
-                let surface = result.architecture_surface();
-                let doctrine = match load_doctrine_registry(&result.root) {
-                    Ok(registry) => registry,
-                    Err(error) => {
-                        eprintln!("{error}");
-                        return 1;
-                    }
+                let context = match build_agent_context(&result) {
+                    Ok(context) => context,
+                    Err(code) => return code,
                 };
-                let review_surface =
-                    build_review_surface(&result, &surface, &PolicyBundle::default());
-                let convergence = crate::artifacts::build_convergence_history_artifact(
-                    &result.root,
-                    &result.semantic_graph,
-                    None,
-                    None,
-                    None,
-                    &surface,
-                    &review_surface,
-                    &result.contract_inventory,
-                    &doctrine,
-                );
-                let guard =
-                    crate::artifacts::build_guard_decision_artifact(&result.root, &convergence);
-                let handoff = crate::artifacts::build_agent_handoff_artifact(
-                    &result,
-                    &review_surface,
-                    &doctrine,
-                );
-                serde_json::to_value(build_agentic_review_artifact(
-                    &result,
-                    &doctrine,
-                    &handoff,
-                    &guard,
-                    &convergence,
-                ))
-                .expect("failed to serialize in-memory agentic review")
+                serde_json::to_value(&context.review)
+                    .expect("failed to serialize in-memory agentic review")
             };
             println!(
                 "{}",
@@ -1142,33 +1181,12 @@ fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
                 eprintln!("{error}");
                 return 1;
             }
-            let surface = result.architecture_surface();
-            let doctrine = match load_doctrine_registry(&result.root) {
-                Ok(registry) => registry,
-                Err(error) => {
-                    eprintln!("{error}");
-                    return 1;
-                }
+            let context = match build_agent_context(&result) {
+                Ok(context) => context,
+                Err(code) => return code,
             };
-            let review_surface = build_review_surface(&result, &surface, &PolicyBundle::default());
-            let convergence = crate::artifacts::build_convergence_history_artifact(
-                &result.root,
-                &result.semantic_graph,
-                None,
-                None,
-                None,
-                &surface,
-                &review_surface,
-                &result.contract_inventory,
-                &doctrine,
-            );
-            let guard = crate::artifacts::build_guard_decision_artifact(&result.root, &convergence);
-            let handoff =
-                crate::artifacts::build_agent_handoff_artifact(&result, &review_surface, &doctrine);
-            let review =
-                build_agentic_review_artifact(&result, &doctrine, &handoff, &guard, &convergence);
             let run_result = match run_agent_review(
-                &review,
+                &context.review,
                 &result.root,
                 options.output_dir.as_deref(),
                 options.adapter,
@@ -1206,33 +1224,12 @@ fn run_agent_spider_command(path: PathBuf, options: AgentSpiderOptions) -> i32 {
                 eprintln!("{error}");
                 return 1;
             }
-            let surface = result.architecture_surface();
-            let doctrine = match load_doctrine_registry(&result.root) {
-                Ok(registry) => registry,
-                Err(error) => {
-                    eprintln!("{error}");
-                    return 1;
-                }
+            let context = match build_agent_context(&result) {
+                Ok(context) => context,
+                Err(code) => return code,
             };
-            let review_surface = build_review_surface(&result, &surface, &PolicyBundle::default());
-            let convergence = crate::artifacts::build_convergence_history_artifact(
-                &result.root,
-                &result.semantic_graph,
-                None,
-                None,
-                None,
-                &surface,
-                &review_surface,
-                &result.contract_inventory,
-                &doctrine,
-            );
-            let guard = crate::artifacts::build_guard_decision_artifact(&result.root, &convergence);
-            let handoff =
-                crate::artifacts::build_agent_handoff_artifact(&result, &review_surface, &doctrine);
-            let review =
-                build_agentic_review_artifact(&result, &doctrine, &handoff, &guard, &convergence);
             let spider_result = match run_agent_spider(
-                &review,
+                &context.review,
                 &result.root,
                 options.output_dir.as_deref(),
                 options.adapter,
@@ -1374,16 +1371,22 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
     let surface = read_json_if_exists(&artifact_paths.architecture_surface)?;
     let contract_inventory = read_json_if_exists(&artifact_paths.contract_inventory)?;
     let doctrine_registry = read_json_if_exists(&artifact_paths.doctrine_registry)?;
+    let ast_grep_scan = read_json_if_exists(&artifact_paths.ast_grep_scan)?;
     let convergence_history = read_json_if_exists(&artifact_paths.convergence_history)?;
     let guard_decision = read_json_if_exists(&artifact_paths.guard_decision)?;
     let agentic_review = read_json_if_exists(&artifact_paths.agentic_review)?;
+    let graph_packets = read_json_if_exists(&artifact_paths.graph_packets)?;
+    let repository_topology = read_json_if_exists(&artifact_paths.repository_topology)?;
 
     if report.is_none()
         && surface.is_none()
         && contract_inventory.is_none()
         && doctrine_registry.is_none()
+        && ast_grep_scan.is_none()
         && guard_decision.is_none()
         && agentic_review.is_none()
+        && graph_packets.is_none()
+        && repository_topology.is_none()
     {
         return Err(format!(
             "no analysis artifacts found under {}; run `aigiscode analyze {}` first",
@@ -1410,6 +1413,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
             contract_inventory: artifact_paths.contract_inventory.exists(),
             doctrine_registry: artifact_paths.doctrine_registry.exists(),
             deterministic_findings: artifact_paths.deterministic_findings.exists(),
+            ast_grep_scan: artifact_paths.ast_grep_scan.exists(),
             external_analysis: artifact_paths.external_analysis.exists(),
             architecture_surface: artifact_paths.architecture_surface.exists(),
             review_surface: artifact_paths.review_surface.exists(),
@@ -1417,6 +1421,8 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
             guard_decision: artifact_paths.guard_decision.exists(),
             agent_handoff: artifact_paths.agent_handoff.exists(),
             agentic_review: artifact_paths.agentic_review.exists(),
+            graph_packets: artifact_paths.graph_packets.exists(),
+            repository_topology: artifact_paths.repository_topology.exists(),
             aigiscode_report: artifact_paths.aigiscode_report.exists(),
             aigiscode_report_markdown: artifact_paths.aigiscode_report_markdown.exists(),
             kuzu_graph: kuzu_graph.exists(),
@@ -1426,6 +1432,9 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
         "convergence": convergence_history.as_ref().and_then(|payload| payload.get("summary")).cloned().unwrap_or(JsonValue::Null),
         "guard_decision": guard_decision.unwrap_or(JsonValue::Null),
         "agentic_review": agentic_review.unwrap_or(JsonValue::Null),
+        "graph_packets": graph_packets.unwrap_or(JsonValue::Null),
+        "repository_topology": repository_topology.unwrap_or(JsonValue::Null),
+        "ast_grep_scan": ast_grep_scan.unwrap_or(JsonValue::Null),
         "convergence_attention": convergence_history.as_ref().map(|payload| {
             json!({
                 "attention_items_count": payload
@@ -1472,6 +1481,7 @@ fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPa
         contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
         doctrine_registry: output_dir.join(DOCTRINE_REGISTRY_FILE),
         deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
+        ast_grep_scan: output_dir.join(AST_GREP_SCAN_FILE),
         external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
         architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
         review_surface: output_dir.join(REVIEW_SURFACE_FILE),
@@ -1479,6 +1489,8 @@ fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPa
         guard_decision: output_dir.join(GUARD_DECISION_FILE),
         agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
         agentic_review: output_dir.join(AGENTIC_REVIEW_FILE),
+        graph_packets: output_dir.join(GRAPH_PACKETS_FILE),
+        repository_topology: output_dir.join(REPOSITORY_TOPOLOGY_FILE),
         aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
         aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
     }
@@ -1564,6 +1576,7 @@ mod tests {
         assert!(summary.get("scanned_files").is_some());
         assert_eq!(contract_summary["routes"]["unique_values"], Value::from(1));
         assert_eq!(output["artifacts"]["contract_inventory"], Value::Bool(true));
+        assert_eq!(output["artifacts"]["ast_grep_scan"], Value::Bool(true));
     }
 
     #[test]

@@ -4,6 +4,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HardwiringCategory {
@@ -200,11 +201,74 @@ fn should_ignore_repeated_literal(
         return true;
     }
 
+    if is_printf_placeholder_literal(value)
+        || is_control_escape_literal(value)
+        || is_markup_utility_literal(context, value)
+    {
+        return true;
+    }
+
     value.contains("{$")
         || value.contains("{$")
         || value.contains("\\u{")
         || value.contains("\\x")
         || context.contains("e.g.")
+}
+
+fn is_printf_placeholder_literal(value: &str) -> bool {
+    static PRINTF_PLACEHOLDER_RE: OnceLock<Regex> = OnceLock::new();
+    PRINTF_PLACEHOLDER_RE
+        .get_or_init(|| Regex::new(r"^(?:%\d+\$[bcdeEufFgGosxX]|%[bcdeEufFgGosxX])+$").unwrap())
+        .is_match(value)
+}
+
+fn is_control_escape_literal(value: &str) -> bool {
+    static CONTROL_ESCAPE_RE: OnceLock<Regex> = OnceLock::new();
+    CONTROL_ESCAPE_RE
+        .get_or_init(|| Regex::new(r"^(?:\\[rnt]|\\u\{[0-9A-Fa-f]+\}|&#1[03];)+$").unwrap())
+        .is_match(value)
+}
+
+fn is_markup_utility_literal(context: &str, value: &str) -> bool {
+    let lowered_context = context.to_ascii_lowercase();
+    let lowered_value = value.to_ascii_lowercase();
+    let is_markupish_context = contains_markup_tag(context)
+        || lowered_context.contains("class=")
+        || lowered_context.contains("classname=")
+        || lowered_context.contains("type=")
+        || lowered_context.contains("aria-")
+        || lowered_context.contains("data-")
+        || lowered_context.contains("\"text\":")
+        || lowered_context.contains("'text':")
+        || lowered_context.contains("\"type\":")
+        || lowered_context.contains("'type':");
+    if !is_markupish_context {
+        return false;
+    }
+
+    matches!(
+        lowered_value.as_str(),
+        "button"
+            | "text"
+            | "submit"
+            | "hidden"
+            | "checkbox"
+            | "radio"
+            | "password"
+            | "email"
+            | "search"
+            | "url"
+            | "tel"
+            | "number"
+            | "screen-reader-text"
+    )
+}
+
+fn contains_markup_tag(context: &str) -> bool {
+    static MARKUP_TAG_RE: OnceLock<Regex> = OnceLock::new();
+    MARKUP_TAG_RE
+        .get_or_init(|| Regex::new(r"</?[A-Za-z][^>]*>").unwrap())
+        .is_match(context)
 }
 
 #[cfg(test)]
@@ -314,6 +378,76 @@ const route2 = "/users";
         assert!(!result.findings.iter().any(|finding| {
             finding.category == HardwiringCategory::RepeatedLiteral
                 && (finding.value == "user.created" || finding.value == "/users")
+        }));
+    }
+
+    #[test]
+    fn ignores_printf_placeholders_control_escapes_and_markup_tokens() {
+        let result = analyze_rust_hardwiring(&[
+            (
+                PathBuf::from("wp/admin/a.php"),
+                String::from(
+                    r#"
+$label = "%1$s";
+$other = "%1$s";
+$newline = "\r\n";
+$other_newline = "\r\n";
+$button = "<button type=\"button\" class=\"button\">";
+$type = "<input type=\"text\" />";
+$screen = "<span class=\"screen-reader-text\">";
+"#,
+                ),
+            ),
+            (
+                PathBuf::from("wp/admin/b.php"),
+                String::from(
+                    r#"
+$label2 = "%1$s";
+$newline2 = "\r\n";
+$button2 = "<div data-component=\"button\"></div>";
+$type2 = "<div data-type=\"text\"></div>";
+$screen2 = "<label class=\"screen-reader-text\"></label>";
+"#,
+                ),
+            ),
+        ]);
+
+        assert!(!result.findings.iter().any(|finding| {
+            finding.category == HardwiringCategory::RepeatedLiteral
+                && matches!(
+                    finding.value.as_str(),
+                    "%1$s" | "\\r\\n" | "button" | "text" | "screen-reader-text"
+                )
+        }));
+    }
+
+    #[test]
+    fn keeps_plain_code_literals_when_less_than_is_only_a_comparison() {
+        let result = analyze_rust_hardwiring(&[
+            (
+                PathBuf::from("src/a.ts"),
+                String::from(
+                    r#"
+if (kind === "text" && count < limit) {
+    render("text");
+}
+"#,
+                ),
+            ),
+            (
+                PathBuf::from("src/b.ts"),
+                String::from(
+                    r#"
+if (kind === "text" && count < limit) {
+    render("text");
+}
+"#,
+                ),
+            ),
+        ]);
+
+        assert!(result.findings.iter().any(|finding| {
+            finding.category == HardwiringCategory::RepeatedLiteral && finding.value == "text"
         }));
     }
 }

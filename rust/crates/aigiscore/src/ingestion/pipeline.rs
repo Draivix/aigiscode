@@ -1,4 +1,4 @@
-use crate::assessment::{build_architectural_assessment, ArchitecturalAssessment};
+use crate::assessment::{build_architectural_assessment_with_ast_grep, ArchitecturalAssessment};
 use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
@@ -10,12 +10,13 @@ use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::resolve::{load_resolve_config, resolve_graph_with_config};
+use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
 use crate::security::{analyze_security_findings, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Instant;
 use thiserror::Error;
 
@@ -49,6 +50,8 @@ pub struct SemanticGraphProject {
     pub structure: StructureGraph,
     pub semantic_graph: SemanticGraph,
     pub timings: Vec<PhaseTiming>,
+    #[serde(skip)]
+    pub parsed_sources: Vec<(PathBuf, String)>,
 }
 
 #[derive(Debug, Serialize)]
@@ -66,6 +69,8 @@ pub struct ProjectAnalysis {
     pub security_analysis: SecurityAnalysisResult,
     #[serde(default, skip_serializing_if = "ExternalAnalysisResult::is_empty")]
     pub external_analysis: ExternalAnalysisResult,
+    #[serde(default, skip_serializing_if = "AstGrepScanResult::is_empty")]
+    pub ast_grep_scan: AstGrepScanResult,
     pub timings: Vec<PhaseTiming>,
     #[serde(skip)]
     pub parsed_sources: Vec<(PathBuf, String)>,
@@ -141,29 +146,71 @@ pub fn analyze_project(
         structure,
         semantic_graph,
         mut timings,
+        parsed_sources,
     } = graph_project;
-
-    let parsed_sources = load_supported_sources(&root, &scan)?;
 
     let analyze_started = Instant::now();
     trace("analyze start");
-    let graph_analysis = analyze_semantic_graph(&semantic_graph);
+    let graph_started = Instant::now();
+    let graph_analysis = analyze_semantic_graph(&semantic_graph, &scan.scope);
+    trace(&format!(
+        "analyze.graph_analysis elapsed_ms={}",
+        graph_started.elapsed().as_millis()
+    ));
+
+    let contract_started = Instant::now();
     let contract_inventory = build_contract_inventory(&parsed_sources);
+    trace(&format!(
+        "analyze.contract_inventory elapsed_ms={}",
+        contract_started.elapsed().as_millis()
+    ));
     let contract_lookup = contract_inventory.lookup();
+
+    let dead_code_started = Instant::now();
     let dead_code = analyze_dead_code(&semantic_graph);
+    trace(&format!(
+        "analyze.dead_code elapsed_ms={}",
+        dead_code_started.elapsed().as_millis()
+    ));
+
+    let hardwiring_started = Instant::now();
     let hardwiring = analyze_hardwiring_with_contracts(&parsed_sources, &contract_lookup);
+    trace(&format!(
+        "analyze.hardwiring elapsed_ms={}",
+        hardwiring_started.elapsed().as_millis()
+    ));
+
+    let security_started = Instant::now();
     let security_analysis = analyze_security_findings(
         &parsed_sources,
         &contract_inventory,
         &graph_analysis.runtime_entry_candidates,
     );
-    let architectural_assessment = build_architectural_assessment(
+    trace(&format!(
+        "analyze.security elapsed_ms={}",
+        security_started.elapsed().as_millis()
+    ));
+
+    let ast_grep_started = Instant::now();
+    let ast_grep_scan = run_ast_grep_scan(&parsed_sources);
+    trace(&format!(
+        "analyze.ast_grep elapsed_ms={}",
+        ast_grep_started.elapsed().as_millis()
+    ));
+
+    let assessment_started = Instant::now();
+    let architectural_assessment = build_architectural_assessment_with_ast_grep(
         &graph_analysis,
         &dead_code,
         &hardwiring,
         &ExternalAnalysisResult::default(),
         &parsed_sources,
+        &ast_grep_scan,
     );
+    trace(&format!(
+        "analyze.architectural_assessment elapsed_ms={}",
+        assessment_started.elapsed().as_millis()
+    ));
     let analyze_elapsed = analyze_started.elapsed().as_millis();
     trace(&format!(
         "analyze complete cycles={} contracts={} dead_code={} hardwiring={} elapsed_ms={analyze_elapsed}",
@@ -194,6 +241,7 @@ pub fn analyze_project(
         hardwiring,
         security_analysis,
         external_analysis: ExternalAnalysisResult::default(),
+        ast_grep_scan,
         timings,
         parsed_sources,
     })
@@ -232,6 +280,7 @@ pub fn build_semantic_graph_project(
 
     let parse_started = Instant::now();
     let mut semantic_graph = SemanticGraph::default();
+    let mut parsed_sources = Vec::new();
     for file in &scan.files {
         if !is_supported_source_file(&file.relative_path) {
             continue;
@@ -251,6 +300,7 @@ pub fn build_semantic_graph_project(
             }
         })?;
         merge_semantic_graph(&mut semantic_graph, parsed);
+        parsed_sources.push((file.relative_path.clone(), source));
         trace(&format!("parse done {}", file.relative_path.display()));
     }
     let parse_elapsed = parse_started.elapsed().as_millis();
@@ -281,6 +331,7 @@ pub fn build_semantic_graph_project(
         scan,
         structure,
         semantic_graph,
+        parsed_sources,
         timings: vec![
             PhaseTiming {
                 phase: IngestionPhase::Scan,
@@ -307,27 +358,6 @@ fn merge_semantic_graph(target: &mut SemanticGraph, mut parsed: SemanticGraph) {
     target.symbols.append(&mut parsed.symbols);
     target.references.append(&mut parsed.references);
     target.resolved_edges.append(&mut parsed.resolved_edges);
-}
-
-fn load_supported_sources(
-    root: &Path,
-    scan: &ScanResult,
-) -> Result<Vec<(PathBuf, String)>, ProjectAnalysisError> {
-    let mut parsed_sources = Vec::new();
-    for file in &scan.files {
-        if !is_supported_source_file(&file.relative_path) {
-            continue;
-        }
-        let absolute_path = root.join(&file.relative_path);
-        let source = fs::read_to_string(&absolute_path).map_err(|source| {
-            ProjectAnalysisError::ReadFile {
-                path: absolute_path,
-                source,
-            }
-        })?;
-        parsed_sources.push((file.relative_path.clone(), source));
-    }
-    Ok(parsed_sources)
 }
 
 fn trace(message: &str) {

@@ -140,6 +140,7 @@ fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut Semant
                     );
                     let symbol_id = symbol.id.clone();
                     graph.add_symbol(symbol);
+                    record_decorators(current, context, graph, Some(symbol_id.as_str()));
                     record_parameter_types(current, context, graph, Some(symbol_id.as_str()));
                     push_children(
                         &mut stack,
@@ -446,6 +447,127 @@ fn record_call(
             });
         }
         _ => {}
+    }
+}
+
+fn record_decorators(
+    node: Node<'_>,
+    context: &PythonContext<'_>,
+    graph: &mut SemanticGraph,
+    enclosing_symbol_id: Option<&str>,
+) {
+    let Some(decorated_definition) = node
+        .parent()
+        .filter(|parent| parent.kind() == "decorated_definition")
+    else {
+        return;
+    };
+    for idx in 0..decorated_definition.named_child_count() {
+        let Some(child) = decorated_definition.named_child(idx as u32) else {
+            continue;
+        };
+        if child.kind() != "decorator" {
+            continue;
+        }
+        let Some(target_node) = child.named_child(0) else {
+            continue;
+        };
+        match target_node.kind() {
+            "identifier" => {
+                graph.add_reference(SemanticReference {
+                    file_path: context.file_path.clone(),
+                    enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                    kind: ReferenceKind::Call,
+                    target_name: context.text(target_node),
+                    binding_name: None,
+                    line: context.line(child),
+                    arity: Some(0),
+                    receiver_name: None,
+                    receiver_type_name: None,
+                    call_form: Some(CallForm::Free),
+                });
+            }
+            "attribute" => {
+                let receiver_node = target_node.child_by_field_name("object");
+                let receiver_name = receiver_node.map(|n| context.text(n));
+                let receiver_type_name = receiver_node.and_then(|receiver_node| {
+                    infer_member_receiver_type(
+                        receiver_node,
+                        call_node_owner(target_node),
+                        context,
+                        None,
+                    )
+                });
+                let target_name = target_node
+                    .children(&mut target_node.walk())
+                    .last()
+                    .map(|n| context.text(n))
+                    .unwrap_or_else(|| context.text(target_node));
+                graph.add_reference(SemanticReference {
+                    file_path: context.file_path.clone(),
+                    enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                    kind: ReferenceKind::Call,
+                    target_name,
+                    binding_name: None,
+                    line: context.line(child),
+                    arity: Some(0),
+                    receiver_name,
+                    receiver_type_name,
+                    call_form: Some(CallForm::Member),
+                });
+            }
+            "call" => {
+                if let Some(function_node) = target_node.child_by_field_name("function") {
+                    match function_node.kind() {
+                        "identifier" => {
+                            graph.add_reference(SemanticReference {
+                                file_path: context.file_path.clone(),
+                                enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                                kind: ReferenceKind::Call,
+                                target_name: context.text(function_node),
+                                binding_name: None,
+                                line: context.line(child),
+                                arity: Some(argument_count(target_node)),
+                                receiver_name: None,
+                                receiver_type_name: None,
+                                call_form: Some(CallForm::Free),
+                            });
+                        }
+                        "attribute" => {
+                            let receiver_node = function_node.child_by_field_name("object");
+                            let receiver_name = receiver_node.map(|n| context.text(n));
+                            let receiver_type_name = receiver_node.and_then(|receiver_node| {
+                                infer_member_receiver_type(
+                                    receiver_node,
+                                    call_node_owner(target_node),
+                                    context,
+                                    None,
+                                )
+                            });
+                            let target_name = function_node
+                                .children(&mut function_node.walk())
+                                .last()
+                                .map(|n| context.text(n))
+                                .unwrap_or_else(|| context.text(function_node));
+                            graph.add_reference(SemanticReference {
+                                file_path: context.file_path.clone(),
+                                enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                                kind: ReferenceKind::Call,
+                                target_name,
+                                binding_name: None,
+                                line: context.line(child),
+                                arity: Some(argument_count(target_node)),
+                                receiver_name,
+                                receiver_type_name,
+                                call_form: Some(CallForm::Member),
+                            });
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 }
 

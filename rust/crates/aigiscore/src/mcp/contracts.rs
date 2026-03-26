@@ -8,7 +8,7 @@ use crate::artifacts::{
 use crate::contracts::{
     ContractCategorySummary, ContractInventory, ContractSemanticModelPackUsage,
 };
-use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
+use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
 use crate::doctrine::{
     load_doctrine_registry, DoctrineCategory, DoctrineDisposition, DoctrineLoadError,
@@ -313,6 +313,7 @@ pub struct ArtifactFileOutput {
     pub doctrine_registry: String,
     pub kuzu_graph: Option<String>,
     pub deterministic_findings: String,
+    pub ast_grep_scan: String,
     pub external_analysis: String,
     pub architecture_surface: String,
     pub review_surface: String,
@@ -320,6 +321,8 @@ pub struct ArtifactFileOutput {
     pub guard_decision: String,
     pub agent_handoff: String,
     pub agentic_review: String,
+    pub graph_packets: String,
+    pub repository_topology: String,
     pub aigiscode_report: String,
     pub aigiscode_report_markdown: String,
 }
@@ -336,6 +339,7 @@ impl ArtifactFileOutput {
             doctrine_registry: display_path(&paths.doctrine_registry),
             kuzu_graph: kuzu_path.map(display_path),
             deterministic_findings: display_path(&paths.deterministic_findings),
+            ast_grep_scan: display_path(&paths.ast_grep_scan),
             external_analysis: display_path(&paths.external_analysis),
             architecture_surface: display_path(&paths.architecture_surface),
             review_surface: display_path(&paths.review_surface),
@@ -343,6 +347,8 @@ impl ArtifactFileOutput {
             guard_decision: display_path(&paths.guard_decision),
             agent_handoff: display_path(&paths.agent_handoff),
             agentic_review: display_path(&paths.agentic_review),
+            graph_packets: display_path(&paths.graph_packets),
+            repository_topology: display_path(&paths.repository_topology),
             aigiscode_report: display_path(&paths.aigiscode_report),
             aigiscode_report_markdown: display_path(&paths.aigiscode_report_markdown),
         }
@@ -393,21 +399,6 @@ impl GuardDecisionOutput {
                 .map(ConvergenceAttentionItemOutput::from_item)
                 .collect(),
             pressure: GuardDecisionPressureOutput::from_pressure(&artifact.pressure),
-        }
-    }
-
-    pub fn empty() -> Self {
-        Self {
-            verdict: String::from("allow"),
-            confidence_millis: 0,
-            summary: String::from("No guard decision artifact is available."),
-            reasons: Vec::new(),
-            triggers: Vec::new(),
-            doctrine_refs: Vec::new(),
-            obligations: Vec::new(),
-            required_radius: ConvergenceRequiredRadiusOutput::default(),
-            attention_items: Vec::new(),
-            pressure: GuardDecisionPressureOutput::default(),
         }
     }
 }
@@ -519,47 +510,6 @@ impl ConvergenceOutput {
                 .iter()
                 .map(ConvergenceFindingOutput::from_delta)
                 .collect(),
-        }
-    }
-
-    pub fn empty(root: &str) -> Self {
-        Self {
-            root: String::from(root),
-            summary: ConvergenceSummaryOutput {
-                current_findings: 0,
-                previous_findings: 0,
-                new_findings: 0,
-                worsened_findings: 0,
-                improved_findings: 0,
-                unchanged_findings: 0,
-                resolved_findings: 0,
-            },
-            graph_delta: ConvergenceGraphDeltaOutput {
-                strong_cycle_delta: 0,
-                total_cycle_delta: 0,
-                bottleneck_delta: 0,
-                architectural_smell_delta: 0,
-                warning_heavy_hotspot_delta: 0,
-                split_identity_model_delta: 0,
-                compatibility_scar_delta: 0,
-                duplicate_mechanism_delta: 0,
-                sanctioned_path_bypass_delta: 0,
-                hand_rolled_parsing_delta: 0,
-                abstraction_sprawl_delta: 0,
-                visible_finding_delta: 0,
-            },
-            contract_delta: ConvergenceContractDeltaOutput {
-                routes: ContractValueDeltaOutput::default(),
-                hooks: ContractValueDeltaOutput::default(),
-                registered_keys: ContractValueDeltaOutput::default(),
-                symbolic_literals: ContractValueDeltaOutput::default(),
-                env_keys: ContractValueDeltaOutput::default(),
-                config_keys: ContractValueDeltaOutput::default(),
-            },
-            required_investigation_files: Vec::new(),
-            required_radius: ConvergenceRequiredRadiusOutput::default(),
-            attention_items: Vec::new(),
-            findings: Vec::new(),
         }
     }
 }
@@ -795,7 +745,10 @@ pub struct OverviewOutput {
     pub total_cycle_count: usize,
     pub bottleneck_count: usize,
     pub orphan_count: usize,
+    pub boundary_truncated_count: usize,
     pub runtime_entry_count: usize,
+    pub boundary_truth: String,
+    pub boundary_reasons: Vec<String>,
     pub dead_code_count: usize,
     pub hardwiring_count: usize,
     pub security_finding_count: usize,
@@ -812,6 +765,11 @@ pub struct OverviewOutput {
     pub sanctioned_path_bypass_count: usize,
     pub hand_rolled_parsing_count: usize,
     pub abstraction_sprawl_count: usize,
+    pub algorithmic_complexity_hotspot_count: usize,
+    pub ast_grep_finding_count: usize,
+    pub ast_grep_algorithmic_complexity_count: usize,
+    pub ast_grep_security_dangerous_api_count: usize,
+    pub ast_grep_framework_misuse_count: usize,
     pub route_contract_count: usize,
     pub hook_contract_count: usize,
     pub registered_key_count: usize,
@@ -833,7 +791,10 @@ impl OverviewOutput {
             total_cycle_count: surface.overview.total_cycle_count,
             bottleneck_count: surface.overview.bottleneck_count,
             orphan_count: surface.overview.orphan_count,
+            boundary_truncated_count: surface.overview.boundary_truncated_count,
             runtime_entry_count: surface.overview.runtime_entry_count,
+            boundary_truth: surface.overview.boundary_truth.clone(),
+            boundary_reasons: surface.overview.boundary_reasons.clone(),
             dead_code_count: surface.overview.dead_code_count,
             hardwiring_count: surface.overview.hardwiring_count,
             security_finding_count: surface.overview.security_finding_count,
@@ -850,6 +811,17 @@ impl OverviewOutput {
             sanctioned_path_bypass_count: surface.overview.sanctioned_path_bypass_count,
             hand_rolled_parsing_count: surface.overview.hand_rolled_parsing_count,
             abstraction_sprawl_count: surface.overview.abstraction_sprawl_count,
+            algorithmic_complexity_hotspot_count: surface
+                .overview
+                .algorithmic_complexity_hotspot_count,
+            ast_grep_finding_count: surface.overview.ast_grep_finding_count,
+            ast_grep_algorithmic_complexity_count: surface
+                .overview
+                .ast_grep_algorithmic_complexity_count,
+            ast_grep_security_dangerous_api_count: surface
+                .overview
+                .ast_grep_security_dangerous_api_count,
+            ast_grep_framework_misuse_count: surface.overview.ast_grep_framework_misuse_count,
             route_contract_count: surface.overview.route_contract_count,
             hook_contract_count: surface.overview.hook_contract_count,
             registered_key_count: surface.overview.registered_key_count,
@@ -1129,6 +1101,7 @@ pub struct HotspotsOutput {
     pub hotspots: Vec<HotspotOutput>,
     pub bottlenecks: Vec<BottleneckOutput>,
     pub orphan_files: Vec<String>,
+    pub boundary_truncated_files: Vec<String>,
     pub runtime_entry_candidates: Vec<String>,
 }
 
@@ -1141,7 +1114,9 @@ pub struct HotspotOutput {
     pub finding_count: usize,
     pub bottleneck_centrality_millis: u32,
     pub is_orphan: bool,
+    pub is_boundary_truncated: bool,
     pub is_runtime_entry: bool,
+    pub boundary_truth: String,
 }
 
 impl HotspotOutput {
@@ -1154,7 +1129,9 @@ impl HotspotOutput {
             finding_count: hotspot.finding_count,
             bottleneck_centrality_millis: hotspot.bottleneck_centrality_millis,
             is_orphan: hotspot.is_orphan,
+            is_boundary_truncated: hotspot.is_boundary_truncated,
             is_runtime_entry: hotspot.is_runtime_entry,
+            boundary_truth: hotspot.boundary_truth,
         }
     }
 }
@@ -1471,7 +1448,9 @@ impl AtlasOutput {
                     finding_count: node.finding_count,
                     bottleneck_centrality_millis: node.bottleneck_centrality_millis,
                     is_orphan: node.is_orphan,
+                    is_boundary_truncated: node.is_boundary_truncated,
                     is_runtime_entry: node.is_runtime_entry,
+                    boundary_truth: node.boundary_truth.clone(),
                 })
                 .collect(),
             edges: surface
@@ -1500,7 +1479,9 @@ pub struct AtlasNodeOutput {
     pub finding_count: usize,
     pub bottleneck_centrality_millis: u32,
     pub is_orphan: bool,
+    pub is_boundary_truncated: bool,
     pub is_runtime_entry: bool,
+    pub boundary_truth: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -1642,7 +1623,7 @@ pub fn build_finding_details(
         }
     }
 
-    for path in &analysis.graph_analysis.orphan_files {
+    for path in &crate::surface::effective_orphan_files(analysis) {
         let id = format!("graph:orphan:{}", path.display());
         if let Some(summary) = summaries.get(&id) {
             let path_display = display_path(path);
@@ -1654,6 +1635,32 @@ pub fn build_finding_details(
                         "This file has outbound dependencies but no inbound structural references from the current deterministic graph.",
                     ),
                     evidence_kind: String::from("orphan_file"),
+                    related_files: vec![path_display.clone()],
+                    cycle_files: Vec::new(),
+                    hotspot: hotspot_map.get(&path_display).cloned(),
+                    symbol_id: None,
+                    literal_value: None,
+                    context: None,
+                    resource_uri: format!("{finding_uri_prefix}{id}"),
+                    policy_status: summary.policy_status.clone(),
+                    is_visible: summary.is_visible,
+                },
+            );
+        }
+    }
+
+    for path in &crate::surface::effective_boundary_truncated_files(analysis) {
+        let id = format!("graph:boundary-truncated:{}", path.display());
+        if let Some(summary) = summaries.get(&id) {
+            let path_display = display_path(path);
+            details.insert(
+                id.clone(),
+                FindingDetailOutput {
+                    finding: summary.clone(),
+                    explanation: String::from(
+                        "This file has outbound dependencies but no inbound structural references inside the current scoped analysis. Because the analysis boundary is truncated, this is not treated as a confirmed orphan.",
+                    ),
+                    evidence_kind: String::from("boundary_truncated_file"),
                     related_files: vec![path_display.clone()],
                     cycle_files: Vec::new(),
                     hotspot: hotspot_map.get(&path_display).cloned(),
@@ -1869,7 +1876,7 @@ pub fn build_finding_details(
 }
 
 fn dead_code_explanation(finding: &DeadCodeFinding) -> String {
-    match finding.category {
+    let explanation = match finding.category {
         DeadCodeCategory::UnusedPrivateFunction => format!(
             "Private function `{}` has no incoming resolved call edges in the semantic graph.",
             finding.name
@@ -1878,13 +1885,25 @@ fn dead_code_explanation(finding: &DeadCodeFinding) -> String {
             "Import `{}` resolves structurally but is not referenced by any non-import edge.",
             finding.name
         ),
-    }
+    };
+    format!(
+        "{explanation} Proof tier: {}.",
+        dead_code_proof_tier_label(finding.proof_tier)
+    )
 }
 
 fn dead_code_kind(category: DeadCodeCategory) -> String {
     match category {
         DeadCodeCategory::UnusedPrivateFunction => String::from("unused_private_function"),
         DeadCodeCategory::UnusedImport => String::from("unused_import"),
+    }
+}
+
+fn dead_code_proof_tier_label(tier: DeadCodeProofTier) -> &'static str {
+    match tier {
+        DeadCodeProofTier::Certain => "certain",
+        DeadCodeProofTier::Strong => "strong",
+        DeadCodeProofTier::Heuristic => "heuristic",
     }
 }
 

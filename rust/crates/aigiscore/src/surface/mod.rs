@@ -1,6 +1,6 @@
 use crate::assessment::{ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind};
 use crate::contracts::ContractInventory;
-use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
+use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
 use crate::evidence::EvidenceAnchor;
 use crate::external::{ExternalFinding, ExternalSeverity};
@@ -14,6 +14,87 @@ use crate::security::{SecurityCategory, SecurityFinding, SecuritySeverity};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
+
+struct IndexedParsedSource<'a> {
+    content: &'a str,
+    lowered_lines: Vec<String>,
+    first_non_empty_line: Option<usize>,
+}
+
+struct SurfaceBuildContext<'a> {
+    parsed_source_lookup: HashMap<&'a Path, IndexedParsedSource<'a>>,
+    component_path_lookup: HashMap<String, PathBuf>,
+}
+
+impl<'a> SurfaceBuildContext<'a> {
+    fn new(analysis: &'a ProjectAnalysis) -> Self {
+        let parsed_source_lookup = analysis
+            .parsed_sources
+            .iter()
+            .map(|(path, content)| {
+                let lowered_lines = content
+                    .lines()
+                    .map(|line| line.to_ascii_lowercase())
+                    .collect::<Vec<_>>();
+                let first_non_empty_line = content
+                    .lines()
+                    .enumerate()
+                    .find(|(_, line)| !line.trim().is_empty())
+                    .map(|(index, _)| index + 1);
+                (
+                    path.as_path(),
+                    IndexedParsedSource {
+                        content: content.as_str(),
+                        lowered_lines,
+                        first_non_empty_line,
+                    },
+                )
+            })
+            .collect();
+        let mut component_path_lookup = HashMap::new();
+        for file in &analysis.semantic_graph.files {
+            let path_string = file.path.to_string_lossy().to_string();
+            component_path_lookup.insert(path_string, file.path.clone());
+            if let Some(name) = file.path.file_name().and_then(|name| name.to_str()) {
+                component_path_lookup
+                    .entry(name.to_string())
+                    .or_insert_with(|| file.path.clone());
+            }
+        }
+        Self {
+            parsed_source_lookup,
+            component_path_lookup,
+        }
+    }
+}
+
+fn resolve_component_path(component: &str, context: &SurfaceBuildContext<'_>) -> Option<PathBuf> {
+    if let Some(path) = context.component_path_lookup.get(component) {
+        return Some(path.clone());
+    }
+
+    let component = component.trim_matches('/');
+    context
+        .parsed_source_lookup
+        .keys()
+        .filter(|path| {
+            if component == "." {
+                return true;
+            }
+            path.iter()
+                .next()
+                .map(|segment| segment.to_string_lossy() == component)
+                .unwrap_or(false)
+        })
+        .map(|path| (*path).to_path_buf())
+        .min_by(|left, right| {
+            left.components()
+                .count()
+                .cmp(&right.components().count())
+                .then(left.cmp(right))
+        })
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArchitectureSurface {
@@ -40,7 +121,13 @@ pub struct SurfaceOverview {
     pub total_cycle_count: usize,
     pub bottleneck_count: usize,
     pub orphan_count: usize,
+    #[serde(default)]
+    pub boundary_truncated_count: usize,
     pub runtime_entry_count: usize,
+    #[serde(default)]
+    pub boundary_truth: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub boundary_reasons: Vec<String>,
     pub dead_code_count: usize,
     pub hardwiring_count: usize,
     pub security_finding_count: usize,
@@ -59,6 +146,16 @@ pub struct SurfaceOverview {
     pub hand_rolled_parsing_count: usize,
     #[serde(default)]
     pub abstraction_sprawl_count: usize,
+    #[serde(default)]
+    pub algorithmic_complexity_hotspot_count: usize,
+    #[serde(default)]
+    pub ast_grep_finding_count: usize,
+    #[serde(default)]
+    pub ast_grep_algorithmic_complexity_count: usize,
+    #[serde(default)]
+    pub ast_grep_security_dangerous_api_count: usize,
+    #[serde(default)]
+    pub ast_grep_framework_misuse_count: usize,
     pub route_contract_count: usize,
     pub hook_contract_count: usize,
     pub registered_key_count: usize,
@@ -82,7 +179,11 @@ pub struct HotspotFile {
     pub finding_count: usize,
     pub bottleneck_centrality_millis: u32,
     pub is_orphan: bool,
+    #[serde(default)]
+    pub is_boundary_truncated: bool,
     pub is_runtime_entry: bool,
+    #[serde(default)]
+    pub boundary_truth: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -147,7 +248,11 @@ pub struct AtlasNode {
     pub finding_count: usize,
     pub bottleneck_centrality_millis: u32,
     pub is_orphan: bool,
+    #[serde(default)]
+    pub is_boundary_truncated: bool,
     pub is_runtime_entry: bool,
+    #[serde(default)]
+    pub boundary_truth: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -160,19 +265,70 @@ pub struct AtlasEdge {
     pub average_confidence_millis: u16,
 }
 
-pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSurface {
-    let orphan_set = analysis
-        .graph_analysis
-        .orphan_files
-        .iter()
-        .cloned()
-        .collect::<HashSet<_>>();
-    let runtime_entry_set = analysis
+pub fn effective_runtime_entry_files(analysis: &ProjectAnalysis) -> HashSet<PathBuf> {
+    let mut runtime_entry_set = analysis
         .graph_analysis
         .runtime_entry_candidates
         .iter()
         .cloned()
         .collect::<HashSet<_>>();
+    for route in &analysis.contract_inventory.routes {
+        for location in &route.locations {
+            runtime_entry_set.insert(location.file_path.clone());
+        }
+    }
+    runtime_entry_set
+}
+
+pub fn effective_orphan_files(analysis: &ProjectAnalysis) -> Vec<PathBuf> {
+    let runtime_entry_set = effective_runtime_entry_files(analysis);
+    analysis
+        .graph_analysis
+        .orphan_files
+        .iter()
+        .filter(|path| !runtime_entry_set.contains(*path))
+        .cloned()
+        .collect()
+}
+
+pub fn effective_boundary_truncated_files(analysis: &ProjectAnalysis) -> Vec<PathBuf> {
+    let runtime_entry_set = effective_runtime_entry_files(analysis);
+    analysis
+        .graph_analysis
+        .boundary_truncated_files
+        .iter()
+        .filter(|path| !runtime_entry_set.contains(*path))
+        .cloned()
+        .collect()
+}
+
+pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSurface {
+    let surface_started_at = Instant::now();
+    trace_surface_step(
+        "enter",
+        surface_started_at.elapsed().as_millis(),
+        Some(format!(
+            "parsed_sources={} files={} resolved_edges={}",
+            analysis.parsed_sources.len(),
+            analysis.semantic_graph.files.len(),
+            analysis.semantic_graph.resolved_edges.len()
+        )),
+    );
+    let context_started_at = Instant::now();
+    let context = SurfaceBuildContext::new(analysis);
+    trace_surface_step(
+        "context.build",
+        context_started_at.elapsed().as_millis(),
+        None,
+    );
+    let orphan_files = effective_orphan_files(analysis);
+    let orphan_set = orphan_files.iter().cloned().collect::<HashSet<_>>();
+    let boundary_truncated_files = effective_boundary_truncated_files(analysis);
+    let boundary_truncated_set = boundary_truncated_files
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+    let runtime_entry_set = effective_runtime_entry_files(analysis);
     let bottlenecks = analysis
         .graph_analysis
         .bottleneck_files
@@ -180,9 +336,22 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
         .map(|file| (file.file_path.clone(), file.centrality_millis))
         .collect::<HashMap<_, _>>();
     let file_languages = collect_file_languages(analysis);
+    let inbound_started_at = Instant::now();
     let inbound_outbound = collect_inbound_outbound_edges(analysis);
+    trace_surface_step(
+        "collect_inbound_outbound_edges",
+        inbound_started_at.elapsed().as_millis(),
+        Some(format!("files={}", inbound_outbound.len())),
+    );
+    let counts_started_at = Instant::now();
     let finding_counts = collect_finding_counts(analysis);
+    trace_surface_step(
+        "collect_finding_counts",
+        counts_started_at.elapsed().as_millis(),
+        Some(format!("files={}", finding_counts.len())),
+    );
 
+    let hotspots_started_at = Instant::now();
     let mut hotspots = analysis
         .semantic_graph
         .files
@@ -198,7 +367,9 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
                 finding_count: finding_counts.get(&file.path).copied().unwrap_or(0),
                 bottleneck_centrality_millis: bottlenecks.get(&file.path).copied().unwrap_or(0),
                 is_orphan: orphan_set.contains(&file.path),
+                is_boundary_truncated: boundary_truncated_set.contains(&file.path),
                 is_runtime_entry: runtime_entry_set.contains(&file.path),
+                boundary_truth: boundary_truth_label(analysis).to_string(),
             }
         })
         .collect::<Vec<_>>();
@@ -218,7 +389,13 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             .then(left.file_path.cmp(&right.file_path))
     });
     hotspots.truncate(20);
+    trace_surface_step(
+        "hotspots.build",
+        hotspots_started_at.elapsed().as_millis(),
+        Some(format!("count={}", hotspots.len())),
+    );
 
+    let atlas_nodes_started_at = Instant::now();
     let atlas_nodes = analysis
         .semantic_graph
         .files
@@ -234,11 +411,32 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
                 finding_count: finding_counts.get(&file.path).copied().unwrap_or(0),
                 bottleneck_centrality_millis: bottlenecks.get(&file.path).copied().unwrap_or(0),
                 is_orphan: orphan_set.contains(&file.path),
+                is_boundary_truncated: boundary_truncated_set.contains(&file.path),
                 is_runtime_entry: runtime_entry_set.contains(&file.path),
+                boundary_truth: boundary_truth_label(analysis).to_string(),
             }
         })
         .collect::<Vec<_>>();
+    trace_surface_step(
+        "atlas.nodes",
+        atlas_nodes_started_at.elapsed().as_millis(),
+        Some(format!("count={}", atlas_nodes.len())),
+    );
+    let atlas_edges_started_at = Instant::now();
     let atlas_edges = build_atlas_edges(analysis);
+    trace_surface_step(
+        "atlas.edges",
+        atlas_edges_started_at.elapsed().as_millis(),
+        Some(format!("count={}", atlas_edges.len())),
+    );
+    let highlights_started_at = Instant::now();
+    let highlights = build_highlights(analysis, &context);
+    trace_surface_step(
+        "highlights.build",
+        highlights_started_at.elapsed().as_millis(),
+        Some(format!("count={}", highlights.len())),
+    );
+    let ast_grep_family_counts = analysis.ast_grep_scan.family_counts();
 
     ArchitectureSurface {
         root: analysis.root.clone(),
@@ -252,8 +450,11 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             strong_cycle_count: analysis.graph_analysis.strong_circular_dependencies.len(),
             total_cycle_count: analysis.graph_analysis.circular_dependencies.len(),
             bottleneck_count: analysis.graph_analysis.bottleneck_files.len(),
-            orphan_count: analysis.graph_analysis.orphan_files.len(),
-            runtime_entry_count: analysis.graph_analysis.runtime_entry_candidates.len(),
+            orphan_count: orphan_files.len(),
+            boundary_truncated_count: boundary_truncated_files.len(),
+            runtime_entry_count: runtime_entry_set.len(),
+            boundary_truth: boundary_truth_label(analysis).to_string(),
+            boundary_reasons: boundary_reason_labels(analysis),
             dead_code_count: analysis.dead_code.findings.len(),
             hardwiring_count: analysis.hardwiring.findings.len(),
             security_finding_count: analysis.security_analysis.findings.len(),
@@ -294,6 +495,13 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             abstraction_sprawl_count: analysis
                 .architectural_assessment
                 .count_by_kind(ArchitecturalAssessmentKind::AbstractionSprawl),
+            algorithmic_complexity_hotspot_count: analysis
+                .architectural_assessment
+                .count_by_kind(ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot),
+            ast_grep_finding_count: analysis.ast_grep_scan.findings.len(),
+            ast_grep_algorithmic_complexity_count: ast_grep_family_counts.algorithmic_complexity,
+            ast_grep_security_dangerous_api_count: ast_grep_family_counts.security_dangerous_api,
+            ast_grep_framework_misuse_count: ast_grep_family_counts.framework_misuse,
             route_contract_count: analysis.contract_inventory.summary.routes.unique_values,
             hook_contract_count: analysis.contract_inventory.summary.hooks.unique_values,
             registered_key_count: analysis
@@ -327,12 +535,22 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             .enumerate()
             .map(|(index, cycle)| surface_cycle_finding(index, cycle))
             .collect(),
-        highlights: build_highlights(analysis),
+        highlights,
         atlas: RepositoryAtlas {
             nodes: atlas_nodes,
             edges: atlas_edges,
         },
         timings: analysis.timings.clone(),
+    }
+}
+
+fn trace_surface_step(step: &str, elapsed_ms: u128, extra: Option<String>) {
+    if std::env::var_os("AIGISCORE_TRACE").is_none() {
+        return;
+    }
+    match extra {
+        Some(extra) => eprintln!("[aigiscore] surface {step} elapsed_ms={elapsed_ms} {extra}"),
+        None => eprintln!("[aigiscore] surface {step} elapsed_ms={elapsed_ms}"),
     }
 }
 
@@ -409,7 +627,7 @@ fn collect_finding_counts(analysis: &ProjectAnalysis) -> HashMap<PathBuf, usize>
             *counts.entry(file_path.clone()).or_default() += 1;
         }
     }
-    for path in &analysis.graph_analysis.orphan_files {
+    for path in effective_orphan_files(analysis) {
         *counts.entry(path.clone()).or_default() += 1;
     }
     for file in &analysis.graph_analysis.bottleneck_files {
@@ -447,8 +665,12 @@ fn unresolved_reference_sites(analysis: &ProjectAnalysis) -> usize {
         .count()
 }
 
-fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
+fn build_highlights(
+    analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
+) -> Vec<SurfaceFinding> {
     let mut highlights = Vec::new();
+    let orphan_files = effective_orphan_files(analysis);
 
     for (index, cycle) in analysis
         .graph_analysis
@@ -516,7 +738,7 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
         });
     }
 
-    for path in &analysis.graph_analysis.orphan_files {
+    for path in &orphan_files {
         highlights.push(SurfaceFinding {
             id: format!("graph:orphan:{}", path.display()),
             fingerprint: stable_fingerprint(&["graph", "orphan", &normalized_path(path)]),
@@ -542,17 +764,51 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
         });
     }
 
+    for path in &effective_boundary_truncated_files(analysis) {
+        highlights.push(SurfaceFinding {
+            id: format!("graph:boundary-truncated:{}", path.display()),
+            fingerprint: stable_fingerprint(&[
+                "graph",
+                "boundary-truncated",
+                &normalized_path(path),
+            ]),
+            family: SurfaceFindingFamily::Graph,
+            severity: SurfaceFindingSeverity::Low,
+            precision: String::from("exact"),
+            confidence_millis: 900,
+            title: String::from("Boundary-truncated file"),
+            summary: format!(
+                "{} has outbound dependencies but no inbound edges inside the current scoped analysis",
+                path.display()
+            ),
+            file_paths: vec![path.clone()],
+            line: None,
+            primary_anchor: Some(EvidenceAnchor {
+                file_path: path.clone(),
+                line: None,
+                label: String::from("primary"),
+            }),
+            evidence_anchors: Vec::new(),
+            provenance: vec![String::from("graph_analysis"), String::from("analysis_scope")],
+            doctrine_refs: vec![String::from("guardian.boundary-stability")],
+        });
+    }
+
     for bottleneck in analysis.graph_analysis.bottleneck_files.iter().take(10) {
-        highlights.push(surface_finding_from_bottleneck(bottleneck, analysis));
+        highlights.push(surface_finding_from_bottleneck(
+            bottleneck, analysis, context,
+        ));
     }
 
     for smell in &analysis.graph_analysis.architectural_smells {
-        highlights.push(surface_finding_from_architectural_smell(smell, analysis));
+        highlights.push(surface_finding_from_architectural_smell(
+            smell, analysis, context,
+        ));
     }
 
     for finding in &analysis.architectural_assessment.findings {
         highlights.push(surface_finding_from_architectural_assessment(
-            finding, analysis,
+            finding, analysis, context,
         ));
     }
 
@@ -581,12 +837,38 @@ fn build_highlights(analysis: &ProjectAnalysis) -> Vec<SurfaceFinding> {
     highlights
 }
 
+fn boundary_truth_label(analysis: &ProjectAnalysis) -> &'static str {
+    match analysis.scan.scope.boundary_truth {
+        crate::ingestion::scan::AnalysisBoundaryTruth::CompleteRepository => "complete_repository",
+        crate::ingestion::scan::AnalysisBoundaryTruth::TruncatedSlice => "truncated_slice",
+    }
+}
+
+fn boundary_reason_labels(analysis: &ProjectAnalysis) -> Vec<String> {
+    analysis
+        .scan
+        .scope
+        .reasons
+        .iter()
+        .map(|reason| match reason {
+            crate::ingestion::scan::AnalysisBoundaryReason::CroppedRoot => "cropped_root",
+            crate::ingestion::scan::AnalysisBoundaryReason::IncludePathPrefixes => {
+                "include_path_prefixes"
+            }
+        })
+        .map(String::from)
+        .collect()
+}
+
 fn surface_finding_from_architectural_assessment(
     finding: &ArchitecturalAssessmentFinding,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
 ) -> SurfaceFinding {
-    let primary_anchor = best_effort_anchor_for_architectural_assessment(finding, analysis);
-    let evidence_anchors = supporting_anchors_for_architectural_assessment(finding, analysis);
+    let primary_anchor =
+        best_effort_anchor_for_architectural_assessment(finding, analysis, context);
+    let evidence_anchors =
+        supporting_anchors_for_architectural_assessment(finding, analysis, context);
     let primary_line = primary_anchor.as_ref().and_then(|anchor| anchor.line);
     match finding.kind {
         ArchitecturalAssessmentKind::WarningHeavyHotspot => SurfaceFinding {
@@ -893,19 +1175,59 @@ fn surface_finding_from_architectural_assessment(
                 ],
             }
         }
+        ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            SurfaceFinding {
+                id: format!(
+                    "architecture:algorithmic-complexity:{}:{}",
+                    finding.file_path.display(),
+                    finding.related_identifiers.join("+")
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("heuristic"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Algorithmic complexity hotspot"),
+                summary: format!(
+                    "{} contains repeated expensive loop-local work ({}) that is likely to become a scaling hotspot",
+                    finding.file_path.display(),
+                    finding.warning_families.join(", ")
+                ),
+                file_paths,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("parsed_sources"),
+                ],
+                doctrine_refs: vec![
+                    String::from("performance.scaling"),
+                    String::from("guardian.superlinear-risk"),
+                ],
+            }
+        }
     }
 }
 
 fn surface_finding_from_architectural_smell(
     smell: &ArchitecturalSmell,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
 ) -> SurfaceFinding {
-    let primary_anchor = best_effort_anchor_for_component(&smell.subject, analysis, "primary");
+    let primary_anchor =
+        best_effort_anchor_for_component(&smell.subject, analysis, context, "primary");
     let evidence_anchors = smell
         .related_components
         .iter()
-        .filter_map(|component| best_effort_anchor_for_component(component, analysis, "supporting"))
+        .filter_map(|component| {
+            best_effort_anchor_for_component(component, analysis, context, "supporting")
+        })
         .collect::<Vec<_>>();
+    let file_paths =
+        architectural_smell_file_paths(smell, context, primary_anchor.as_ref(), &evidence_anchors);
     match smell.kind {
         ArchitecturalSmellKind::HubLikeDependency => SurfaceFinding {
             id: format!("graph:smell:hub:{}", smell.subject),
@@ -919,7 +1241,7 @@ fn surface_finding_from_architectural_smell(
                 "Module `{}` has high incoming and outgoing dependency pressure ({} cross-module links)",
                 smell.subject, smell.evidence_count
             ),
-            file_paths: Vec::new(),
+            file_paths,
             line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
             primary_anchor,
             evidence_anchors,
@@ -946,7 +1268,7 @@ fn surface_finding_from_architectural_smell(
                 smell.subject,
                 smell.related_components.join(", ")
             ),
-            file_paths: Vec::new(),
+            file_paths,
             line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
             primary_anchor,
             evidence_anchors,
@@ -957,6 +1279,37 @@ fn surface_finding_from_architectural_smell(
             ],
         },
     }
+}
+
+fn architectural_smell_file_paths(
+    smell: &ArchitecturalSmell,
+    context: &SurfaceBuildContext<'_>,
+    primary_anchor: Option<&EvidenceAnchor>,
+    evidence_anchors: &[EvidenceAnchor],
+) -> Vec<PathBuf> {
+    let mut file_paths = Vec::new();
+    let mut push_unique = |path: PathBuf| {
+        if !file_paths.contains(&path) {
+            file_paths.push(path);
+        }
+    };
+
+    if let Some(anchor) = primary_anchor {
+        push_unique(anchor.file_path.clone());
+    }
+    if let Some(path) = resolve_component_path(&smell.subject, context) {
+        push_unique(path);
+    }
+    for anchor in evidence_anchors {
+        push_unique(anchor.file_path.clone());
+    }
+    for component in &smell.related_components {
+        if let Some(path) = resolve_component_path(component, context) {
+            push_unique(path);
+        }
+    }
+
+    file_paths
 }
 
 fn surface_cycle_finding(index: usize, finding: &CycleFinding) -> SurfaceCycleFinding {
@@ -1017,8 +1370,10 @@ fn relation_kind_label(relation: &RelationKind) -> &'static str {
 fn surface_finding_from_bottleneck(
     bottleneck: &BottleneckFile,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
 ) -> SurfaceFinding {
-    let primary_anchor = best_effort_anchor_for_file(&bottleneck.file_path, analysis, "primary");
+    let primary_anchor =
+        best_effort_anchor_for_file(&bottleneck.file_path, analysis, context, "primary");
     SurfaceFinding {
         id: format!("graph:bottleneck:{}", bottleneck.file_path.display()),
         fingerprint: bottleneck.fingerprint.clone(),
@@ -1045,6 +1400,11 @@ fn surface_finding_from_bottleneck(
 }
 
 fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
+    let (precision, confidence_millis) = match finding.proof_tier {
+        DeadCodeProofTier::Certain => ("exact", 980),
+        DeadCodeProofTier::Strong => ("modeled", 900),
+        DeadCodeProofTier::Heuristic => ("heuristic", 700),
+    };
     SurfaceFinding {
         id: format!(
             "dead-code:{}:{}:{}",
@@ -1055,13 +1415,17 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::DeadCode,
         severity: SurfaceFindingSeverity::Medium,
-        precision: String::from("exact"),
-        confidence_millis: 900,
+        precision: String::from(precision),
+        confidence_millis,
         title: match finding.category {
             DeadCodeCategory::UnusedPrivateFunction => String::from("Unused private function"),
             DeadCodeCategory::UnusedImport => String::from("Unused import"),
         },
-        summary: format!("{} appears unused", finding.name),
+        summary: format!(
+            "{} appears unused ({})",
+            finding.name,
+            dead_code_proof_tier_label(finding.proof_tier)
+        ),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
         primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
@@ -1071,6 +1435,14 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
             String::from("graph_analysis"),
         ],
         doctrine_refs: vec![String::from("maintainability.remove-dead-code")],
+    }
+}
+
+fn dead_code_proof_tier_label(tier: DeadCodeProofTier) -> &'static str {
+    match tier {
+        DeadCodeProofTier::Certain => "certain",
+        DeadCodeProofTier::Strong => "strong",
+        DeadCodeProofTier::Heuristic => "heuristic",
     }
 }
 
@@ -1211,6 +1583,7 @@ fn anchor(file_path: &Path, line: Option<usize>, label: &str) -> EvidenceAnchor 
 fn best_effort_anchor_for_architectural_assessment(
     finding: &ArchitecturalAssessmentFinding,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
 ) -> Option<EvidenceAnchor> {
     let mut tokens = finding
         .related_identifiers
@@ -1236,82 +1609,85 @@ fn best_effort_anchor_for_architectural_assessment(
             .filter_map(|family| family.split(':').next_back())
             .map(String::from),
     );
-    best_effort_anchor_for_file_with_tokens(&finding.file_path, analysis, "primary", &tokens)
+    best_effort_anchor_for_file_with_tokens(
+        &finding.file_path,
+        analysis,
+        context,
+        "primary",
+        &tokens,
+    )
 }
 
 fn supporting_anchors_for_architectural_assessment(
     finding: &ArchitecturalAssessmentFinding,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
 ) -> Vec<EvidenceAnchor> {
     finding
         .related_file_paths
         .iter()
-        .filter_map(|path| best_effort_anchor_for_file(path, analysis, "supporting"))
+        .filter_map(|path| best_effort_anchor_for_file(path, analysis, context, "supporting"))
         .collect()
 }
 
 fn best_effort_anchor_for_component(
     component: &str,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
     label: &str,
 ) -> Option<EvidenceAnchor> {
-    let path = analysis
-        .semantic_graph
-        .files
-        .iter()
-        .find(|file| {
-            file.path.to_string_lossy() == component
-                || file.path.file_name().and_then(|name| name.to_str()) == Some(component)
-        })
-        .map(|file| file.path.clone())?;
-    best_effort_anchor_for_file(&path, analysis, label)
+    let _ = analysis;
+    let path = resolve_component_path(component, context)?;
+    best_effort_anchor_for_file(&path, analysis, context, label)
 }
 
 fn best_effort_anchor_for_file(
     file_path: &Path,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
     label: &str,
 ) -> Option<EvidenceAnchor> {
     let mut tokens = Vec::new();
     if let Some(stem) = file_path.file_stem().and_then(|stem| stem.to_str()) {
         tokens.push(stem.to_string());
     }
-    best_effort_anchor_for_file_with_tokens(file_path, analysis, label, &tokens)
+    best_effort_anchor_for_file_with_tokens(file_path, analysis, context, label, &tokens)
 }
 
 fn best_effort_anchor_for_file_with_tokens(
     file_path: &Path,
     analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
     label: &str,
     tokens: &[String],
 ) -> Option<EvidenceAnchor> {
-    let content = analysis
-        .parsed_sources
-        .iter()
-        .find_map(|(path, content)| (path == file_path).then_some(content))?;
-    let line = anchor_line_for_content(content, tokens);
+    let _ = analysis;
+    let source = context.parsed_source_lookup.get(file_path)?;
+    let line = anchor_line_for_content(source, tokens);
     Some(anchor(file_path, line, label))
 }
 
-fn anchor_line_for_content(content: &str, tokens: &[String]) -> Option<usize> {
+fn anchor_line_for_content(source: &IndexedParsedSource<'_>, tokens: &[String]) -> Option<usize> {
     let lowered_tokens = tokens
         .iter()
         .map(|token| token.to_ascii_lowercase())
         .filter(|token| !token.is_empty())
         .collect::<Vec<_>>();
 
-    for (index, line) in content.lines().enumerate() {
-        let lowered = line.to_ascii_lowercase();
+    for (index, lowered) in source.lowered_lines.iter().enumerate() {
         if lowered_tokens.iter().any(|token| lowered.contains(token)) {
             return Some(index + 1);
         }
     }
 
-    content
-        .lines()
-        .enumerate()
-        .find(|(_, line)| !line.trim().is_empty())
-        .map(|(index, _)| index + 1)
+    source.first_non_empty_line.or_else(|| {
+        source
+            .content
+            .lines()
+            .enumerate()
+            .find(|(_, line)| !line.trim().is_empty())
+            .map(|(index, _)| index + 1)
+    })
 }
 
 fn build_atlas_edges(analysis: &ProjectAnalysis) -> Vec<AtlasEdge> {
@@ -1441,7 +1817,11 @@ fn reference_kind_label(kind: ReferenceKind) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::build_architecture_surface;
+    use super::{
+        architectural_smell_file_paths, best_effort_anchor_for_component,
+        build_architecture_surface, surface_finding_from_architectural_smell, SurfaceBuildContext,
+    };
+    use crate::graph::analysis::{ArchitecturalSmell, ArchitecturalSmellKind};
     use crate::ingestion::pipeline::analyze_project;
     use crate::ingestion::scan::ScanConfig;
     use std::fs;
@@ -1594,6 +1974,201 @@ export function runB() { runA(); }
         assert_eq!(cycle.fingerprint, highlight.fingerprint);
         assert!(!cycle.fingerprint.is_empty());
         assert_ne!(cycle.fingerprint, cycle.id);
+    }
+
+    #[test]
+    fn route_declared_php_attribute_controller_is_runtime_entry_not_orphan() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src/Controller")).unwrap();
+        fs::write(
+            fixture.join("src/Controller/TriggerFlowController.php"),
+            br#"<?php
+#[Route(path: '/api/_action/trigger-event/{eventName}')]
+final class TriggerFlowController {
+    public function __invoke(): void {}
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+        let controller_path = Path::new("src/Controller/TriggerFlowController.php");
+        let hotspot = surface
+            .hotspots
+            .iter()
+            .find(|hotspot| hotspot.file_path == controller_path)
+            .expect("expected controller hotspot");
+
+        assert!(hotspot.is_runtime_entry);
+        assert!(!hotspot.is_orphan);
+        assert_eq!(surface.overview.route_contract_count, 1);
+        assert_eq!(surface.overview.runtime_entry_count, 1);
+        assert_eq!(surface.overview.orphan_count, 0);
+        assert!(surface
+            .highlights
+            .iter()
+            .all(|finding| finding.id != "graph:orphan:src/Controller/TriggerFlowController.php"));
+    }
+
+    #[test]
+    fn prefix_filtered_scan_emits_boundary_truncated_truth_instead_of_orphan_debt() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join(".aigiscode/scan.json"),
+            br#"{
+  "include_path_prefixes": ["src"]
+}"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/a.ts"),
+            br#"import { runB } from "./b";
+export function runA() { runB(); }
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/b.ts"),
+            br#"export function runB() {}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+
+        assert_eq!(surface.overview.boundary_truth, "truncated_slice");
+        assert_eq!(surface.overview.boundary_truncated_count, 1);
+        assert_eq!(surface.overview.orphan_count, 0);
+        let hotspot = surface
+            .hotspots
+            .iter()
+            .find(|hotspot| hotspot.file_path == Path::new("src/a.ts"))
+            .expect("expected a.ts hotspot");
+        assert!(hotspot.is_boundary_truncated);
+        assert!(!hotspot.is_orphan);
+        assert!(surface
+            .highlights
+            .iter()
+            .any(|finding| finding.id == "graph:boundary-truncated:src/a.ts"));
+        assert!(surface
+            .highlights
+            .iter()
+            .all(|finding| finding.id != "graph:orphan:src/a.ts"));
+    }
+
+    #[test]
+    fn architectural_smell_surface_finding_carries_subject_and_related_file_paths() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/blocks.php"),
+            br#"<?php
+function load_blocks() {
+    require_once __DIR__ . '/manager.php';
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/manager.php"),
+            br#"<?php
+function load_manager() {}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let context = SurfaceBuildContext::new(&analysis);
+        let smell = ArchitecturalSmell {
+            kind: ArchitecturalSmellKind::HubLikeDependency,
+            subject: String::from("blocks.php"),
+            related_components: vec![String::from("manager.php")],
+            evidence_count: 2,
+            severity_millis: 820,
+            fingerprint: String::from("test-smell"),
+        };
+
+        let primary_anchor =
+            best_effort_anchor_for_component(&smell.subject, &analysis, &context, "primary");
+        let evidence_anchors = smell
+            .related_components
+            .iter()
+            .filter_map(|component| {
+                best_effort_anchor_for_component(component, &analysis, &context, "supporting")
+            })
+            .collect::<Vec<_>>();
+        let file_paths = architectural_smell_file_paths(
+            &smell,
+            &context,
+            primary_anchor.as_ref(),
+            &evidence_anchors,
+        );
+        let finding = surface_finding_from_architectural_smell(&smell, &analysis, &context);
+
+        assert_eq!(
+            file_paths,
+            vec![
+                PathBuf::from("src/blocks.php"),
+                PathBuf::from("src/manager.php")
+            ]
+        );
+        assert_eq!(finding.file_paths, file_paths);
+        assert_eq!(
+            finding
+                .primary_anchor
+                .as_ref()
+                .map(|anchor| anchor.file_path.clone()),
+            Some(PathBuf::from("src/blocks.php"))
+        );
+    }
+
+    #[test]
+    fn architectural_smell_surface_finding_resolves_top_level_module_labels_to_files() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::create_dir_all(fixture.join("app")).unwrap();
+        fs::write(
+            fixture.join("src/service.ts"),
+            br#"export function load() {}"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/runtime.ts"),
+            br#"export function boot() {}"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let context = SurfaceBuildContext::new(&analysis);
+        let smell = ArchitecturalSmell {
+            kind: ArchitecturalSmellKind::UnstableDependency,
+            subject: String::from("src"),
+            related_components: vec![String::from("app")],
+            evidence_count: 1,
+            severity_millis: 780,
+            fingerprint: String::from("test-module-smell"),
+        };
+
+        let finding = surface_finding_from_architectural_smell(&smell, &analysis, &context);
+
+        assert_eq!(
+            finding.file_paths,
+            vec![
+                PathBuf::from("src/service.ts"),
+                PathBuf::from("app/runtime.ts")
+            ]
+        );
+        assert_eq!(
+            finding
+                .primary_anchor
+                .as_ref()
+                .map(|anchor| anchor.file_path.clone()),
+            Some(PathBuf::from("src/service.ts"))
+        );
     }
 
     fn create_fixture() -> PathBuf {

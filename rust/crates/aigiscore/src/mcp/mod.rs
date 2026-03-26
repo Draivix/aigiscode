@@ -8,9 +8,14 @@ use self::contracts::{
     GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
     QualityEvaluationOutput, RepoOverviewOutput, ShowCyclesParams, ShowHotspotsParams,
 };
+use crate::agentic::{
+    build_graph_packet_artifact, graph_neighbors_for_file, graph_trace_between_files,
+    GraphNeighborsOutput, GraphNeighborsParams, GraphPacketArtifact, GraphTraceOutput,
+    GraphTraceParams, ListGraphPacketsParams,
+};
 use crate::artifacts::{
     build_agent_handoff_artifact, write_project_analysis_artifacts, AgentHandoffArtifact,
-    ArtifactPaths, ConvergenceHistoryArtifact, GuardDecisionArtifact,
+    ArtifactPaths, ConvergenceHistoryArtifact, GuardDecisionArtifact, RepositoryTopologyArtifact,
 };
 use crate::doctrine::{load_doctrine_registry, DoctrineLoadError};
 use crate::ingestion::pipeline::{analyze_project, ProjectAnalysis, ProjectAnalysisError};
@@ -58,6 +63,8 @@ const DOCTRINE_URI: &str = "aigiscode://repo/current/doctrine";
 const HANDOFF_URI: &str = "aigiscode://repo/current/handoff";
 const CONVERGENCE_URI: &str = "aigiscode://repo/current/convergence";
 const GUARD_URI: &str = "aigiscode://repo/current/guard";
+const GRAPH_PACKETS_URI: &str = "aigiscode://repo/current/graph-packets";
+const REPOSITORY_TOPOLOGY_URI: &str = "aigiscode://repo/current/repository-topology";
 const FINDING_TEMPLATE_URI: &str = "aigiscode://repo/current/finding/{finding_id}";
 const FINDING_URI_PREFIX: &str = "aigiscode://repo/current/finding/";
 
@@ -191,6 +198,7 @@ impl AigiscodeMcpServer {
                 contract_inventory: output_dir.join("contract-inventory.json"),
                 doctrine_registry: output_dir.join("doctrine-registry.json"),
                 deterministic_findings: output_dir.join("deterministic-findings.json"),
+                ast_grep_scan: output_dir.join("ast-grep-scan.json"),
                 external_analysis: output_dir.join("external-analysis.json"),
                 architecture_surface: output_dir.join("architecture-surface.json"),
                 review_surface: output_dir.join("review-surface.json"),
@@ -198,6 +206,8 @@ impl AigiscodeMcpServer {
                 guard_decision: output_dir.join("guard-decision.json"),
                 agent_handoff: output_dir.join("aigiscode-handoff.json"),
                 agentic_review: output_dir.join("agentic-review.json"),
+                graph_packets: output_dir.join("graph-packets.json"),
+                repository_topology: output_dir.join("repository-topology.json"),
                 aigiscode_report: output_dir.join("aigiscode-report.json"),
                 aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
                 output_dir,
@@ -316,6 +326,13 @@ impl AigiscodeMcpServer {
                 .take(max_items)
                 .cloned()
                 .collect(),
+            boundary_truncated_files: self
+                .state
+                .boundary_truncated_files
+                .iter()
+                .take(max_items)
+                .cloned()
+                .collect(),
             runtime_entry_candidates: self
                 .state
                 .runtime_entry_candidates
@@ -386,6 +403,143 @@ impl AigiscodeMcpServer {
     )]
     async fn guard_decision(&self) -> Json<GuardDecisionOutput> {
         Json(self.state.guard_decision.clone())
+    }
+
+    #[tool(
+        name = "list_graph_packets",
+        description = "Return bounded doctrine-aware graph packets filtered by packet id or file path."
+    )]
+    async fn list_graph_packets(
+        &self,
+        Parameters(params): Parameters<ListGraphPacketsParams>,
+    ) -> Json<GraphPacketArtifact> {
+        let max_items = params.max_items.unwrap_or(25).clamp(1, 200);
+        let mut packets =
+            self.state
+                .graph_packets
+                .packets
+                .iter()
+                .filter(|packet| {
+                    params
+                        .packet_id
+                        .as_deref()
+                        .is_none_or(|packet_id| packet.id == packet_id)
+                        && params.file_path.as_deref().is_none_or(|file_path| {
+                            packet.primary_file_path == file_path
+                                || packet.primary_anchor.as_ref().is_some_and(|anchor| {
+                                    anchor.file_path.display().to_string() == file_path
+                                })
+                                || packet
+                                    .neighbors
+                                    .iter()
+                                    .any(|neighbor| neighbor.file_path == file_path)
+                                || packet.evidence_anchors.iter().any(|anchor| {
+                                    anchor.file_path.display().to_string() == file_path
+                                })
+                                || packet
+                                    .graph_traces
+                                    .iter()
+                                    .flat_map(|trace| trace.hops.iter())
+                                    .any(|hop| {
+                                        hop.source_file_path == file_path
+                                            || hop.target_file_path == file_path
+                                    })
+                                || packet
+                                    .code_flows
+                                    .iter()
+                                    .flat_map(|flow| flow.steps.iter())
+                                    .any(|step| step.file_path == file_path)
+                                || packet.source_sink_paths.iter().any(|path| {
+                                    path.source.file_path == file_path
+                                        || path.sink.file_path == file_path
+                                        || path
+                                            .supporting_locations
+                                            .iter()
+                                            .any(|location| location.file_path == file_path)
+                                })
+                                || packet.semantic_state_flows.iter().any(|flow| {
+                                    flow.writer.file_path == file_path
+                                        || flow.reader.file_path == file_path
+                                        || flow
+                                            .supporting_locations
+                                            .iter()
+                                            .any(|location| location.file_path == file_path)
+                                })
+                        })
+                })
+                .take(max_items)
+                .cloned()
+                .collect::<Vec<_>>();
+        let summary = crate::agentic::GraphPacketSummary {
+            total_packets: packets.len(),
+            guardian_task_packets: packets
+                .iter()
+                .filter(|packet| packet.kind == crate::agentic::GraphPacketKind::GuardianTask)
+                .count(),
+            fallback_file_packets: packets
+                .iter()
+                .filter(|packet| packet.kind == crate::agentic::GraphPacketKind::FocusFile)
+                .count(),
+            top_anchor_files: packets
+                .iter()
+                .map(|packet| packet.primary_file_path.clone())
+                .take(8)
+                .collect(),
+        };
+        Json(GraphPacketArtifact {
+            root: self.state.graph_packets.root.clone(),
+            contract_version: self.state.graph_packets.contract_version.clone(),
+            summary,
+            packets: std::mem::take(&mut packets),
+        })
+    }
+
+    #[tool(
+        name = "graph_neighbors",
+        description = "Return bounded graph neighbors for one file path from the current semantic graph."
+    )]
+    async fn graph_neighbors(
+        &self,
+        Parameters(params): Parameters<GraphNeighborsParams>,
+    ) -> Json<GraphNeighborsOutput> {
+        let max_items = params.max_items.unwrap_or(12).clamp(1, 100);
+        Json(GraphNeighborsOutput {
+            file_path: params.file_path.clone(),
+            neighbors: graph_neighbors_for_file(
+                &self.state.semantic_graph,
+                &params.file_path,
+                max_items,
+            ),
+        })
+    }
+
+    #[tool(
+        name = "graph_trace",
+        description = "Return bounded typed graph paths between two file paths from the current semantic graph."
+    )]
+    async fn graph_trace(
+        &self,
+        Parameters(params): Parameters<GraphTraceParams>,
+    ) -> Json<GraphTraceOutput> {
+        Json(GraphTraceOutput {
+            start_file_path: params.start_file_path.clone(),
+            goal_file_path: params.goal_file_path.clone(),
+            paths: graph_trace_between_files(
+                &self.state.semantic_graph,
+                &params.start_file_path,
+                &params.goal_file_path,
+                params.max_hops.unwrap_or(5).clamp(1, 12),
+                params.max_paths.unwrap_or(3).clamp(1, 12),
+            ),
+        })
+    }
+
+    #[tool(
+        name = "repository_topology",
+        description = "Return a flatter repository topology over zones, manifests, runtime entries, and cross-zone links."
+    )]
+    async fn repository_topology(&self) -> Json<RepositoryTopologyArtifact> {
+        Json(self.state.repository_topology.clone())
     }
 
     #[tool(
@@ -560,6 +714,14 @@ impl AigiscodeMcpServer {
                 .with_description("Doctrine-aware allow/warn/block decision derived from diff-local convergence pressure.")
                 .with_mime_type("application/json")
                 .no_annotation(),
+            self.resource(REPOSITORY_TOPOLOGY_URI)
+                .with_description("Flatter repository topology over zones, manifests, runtime entries, and cross-zone links.")
+                .with_mime_type("application/json")
+                .no_annotation(),
+            self.resource(GRAPH_PACKETS_URI)
+                .with_description("Bounded doctrine-aware graph packets for agent and reviewer navigation.")
+                .with_mime_type("application/json")
+                .no_annotation(),
             self.resource(QUALITY_URI)
                 .with_description("Structured code-quality audit for architecture, dead code, overengineering, and security pressure.")
                 .with_mime_type("application/json")
@@ -595,6 +757,7 @@ impl AigiscodeMcpServer {
                     hotspots: self.state.hotspots.clone(),
                     bottlenecks: self.state.bottlenecks.clone(),
                     orphan_files: self.state.orphan_files.clone(),
+                    boundary_truncated_files: self.state.boundary_truncated_files.clone(),
                     runtime_entry_candidates: self.state.runtime_entry_candidates.clone(),
                 })?,
             )),
@@ -622,6 +785,14 @@ impl AigiscodeMcpServer {
                 String::from(uri),
                 to_json_pretty(&self.state.guard_decision)?,
             )),
+            REPOSITORY_TOPOLOGY_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state.repository_topology)?,
+            )),
+            GRAPH_PACKETS_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state.graph_packets)?,
+            )),
             QUALITY_URI => Ok((String::from(uri), to_json_pretty(&self.state.quality)?)),
             CYCLES_URI => Ok((
                 String::from(uri),
@@ -648,12 +819,15 @@ impl AigiscodeMcpServer {
 #[derive(Debug)]
 struct McpState {
     root: String,
+    semantic_graph: crate::graph::SemanticGraph,
     kuzu_path: Option<PathBuf>,
     dependency_graph: DependencyGraphArtifact,
     evidence_graph: EvidenceGraphArtifact,
     contract_inventory: ContractInventoryOutput,
     doctrine_registry: DoctrineRegistryOutput,
     handoff: AgentHandoffArtifact,
+    graph_packets: GraphPacketArtifact,
+    repository_topology: RepositoryTopologyArtifact,
     convergence: ConvergenceOutput,
     guard_decision: GuardDecisionOutput,
     repo_overview: RepoOverviewOutput,
@@ -662,6 +836,7 @@ struct McpState {
     hotspots: Vec<HotspotOutput>,
     bottlenecks: Vec<BottleneckOutput>,
     orphan_files: Vec<String>,
+    boundary_truncated_files: Vec<String>,
     runtime_entry_candidates: Vec<String>,
     strong_cycles: Vec<CycleOutput>,
     total_cycles: Vec<CycleOutput>,
@@ -699,12 +874,15 @@ impl McpState {
             .iter()
             .map(BottleneckOutput::from_bottleneck)
             .collect::<Vec<_>>();
-        let orphan_files = analysis
-            .graph_analysis
-            .orphan_files
+        let orphan_files = crate::surface::effective_orphan_files(&analysis)
             .iter()
             .map(|path| display_path(path))
             .collect::<Vec<_>>();
+        let boundary_truncated_files =
+            crate::surface::effective_boundary_truncated_files(&analysis)
+                .iter()
+                .map(|path| display_path(path))
+                .collect::<Vec<_>>();
         let runtime_entry_candidates = analysis
             .graph_analysis
             .runtime_entry_candidates
@@ -735,14 +913,46 @@ impl McpState {
             load_doctrine_registry(&analysis.root).map_err(McpServerError::Doctrine)?;
         let handoff =
             build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry_native);
-        let convergence =
+        let convergence_artifact =
             read_json_artifact::<ConvergenceHistoryArtifact>(&artifact_paths.convergence_history)
-                .map(|artifact| ConvergenceOutput::from_artifact(&artifact))
-                .unwrap_or_else(|| ConvergenceOutput::empty(&root));
-        let guard_decision =
+                .unwrap_or_else(|| {
+                    crate::artifacts::build_convergence_history_artifact(
+                        &analysis.root,
+                        &analysis.semantic_graph,
+                        None,
+                        None,
+                        None,
+                        &surface,
+                        &review_surface,
+                        &analysis.contract_inventory,
+                        &doctrine_registry_native,
+                    )
+                });
+        let guard_decision_artifact =
             read_json_artifact::<GuardDecisionArtifact>(&artifact_paths.guard_decision)
-                .map(|artifact| GuardDecisionOutput::from_artifact(&artifact))
-                .unwrap_or_else(GuardDecisionOutput::empty);
+                .unwrap_or_else(|| {
+                    crate::artifacts::build_guard_decision_artifact(
+                        &analysis.root,
+                        &convergence_artifact,
+                    )
+                });
+        let agentic_review = crate::agentic::build_agentic_review_artifact(
+            &analysis,
+            &doctrine_registry_native,
+            &handoff,
+            &guard_decision_artifact,
+            &convergence_artifact,
+        );
+        let graph_packets = build_graph_packet_artifact(&agentic_review, &analysis);
+        let repository_topology = crate::artifacts::build_repository_topology_artifact(
+            &analysis,
+            Some(&review_surface),
+            Some(&handoff),
+            Some(&convergence_artifact),
+            Some(&graph_packets),
+        );
+        let convergence = ConvergenceOutput::from_artifact(&convergence_artifact);
+        let guard_decision = GuardDecisionOutput::from_artifact(&guard_decision_artifact);
         let repo_overview = RepoOverviewOutput::new(
             &root,
             &surface,
@@ -757,12 +967,15 @@ impl McpState {
 
         Ok(Self {
             root,
+            semantic_graph: analysis.semantic_graph,
             kuzu_path,
             dependency_graph,
             evidence_graph,
             contract_inventory,
             doctrine_registry,
             handoff,
+            graph_packets,
+            repository_topology,
             convergence,
             guard_decision,
             repo_overview,
@@ -771,6 +984,7 @@ impl McpState {
             hotspots,
             bottlenecks,
             orphan_files,
+            boundary_truncated_files,
             runtime_entry_candidates,
             strong_cycles,
             total_cycles,
@@ -796,6 +1010,8 @@ fn resource_name(uri: &str) -> &'static str {
         HANDOFF_URI => "handoff",
         CONVERGENCE_URI => "convergence",
         GUARD_URI => "guard",
+        GRAPH_PACKETS_URI => "graph-packets",
+        REPOSITORY_TOPOLOGY_URI => "repository-topology",
         QUALITY_URI => "quality",
         CYCLES_URI => "cycles",
         _ => "resource",
@@ -817,6 +1033,8 @@ fn resource_title(uri: &str) -> &'static str {
         HANDOFF_URI => "Agent Handoff",
         CONVERGENCE_URI => "Convergence Report",
         GUARD_URI => "Guard Decision",
+        GRAPH_PACKETS_URI => "Graph Packets",
+        REPOSITORY_TOPOLOGY_URI => "Repository Topology",
         QUALITY_URI => "Quality Evaluation",
         CYCLES_URI => "Cycle Report",
         _ => "AigisCode Resource",
@@ -839,9 +1057,15 @@ mod tests {
     use super::{
         AigiscodeMcpServer, CypherQueryParams, ListFindingsParams, ShowHotspotsParams,
         CONTRACTS_URI, CONVERGENCE_URI, COVERAGE_URI, DEPENDENCY_GRAPH_URI, DOCTRINE_URI,
-        EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_SCHEMA_URI, GUARD_URI,
-        HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI,
+        EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_PACKETS_URI, GRAPH_SCHEMA_URI,
+        GUARD_URI, HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI, REPOSITORY_TOPOLOGY_URI,
     };
+    use crate::agentic::{
+        GraphNeighbor, GraphNeighborDirection, GraphNeighborsParams, GraphPacket,
+        GraphPacketArtifact, GraphPacketKind, GraphPacketSummary, GraphTraceParams,
+        ListGraphPacketsParams,
+    };
+    use crate::evidence::EvidenceAnchor;
     use crate::kuzu_index::is_kuzu_available;
     use rmcp::handler::server::wrapper::Parameters;
     use serde_json::Value;
@@ -865,6 +1089,12 @@ fn main() {
     if mode == "draft" {
         let _ = "shared-value";
         let _ = "shared-value";
+    }
+    let items = vec![1, 2, 3];
+    for left in &items {
+        for right in &items {
+            let _ = left + right;
+        }
     }
     let _ = "https://api.example.com";
 }
@@ -914,6 +1144,14 @@ fn main() {
         assert_eq!(
             overview.contract_inventory.summary.env_keys.unique_values,
             1
+        );
+        assert!(overview.overview.algorithmic_complexity_hotspot_count >= 1);
+        assert!(overview.overview.ast_grep_finding_count >= 1);
+        assert_eq!(
+            overview.overview.ast_grep_finding_count,
+            overview.overview.ast_grep_algorithmic_complexity_count
+                + overview.overview.ast_grep_security_dangerous_api_count
+                + overview.overview.ast_grep_framework_misuse_count
         );
         assert!(overview.convergence.current_findings >= overview.review_summary.visible_findings);
         assert!(!overview.guard_decision.verdict.is_empty());
@@ -1015,6 +1253,12 @@ fn main() {
         assert!(resources
             .iter()
             .any(|resource| resource.raw.uri == GUARD_URI));
+        assert!(resources
+            .iter()
+            .any(|resource| resource.raw.uri == REPOSITORY_TOPOLOGY_URI));
+        assert!(resources
+            .iter()
+            .any(|resource| resource.raw.uri == GRAPH_PACKETS_URI));
 
         let (_, overview_payload) = server.read_resource_payload(OVERVIEW_URI).unwrap();
         let overview_json: Value = serde_json::from_str(&overview_payload).unwrap();
@@ -1084,6 +1328,17 @@ fn main() {
         assert!(guard_json["verdict"].as_str().is_some());
         assert!(guard_json["pressure"].is_object());
 
+        let (_, topology_payload) = server
+            .read_resource_payload(REPOSITORY_TOPOLOGY_URI)
+            .unwrap();
+        let topology_json: Value = serde_json::from_str(&topology_payload).unwrap();
+        assert!(topology_json["zones"].is_array());
+        assert!(topology_json["summary"]["zone_count"].as_u64().unwrap() >= 1);
+
+        let (_, graph_packets_payload) = server.read_resource_payload(GRAPH_PACKETS_URI).unwrap();
+        let graph_packets_json: Value = serde_json::from_str(&graph_packets_payload).unwrap();
+        assert!(graph_packets_json["packets"].is_array());
+
         let finding_uri = format!("{FINDING_URI_PREFIX}{finding_id}");
         let (_, finding_payload) = server.read_resource_payload(&finding_uri).unwrap();
         let finding_json: Value = serde_json::from_str(&finding_payload).unwrap();
@@ -1129,5 +1384,122 @@ fn main() {
         let path = std::env::temp_dir().join(format!("aigiscore-mcp-{nonce}"));
         fs::create_dir_all(&path).unwrap();
         path
+    }
+
+    #[tokio::test]
+    async fn graph_packet_tools_return_structured_neighbors_and_traces() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"mod service;
+fn main() { service::run(); }"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/service.rs"),
+            br#"pub fn run() { helper(); }
+fn helper() {}"#,
+        )
+        .unwrap();
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, false).unwrap();
+
+        let packets = server
+            .list_graph_packets(Parameters(ListGraphPacketsParams {
+                packet_id: None,
+                file_path: None,
+                max_items: Some(10),
+            }))
+            .await
+            .0;
+        assert!(packets.summary.total_packets >= 1);
+        assert!(!packets.packets.is_empty());
+
+        let topology = server.repository_topology().await.0;
+        assert!(topology.summary.zone_count >= 1);
+        assert!(!topology.zones.is_empty());
+
+        let primary_file = packets.packets[0].primary_file_path.clone();
+        let neighbors = server
+            .graph_neighbors(Parameters(GraphNeighborsParams {
+                file_path: primary_file.clone(),
+                max_items: Some(8),
+            }))
+            .await
+            .0;
+        assert_eq!(neighbors.file_path, primary_file);
+        assert!(!neighbors.neighbors.is_empty());
+
+        let trace = server
+            .graph_trace(Parameters(GraphTraceParams {
+                start_file_path: String::from("src/main.rs"),
+                goal_file_path: String::from("src/service.rs"),
+                max_hops: Some(4),
+                max_paths: Some(2),
+            }))
+            .await
+            .0;
+        assert!(!trace.paths.is_empty());
+        assert_eq!(trace.paths[0].primary_file_path, "src/main.rs");
+    }
+
+    #[tokio::test]
+    async fn list_graph_packets_matches_primary_anchor_file_paths() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
+
+        let mut server = AigiscodeMcpServer::load(fixture, None, true, false).unwrap();
+        server.state.graph_packets = GraphPacketArtifact {
+            root: String::from("/tmp/example"),
+            contract_version: String::from("1"),
+            summary: GraphPacketSummary {
+                total_packets: 1,
+                guardian_task_packets: 0,
+                fallback_file_packets: 1,
+                top_anchor_files: vec![String::from("src/primary.rs")],
+            },
+            packets: vec![GraphPacket {
+                id: String::from("packet-1"),
+                kind: GraphPacketKind::FocusFile,
+                title: String::from("Packet"),
+                summary: String::from("Summary"),
+                primary_file_path: String::from("src/primary.rs"),
+                primary_anchor: Some(EvidenceAnchor {
+                    file_path: PathBuf::from("src/anchored.rs"),
+                    line: Some(7),
+                    label: String::from("anchored"),
+                }),
+                evidence_anchors: Vec::new(),
+                doctrine_refs: Vec::new(),
+                preferred_mechanism: None,
+                obligations: Vec::new(),
+                relation_histogram: Vec::new(),
+                neighbors: vec![GraphNeighbor {
+                    file_path: String::from("src/neighbor.rs"),
+                    direction: GraphNeighborDirection::Outbound,
+                    edge_count: 1,
+                    aggregate_confidence_millis: 700,
+                    relation_histogram: Vec::new(),
+                }],
+                graph_traces: Vec::new(),
+                code_flows: Vec::new(),
+                source_sink_paths: Vec::new(),
+                semantic_state_flows: Vec::new(),
+            }],
+        };
+
+        let packets = server
+            .list_graph_packets(Parameters(ListGraphPacketsParams {
+                packet_id: None,
+                file_path: Some(String::from("src/anchored.rs")),
+                max_items: Some(10),
+            }))
+            .await
+            .0;
+
+        assert_eq!(packets.summary.total_packets, 1);
+        assert_eq!(packets.packets[0].id, "packet-1");
     }
 }

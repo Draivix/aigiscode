@@ -1,4 +1,5 @@
 use crate::contracts::ContractInventory;
+use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepFindingKind, AstGrepScanResult};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -45,6 +46,8 @@ pub struct SecurityFinding {
     pub message: String,
     pub evidence: String,
     pub fingerprint: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub supporting_scanners: Vec<String>,
     #[serde(default)]
     pub contexts: Vec<SecurityContext>,
 }
@@ -65,6 +68,21 @@ pub fn analyze_security_findings(
     contract_inventory: &ContractInventory,
     runtime_entry_candidates: &[PathBuf],
 ) -> SecurityAnalysisResult {
+    let ast_grep_scan = run_ast_grep_scan(parsed_sources);
+    analyze_security_findings_with_ast_grep(
+        parsed_sources,
+        contract_inventory,
+        runtime_entry_candidates,
+        &ast_grep_scan,
+    )
+}
+
+pub fn analyze_security_findings_with_ast_grep(
+    parsed_sources: &[(PathBuf, String)],
+    contract_inventory: &ContractInventory,
+    runtime_entry_candidates: &[PathBuf],
+    ast_grep_scan: &AstGrepScanResult,
+) -> SecurityAnalysisResult {
     let externally_reachable_files =
         externally_reachable_files(contract_inventory, runtime_entry_candidates);
     let mut findings = Vec::new();
@@ -79,6 +97,8 @@ pub fn analyze_security_findings(
             externally_reachable_files.contains(path),
         ));
     }
+
+    merge_ast_grep_security_support(&mut findings, ast_grep_scan, &externally_reachable_files);
 
     findings.sort_by(|left, right| {
         severity_rank(right.severity)
@@ -207,8 +227,63 @@ fn classify_line(
             security_category_label(category),
             api_name
         ),
+        supporting_scanners: Vec::new(),
         contexts,
     })
+}
+
+fn merge_ast_grep_security_support(
+    findings: &mut Vec<SecurityFinding>,
+    ast_grep_scan: &AstGrepScanResult,
+    externally_reachable_files: &HashSet<PathBuf>,
+) {
+    let mut fingerprint_to_index = findings
+        .iter()
+        .enumerate()
+        .map(|(index, finding)| (finding.fingerprint.clone(), index))
+        .collect::<std::collections::HashMap<_, _>>();
+
+    for finding in &ast_grep_scan.findings {
+        let AstGrepFindingKind::SecurityDangerousApi { .. } = &finding.kind else {
+            continue;
+        };
+        if is_test_like_path(&finding.file_path) {
+            continue;
+        }
+        let Some(language) = detect_language(&finding.file_path) else {
+            continue;
+        };
+        let trimmed = finding.matched_text.trim();
+        if trimmed.is_empty() || is_comment_line(language, trimmed) {
+            continue;
+        }
+        let externally_reachable = externally_reachable_files.contains(&finding.file_path);
+        let Some(native_finding) = classify_line(
+            &finding.file_path,
+            trimmed,
+            externally_reachable,
+            finding.line,
+            language,
+        ) else {
+            continue;
+        };
+        if let Some(index) = fingerprint_to_index
+            .get(&native_finding.fingerprint)
+            .copied()
+        {
+            let scanners = &mut findings[index].supporting_scanners;
+            if !scanners.iter().any(|scanner| scanner == "ast_grep") {
+                scanners.push(String::from("ast_grep"));
+            }
+            continue;
+        }
+        let fingerprint = native_finding.fingerprint.clone();
+        findings.push(SecurityFinding {
+            supporting_scanners: vec![String::from("ast_grep")],
+            ..native_finding
+        });
+        fingerprint_to_index.insert(fingerprint, findings.len() - 1);
+    }
 }
 
 fn classify_security_contexts(
@@ -625,10 +700,11 @@ fn is_test_like_path(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        analyze_security_findings, SecurityCategory, SecurityContext, SecurityFindingKind,
-        SecuritySeverity,
+        analyze_security_findings, analyze_security_findings_with_ast_grep, SecurityCategory,
+        SecurityContext, SecurityFindingKind, SecuritySeverity,
     };
     use crate::contracts::build_contract_inventory;
+    use crate::scanners::ast_grep::run_ast_grep_scan;
     use std::path::Path;
 
     #[test]
@@ -803,5 +879,30 @@ exec(user_input)
             .contexts
             .contains(&SecurityContext::InteractiveExecution));
         assert!(result.findings[1].message.contains("interactive execution"));
+    }
+
+    #[test]
+    fn ast_grep_reinforces_native_dangerous_api_findings() {
+        let parsed_sources = vec![(
+            Path::new("resources/admin.js").to_path_buf(),
+            String::from("export function run(input) { return eval(input); }\n"),
+        )];
+        let inventory = build_contract_inventory(&parsed_sources);
+        let ast_grep_scan = run_ast_grep_scan(&parsed_sources);
+
+        let result = analyze_security_findings_with_ast_grep(
+            &parsed_sources,
+            &inventory,
+            &[],
+            &ast_grep_scan,
+        );
+
+        assert_eq!(result.findings.len(), 1);
+        assert_eq!(result.findings[0].kind, SecurityFindingKind::DangerousApi);
+        assert_eq!(result.findings[0].category, SecurityCategory::CodeInjection);
+        assert!(result.findings[0]
+            .supporting_scanners
+            .iter()
+            .any(|scanner| scanner == "ast_grep"));
     }
 }
