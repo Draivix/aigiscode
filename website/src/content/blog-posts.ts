@@ -22,6 +22,3188 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   /* ======================================================================== */
+  /*  Graph-Backed Security Reachability                                      */
+  /* ======================================================================== */
+  {
+    slug: 'graph-backed-security-reachability',
+    date: '2026-03-30',
+    readTime: 9,
+    tags: ['Security', 'Graph Analysis', 'Reachability', 'Open Source'],
+    image: '/blog-security-reachability.jpg',
+    author: { name: 'David Strejc', role: 'Creator of AigisCode' },
+    relatedSlugs: [
+      'dual-scanner-ast-grep-architecture',
+      'zeus-shield-guardian-doctrine',
+    ],
+    title: {
+      en: 'Graph-Backed Security: How AigisCode Traces Entry-to-Sink Reachability',
+      cs: 'Bezpečnost podložená grafem: Jak AigisCode sleduje dosažitelnost od vstupu k cíli',
+      fr: 'Sécurité basée sur le graphe : comment AigisCode trace la chaîne d\'accessibilité des points d\'entrée aux sinks',
+      es: 'Seguridad respaldada por grafos: cómo AigisCode rastrea la alcanzabilidad de entrada a destino',
+      zh: '图驱动安全分析：AigisCode 如何追踪入口到汇点的可达性',
+      hi: 'ग्राफ़-आधारित सुरक्षा: AigisCode कैसे एंट्री-टू-सिंक रीचैबिलिटी को ट्रेस करता है',
+      pt: 'Segurança Baseada em Grafos: Como o AigisCode Rastreia a Alcançabilidade de Entrada até o Destino',
+      ar: 'الأمان المدعوم بالرسم البياني: كيف يتتبع AigisCode قابلية الوصول من نقطة الدخول إلى المصرف',
+      pl: 'Bezpieczeństwo oparte na grafie: Jak AigisCode śledzi osiągalność od punktu wejścia do ujścia',
+      bn: 'গ্রাফ-সমর্থিত নিরাপত্তা: কিভাবে AigisCode এন্ট্রি থেকে সিঙ্ক পর্যন্ত রিচেবিলিটি ট্রেস করে',
+    },
+    description: {
+      en: 'AigisCode now traces security findings through the semantic graph — from HTTP entry points to dangerous sinks — with boundary input detection and full reachability paths.',
+      cs: 'AigisCode nyní sleduje bezpečnostní nálezy skrze sémantický graf — od HTTP vstupních bodů po nebezpečné cíle — s detekcí hraničních vstupů a úplnými cestami dosažitelnosti.',
+      fr: 'AigisCode trace désormais les résultats de sécurité à travers le graphe sémantique — des points d\'entrée HTTP aux sinks dangereux — avec détection des entrées limites et chemins d\'accessibilité complets.',
+      es: 'AigisCode ahora rastrea hallazgos de seguridad a través del grafo semántico — desde puntos de entrada HTTP hasta destinos peligrosos — con detección de entradas de frontera y rutas de alcanzabilidad completas.',
+      zh: 'AigisCode 现在通过语义图追踪安全发现——从 HTTP 入口点到危险汇点——具备边界输入检测和完整的可达性路径。',
+      hi: 'AigisCode अब सिमेंटिक ग्राफ़ के माध्यम से सुरक्षा खोजों को ट्रेस करता है — HTTP एंट्री पॉइंट से खतरनाक सिंक तक — बाउंड्री इनपुट डिटेक्शन और पूर्ण रीचैबिलिटी पथों के साथ।',
+      pt: 'O AigisCode agora rastreia descobertas de segurança através do grafo semântico — dos pontos de entrada HTTP até destinos perigosos — com detecção de entrada de fronteira e caminhos completos de alcançabilidade.',
+      ar: 'يتتبع AigisCode الآن نتائج الأمان عبر الرسم البياني الدلالي — من نقاط دخول HTTP إلى المصارف الخطيرة — مع كشف المدخلات الحدودية ومسارات قابلية الوصول الكاملة.',
+      pl: 'AigisCode śledzi teraz wyniki bezpieczeństwa przez graf semantyczny — od punktów wejścia HTTP do niebezpiecznych ujść — z wykrywaniem danych wejściowych granicznych i pełnymi ścieżkami osiągalności.',
+      bn: 'AigisCode এখন সিমান্টিক গ্রাফের মাধ্যমে নিরাপত্তা ফলাফল ট্রেস করে — HTTP এন্ট্রি পয়েন্ট থেকে বিপজ্জনক সিঙ্ক পর্যন্ত — বাউন্ডারি ইনপুট ডিটেকশন এবং সম্পূর্ণ রিচেবিলিটি পাথ সহ।',
+    },
+    metaDescription: {
+      en: 'Learn how AigisCode uses graph-backed reachability analysis to trace security findings from HTTP entry points to dangerous sinks, with boundary input detection, flow steps, and context-aware severity.',
+      cs: 'Zjistěte, jak AigisCode využívá analýzu dosažitelnosti podloženou grafem ke sledování bezpečnostních nálezů od HTTP vstupních bodů po nebezpečné cíle, s detekcí hraničních vstupů, kroky toku a kontextově citlivou závažností.',
+      fr: 'Découvrez comment AigisCode utilise l\'analyse d\'accessibilité basée sur le graphe pour tracer les résultats de sécurité des points d\'entrée HTTP aux sinks dangereux, avec détection des entrées limites, étapes de flux et sévérité contextuelle.',
+      es: 'Descubra cómo AigisCode utiliza el análisis de alcanzabilidad respaldado por grafos para rastrear hallazgos de seguridad desde puntos de entrada HTTP hasta destinos peligrosos, con detección de entradas de frontera, pasos de flujo y severidad contextual.',
+      zh: '了解 AigisCode 如何使用图驱动的可达性分析，从 HTTP 入口点追踪安全发现到危险汇点，包括边界输入检测、流程步骤和上下文感知的严重性评估。',
+      hi: 'जानें कि AigisCode कैसे ग्राफ़-आधारित रीचैबिलिटी विश्लेषण का उपयोग करके HTTP एंट्री पॉइंट से खतरनाक सिंक तक सुरक्षा खोजों को ट्रेस करता है, जिसमें बाउंड्री इनपुट डिटेक्शन, फ़्लो स्टेप्स और संदर्भ-जागरूक गंभीरता शामिल है।',
+      pt: 'Saiba como o AigisCode utiliza análise de alcançabilidade baseada em grafos para rastrear descobertas de segurança desde pontos de entrada HTTP até destinos perigosos, com detecção de entrada de fronteira, etapas de fluxo e severidade contextual.',
+      ar: 'تعرّف كيف يستخدم AigisCode تحليل قابلية الوصول المدعوم بالرسم البياني لتتبع نتائج الأمان من نقاط دخول HTTP إلى المصارف الخطيرة، مع كشف المدخلات الحدودية وخطوات التدفق والخطورة المدركة للسياق.',
+      pl: 'Dowiedz się, jak AigisCode wykorzystuje analizę osiągalności opartą na grafie do śledzenia wyników bezpieczeństwa od punktów wejścia HTTP do niebezpiecznych ujść, z wykrywaniem danych wejściowych granicznych, krokami przepływu i kontekstową oceną ważności.',
+      bn: 'জানুন কিভাবে AigisCode গ্রাফ-সমর্থিত রিচেবিলিটি বিশ্লেষণ ব্যবহার করে HTTP এন্ট্রি পয়েন্ট থেকে বিপজ্জনক সিঙ্ক পর্যন্ত নিরাপত্তা ফলাফল ট্রেস করে, বাউন্ডারি ইনপুট ডিটেকশন, ফ্লো স্টেপ এবং প্রসঙ্গ-সচেতন তীব্রতা সহ।',
+    },
+    content: {
+      en: `
+<p>Most static analysis tools report security findings as isolated line-level warnings: "eval() on line 47" or "SQL string concatenation on line 183." The problem? Without context, these findings are noise. An <code>eval()</code> buried in a test helper is not the same threat as one reachable from a public HTTP endpoint.</p>
+
+<p>AigisCode now bridges this gap with <strong>graph-backed security reachability</strong> — tracing every security finding through the semantic graph to determine whether it is actually reachable from entry points, and whether untrusted boundary inputs can flow into it.</p>
+
+<h2 id="the-reachability-problem">The Reachability Problem</h2>
+
+<p>Traditional security scanners operate at the file or function level. They pattern-match dangerous API calls and report them. But the critical question is not "does this dangerous call exist?" — it is "can an attacker reach it?"</p>
+
+<p>Consider a PHP application with <code>eval($expression)</code> in a utility class. A traditional scanner flags this as critical. But if that utility is only called from a CLI artisan command that requires admin SSH access, the real-world risk is minimal. Conversely, if that same <code>eval()</code> is three function calls away from a public API route that passes user input through, it is a genuine vulnerability.</p>
+
+<p>AigisCode now answers this question automatically.</p>
+
+<h2 id="how-it-works">How Graph-Backed Reachability Works</h2>
+
+<p>When AigisCode finds a security-relevant pattern (dangerous API call, unsafe deserialization, raw SQL concatenation), it does not stop at reporting the finding. It walks the semantic graph backwards from the finding to determine:</p>
+
+<ol>
+<li><strong>Entry point reachability</strong> — Is this finding reachable from a route handler, controller action, API endpoint, or other entry point? The graph walk follows imports, function calls, and class relationships to trace the path.</li>
+<li><strong>Boundary input sources</strong> — Does the file containing the finding (or files calling it) read from untrusted boundary inputs? This includes <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, CLI arguments, and framework-specific input accessors.</li>
+<li><strong>Boundary-to-sink flow</strong> — Can we trace a concrete path from where the boundary input enters the system to where the dangerous operation executes?</li>
+</ol>
+
+<h2 id="reachability-paths">Reachability Paths: Concrete Evidence</h2>
+
+<p>Each security finding now carries a <strong>reachability path</strong> — a list of hops through the graph from the entry point to the finding. Each hop includes:</p>
+
+<ul>
+<li>The file path and line number</li>
+<li>The source and target symbols (function names, class names)</li>
+<li>The relation type connecting them (imports, calls, inherits)</li>
+</ul>
+
+<p>This is not a heuristic guess. These are actual edges in the semantic graph that AigisCode builds during analysis. When the reachability path says "route handler in <code>api/users.php:12</code> calls <code>UserService::process</code> in <code>services/UserService.php:45</code> which calls <code>eval()</code> in <code>utils/Expression.php:23</code>," every hop is backed by a real import or call relationship.</p>
+
+<h2 id="context-aware-severity">Context-Aware Security Contexts</h2>
+
+<p>The reachability analysis feeds into a richer security context system. Findings are now tagged with specific contexts:</p>
+
+<table>
+<thead>
+<tr><th>Context</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>File is a known entry point (route, controller, API handler)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>Finding is reachable from an entry point through graph edges</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>Untrusted input is read in the same file as the dangerous operation</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>Untrusted input flows through the graph to reach the dangerous operation</td></tr>
+</tbody>
+</table>
+
+<p>A finding tagged with both <code>EntryReachableViaGraph</code> and <code>BoundaryInputReachableViaGraph</code> is far more serious than one with no reachability context. AigisCode uses this to adjust severity and prioritize which findings demand immediate attention.</p>
+
+<h2 id="boundary-input-detection">Boundary Input Detection</h2>
+
+<p>AigisCode recognizes boundary input patterns across multiple languages and frameworks:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>When boundary input is detected, the finding receives a <code>boundary_input_sources</code> list with the exact kind (RequestQuery, RequestBody, CliArgument), file, line, and evidence string. This gives reviewers and AI agents precise information about where the untrusted data enters.</p>
+
+<h2 id="flow-steps">Flow Steps: The Full Picture</h2>
+
+<p>For findings where both entry reachability and boundary input are confirmed, AigisCode constructs a <strong>boundary-to-sink flow</strong> — a merged path showing exactly how data moves from input to danger:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>Each step is typed as <code>BoundaryInput</code>, <code>PressureHop</code>, or <code>SinkSite</code>, making it trivially parseable by CI systems and AI agents. The flow is bounded to prevent explosion on large graphs — AigisCode caps the walk at a configurable depth.</p>
+
+<h2 id="practical-impact">Practical Impact</h2>
+
+<p>This changes how security findings are triaged. Instead of reviewing every <code>eval()</code> in the codebase, a reviewer (or an AI agent) can focus on the ones with confirmed reachability paths from public entry points. In our testing on real codebases:</p>
+
+<ul>
+<li>A Laravel application with 47 raw security findings had only 12 with confirmed entry-point reachability</li>
+<li>Of those 12, only 5 had confirmed boundary input flow — these are the ones that matter</li>
+<li>The remaining 35 findings were internal utilities, CLI tools, and test helpers — real patterns, but minimal real-world risk</li>
+</ul>
+
+<p>This is the difference between a tool that generates work and a tool that focuses work.</p>
+
+<h2 id="try-it">Try It</h2>
+
+<p>Graph-backed security reachability is included in every AigisCode analysis run:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Check <code>.aigiscode/deterministic-findings.json</code> for findings with <code>reachability_path</code>, <code>boundary_input_sources</code>, and <code>boundary_to_sink_flow</code> fields. The <code>.aigiscode/aigiscode-report.json</code> summary also includes security pressure counts broken down by reachability context.</p>
+`,
+      cs: `
+<p>Většina nástrojů pro statickou analýzu hlásí bezpečnostní nálezy jako izolovaná varování na úrovni řádků: „eval() na řádku 47" nebo „konkatenace SQL řetězců na řádku 183." Problém? Bez kontextu jsou tyto nálezy jen šum. Volání <code>eval()</code> schované v testovací pomocné třídě nepředstavuje stejnou hrozbu jako volání dosažitelné z veřejného HTTP endpointu.</p>
+
+<p>AigisCode nyní překlenuje tuto mezeru pomocí <strong>bezpečnostní dosažitelnosti podložené grafem</strong> — sleduje každý bezpečnostní nález skrze sémantický graf, aby určil, zda je skutečně dosažitelný ze vstupních bodů a zda do něj mohou proudit nedůvěryhodné hraniční vstupy.</p>
+
+<h2 id="the-reachability-problem">Problém dosažitelnosti</h2>
+
+<p>Tradiční bezpečnostní skenery pracují na úrovni souborů nebo funkcí. Porovnávají vzory nebezpečných volání API a hlásí je. Ale klíčová otázka není „existuje toto nebezpečné volání?" — ale „může se k němu útočník dostat?"</p>
+
+<p>Představte si PHP aplikaci s <code>eval($expression)</code> v obslužné třídě. Tradiční skener to označí jako kritické. Ale pokud je tato třída volána pouze z CLI artisan příkazu vyžadujícího administrátorský SSH přístup, reálné riziko je minimální. Naopak, pokud je tentýž <code>eval()</code> tři volání funkcí od veřejné API cesty, která předává uživatelský vstup, jedná se o skutečnou zranitelnost.</p>
+
+<p>AigisCode nyní odpovídá na tuto otázku automaticky.</p>
+
+<h2 id="how-it-works">Jak funguje dosažitelnost podložená grafem</h2>
+
+<p>Když AigisCode najde bezpečnostně relevantní vzor (nebezpečné volání API, nebezpečná deserializace, surová konkatenace SQL), nezastaví se u nahlášení nálezu. Projde sémantický graf zpětně od nálezu, aby určil:</p>
+
+<ol>
+<li><strong>Dosažitelnost vstupního bodu</strong> — Je tento nález dosažitelný z obslužné rutiny cesty, akce kontroleru, API endpointu nebo jiného vstupního bodu? Procházení grafu sleduje importy, volání funkcí a vztahy mezi třídami pro trasování cesty.</li>
+<li><strong>Zdroje hraničních vstupů</strong> — Čte soubor obsahující nález (nebo soubory, které jej volají) z nedůvěryhodných hraničních vstupů? To zahrnuje <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, CLI argumenty a přístupové metody specifické pro framework.</li>
+<li><strong>Tok od hranice k cíli</strong> — Můžeme trasovat konkrétní cestu od místa, kde hraniční vstup vstupuje do systému, k místu, kde se provádí nebezpečná operace?</li>
+</ol>
+
+<h2 id="reachability-paths">Cesty dosažitelnosti: Konkrétní důkazy</h2>
+
+<p>Každý bezpečnostní nález nyní obsahuje <strong>cestu dosažitelnosti</strong> — seznam skoků skrze graf od vstupního bodu k nálezu. Každý skok zahrnuje:</p>
+
+<ul>
+<li>Cestu k souboru a číslo řádku</li>
+<li>Zdrojové a cílové symboly (názvy funkcí, názvy tříd)</li>
+<li>Typ vztahu, který je spojuje (importy, volání, dědičnost)</li>
+</ul>
+
+<p>Toto není heuristický odhad. Jedná se o skutečné hrany v sémantickém grafu, který AigisCode sestavuje během analýzy. Když cesta dosažitelnosti říká „obslužná rutina cesty v <code>api/users.php:12</code> volá <code>UserService::process</code> v <code>services/UserService.php:45</code>, který volá <code>eval()</code> v <code>utils/Expression.php:23</code>," každý skok je podložen skutečným importem nebo vztahem volání.</p>
+
+<h2 id="context-aware-severity">Kontextově citlivé bezpečnostní kontexty</h2>
+
+<p>Analýza dosažitelnosti se promítá do bohatšího systému bezpečnostních kontextů. Nálezy jsou nyní označeny specifickými kontexty:</p>
+
+<table>
+<thead>
+<tr><th>Kontext</th><th>Význam</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>Soubor je známý vstupní bod (cesta, kontroler, obslužná rutina API)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>Nález je dosažitelný ze vstupního bodu přes hrany grafu</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>Nedůvěryhodný vstup je čten ve stejném souboru jako nebezpečná operace</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>Nedůvěryhodný vstup proudí skrze graf k dosažení nebezpečné operace</td></tr>
+</tbody>
+</table>
+
+<p>Nález označený jak <code>EntryReachableViaGraph</code>, tak <code>BoundaryInputReachableViaGraph</code> je mnohem závažnější než nález bez kontextu dosažitelnosti. AigisCode toto využívá k úpravě závažnosti a prioritizaci nálezů vyžadujících okamžitou pozornost.</p>
+
+<h2 id="boundary-input-detection">Detekce hraničních vstupů</h2>
+
+<p>AigisCode rozpoznává vzory hraničních vstupů napříč více jazyky a frameworky:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>Při detekci hraničního vstupu nález obdrží seznam <code>boundary_input_sources</code> s přesným druhem (RequestQuery, RequestBody, CliArgument), souborem, řádkem a řetězcem důkazu. To poskytuje recenzentům a AI agentům přesné informace o tom, kde nedůvěryhodná data vstupují.</p>
+
+<h2 id="flow-steps">Kroky toku: Úplný obraz</h2>
+
+<p>Pro nálezy, kde je potvrzena jak dosažitelnost vstupního bodu, tak hraniční vstup, AigisCode konstruuje <strong>tok od hranice k cíli</strong> — sloučenou cestu ukazující přesně, jak data proudí od vstupu k nebezpečí:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — čtení request.body
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — volání eval()
+</code></pre>
+
+<p>Každý krok je typován jako <code>BoundaryInput</code>, <code>PressureHop</code> nebo <code>SinkSite</code>, což jej činí triviálně parsovatelným pro CI systémy a AI agenty. Tok je ohraničen, aby se předešlo explozi na velkých grafech — AigisCode omezuje procházení na konfigurovatelnou hloubku.</p>
+
+<h2 id="practical-impact">Praktický dopad</h2>
+
+<p>Toto mění způsob, jakým se bezpečnostní nálezy třídí. Místo přezkoumávání každého <code>eval()</code> v kódové základně se recenzent (nebo AI agent) může zaměřit na ty s potvrzenými cestami dosažitelnosti z veřejných vstupních bodů. V našem testování na reálných kódových základnách:</p>
+
+<ul>
+<li>Laravel aplikace se 47 surovými bezpečnostními nálezy měla pouze 12 s potvrzenou dosažitelností ze vstupních bodů</li>
+<li>Z těchto 12 mělo pouze 5 potvrzený tok hraničního vstupu — to jsou ty, na kterých záleží</li>
+<li>Zbývajících 35 nálezů byly interní nástroje, CLI pomůcky a testovací pomocné třídy — skutečné vzory, ale s minimálním reálným rizikem</li>
+</ul>
+
+<p>Toto je rozdíl mezi nástrojem, který generuje práci, a nástrojem, který práci zaměřuje.</p>
+
+<h2 id="try-it">Vyzkoušejte to</h2>
+
+<p>Bezpečnostní dosažitelnost podložená grafem je součástí každého analytického běhu AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Zkontrolujte <code>.aigiscode/deterministic-findings.json</code> pro nálezy s poli <code>reachability_path</code>, <code>boundary_input_sources</code> a <code>boundary_to_sink_flow</code>. Souhrn <code>.aigiscode/aigiscode-report.json</code> také zahrnuje počty bezpečnostního tlaku rozčleněné podle kontextu dosažitelnosti.</p>
+`,
+      fr: `
+<p>La plupart des outils d'analyse statique signalent les résultats de sécurité comme des avertissements isolés au niveau des lignes : « eval() à la ligne 47 » ou « concaténation de chaînes SQL à la ligne 183. » Le problème ? Sans contexte, ces résultats ne sont que du bruit. Un <code>eval()</code> enfoui dans un helper de test ne représente pas la même menace qu'un appel accessible depuis un point d'entrée HTTP public.</p>
+
+<p>AigisCode comble désormais cette lacune grâce à l'<strong>accessibilité de sécurité basée sur le graphe</strong> — traçant chaque résultat de sécurité à travers le graphe sémantique pour déterminer s'il est réellement accessible depuis les points d'entrée, et si des entrées limites non fiables peuvent y affluer.</p>
+
+<h2 id="the-reachability-problem">Le problème de l'accessibilité</h2>
+
+<p>Les scanners de sécurité traditionnels opèrent au niveau du fichier ou de la fonction. Ils font correspondre des modèles d'appels d'API dangereux et les signalent. Mais la question critique n'est pas « cet appel dangereux existe-t-il ? » — c'est « un attaquant peut-il l'atteindre ? »</p>
+
+<p>Considérez une application PHP avec <code>eval($expression)</code> dans une classe utilitaire. Un scanner traditionnel signale cela comme critique. Mais si cette classe utilitaire n'est appelée que depuis une commande CLI artisan nécessitant un accès SSH administrateur, le risque réel est minimal. En revanche, si ce même <code>eval()</code> se trouve à trois appels de fonction d'une route API publique qui transmet l'entrée utilisateur, c'est une véritable vulnérabilité.</p>
+
+<p>AigisCode répond désormais à cette question automatiquement.</p>
+
+<h2 id="how-it-works">Comment fonctionne l'accessibilité basée sur le graphe</h2>
+
+<p>Lorsque AigisCode trouve un modèle pertinent pour la sécurité (appel d'API dangereux, désérialisation non sécurisée, concaténation SQL brute), il ne s'arrête pas au signalement du résultat. Il parcourt le graphe sémantique en arrière depuis le résultat pour déterminer :</p>
+
+<ol>
+<li><strong>Accessibilité du point d'entrée</strong> — Ce résultat est-il accessible depuis un gestionnaire de route, une action de contrôleur, un point d'entrée API ou un autre point d'entrée ? Le parcours du graphe suit les imports, les appels de fonction et les relations de classes pour tracer le chemin.</li>
+<li><strong>Sources d'entrées limites</strong> — Le fichier contenant le résultat (ou les fichiers qui l'appellent) lit-il des entrées limites non fiables ? Cela inclut <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, les arguments CLI et les accesseurs d'entrée spécifiques au framework.</li>
+<li><strong>Flux de la limite au sink</strong> — Peut-on tracer un chemin concret depuis l'endroit où l'entrée limite entre dans le système jusqu'à l'endroit où l'opération dangereuse s'exécute ?</li>
+</ol>
+
+<h2 id="reachability-paths">Chemins d'accessibilité : des preuves concrètes</h2>
+
+<p>Chaque résultat de sécurité comporte désormais un <strong>chemin d'accessibilité</strong> — une liste de sauts à travers le graphe depuis le point d'entrée jusqu'au résultat. Chaque saut inclut :</p>
+
+<ul>
+<li>Le chemin du fichier et le numéro de ligne</li>
+<li>Les symboles source et cible (noms de fonctions, noms de classes)</li>
+<li>Le type de relation qui les connecte (imports, appels, héritage)</li>
+</ul>
+
+<p>Ce n'est pas une estimation heuristique. Ce sont des arêtes réelles dans le graphe sémantique que AigisCode construit pendant l'analyse. Lorsque le chemin d'accessibilité indique « le gestionnaire de route dans <code>api/users.php:12</code> appelle <code>UserService::process</code> dans <code>services/UserService.php:45</code> qui appelle <code>eval()</code> dans <code>utils/Expression.php:23</code> », chaque saut est soutenu par une relation d'import ou d'appel réelle.</p>
+
+<h2 id="context-aware-severity">Contextes de sécurité sensibles au contexte</h2>
+
+<p>L'analyse d'accessibilité alimente un système de contexte de sécurité plus riche. Les résultats sont désormais étiquetés avec des contextes spécifiques :</p>
+
+<table>
+<thead>
+<tr><th>Contexte</th><th>Signification</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>Le fichier est un point d'entrée connu (route, contrôleur, gestionnaire API)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>Le résultat est accessible depuis un point d'entrée via les arêtes du graphe</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>L'entrée non fiable est lue dans le même fichier que l'opération dangereuse</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>L'entrée non fiable circule à travers le graphe pour atteindre l'opération dangereuse</td></tr>
+</tbody>
+</table>
+
+<p>Un résultat étiqueté à la fois <code>EntryReachableViaGraph</code> et <code>BoundaryInputReachableViaGraph</code> est bien plus grave qu'un résultat sans contexte d'accessibilité. AigisCode utilise cela pour ajuster la sévérité et prioriser les résultats nécessitant une attention immédiate.</p>
+
+<h2 id="boundary-input-detection">Détection des entrées limites</h2>
+
+<p>AigisCode reconnaît les modèles d'entrées limites dans plusieurs langages et frameworks :</p>
+
+<ul>
+<li><strong>PHP</strong> : <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong> : <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong> : <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong> : <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>Lorsqu'une entrée limite est détectée, le résultat reçoit une liste <code>boundary_input_sources</code> avec le type exact (RequestQuery, RequestBody, CliArgument), le fichier, la ligne et la chaîne de preuve. Cela fournit aux réviseurs et aux agents IA des informations précises sur l'endroit où les données non fiables entrent.</p>
+
+<h2 id="flow-steps">Étapes de flux : la vue complète</h2>
+
+<p>Pour les résultats où l'accessibilité du point d'entrée et l'entrée limite sont confirmées, AigisCode construit un <strong>flux de la limite au sink</strong> — un chemin fusionné montrant exactement comment les données circulent de l'entrée au danger :</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — lecture request.body
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — appel eval()
+</code></pre>
+
+<p>Chaque étape est typée comme <code>BoundaryInput</code>, <code>PressureHop</code> ou <code>SinkSite</code>, ce qui la rend trivialement analysable par les systèmes CI et les agents IA. Le flux est borné pour éviter l'explosion sur les grands graphes — AigisCode limite le parcours à une profondeur configurable.</p>
+
+<h2 id="practical-impact">Impact pratique</h2>
+
+<p>Cela change la façon dont les résultats de sécurité sont triés. Au lieu d'examiner chaque <code>eval()</code> dans la base de code, un réviseur (ou un agent IA) peut se concentrer sur ceux ayant des chemins d'accessibilité confirmés depuis les points d'entrée publics. Lors de nos tests sur des bases de code réelles :</p>
+
+<ul>
+<li>Une application Laravel avec 47 résultats de sécurité bruts n'en avait que 12 avec une accessibilité confirmée depuis les points d'entrée</li>
+<li>Parmi ces 12, seuls 5 avaient un flux d'entrée limite confirmé — ce sont ceux qui comptent</li>
+<li>Les 35 résultats restants étaient des utilitaires internes, des outils CLI et des helpers de test — des modèles réels, mais avec un risque réel minimal</li>
+</ul>
+
+<p>C'est la différence entre un outil qui génère du travail et un outil qui concentre le travail.</p>
+
+<h2 id="try-it">Essayez-le</h2>
+
+<p>L'accessibilité de sécurité basée sur le graphe est incluse dans chaque exécution d'analyse AigisCode :</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Consultez <code>.aigiscode/deterministic-findings.json</code> pour les résultats avec les champs <code>reachability_path</code>, <code>boundary_input_sources</code> et <code>boundary_to_sink_flow</code>. Le résumé <code>.aigiscode/aigiscode-report.json</code> inclut également les compteurs de pression de sécurité ventilés par contexte d'accessibilité.</p>
+`,
+      es: `
+<p>La mayoría de las herramientas de análisis estático reportan hallazgos de seguridad como advertencias aisladas a nivel de línea: "eval() en la línea 47" o "concatenación de cadenas SQL en la línea 183." ¿El problema? Sin contexto, estos hallazgos son ruido. Un <code>eval()</code> enterrado en un helper de prueba no representa la misma amenaza que uno accesible desde un punto de entrada HTTP público.</p>
+
+<p>AigisCode ahora cierra esta brecha con la <strong>alcanzabilidad de seguridad respaldada por grafos</strong> — rastreando cada hallazgo de seguridad a través del grafo semántico para determinar si es realmente accesible desde puntos de entrada, y si las entradas de frontera no confiables pueden fluir hacia él.</p>
+
+<h2 id="the-reachability-problem">El problema de la alcanzabilidad</h2>
+
+<p>Los escáneres de seguridad tradicionales operan a nivel de archivo o función. Hacen coincidencia de patrones de llamadas a API peligrosas y las reportan. Pero la pregunta crítica no es "¿existe esta llamada peligrosa?" — es "¿puede un atacante llegar a ella?"</p>
+
+<p>Considere una aplicación PHP con <code>eval($expression)</code> en una clase utilitaria. Un escáner tradicional marca esto como crítico. Pero si esa clase utilitaria solo se llama desde un comando CLI artisan que requiere acceso SSH de administrador, el riesgo real es mínimo. Por el contrario, si ese mismo <code>eval()</code> está a tres llamadas de función de una ruta API pública que pasa la entrada del usuario, es una vulnerabilidad genuina.</p>
+
+<p>AigisCode ahora responde esta pregunta automáticamente.</p>
+
+<h2 id="how-it-works">Cómo funciona la alcanzabilidad respaldada por grafos</h2>
+
+<p>Cuando AigisCode encuentra un patrón relevante para la seguridad (llamada a API peligrosa, deserialización insegura, concatenación SQL sin procesar), no se detiene en reportar el hallazgo. Recorre el grafo semántico hacia atrás desde el hallazgo para determinar:</p>
+
+<ol>
+<li><strong>Alcanzabilidad del punto de entrada</strong> — ¿Es este hallazgo accesible desde un manejador de ruta, una acción de controlador, un punto de entrada API u otro punto de entrada? El recorrido del grafo sigue importaciones, llamadas a funciones y relaciones de clases para trazar la ruta.</li>
+<li><strong>Fuentes de entradas de frontera</strong> — ¿Lee el archivo que contiene el hallazgo (o los archivos que lo llaman) entradas de frontera no confiables? Esto incluye <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, argumentos CLI y accesores de entrada específicos del framework.</li>
+<li><strong>Flujo de frontera a destino</strong> — ¿Podemos trazar una ruta concreta desde donde la entrada de frontera ingresa al sistema hasta donde se ejecuta la operación peligrosa?</li>
+</ol>
+
+<h2 id="reachability-paths">Rutas de alcanzabilidad: evidencia concreta</h2>
+
+<p>Cada hallazgo de seguridad ahora lleva una <strong>ruta de alcanzabilidad</strong> — una lista de saltos a través del grafo desde el punto de entrada hasta el hallazgo. Cada salto incluye:</p>
+
+<ul>
+<li>La ruta del archivo y el número de línea</li>
+<li>Los símbolos de origen y destino (nombres de funciones, nombres de clases)</li>
+<li>El tipo de relación que los conecta (importaciones, llamadas, herencia)</li>
+</ul>
+
+<p>Esto no es una estimación heurística. Son aristas reales en el grafo semántico que AigisCode construye durante el análisis. Cuando la ruta de alcanzabilidad dice "el manejador de ruta en <code>api/users.php:12</code> llama a <code>UserService::process</code> en <code>services/UserService.php:45</code> que llama a <code>eval()</code> en <code>utils/Expression.php:23</code>," cada salto está respaldado por una relación de importación o llamada real.</p>
+
+<h2 id="context-aware-severity">Contextos de seguridad sensibles al contexto</h2>
+
+<p>El análisis de alcanzabilidad alimenta un sistema de contexto de seguridad más rico. Los hallazgos ahora se etiquetan con contextos específicos:</p>
+
+<table>
+<thead>
+<tr><th>Contexto</th><th>Significado</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>El archivo es un punto de entrada conocido (ruta, controlador, manejador API)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>El hallazgo es accesible desde un punto de entrada a través de aristas del grafo</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>La entrada no confiable se lee en el mismo archivo que la operación peligrosa</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>La entrada no confiable fluye a través del grafo para alcanzar la operación peligrosa</td></tr>
+</tbody>
+</table>
+
+<p>Un hallazgo etiquetado tanto con <code>EntryReachableViaGraph</code> como con <code>BoundaryInputReachableViaGraph</code> es mucho más grave que uno sin contexto de alcanzabilidad. AigisCode utiliza esto para ajustar la severidad y priorizar qué hallazgos requieren atención inmediata.</p>
+
+<h2 id="boundary-input-detection">Detección de entradas de frontera</h2>
+
+<p>AigisCode reconoce patrones de entradas de frontera en múltiples lenguajes y frameworks:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>Cuando se detecta una entrada de frontera, el hallazgo recibe una lista <code>boundary_input_sources</code> con el tipo exacto (RequestQuery, RequestBody, CliArgument), archivo, línea y cadena de evidencia. Esto proporciona a los revisores y agentes de IA información precisa sobre dónde entran los datos no confiables.</p>
+
+<h2 id="flow-steps">Pasos de flujo: la imagen completa</h2>
+
+<p>Para hallazgos donde tanto la alcanzabilidad del punto de entrada como la entrada de frontera están confirmadas, AigisCode construye un <strong>flujo de frontera a destino</strong> — una ruta fusionada que muestra exactamente cómo los datos se mueven desde la entrada hasta el peligro:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — lectura request.body
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — llamada eval()
+</code></pre>
+
+<p>Cada paso se tipifica como <code>BoundaryInput</code>, <code>PressureHop</code> o <code>SinkSite</code>, haciéndolo trivialmente analizable por sistemas CI y agentes de IA. El flujo está acotado para prevenir la explosión en grafos grandes — AigisCode limita el recorrido a una profundidad configurable.</p>
+
+<h2 id="practical-impact">Impacto práctico</h2>
+
+<p>Esto cambia cómo se triangulan los hallazgos de seguridad. En lugar de revisar cada <code>eval()</code> en la base de código, un revisor (o un agente de IA) puede enfocarse en los que tienen rutas de alcanzabilidad confirmadas desde puntos de entrada públicos. En nuestras pruebas en bases de código reales:</p>
+
+<ul>
+<li>Una aplicación Laravel con 47 hallazgos de seguridad sin procesar tenía solo 12 con alcanzabilidad confirmada desde puntos de entrada</li>
+<li>De esos 12, solo 5 tenían flujo de entrada de frontera confirmado — estos son los que importan</li>
+<li>Los 35 hallazgos restantes eran utilidades internas, herramientas CLI y helpers de prueba — patrones reales, pero con riesgo real mínimo</li>
+</ul>
+
+<p>Esta es la diferencia entre una herramienta que genera trabajo y una herramienta que enfoca el trabajo.</p>
+
+<h2 id="try-it">Pruébelo</h2>
+
+<p>La alcanzabilidad de seguridad respaldada por grafos está incluida en cada ejecución de análisis de AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Consulte <code>.aigiscode/deterministic-findings.json</code> para hallazgos con los campos <code>reachability_path</code>, <code>boundary_input_sources</code> y <code>boundary_to_sink_flow</code>. El resumen de <code>.aigiscode/aigiscode-report.json</code> también incluye conteos de presión de seguridad desglosados por contexto de alcanzabilidad.</p>
+`,
+      zh: `
+<p>大多数静态分析工具将安全发现报告为孤立的行级警告："第47行的 eval()" 或 "第183行的 SQL 字符串拼接。" 问题在于，没有上下文，这些发现只是噪音。隐藏在测试辅助函数中的 <code>eval()</code> 与可从公共 HTTP 端点到达的 <code>eval()</code> 并不是同一级别的威胁。</p>
+
+<p>AigisCode 现在通过<strong>图驱动安全可达性分析</strong>弥合了这一差距——通过语义图追踪每个安全发现，以确定它是否真正可从入口点到达，以及不受信任的边界输入是否能够流入其中。</p>
+
+<h2 id="the-reachability-problem">可达性问题</h2>
+
+<p>传统的安全扫描器在文件或函数级别运行。它们模式匹配危险的 API 调用并报告它们。但关键问题不是"这个危险调用是否存在？"——而是"攻击者能否到达它？"</p>
+
+<p>考虑一个在工具类中包含 <code>eval($expression)</code> 的 PHP 应用。传统扫描器会将其标记为严重。但如果该工具仅从需要管理员 SSH 访问的 CLI artisan 命令调用，则实际风险很小。相反，如果同一个 <code>eval()</code> 距离传递用户输入的公共 API 路由只有三个函数调用，那它就是一个真正的漏洞。</p>
+
+<p>AigisCode 现在可以自动回答这个问题。</p>
+
+<h2 id="how-it-works">图驱动可达性分析的工作原理</h2>
+
+<p>当 AigisCode 发现与安全相关的模式（危险 API 调用、不安全的反序列化、原始 SQL 拼接）时，它不会止步于报告发现。它会从发现处沿语义图反向遍历，以确定：</p>
+
+<ol>
+<li><strong>入口点可达性</strong> — 该发现是否可从路由处理器、控制器操作、API 端点或其他入口点到达？图遍历沿着导入、函数调用和类关系追踪路径。</li>
+<li><strong>边界输入源</strong> — 包含该发现的文件（或调用它的文件）是否从不受信任的边界输入中读取？这包括 <code>$_GET</code>、<code>$_POST</code>、<code>request.body</code>、<code>request.query</code>、CLI 参数和框架特定的输入访问器。</li>
+<li><strong>边界到汇点的流</strong> — 我们能否追踪从边界输入进入系统到危险操作执行的具体路径？</li>
+</ol>
+
+<h2 id="reachability-paths">可达性路径：具体证据</h2>
+
+<p>每个安全发现现在都携带一个<strong>可达性路径</strong>——从入口点到发现的图中跳转列表。每个跳转包括：</p>
+
+<ul>
+<li>文件路径和行号</li>
+<li>源和目标符号（函数名、类名）</li>
+<li>连接它们的关系类型（导入、调用、继承）</li>
+</ul>
+
+<p>这不是启发式猜测。这些是 AigisCode 在分析过程中构建的语义图中的实际边。当可达性路径显示"<code>api/users.php:12</code> 中的路由处理器调用 <code>services/UserService.php:45</code> 中的 <code>UserService::process</code>，后者调用 <code>utils/Expression.php:23</code> 中的 <code>eval()</code>"时，每个跳转都有真实的导入或调用关系支撑。</p>
+
+<h2 id="context-aware-severity">上下文感知的安全上下文</h2>
+
+<p>可达性分析馈入更丰富的安全上下文系统。发现现在用特定的上下文标记：</p>
+
+<table>
+<thead>
+<tr><th>上下文</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>文件是已知的入口点（路由、控制器、API 处理器）</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>发现可通过图边从入口点到达</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>不受信任的输入与危险操作在同一文件中读取</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>不受信任的输入通过图流向危险操作</td></tr>
+</tbody>
+</table>
+
+<p>同时标记了 <code>EntryReachableViaGraph</code> 和 <code>BoundaryInputReachableViaGraph</code> 的发现比没有可达性上下文的发现严重得多。AigisCode 使用此信息来调整严重性并优先处理需要立即关注的发现。</p>
+
+<h2 id="boundary-input-detection">边界输入检测</h2>
+
+<p>AigisCode 可以识别多种语言和框架的边界输入模式：</p>
+
+<ul>
+<li><strong>PHP</strong>：<code>$_GET</code>、<code>$_POST</code>、<code>$_REQUEST</code>、<code>$request->input()</code>、<code>$request->query()</code></li>
+<li><strong>Python</strong>：<code>request.GET</code>、<code>request.POST</code>、<code>request.json</code>、<code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>：<code>req.body</code>、<code>req.query</code>、<code>req.params</code></li>
+<li><strong>CLI</strong>：<code>sys.argv</code>、<code>process.argv</code>、<code>ARGV</code></li>
+</ul>
+
+<p>检测到边界输入后，发现会收到一个 <code>boundary_input_sources</code> 列表，其中包含确切的类型（RequestQuery、RequestBody、CliArgument）、文件、行号和证据字符串。这为审查者和 AI 代理提供了关于不受信任数据进入位置的精确信息。</p>
+
+<h2 id="flow-steps">流程步骤：全貌</h2>
+
+<p>对于同时确认了入口可达性和边界输入的发现，AigisCode 构建一个<strong>边界到汇点的流</strong>——一个合并的路径，精确显示数据如何从输入流向危险操作：</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>每个步骤都被类型化为 <code>BoundaryInput</code>、<code>PressureHop</code> 或 <code>SinkSite</code>，使其对 CI 系统和 AI 代理来说可以轻松解析。流程有边界限制以防止大型图上的爆炸——AigisCode 将遍历限制在可配置的深度内。</p>
+
+<h2 id="practical-impact">实际影响</h2>
+
+<p>这改变了安全发现的分类方式。审查者（或 AI 代理）可以专注于那些从公共入口点确认了可达性路径的发现，而不是审查代码库中的每个 <code>eval()</code>。在我们对实际代码库的测试中：</p>
+
+<ul>
+<li>一个有47个原始安全发现的 Laravel 应用，只有12个确认了入口点可达性</li>
+<li>在这12个中，只有5个确认了边界输入流——这些才是真正重要的</li>
+<li>其余35个发现是内部工具、CLI 工具和测试辅助函数——真实的模式，但实际风险很小</li>
+</ul>
+
+<p>这就是生成工作的工具和聚焦工作的工具之间的区别。</p>
+
+<h2 id="try-it">试用</h2>
+
+<p>图驱动安全可达性分析包含在每次 AigisCode 分析运行中：</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>查看 <code>.aigiscode/deterministic-findings.json</code> 中带有 <code>reachability_path</code>、<code>boundary_input_sources</code> 和 <code>boundary_to_sink_flow</code> 字段的发现。<code>.aigiscode/aigiscode-report.json</code> 摘要还包含按可达性上下文分类的安全压力计数。</p>
+`,
+      hi: `
+<p>अधिकांश स्टैटिक एनालिसिस टूल सुरक्षा खोजों को अलग-अलग लाइन-लेवल चेतावनियों के रूप में रिपोर्ट करते हैं: "लाइन 47 पर eval()" या "लाइन 183 पर SQL स्ट्रिंग कॉन्कैटनेशन।" समस्या? संदर्भ के बिना, ये खोजें शोर हैं। टेस्ट हेल्पर में छिपा हुआ <code>eval()</code> उतना खतरा नहीं है जितना कि पब्लिक HTTP एंडपॉइंट से पहुंच योग्य।</p>
+
+<p>AigisCode अब <strong>ग्राफ़-आधारित सुरक्षा रीचैबिलिटी</strong> के साथ इस अंतर को पाटता है — हर सुरक्षा खोज को सिमेंटिक ग्राफ़ के माध्यम से ट्रेस करके यह निर्धारित करता है कि क्या यह वास्तव में एंट्री पॉइंट से पहुंच योग्य है, और क्या अविश्वसनीय बाउंड्री इनपुट इसमें प्रवाहित हो सकते हैं।</p>
+
+<h2 id="the-reachability-problem">रीचैबिलिटी समस्या</h2>
+
+<p>पारंपरिक सुरक्षा स्कैनर फ़ाइल या फ़ंक्शन स्तर पर काम करते हैं। वे खतरनाक API कॉल को पैटर्न-मैच करते हैं और उन्हें रिपोर्ट करते हैं। लेकिन महत्वपूर्ण सवाल यह नहीं है कि "क्या यह खतरनाक कॉल मौजूद है?" — बल्कि यह है कि "क्या कोई हमलावर इसतक पहुंच सकता है?"</p>
+
+<p>एक PHP एप्लिकेशन पर विचार करें जिसमें एक यूटिलिटी क्लास में <code>eval($expression)</code> है। एक पारंपरिक स्कैनर इसे क्रिटिकल के रूप में फ़्लैग करता है। लेकिन अगर वह यूटिलिटी केवल एक CLI artisan कमांड से कॉल होती है जिसके लिए एडमिन SSH एक्सेस चाहिए, तो वास्तविक जोखिम न्यूनतम है। इसके विपरीत, अगर वही <code>eval()</code> एक पब्लिक API रूट से सिर्फ तीन फ़ंक्शन कॉल दूर है जो यूज़र इनपुट पास करता है, तो यह एक वास्तविक भेद्यता है।</p>
+
+<p>AigisCode अब इस सवाल का स्वचालित रूप से उत्तर देता है।</p>
+
+<h2 id="how-it-works">ग्राफ़-आधारित रीचैबिलिटी कैसे काम करती है</h2>
+
+<p>जब AigisCode एक सुरक्षा-संबंधित पैटर्न पाता है (खतरनाक API कॉल, असुरक्षित डीसीरियलाइज़ेशन, रॉ SQL कॉन्कैटनेशन), तो यह केवल खोज की रिपोर्ट करने पर नहीं रुकता। यह खोज से सिमेंटिक ग्राफ़ में पीछे की ओर चलता है ताकि यह निर्धारित कर सके:</p>
+
+<ol>
+<li><strong>एंट्री पॉइंट रीचैबिलिटी</strong> — क्या यह खोज रूट हैंडलर, कंट्रोलर एक्शन, API एंडपॉइंट, या अन्य एंट्री पॉइंट से पहुंच योग्य है? ग्राफ़ वॉक इम्पोर्ट, फ़ंक्शन कॉल और क्लास संबंधों का अनुसरण करके पथ ट्रेस करता है।</li>
+<li><strong>बाउंड्री इनपुट स्रोत</strong> — क्या खोज वाली फ़ाइल (या इसे कॉल करने वाली फ़ाइलें) अविश्वसनीय बाउंड्री इनपुट से पढ़ती हैं? इसमें <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, CLI आर्गुमेंट और फ़्रेमवर्क-विशिष्ट इनपुट एक्सेसर शामिल हैं।</li>
+<li><strong>बाउंड्री-टू-सिंक फ़्लो</strong> — क्या हम बाउंड्री इनपुट के सिस्टम में प्रवेश करने से लेकर खतरनाक ऑपरेशन के निष्पादन तक एक ठोस पथ ट्रेस कर सकते हैं?</li>
+</ol>
+
+<h2 id="reachability-paths">रीचैबिलिटी पथ: ठोस साक्ष्य</h2>
+
+<p>प्रत्येक सुरक्षा खोज अब एक <strong>रीचैबिलिटी पथ</strong> रखती है — एंट्री पॉइंट से खोज तक ग्राफ़ में हॉप की एक सूची। प्रत्येक हॉप में शामिल है:</p>
+
+<ul>
+<li>फ़ाइल पथ और लाइन नंबर</li>
+<li>सोर्स और टार्गेट सिंबल (फ़ंक्शन नाम, क्लास नाम)</li>
+<li>उन्हें जोड़ने वाला रिलेशन टाइप (इम्पोर्ट, कॉल, इनहेरिट)</li>
+</ul>
+
+<p>यह कोई ह्यूरिस्टिक अनुमान नहीं है। ये AigisCode द्वारा विश्लेषण के दौरान बनाए गए सिमेंटिक ग्राफ़ में वास्तविक एज हैं। जब रीचैबिलिटी पथ कहता है "<code>api/users.php:12</code> में रूट हैंडलर <code>services/UserService.php:45</code> में <code>UserService::process</code> को कॉल करता है जो <code>utils/Expression.php:23</code> में <code>eval()</code> को कॉल करता है," तो हर हॉप एक वास्तविक इम्पोर्ट या कॉल संबंध द्वारा समर्थित है।</p>
+
+<h2 id="context-aware-severity">संदर्भ-जागरूक सुरक्षा संदर्भ</h2>
+
+<p>रीचैबिलिटी विश्लेषण एक समृद्ध सुरक्षा संदर्भ प्रणाली में फीड करता है। खोजों को अब विशिष्ट संदर्भों के साथ टैग किया जाता है:</p>
+
+<table>
+<thead>
+<tr><th>संदर्भ</th><th>अर्थ</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>फ़ाइल एक ज्ञात एंट्री पॉइंट है (रूट, कंट्रोलर, API हैंडलर)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>खोज ग्राफ़ एज के माध्यम से एंट्री पॉइंट से पहुंच योग्य है</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>अविश्वसनीय इनपुट उसी फ़ाइल में पढ़ा जाता है जहां खतरनाक ऑपरेशन है</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>अविश्वसनीय इनपुट ग्राफ़ के माध्यम से खतरनाक ऑपरेशन तक पहुंचता है</td></tr>
+</tbody>
+</table>
+
+<p><code>EntryReachableViaGraph</code> और <code>BoundaryInputReachableViaGraph</code> दोनों के साथ टैग की गई खोज बिना रीचैबिलिटी संदर्भ वाली खोज से कहीं अधिक गंभीर है। AigisCode इसका उपयोग गंभीरता को समायोजित करने और यह प्राथमिकता तय करने के लिए करता है कि किन खोजों पर तत्काल ध्यान देने की आवश्यकता है।</p>
+
+<h2 id="boundary-input-detection">बाउंड्री इनपुट डिटेक्शन</h2>
+
+<p>AigisCode कई भाषाओं और फ़्रेमवर्क में बाउंड्री इनपुट पैटर्न को पहचानता है:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>जब बाउंड्री इनपुट का पता चलता है, तो खोज को एक <code>boundary_input_sources</code> सूची प्राप्त होती है जिसमें सटीक प्रकार (RequestQuery, RequestBody, CliArgument), फ़ाइल, लाइन और एविडेंस स्ट्रिंग होती है। यह समीक्षकों और AI एजेंटों को अविश्वसनीय डेटा कहां प्रवेश करता है इसकी सटीक जानकारी देता है।</p>
+
+<h2 id="flow-steps">फ़्लो स्टेप्स: पूरी तस्वीर</h2>
+
+<p>उन खोजों के लिए जहां एंट्री रीचैबिलिटी और बाउंड्री इनपुट दोनों की पुष्टि हो जाती है, AigisCode एक <strong>बाउंड्री-टू-सिंक फ़्लो</strong> बनाता है — एक मर्ज किया गया पथ जो दिखाता है कि डेटा इनपुट से खतरे तक कैसे जाता है:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>प्रत्येक स्टेप को <code>BoundaryInput</code>, <code>PressureHop</code>, या <code>SinkSite</code> के रूप में टाइप किया गया है, जिससे CI सिस्टम और AI एजेंट आसानी से पार्स कर सकते हैं। फ़्लो बड़े ग्राफ़ पर विस्फोट को रोकने के लिए सीमित है — AigisCode वॉक को कॉन्फ़िगर करने योग्य गहराई पर सीमित करता है।</p>
+
+<h2 id="practical-impact">व्यावहारिक प्रभाव</h2>
+
+<p>यह सुरक्षा खोजों की ट्रायेज प्रक्रिया को बदल देता है। कोडबेस में हर <code>eval()</code> की समीक्षा करने के बजाय, एक समीक्षक (या AI एजेंट) उन पर ध्यान केंद्रित कर सकता है जिनके पास पब्लिक एंट्री पॉइंट से पुष्टि की गई रीचैबिलिटी पथ हैं। वास्तविक कोडबेस पर हमारे परीक्षण में:</p>
+
+<ul>
+<li>47 रॉ सुरक्षा खोजों वाले एक Laravel एप्लिकेशन में केवल 12 में पुष्टि की गई एंट्री-पॉइंट रीचैबिलिटी थी</li>
+<li>उन 12 में से केवल 5 में पुष्टि किया गया बाउंड्री इनपुट फ़्लो था — ये वे हैं जो मायने रखते हैं</li>
+<li>शेष 35 खोजें आंतरिक यूटिलिटी, CLI टूल और टेस्ट हेल्पर थीं — वास्तविक पैटर्न, लेकिन न्यूनतम वास्तविक जोखिम</li>
+</ul>
+
+<p>यह उस टूल के बीच का अंतर है जो काम पैदा करता है और उस टूल के बीच का अंतर है जो काम को केंद्रित करता है।</p>
+
+<h2 id="try-it">इसे आज़माएं</h2>
+
+<p>ग्राफ़-आधारित सुरक्षा रीचैबिलिटी हर AigisCode विश्लेषण रन में शामिल है:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p><code>.aigiscode/deterministic-findings.json</code> में <code>reachability_path</code>, <code>boundary_input_sources</code>, और <code>boundary_to_sink_flow</code> फ़ील्ड वाली खोजें देखें। <code>.aigiscode/aigiscode-report.json</code> सारांश में रीचैबिलिटी संदर्भ के आधार पर विभाजित सुरक्षा दबाव गणना भी शामिल है।</p>
+`,
+      pt: `
+<p>A maioria das ferramentas de análise estática reporta descobertas de segurança como avisos isolados no nível de linha: "eval() na linha 47" ou "concatenação de string SQL na linha 183." O problema? Sem contexto, essas descobertas são ruído. Um <code>eval()</code> enterrado em um auxiliar de teste não representa a mesma ameaça que um acessível a partir de um endpoint HTTP público.</p>
+
+<p>O AigisCode agora preenche essa lacuna com <strong>alcançabilidade de segurança baseada em grafos</strong> — rastreando cada descoberta de segurança através do grafo semântico para determinar se ela é realmente acessível a partir de pontos de entrada, e se entradas de fronteira não confiáveis podem fluir para ela.</p>
+
+<h2 id="the-reachability-problem">O Problema da Alcançabilidade</h2>
+
+<p>Scanners de segurança tradicionais operam no nível de arquivo ou função. Eles fazem correspondência de padrões de chamadas de API perigosas e as reportam. Mas a questão crítica não é "essa chamada perigosa existe?" — é "um atacante pode alcançá-la?"</p>
+
+<p>Considere uma aplicação PHP com <code>eval($expression)</code> em uma classe utilitária. Um scanner tradicional marca isso como crítico. Mas se essa utilidade é chamada apenas a partir de um comando CLI artisan que requer acesso SSH de administrador, o risco real é mínimo. Por outro lado, se o mesmo <code>eval()</code> está a três chamadas de função de uma rota de API pública que passa entrada do usuário, é uma vulnerabilidade genuína.</p>
+
+<p>O AigisCode agora responde a essa pergunta automaticamente.</p>
+
+<h2 id="how-it-works">Como Funciona a Alcançabilidade Baseada em Grafos</h2>
+
+<p>Quando o AigisCode encontra um padrão relevante para segurança (chamada de API perigosa, desserialização insegura, concatenação SQL bruta), ele não para na reportagem da descoberta. Ele percorre o grafo semântico de volta a partir da descoberta para determinar:</p>
+
+<ol>
+<li><strong>Alcançabilidade do ponto de entrada</strong> — Esta descoberta é acessível a partir de um manipulador de rota, ação de controlador, endpoint de API ou outro ponto de entrada? A travessia do grafo segue importações, chamadas de função e relacionamentos de classe para rastrear o caminho.</li>
+<li><strong>Fontes de entrada de fronteira</strong> — O arquivo contendo a descoberta (ou arquivos que o chamam) lê de entradas de fronteira não confiáveis? Isso inclui <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, argumentos CLI e acessores de entrada específicos do framework.</li>
+<li><strong>Fluxo de fronteira até o destino</strong> — Podemos rastrear um caminho concreto de onde a entrada de fronteira entra no sistema até onde a operação perigosa é executada?</li>
+</ol>
+
+<h2 id="reachability-paths">Caminhos de Alcançabilidade: Evidência Concreta</h2>
+
+<p>Cada descoberta de segurança agora carrega um <strong>caminho de alcançabilidade</strong> — uma lista de saltos através do grafo desde o ponto de entrada até a descoberta. Cada salto inclui:</p>
+
+<ul>
+<li>O caminho do arquivo e número da linha</li>
+<li>Os símbolos de origem e destino (nomes de funções, nomes de classes)</li>
+<li>O tipo de relação que os conecta (importações, chamadas, herança)</li>
+</ul>
+
+<p>Isso não é uma suposição heurística. São arestas reais no grafo semântico que o AigisCode constrói durante a análise. Quando o caminho de alcançabilidade diz "manipulador de rota em <code>api/users.php:12</code> chama <code>UserService::process</code> em <code>services/UserService.php:45</code> que chama <code>eval()</code> em <code>utils/Expression.php:23</code>," cada salto é sustentado por uma relação real de importação ou chamada.</p>
+
+<h2 id="context-aware-severity">Contextos de Segurança Sensíveis ao Contexto</h2>
+
+<p>A análise de alcançabilidade alimenta um sistema de contexto de segurança mais rico. As descobertas agora são marcadas com contextos específicos:</p>
+
+<table>
+<thead>
+<tr><th>Contexto</th><th>Significado</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>O arquivo é um ponto de entrada conhecido (rota, controlador, manipulador de API)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>A descoberta é acessível a partir de um ponto de entrada através das arestas do grafo</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>Entrada não confiável é lida no mesmo arquivo da operação perigosa</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>Entrada não confiável flui através do grafo até a operação perigosa</td></tr>
+</tbody>
+</table>
+
+<p>Uma descoberta marcada com <code>EntryReachableViaGraph</code> e <code>BoundaryInputReachableViaGraph</code> é muito mais grave do que uma sem contexto de alcançabilidade. O AigisCode usa isso para ajustar a severidade e priorizar quais descobertas exigem atenção imediata.</p>
+
+<h2 id="boundary-input-detection">Detecção de Entrada de Fronteira</h2>
+
+<p>O AigisCode reconhece padrões de entrada de fronteira em múltiplas linguagens e frameworks:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>Quando uma entrada de fronteira é detectada, a descoberta recebe uma lista <code>boundary_input_sources</code> com o tipo exato (RequestQuery, RequestBody, CliArgument), arquivo, linha e string de evidência. Isso fornece aos revisores e agentes de IA informações precisas sobre onde os dados não confiáveis entram.</p>
+
+<h2 id="flow-steps">Etapas de Fluxo: A Visão Completa</h2>
+
+<p>Para descobertas onde tanto a alcançabilidade de entrada quanto a entrada de fronteira são confirmadas, o AigisCode constrói um <strong>fluxo de fronteira até o destino</strong> — um caminho mesclado mostrando exatamente como os dados se movem da entrada até o perigo:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>Cada etapa é tipada como <code>BoundaryInput</code>, <code>PressureHop</code> ou <code>SinkSite</code>, tornando-a trivialmente analisável por sistemas de CI e agentes de IA. O fluxo é limitado para evitar explosão em grafos grandes — o AigisCode limita a travessia a uma profundidade configurável.</p>
+
+<h2 id="practical-impact">Impacto Prático</h2>
+
+<p>Isso muda a forma como as descobertas de segurança são triadas. Em vez de revisar cada <code>eval()</code> na base de código, um revisor (ou agente de IA) pode se concentrar naqueles com caminhos de alcançabilidade confirmados a partir de pontos de entrada públicos. Em nossos testes com bases de código reais:</p>
+
+<ul>
+<li>Uma aplicação Laravel com 47 descobertas de segurança brutas tinha apenas 12 com alcançabilidade confirmada ao ponto de entrada</li>
+<li>Dessas 12, apenas 5 tinham fluxo de entrada de fronteira confirmado — estas são as que importam</li>
+<li>As 35 descobertas restantes eram utilitários internos, ferramentas CLI e auxiliares de teste — padrões reais, mas com risco mínimo no mundo real</li>
+</ul>
+
+<p>Esta é a diferença entre uma ferramenta que gera trabalho e uma ferramenta que foca o trabalho.</p>
+
+<h2 id="try-it">Experimente</h2>
+
+<p>A alcançabilidade de segurança baseada em grafos está incluída em cada execução de análise do AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Verifique <code>.aigiscode/deterministic-findings.json</code> para descobertas com campos <code>reachability_path</code>, <code>boundary_input_sources</code> e <code>boundary_to_sink_flow</code>. O resumo do <code>.aigiscode/aigiscode-report.json</code> também inclui contagens de pressão de segurança divididas por contexto de alcançabilidade.</p>
+`,
+      ar: `
+<p>تُبلّغ معظم أدوات التحليل الثابت عن نتائج الأمان كتحذيرات معزولة على مستوى السطر: "eval()‎ في السطر 47" أو "تجميع سلاسل SQL في السطر 183." المشكلة؟ بدون سياق، تكون هذه النتائج مجرد ضوضاء. فدالة <code>eval()</code> المدفونة في مساعد اختبار ليست نفس التهديد الذي تمثله واحدة يمكن الوصول إليها من نقطة نهاية HTTP عامة.</p>
+
+<p>يسدّ AigisCode الآن هذه الفجوة من خلال <strong>قابلية الوصول الأمنية المدعومة بالرسم البياني</strong> — حيث يتتبع كل نتيجة أمنية عبر الرسم البياني الدلالي لتحديد ما إذا كان يمكن الوصول إليها فعلاً من نقاط الدخول، وما إذا كانت المدخلات الحدودية غير الموثوقة يمكن أن تتدفق إليها.</p>
+
+<h2 id="the-reachability-problem">مشكلة قابلية الوصول</h2>
+
+<p>تعمل الماسحات الأمنية التقليدية على مستوى الملف أو الدالة. تطابق أنماط استدعاءات API الخطيرة وتبلّغ عنها. لكن السؤال الحاسم ليس "هل يوجد هذا الاستدعاء الخطير؟" — بل "هل يستطيع المهاجم الوصول إليه؟"</p>
+
+<p>خذ بعين الاعتبار تطبيق PHP يحتوي على <code>eval($expression)</code> في فئة أدوات مساعدة. يُعلّمه ماسح تقليدي كحرج. لكن إذا كانت هذه الأداة تُستدعى فقط من أمر artisan في سطر الأوامر يتطلب وصول SSH كمسؤول، فإن الخطر الفعلي ضئيل. على العكس، إذا كانت نفس <code>eval()</code> على بُعد ثلاث استدعاءات دوال من مسار API عام يمرر مدخلات المستخدم، فهي ثغرة حقيقية.</p>
+
+<p>يجيب AigisCode الآن على هذا السؤال تلقائياً.</p>
+
+<h2 id="how-it-works">كيف تعمل قابلية الوصول المدعومة بالرسم البياني</h2>
+
+<p>عندما يجد AigisCode نمطاً ذا صلة بالأمان (استدعاء API خطير، إلغاء تسلسل غير آمن، تجميع SQL خام)، لا يتوقف عند الإبلاغ عن النتيجة. بل يمشي في الرسم البياني الدلالي عكسياً من النتيجة لتحديد:</p>
+
+<ol>
+<li><strong>قابلية الوصول من نقطة الدخول</strong> — هل يمكن الوصول إلى هذه النتيجة من معالج مسار، أو إجراء تحكم، أو نقطة نهاية API، أو نقطة دخول أخرى؟ يتبع المشي في الرسم البياني الاستيرادات واستدعاءات الدوال وعلاقات الفئات لتتبع المسار.</li>
+<li><strong>مصادر المدخلات الحدودية</strong> — هل يقرأ الملف الذي يحتوي على النتيجة (أو الملفات التي تستدعيه) من مدخلات حدودية غير موثوقة؟ يشمل ذلك <code>$_GET</code> و<code>$_POST</code> و<code>request.body</code> و<code>request.query</code> ووسائط سطر الأوامر وموصلات المدخلات الخاصة بالإطار.</li>
+<li><strong>تدفق الحدود إلى المصرف</strong> — هل يمكننا تتبع مسار ملموس من حيث يدخل المدخل الحدودي النظام إلى حيث تُنفّذ العملية الخطيرة؟</li>
+</ol>
+
+<h2 id="reachability-paths">مسارات قابلية الوصول: أدلة ملموسة</h2>
+
+<p>تحمل كل نتيجة أمنية الآن <strong>مسار قابلية وصول</strong> — قائمة بالقفزات عبر الرسم البياني من نقطة الدخول إلى النتيجة. تتضمن كل قفزة:</p>
+
+<ul>
+<li>مسار الملف ورقم السطر</li>
+<li>الرموز المصدر والهدف (أسماء الدوال، أسماء الفئات)</li>
+<li>نوع العلاقة التي تربطها (استيرادات، استدعاءات، وراثة)</li>
+</ul>
+
+<p>هذا ليس تخميناً إرشادياً. هذه حواف فعلية في الرسم البياني الدلالي الذي يبنيه AigisCode أثناء التحليل. عندما يقول مسار قابلية الوصول "معالج المسار في <code>api/users.php:12</code> يستدعي <code>UserService::process</code> في <code>services/UserService.php:45</code> الذي يستدعي <code>eval()</code> في <code>utils/Expression.php:23</code>"، كل قفزة مدعومة بعلاقة استيراد أو استدعاء حقيقية.</p>
+
+<h2 id="context-aware-severity">سياقات أمنية مدركة للسياق</h2>
+
+<p>يغذي تحليل قابلية الوصول نظام سياق أمني أغنى. يتم تمييز النتائج الآن بسياقات محددة:</p>
+
+<table>
+<thead>
+<tr><th>السياق</th><th>المعنى</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>الملف هو نقطة دخول معروفة (مسار، تحكم، معالج API)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>يمكن الوصول إلى النتيجة من نقطة دخول عبر حواف الرسم البياني</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>يُقرأ المدخل غير الموثوق في نفس الملف الذي يحتوي على العملية الخطيرة</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>يتدفق المدخل غير الموثوق عبر الرسم البياني للوصول إلى العملية الخطيرة</td></tr>
+</tbody>
+</table>
+
+<p>النتيجة المُعلّمة بكل من <code>EntryReachableViaGraph</code> و<code>BoundaryInputReachableViaGraph</code> أخطر بكثير من نتيجة بدون سياق قابلية وصول. يستخدم AigisCode هذا لضبط الخطورة وترتيب أولويات النتائج التي تتطلب اهتماماً فورياً.</p>
+
+<h2 id="boundary-input-detection">كشف المدخلات الحدودية</h2>
+
+<p>يتعرف AigisCode على أنماط المدخلات الحدودية عبر لغات وأُطر متعددة:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>، <code>$_POST</code>، <code>$_REQUEST</code>، <code>$request->input()</code>، <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>، <code>request.POST</code>، <code>request.json</code>، <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>، <code>req.query</code>، <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>، <code>process.argv</code>، <code>ARGV</code></li>
+</ul>
+
+<p>عند اكتشاف مدخل حدودي، تتلقى النتيجة قائمة <code>boundary_input_sources</code> بالنوع الدقيق (RequestQuery، RequestBody، CliArgument)، والملف، والسطر، وسلسلة الأدلة. يوفر هذا للمراجعين ووكلاء الذكاء الاصطناعي معلومات دقيقة حول مكان دخول البيانات غير الموثوقة.</p>
+
+<h2 id="flow-steps">خطوات التدفق: الصورة الكاملة</h2>
+
+<p>بالنسبة للنتائج التي تم تأكيد كل من قابلية الوصول من نقطة الدخول والمدخلات الحدودية فيها، يبني AigisCode <strong>تدفقاً من الحدود إلى المصرف</strong> — مساراً مدمجاً يُظهر بالضبط كيف تنتقل البيانات من المدخل إلى الخطر:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>كل خطوة مصنّفة كـ <code>BoundaryInput</code> أو <code>PressureHop</code> أو <code>SinkSite</code>، مما يجعلها قابلة للتحليل بسهولة بواسطة أنظمة CI ووكلاء الذكاء الاصطناعي. التدفق محدود لمنع الانفجار على الرسوم البيانية الكبيرة — يحدّ AigisCode المشي عند عمق قابل للتكوين.</p>
+
+<h2 id="practical-impact">التأثير العملي</h2>
+
+<p>يغيّر هذا كيفية فرز النتائج الأمنية. بدلاً من مراجعة كل <code>eval()</code> في قاعدة الكود، يمكن للمراجع (أو وكيل الذكاء الاصطناعي) التركيز على تلك التي لديها مسارات قابلية وصول مؤكدة من نقاط الدخول العامة. في اختباراتنا على قواعد كود حقيقية:</p>
+
+<ul>
+<li>تطبيق Laravel يحتوي على 47 نتيجة أمنية خام كان لديه فقط 12 مع قابلية وصول مؤكدة من نقطة دخول</li>
+<li>من تلك الـ 12، فقط 5 كان لديها تدفق مدخلات حدودية مؤكد — هذه هي التي تهم</li>
+<li>النتائج الـ 35 المتبقية كانت أدوات مساعدة داخلية وأدوات سطر أوامر ومساعدات اختبار — أنماط حقيقية، لكن بأقل خطر في العالم الحقيقي</li>
+</ul>
+
+<p>هذا هو الفرق بين أداة تولّد عملاً وأداة تركّز العمل.</p>
+
+<h2 id="try-it">جرّبه</h2>
+
+<p>قابلية الوصول الأمنية المدعومة بالرسم البياني مُضمّنة في كل تحليل يُجريه AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>تحقق من <code>.aigiscode/deterministic-findings.json</code> للنتائج التي تحتوي على حقول <code>reachability_path</code> و<code>boundary_input_sources</code> و<code>boundary_to_sink_flow</code>. يتضمن ملخص <code>.aigiscode/aigiscode-report.json</code> أيضاً أعداد ضغط الأمان مقسّمة حسب سياق قابلية الوصول.</p>
+`,
+      pl: `
+<p>Większość narzędzi do analizy statycznej raportuje wyniki bezpieczeństwa jako izolowane ostrzeżenia na poziomie linii: "eval() w linii 47" lub "konkatenacja ciągów SQL w linii 183." Problem? Bez kontekstu te wyniki to szum. Wywołanie <code>eval()</code> ukryte w helperze testowym nie jest tym samym zagrożeniem co takie, które jest osiągalne z publicznego punktu końcowego HTTP.</p>
+
+<p>AigisCode teraz wypełnia tę lukę dzięki <strong>osiągalności bezpieczeństwa opartej na grafie</strong> — śledząc każdy wynik bezpieczeństwa przez graf semantyczny, aby określić, czy jest on faktycznie osiągalny z punktów wejścia i czy niezaufane dane wejściowe graniczne mogą do niego przepłynąć.</p>
+
+<h2 id="the-reachability-problem">Problem osiągalności</h2>
+
+<p>Tradycyjne skanery bezpieczeństwa działają na poziomie pliku lub funkcji. Dopasowują wzorce niebezpiecznych wywołań API i raportują je. Ale kluczowe pytanie nie brzmi "czy to niebezpieczne wywołanie istnieje?" — lecz "czy atakujący może do niego dotrzeć?"</p>
+
+<p>Rozważmy aplikację PHP z <code>eval($expression)</code> w klasie narzędziowej. Tradycyjny skaner oznacza to jako krytyczne. Ale jeśli ta klasa jest wywoływana tylko z polecenia artisan CLI wymagającego dostępu SSH jako administrator, rzeczywiste ryzyko jest minimalne. Z drugiej strony, jeśli ten sam <code>eval()</code> jest trzy wywołania funkcji od publicznej trasy API, która przekazuje dane użytkownika, jest to prawdziwa luka w zabezpieczeniach.</p>
+
+<p>AigisCode teraz odpowiada na to pytanie automatycznie.</p>
+
+<h2 id="how-it-works">Jak działa osiągalność oparta na grafie</h2>
+
+<p>Gdy AigisCode znajdzie wzorzec związany z bezpieczeństwem (niebezpieczne wywołanie API, niebezpieczna deserializacja, surowa konkatenacja SQL), nie kończy na raportowaniu wyniku. Przechodzi graf semantyczny wstecz od wyniku, aby określić:</p>
+
+<ol>
+<li><strong>Osiągalność z punktu wejścia</strong> — Czy ten wynik jest osiągalny z handlera trasy, akcji kontrolera, punktu końcowego API lub innego punktu wejścia? Przechodzenie grafu śledzi importy, wywołania funkcji i relacje klas, aby prześledzić ścieżkę.</li>
+<li><strong>Źródła danych wejściowych granicznych</strong> — Czy plik zawierający wynik (lub pliki go wywołujące) czyta z niezaufanych danych wejściowych granicznych? Obejmuje to <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, argumenty CLI i specyficzne dla frameworka akcesory danych wejściowych.</li>
+<li><strong>Przepływ od granicy do ujścia</strong> — Czy możemy prześledzić konkretną ścieżkę od miejsca, gdzie dane wejściowe graniczne wchodzą do systemu, do miejsca, gdzie wykonywana jest niebezpieczna operacja?</li>
+</ol>
+
+<h2 id="reachability-paths">Ścieżki osiągalności: konkretne dowody</h2>
+
+<p>Każdy wynik bezpieczeństwa zawiera teraz <strong>ścieżkę osiągalności</strong> — listę skoków przez graf od punktu wejścia do wyniku. Każdy skok zawiera:</p>
+
+<ul>
+<li>Ścieżkę pliku i numer linii</li>
+<li>Symbole źródłowe i docelowe (nazwy funkcji, nazwy klas)</li>
+<li>Typ relacji łączącej je (importy, wywołania, dziedziczenie)</li>
+</ul>
+
+<p>To nie jest heurystyczne zgadywanie. To rzeczywiste krawędzie w grafie semantycznym, który AigisCode buduje podczas analizy. Gdy ścieżka osiągalności mówi "handler trasy w <code>api/users.php:12</code> wywołuje <code>UserService::process</code> w <code>services/UserService.php:45</code>, który wywołuje <code>eval()</code> w <code>utils/Expression.php:23</code>", każdy skok jest poparty prawdziwą relacją importu lub wywołania.</p>
+
+<h2 id="context-aware-severity">Kontekstowe konteksty bezpieczeństwa</h2>
+
+<p>Analiza osiągalności zasila bogatszy system kontekstów bezpieczeństwa. Wyniki są teraz tagowane konkretnymi kontekstami:</p>
+
+<table>
+<thead>
+<tr><th>Kontekst</th><th>Znaczenie</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>Plik jest znanym punktem wejścia (trasa, kontroler, handler API)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>Wynik jest osiągalny z punktu wejścia przez krawędzie grafu</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>Niezaufane dane wejściowe są odczytywane w tym samym pliku co niebezpieczna operacja</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>Niezaufane dane wejściowe przepływają przez graf, aby dotrzeć do niebezpiecznej operacji</td></tr>
+</tbody>
+</table>
+
+<p>Wynik otagowany zarówno <code>EntryReachableViaGraph</code>, jak i <code>BoundaryInputReachableViaGraph</code> jest znacznie poważniejszy niż wynik bez kontekstu osiągalności. AigisCode wykorzystuje to do dostosowania ważności i ustalenia priorytetów wyników wymagających natychmiastowej uwagi.</p>
+
+<h2 id="boundary-input-detection">Wykrywanie danych wejściowych granicznych</h2>
+
+<p>AigisCode rozpoznaje wzorce danych wejściowych granicznych w wielu językach i frameworkach:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>Po wykryciu danych wejściowych granicznych wynik otrzymuje listę <code>boundary_input_sources</code> z dokładnym rodzajem (RequestQuery, RequestBody, CliArgument), plikiem, linią i ciągiem dowodowym. Daje to recenzentom i agentom AI precyzyjne informacje o tym, gdzie niezaufane dane wchodzą do systemu.</p>
+
+<h2 id="flow-steps">Kroki przepływu: pełny obraz</h2>
+
+<p>Dla wyników, w których potwierdzono zarówno osiągalność z punktu wejścia, jak i dane wejściowe graniczne, AigisCode konstruuje <strong>przepływ od granicy do ujścia</strong> — scaloną ścieżkę pokazującą dokładnie, jak dane przemieszczają się od wejścia do zagrożenia:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>Każdy krok jest typowany jako <code>BoundaryInput</code>, <code>PressureHop</code> lub <code>SinkSite</code>, co czyni go trywialnie parsowalnym przez systemy CI i agentów AI. Przepływ jest ograniczony, aby zapobiec eksplozji na dużych grafach — AigisCode limituje przechodzenie do konfigurowalnej głębokości.</p>
+
+<h2 id="practical-impact">Praktyczny wpływ</h2>
+
+<p>To zmienia sposób triażu wyników bezpieczeństwa. Zamiast przeglądać każdy <code>eval()</code> w bazie kodu, recenzent (lub agent AI) może skupić się na tych z potwierdzonymi ścieżkami osiągalności z publicznych punktów wejścia. W naszych testach na rzeczywistych bazach kodu:</p>
+
+<ul>
+<li>Aplikacja Laravel z 47 surowymi wynikami bezpieczeństwa miała tylko 12 z potwierdzoną osiągalnością z punktu wejścia</li>
+<li>Z tych 12 tylko 5 miało potwierdzony przepływ danych wejściowych granicznych — to są te, które się liczą</li>
+<li>Pozostałe 35 wyników to wewnętrzne narzędzia, narzędzia CLI i helpery testowe — prawdziwe wzorce, ale minimalne ryzyko w świecie rzeczywistym</li>
+</ul>
+
+<p>To jest różnica między narzędziem, które generuje pracę, a narzędziem, które koncentruje pracę.</p>
+
+<h2 id="try-it">Wypróbuj</h2>
+
+<p>Osiągalność bezpieczeństwa oparta na grafie jest dołączona do każdego uruchomienia analizy AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Sprawdź <code>.aigiscode/deterministic-findings.json</code> pod kątem wyników z polami <code>reachability_path</code>, <code>boundary_input_sources</code> i <code>boundary_to_sink_flow</code>. Podsumowanie <code>.aigiscode/aigiscode-report.json</code> zawiera również liczby presji bezpieczeństwa w podziale na kontekst osiągalności.</p>
+`,
+      bn: `
+<p>বেশিরভাগ স্ট্যাটিক অ্যানালাইসিস টুল নিরাপত্তা ফলাফলকে বিচ্ছিন্ন লাইন-লেভেল সতর্কতা হিসাবে রিপোর্ট করে: "eval() লাইন 47-এ" বা "SQL স্ট্রিং কনক্যাটেনেশন লাইন 183-এ।" সমস্যা? প্রসঙ্গ ছাড়া, এই ফলাফলগুলো শুধু গোলমাল। একটি টেস্ট হেল্পারে লুকানো <code>eval()</code> একটি পাবলিক HTTP এন্ডপয়েন্ট থেকে অ্যাক্সেসযোগ্য একটির মতো একই হুমকি নয়।</p>
+
+<p>AigisCode এখন এই ফাঁক পূরণ করে <strong>গ্রাফ-সমর্থিত নিরাপত্তা রিচেবিলিটি</strong> দিয়ে — প্রতিটি নিরাপত্তা ফলাফলকে সিমান্টিক গ্রাফের মধ্য দিয়ে ট্রেস করে নির্ধারণ করে যে এটি আসলেই এন্ট্রি পয়েন্ট থেকে অ্যাক্সেসযোগ্য কিনা, এবং অবিশ্বস্ত বাউন্ডারি ইনপুট এতে প্রবাহিত হতে পারে কিনা।</p>
+
+<h2 id="the-reachability-problem">রিচেবিলিটি সমস্যা</h2>
+
+<p>প্রচলিত নিরাপত্তা স্ক্যানারগুলো ফাইল বা ফাংশন স্তরে কাজ করে। তারা বিপজ্জনক API কলের প্যাটার্ন ম্যাচ করে এবং রিপোর্ট করে। কিন্তু গুরুত্বপূর্ণ প্রশ্ন হল "এই বিপজ্জনক কলটি কি বিদ্যমান?" নয় — বরং "একজন আক্রমণকারী কি এটিতে পৌঁছাতে পারে?"</p>
+
+<p>একটি PHP অ্যাপ্লিকেশন বিবেচনা করুন যেখানে একটি ইউটিলিটি ক্লাসে <code>eval($expression)</code> আছে। একটি প্রচলিত স্ক্যানার এটিকে ক্রিটিকাল হিসেবে চিহ্নিত করে। কিন্তু যদি সেই ইউটিলিটি শুধুমাত্র একটি CLI artisan কমান্ড থেকে কল করা হয় যেটির জন্য অ্যাডমিন SSH অ্যাক্সেস প্রয়োজন, তাহলে বাস্তব ঝুঁকি ন্যূনতম। বিপরীতে, যদি সেই একই <code>eval()</code> একটি পাবলিক API রুট থেকে তিনটি ফাংশন কলের দূরত্বে থাকে যা ইউজার ইনপুট পাস করে, এটি একটি প্রকৃত দুর্বলতা।</p>
+
+<p>AigisCode এখন এই প্রশ্নের স্বয়ংক্রিয়ভাবে উত্তর দেয়।</p>
+
+<h2 id="how-it-works">গ্রাফ-সমর্থিত রিচেবিলিটি কিভাবে কাজ করে</h2>
+
+<p>যখন AigisCode একটি নিরাপত্তা-সম্পর্কিত প্যাটার্ন খুঁজে পায় (বিপজ্জনক API কল, অনিরাপদ ডিসিরিয়ালাইজেশন, কাঁচা SQL কনক্যাটেনেশন), এটি শুধু ফলাফল রিপোর্ট করেই থেমে যায় না। এটি ফলাফল থেকে পিছনে সিমান্টিক গ্রাফ ধরে হেঁটে নির্ধারণ করে:</p>
+
+<ol>
+<li><strong>এন্ট্রি পয়েন্ট রিচেবিলিটি</strong> — এই ফলাফলটি কি রুট হ্যান্ডলার, কন্ট্রোলার অ্যাকশন, API এন্ডপয়েন্ট, বা অন্য এন্ট্রি পয়েন্ট থেকে অ্যাক্সেসযোগ্য? গ্রাফ ওয়াক ইমপোর্ট, ফাংশন কল এবং ক্লাস রিলেশনশিপ অনুসরণ করে পাথ ট্রেস করে।</li>
+<li><strong>বাউন্ডারি ইনপুট সোর্স</strong> — ফলাফল ধারণকারী ফাইল (বা এটি কল করা ফাইলগুলো) কি অবিশ্বস্ত বাউন্ডারি ইনপুট থেকে পড়ে? এর মধ্যে রয়েছে <code>$_GET</code>, <code>$_POST</code>, <code>request.body</code>, <code>request.query</code>, CLI আর্গুমেন্ট এবং ফ্রেমওয়ার্ক-নির্দিষ্ট ইনপুট অ্যাক্সেসর।</li>
+<li><strong>বাউন্ডারি-টু-সিঙ্ক ফ্লো</strong> — আমরা কি বাউন্ডারি ইনপুট যেখানে সিস্টেমে প্রবেশ করে সেখান থেকে বিপজ্জনক অপারেশন যেখানে এক্সিকিউট হয় সেখানে একটি সুনির্দিষ্ট পাথ ট্রেস করতে পারি?</li>
+</ol>
+
+<h2 id="reachability-paths">রিচেবিলিটি পাথ: সুনির্দিষ্ট প্রমাণ</h2>
+
+<p>প্রতিটি নিরাপত্তা ফলাফল এখন একটি <strong>রিচেবিলিটি পাথ</strong> বহন করে — এন্ট্রি পয়েন্ট থেকে ফলাফল পর্যন্ত গ্রাফের মধ্য দিয়ে হপগুলোর একটি তালিকা। প্রতিটি হপ অন্তর্ভুক্ত করে:</p>
+
+<ul>
+<li>ফাইল পাথ এবং লাইন নম্বর</li>
+<li>সোর্স এবং টার্গেট সিম্বল (ফাংশনের নাম, ক্লাসের নাম)</li>
+<li>তাদের সংযোগকারী রিলেশন টাইপ (ইমপোর্ট, কল, ইনহেরিট)</li>
+</ul>
+
+<p>এটি কোনো হিউরিস্টিক অনুমান নয়। এগুলো AigisCode বিশ্লেষণের সময় যে সিমান্টিক গ্রাফ তৈরি করে তার প্রকৃত এজ। যখন রিচেবিলিটি পাথ বলে "<code>api/users.php:12</code>-এর রুট হ্যান্ডলার <code>services/UserService.php:45</code>-এ <code>UserService::process</code> কল করে যেটি <code>utils/Expression.php:23</code>-এ <code>eval()</code> কল করে," প্রতিটি হপ একটি প্রকৃত ইমপোর্ট বা কল রিলেশনশিপ দ্বারা সমর্থিত।</p>
+
+<h2 id="context-aware-severity">প্রসঙ্গ-সচেতন নিরাপত্তা প্রসঙ্গ</h2>
+
+<p>রিচেবিলিটি বিশ্লেষণ একটি সমৃদ্ধতর নিরাপত্তা প্রসঙ্গ সিস্টেমকে পুষ্ট করে। ফলাফলগুলো এখন নির্দিষ্ট প্রসঙ্গ দিয়ে ট্যাগ করা হয়:</p>
+
+<table>
+<thead>
+<tr><th>প্রসঙ্গ</th><th>অর্থ</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ExternallyReachable</code></td><td>ফাইলটি একটি পরিচিত এন্ট্রি পয়েন্ট (রুট, কন্ট্রোলার, API হ্যান্ডলার)</td></tr>
+<tr><td><code>EntryReachableViaGraph</code></td><td>ফলাফলটি গ্রাফ এজের মাধ্যমে একটি এন্ট্রি পয়েন্ট থেকে অ্যাক্সেসযোগ্য</td></tr>
+<tr><td><code>BoundaryInputInSameFile</code></td><td>অবিশ্বস্ত ইনপুট বিপজ্জনক অপারেশনের মতো একই ফাইলে পড়া হয়</td></tr>
+<tr><td><code>BoundaryInputReachableViaGraph</code></td><td>অবিশ্বস্ত ইনপুট গ্রাফের মাধ্যমে প্রবাহিত হয়ে বিপজ্জনক অপারেশনে পৌঁছায়</td></tr>
+</tbody>
+</table>
+
+<p><code>EntryReachableViaGraph</code> এবং <code>BoundaryInputReachableViaGraph</code> উভয় দিয়ে ট্যাগ করা একটি ফলাফল রিচেবিলিটি প্রসঙ্গ ছাড়া একটি ফলাফলের চেয়ে অনেক বেশি গুরুতর। AigisCode এটি ব্যবহার করে তীব্রতা সমন্বয় করতে এবং কোন ফলাফলগুলো তাৎক্ষণিক মনোযোগ দাবি করে তার অগ্রাধিকার নির্ধারণ করতে।</p>
+
+<h2 id="boundary-input-detection">বাউন্ডারি ইনপুট ডিটেকশন</h2>
+
+<p>AigisCode একাধিক ভাষা এবং ফ্রেমওয়ার্ক জুড়ে বাউন্ডারি ইনপুট প্যাটার্ন চিনতে পারে:</p>
+
+<ul>
+<li><strong>PHP</strong>: <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$request->input()</code>, <code>$request->query()</code></li>
+<li><strong>Python</strong>: <code>request.GET</code>, <code>request.POST</code>, <code>request.json</code>, <code>request.form</code></li>
+<li><strong>JavaScript/TypeScript</strong>: <code>req.body</code>, <code>req.query</code>, <code>req.params</code></li>
+<li><strong>CLI</strong>: <code>sys.argv</code>, <code>process.argv</code>, <code>ARGV</code></li>
+</ul>
+
+<p>বাউন্ডারি ইনপুট শনাক্ত হলে, ফলাফলটি সঠিক ধরন (RequestQuery, RequestBody, CliArgument), ফাইল, লাইন এবং প্রমাণ স্ট্রিং সহ একটি <code>boundary_input_sources</code> তালিকা পায়। এটি রিভিউয়ার এবং AI এজেন্টদের অবিশ্বস্ত ডেটা কোথায় প্রবেশ করে সে সম্পর্কে সুনির্দিষ্ট তথ্য দেয়।</p>
+
+<h2 id="flow-steps">ফ্লো স্টেপ: সম্পূর্ণ চিত্র</h2>
+
+<p>যেসব ফলাফলে এন্ট্রি রিচেবিলিটি এবং বাউন্ডারি ইনপুট উভয়ই নিশ্চিত, সেগুলোর জন্য AigisCode একটি <strong>বাউন্ডারি-টু-সিঙ্ক ফ্লো</strong> তৈরি করে — একটি মার্জড পাথ যা দেখায় ঠিক কিভাবে ডেটা ইনপুট থেকে বিপদে চলে যায়:</p>
+
+<pre><code>1. [input]  api/UserController.php:34  — request.body read
+2. [call]   api/UserController.php:35  → services/UserService.php:67
+3. [call]   services/UserService.php:72 → utils/Expression.php:12
+4. [sink]   utils/Expression.php:23    — eval() call
+</code></pre>
+
+<p>প্রতিটি স্টেপ <code>BoundaryInput</code>, <code>PressureHop</code>, বা <code>SinkSite</code> হিসেবে টাইপ করা হয়, যা CI সিস্টেম এবং AI এজেন্টদের জন্য সহজে পার্সযোগ্য করে তোলে। বড় গ্রাফে বিস্ফোরণ রোধে ফ্লো সীমাবদ্ধ রাখা হয় — AigisCode কনফিগারযোগ্য গভীরতায় ওয়াক সীমিত করে।</p>
+
+<h2 id="practical-impact">ব্যবহারিক প্রভাব</h2>
+
+<p>এটি নিরাপত্তা ফলাফলের ট্রায়াজ পদ্ধতি বদলে দেয়। কোডবেসে প্রতিটি <code>eval()</code> পর্যালোচনা করার বদলে, একজন রিভিউয়ার (বা AI এজেন্ট) পাবলিক এন্ট্রি পয়েন্ট থেকে নিশ্চিত রিচেবিলিটি পাথ আছে এমনগুলোতে ফোকাস করতে পারে। প্রকৃত কোডবেসে আমাদের পরীক্ষায়:</p>
+
+<ul>
+<li>একটি Laravel অ্যাপ্লিকেশনে 47টি কাঁচা নিরাপত্তা ফলাফলের মধ্যে মাত্র 12টিতে নিশ্চিত এন্ট্রি-পয়েন্ট রিচেবিলিটি ছিল</li>
+<li>সেই 12টির মধ্যে মাত্র 5টিতে নিশ্চিত বাউন্ডারি ইনপুট ফ্লো ছিল — এগুলোই গুরুত্বপূর্ণ</li>
+<li>বাকি 35টি ফলাফল ছিল অভ্যন্তরীণ ইউটিলিটি, CLI টুল এবং টেস্ট হেল্পার — প্রকৃত প্যাটার্ন, কিন্তু ন্যূনতম বাস্তব-বিশ্ব ঝুঁকি</li>
+</ul>
+
+<p>এটাই একটি টুল যা কাজ তৈরি করে আর একটি টুল যা কাজ কেন্দ্রীভূত করে — এদের মধ্যে পার্থক্য।</p>
+
+<h2 id="try-it">ব্যবহার করুন</h2>
+
+<p>গ্রাফ-সমর্থিত নিরাপত্তা রিচেবিলিটি প্রতিটি AigisCode বিশ্লেষণ রানে অন্তর্ভুক্ত:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p><code>.aigiscode/deterministic-findings.json</code>-এ <code>reachability_path</code>, <code>boundary_input_sources</code>, এবং <code>boundary_to_sink_flow</code> ফিল্ড সহ ফলাফল দেখুন। <code>.aigiscode/aigiscode-report.json</code> সামারিতে রিচেবিলিটি প্রসঙ্গ অনুযায়ী বিভক্ত নিরাপত্তা চাপের সংখ্যাও অন্তর্ভুক্ত রয়েছে।</p>
+`,
+    },
+  },
+
+  /* ======================================================================== */
+  /*  Dual-Scanner Architecture: AST-Grep + Native Detectors                 */
+  /* ======================================================================== */
+  {
+    slug: 'dual-scanner-ast-grep-architecture',
+    date: '2026-03-28',
+    readTime: 8,
+    tags: ['Architecture', 'AST-Grep', 'Scanners', 'Open Source'],
+    image: '/blog-dual-scanner.jpg',
+    author: { name: 'David Strejc', role: 'Creator of AigisCode' },
+    relatedSlugs: [
+      'graph-backed-security-reachability',
+      'detecting-overengineered-code',
+    ],
+    title: {
+      en: 'Dual-Scanner Architecture: How AST-Grep and Native Detectors Work in Concert',
+      cs: 'Architektura dvou skenerů: Jak AST-Grep a nativní detektory spolupracují',
+      fr: 'Architecture à double scanner : comment AST-Grep et les détecteurs natifs fonctionnent de concert',
+      es: 'Arquitectura de doble escáner: cómo AST-Grep y los detectores nativos trabajan en conjunto',
+      zh: '双扫描器架构：AST-Grep 与原生检测器如何协同工作',
+      hi: 'ड्यूल-स्कैनर आर्किटेक्चर: AST-Grep और नेटिव डिटेक्टर कैसे मिलकर काम करते हैं',
+      pt: 'Arquitetura de Scanner Duplo: Como AST-Grep e Detectores Nativos Trabalham em Conjunto',
+      ar: 'معمارية الماسح المزدوج: كيف يعمل AST-Grep والكاشفات الأصلية بتناغم',
+      pl: 'Architektura podwójnego skanera: Jak AST-Grep i natywne detektory współpracują ze sobą',
+      bn: 'ডুয়াল-স্ক্যানার আর্কিটেকচার: কিভাবে AST-Grep এবং নেটিভ ডিটেক্টর একসাথে কাজ করে',
+    },
+    description: {
+      en: 'AigisCode now runs two scanner planes in concert — native Rust detectors for graph-backed analysis and AST-grep for structural pattern matching — with framework-specific catalogs for Laravel, Django, and more.',
+      cs: 'AigisCode nyní provozuje dvě skenovací roviny současně — nativní Rust detektory pro analýzu podloženou grafem a AST-grep pro strukturální porovnávání vzorů — s katalogy specifickými pro frameworky Laravel, Django a další.',
+      fr: 'AigisCode exécute désormais deux plans de scan en concert — des détecteurs natifs Rust pour l\'analyse basée sur le graphe et AST-grep pour la correspondance de motifs structurels — avec des catalogues spécifiques aux frameworks pour Laravel, Django et plus.',
+      es: 'AigisCode ahora ejecuta dos planos de escaneo en conjunto — detectores nativos de Rust para análisis respaldado por grafos y AST-grep para coincidencia de patrones estructurales — con catálogos específicos de framework para Laravel, Django y más.',
+      zh: 'AigisCode 现在同时运行两个扫描器层——用于图驱动分析的原生 Rust 检测器和用于结构模式匹配的 AST-grep——以及针对 Laravel、Django 等框架的特定目录。',
+      hi: 'AigisCode अब दो स्कैनर प्लेन को एक साथ चलाता है — ग्राफ़-आधारित विश्लेषण के लिए नेटिव Rust डिटेक्टर और स्ट्रक्चरल पैटर्न मैचिंग के लिए AST-grep — Laravel, Django और अन्य के लिए फ़्रेमवर्क-विशिष्ट कैटलॉग के साथ।',
+      pt: 'O AigisCode agora executa dois planos de scanner em conjunto — detectores nativos em Rust para análise baseada em grafos e AST-grep para correspondência de padrões estruturais — com catálogos específicos de framework para Laravel, Django e mais.',
+      ar: 'يشغّل AigisCode الآن مستويين من الماسحات بالتوازي — كاشفات Rust أصلية للتحليل المدعوم بالرسم البياني وAST-grep لمطابقة الأنماط الهيكلية — مع كتالوجات خاصة بالأطر مثل Laravel وDjango والمزيد.',
+      pl: 'AigisCode uruchamia teraz dwa poziomy skanerów jednocześnie — natywne detektory Rust do analizy opartej na grafie i AST-grep do dopasowywania wzorców strukturalnych — z katalogami specyficznymi dla frameworków Laravel, Django i innych.',
+      bn: 'AigisCode এখন দুটি স্ক্যানার প্লেন একসাথে চালায় — গ্রাফ-সমর্থিত বিশ্লেষণের জন্য নেটিভ Rust ডিটেক্টর এবং স্ট্রাকচারাল প্যাটার্ন ম্যাচিংয়ের জন্য AST-grep — Laravel, Django এবং আরও অনেকের জন্য ফ্রেমওয়ার্ক-নির্দিষ্ট ক্যাটালগ সহ।',
+    },
+    metaDescription: {
+      en: 'Explore AigisCode\'s dual-scanner architecture combining native Rust detectors with AST-grep structural pattern matching, framework catalogs for Laravel and Django, and intelligent prefiltering.',
+      cs: 'Prozkoumejte architekturu dvou skenerů AigisCode kombinující nativní Rust detektory se strukturálním porovnáváním vzorů AST-grep, katalogy frameworků pro Laravel a Django a inteligentní předfiltrování.',
+      fr: 'Explorez l\'architecture à double scanner d\'AigisCode combinant des détecteurs natifs Rust avec la correspondance de motifs structurels AST-grep, des catalogues de frameworks pour Laravel et Django, et un préfiltrage intelligent.',
+      es: 'Explore la arquitectura de doble escáner de AigisCode que combina detectores nativos de Rust con coincidencia de patrones estructurales AST-grep, catálogos de framework para Laravel y Django, y prefiltrado inteligente.',
+      zh: '探索 AigisCode 的双扫描器架构，结合原生 Rust 检测器与 AST-grep 结构模式匹配、Laravel 和 Django 的框架目录以及智能预过滤。',
+      hi: 'AigisCode के ड्यूल-स्कैनर आर्किटेक्चर को जानें जो नेटिव Rust डिटेक्टर को AST-grep स्ट्रक्चरल पैटर्न मैचिंग, Laravel और Django के लिए फ़्रेमवर्क कैटलॉग और इंटेलिजेंट प्रीफ़िल्टरिंग के साथ जोड़ता है।',
+      pt: 'Explore a arquitetura de scanner duplo do AigisCode que combina detectores nativos em Rust com correspondência de padrões estruturais AST-grep, catálogos de framework para Laravel e Django, e pré-filtragem inteligente.',
+      ar: 'استكشف معمارية الماسح المزدوج في AigisCode التي تجمع بين كاشفات Rust الأصلية ومطابقة الأنماط الهيكلية AST-grep، وكتالوجات الأطر لـ Laravel وDjango، والتصفية المسبقة الذكية.',
+      pl: 'Poznaj architekturę podwójnego skanera AigisCode łączącą natywne detektory Rust z dopasowywaniem wzorców strukturalnych AST-grep, katalogami frameworków dla Laravel i Django oraz inteligentnym prefiltrowaniem.',
+      bn: 'AigisCode-এর ডুয়াল-স্ক্যানার আর্কিটেকচার অন্বেষণ করুন যা নেটিভ Rust ডিটেক্টরকে AST-grep স্ট্রাকচারাল প্যাটার্ন ম্যাচিং, Laravel এবং Django-র জন্য ফ্রেমওয়ার্ক ক্যাটালগ এবং ইন্টেলিজেন্ট প্রিফিল্টারিংয়ের সাথে সংযুক্ত করে।',
+    },
+    content: {
+      en: `
+<p>Code analysis tools typically take one approach: either they parse ASTs and match patterns, or they build semantic graphs and reason about structure. Each approach has strengths. Pattern matching is precise and fast for known anti-patterns. Graph analysis understands relationships and context. AigisCode now uses both — simultaneously.</p>
+
+<h2 id="two-scanner-planes">Two Scanner Planes, One Analysis</h2>
+
+<p>AigisCode's analysis pipeline runs two distinct scanner planes in every analysis:</p>
+
+<ol>
+<li><strong>Native Rust detectors</strong> — These build the semantic graph, resolve imports, trace call relationships, and produce findings backed by graph evidence. They understand context: is this dead code? Is this function a bottleneck? Is this an architectural hotspot?</li>
+<li><strong>AST-grep structural scanner</strong> — This runs typed pattern rules against the actual syntax tree of every file. It catches specific code patterns with provenance: loop-local expensive operations, dangerous API calls, framework misuse patterns.</li>
+</ol>
+
+<p>The two planes are not redundant. They cover different detection axes and <strong>reinforce each other</strong>. When the native detector identifies an algorithmic complexity hotspot and the AST-grep scanner independently finds a database query inside a loop in the same file, the combined evidence is far stronger than either finding alone.</p>
+
+<h2 id="ast-grep-families">What AST-Grep Catches</h2>
+
+<p>The AST-grep scanner operates across three finding families:</p>
+
+<h3>Algorithmic Complexity</h3>
+<p>Detects expensive operations inside loops that cause performance problems at scale:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — Compiling regex patterns inside iteration instead of once</li>
+<li><code>JsonDecodeInLoop</code> — Parsing JSON/YAML inside tight loops</li>
+<li><code>FilesystemReadInLoop</code> — Reading files inside iteration</li>
+<li><code>DatabaseQueryInLoop</code> — Running SQL queries inside loops (the classic N+1)</li>
+<li><code>HttpCallInLoop</code> — Making HTTP requests inside iteration</li>
+<li><code>CacheLookupInLoop</code> — Cache reads inside loops that should be batched</li>
+</ul>
+
+<p>These patterns span Python, JavaScript/TypeScript, PHP, Ruby, and Rust — each with language-appropriate loop constructs and API patterns.</p>
+
+<h3>Security: Dangerous APIs</h3>
+<p>Detects dangerous API usage with structural precision:</p>
+
+<ul>
+<li><code>eval()</code> and <code>exec()</code> calls across all supported languages</li>
+<li>Unsafe deserialization (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>Unsafe HTML output (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>Shell execution (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> with <code>shell=True</code>)</li>
+</ul>
+
+<h3>Framework Misuse</h3>
+<p>Catches patterns that violate framework conventions:</p>
+
+<ul>
+<li>Raw <code>env()</code> calls outside config/bootstrap boundaries (Laravel)</li>
+<li>Direct <code>app()</code> / <code>resolve()</code> container access outside providers (Laravel)</li>
+<li>Raw <code>os.environ</code> access outside settings modules (Django)</li>
+<li>Direct <code>settings</code> attribute access bypassing <code>getattr</code> patterns (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">Framework-Specific Catalogs</h2>
+
+<p>One of the key innovations is the <strong>framework catalog system</strong>. Instead of hardcoding framework rules into the core scanner, AigisCode uses typed catalogs that activate based on file-level heuristics.</p>
+
+<p>When AigisCode detects a Laravel project (by finding <code>artisan</code>, <code>composer.json</code> with Laravel dependencies, or <code>.env</code> patterns), it activates the Laravel catalog. This adds framework-specific rules that would be noise in a non-Laravel codebase but are genuine misuse patterns in a Laravel project.</p>
+
+<p>The same applies for Django, with its own catalog of framework-specific anti-patterns. The catalogs are additive — they contribute findings with explicit provenance like <code>ast_grep.pattern.laravel</code> and <code>ast_grep.pattern.django</code>, so the source of every finding is always traceable.</p>
+
+<h2 id="prefiltering">Intelligent Prefiltering</h2>
+
+<p>Running AST-grep rules on every file in a large codebase would be wasteful. AigisCode now includes a <strong>family prefilter</strong> that quickly scans each file for relevant tokens before invoking the full AST-grep engine.</p>
+
+<p>If a file contains no loop constructs, it skips all complexity rules. If it contains no dangerous API tokens, it skips security rules. If the project has no detected framework, it skips framework misuse rules entirely. This keeps the scanner fast even on codebases with tens of thousands of files.</p>
+
+<p>Files that exceed a size threshold are also tracked in a <code>skipped_files</code> list with the reason and byte count, so the analysis is transparent about its coverage boundaries.</p>
+
+<h2 id="reinforcement">How the Two Planes Reinforce Each Other</h2>
+
+<p>The real power emerges when both scanner planes contribute to the same finding. Here is how it works in practice:</p>
+
+<ol>
+<li>The native detector identifies a file as a <strong>graph bottleneck</strong> — many other files depend on it, it has high centrality</li>
+<li>The AST-grep scanner independently finds <strong>three database queries inside a for loop</strong> in that same file</li>
+<li>AigisCode merges these signals: a high-traffic bottleneck file with confirmed N+1 query patterns is a <strong>critical performance finding</strong>, not just a warning</li>
+</ol>
+
+<p>The <code>supporting_scanners</code> field on each finding lists which scanner planes contributed evidence, and the <code>.aigiscode/ast-grep-scan.json</code> artifact preserves the raw AST-grep output with full provenance for auditing.</p>
+
+<h2 id="scanner-visibility">Scanner Visibility in Reports</h2>
+
+<p>The summary section of <code>aigiscode-report.json</code> and the overview in <code>architecture-surface.json</code> now expose family-level scanner counts. You can see at a glance how many findings came from complexity rules, security rules, and framework misuse rules — without needing to load the raw scanner artifact.</p>
+
+<h2 id="try-it">Try It</h2>
+
+<p>The dual-scanner architecture is active in every AigisCode run:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Check <code>.aigiscode/ast-grep-scan.json</code> for the raw scanner output and <code>.aigiscode/deterministic-findings.json</code> for findings that show merged evidence from both planes.</p>
+`,
+      cs: `
+<p>Nástroje pro analýzu kódu obvykle volí jeden přístup: buď parsují AST a porovnávají vzory, nebo sestavují sémantické grafy a uvažují o struktuře. Každý přístup má své silné stránky. Porovnávání vzorů je přesné a rychlé pro známé anti-vzory. Analýza grafů rozumí vztahům a kontextu. AigisCode nyní používá oba přístupy — současně.</p>
+
+<h2 id="two-scanner-planes">Dvě skenovací roviny, jedna analýza</h2>
+
+<p>Analytická pipeline AigisCode provozuje při každé analýze dvě odlišné skenovací roviny:</p>
+
+<ol>
+<li><strong>Nativní Rust detektory</strong> — Tyto sestavují sémantický graf, řeší importy, sledují vztahy volání a vytvářejí nálezy podložené důkazy z grafu. Rozumějí kontextu: je toto mrtvý kód? Je tato funkce úzké hrdlo? Je toto architektonický hotspot?</li>
+<li><strong>Strukturální skener AST-grep</strong> — Tento spouští typovaná pravidla vzorů proti skutečnému syntaktickému stromu každého souboru. Zachycuje specifické vzory kódu s proveniencí: nákladné operace v cyklech, nebezpečná volání API, vzory zneužití frameworku.</li>
+</ol>
+
+<p>Obě roviny nejsou redundantní. Pokrývají různé osy detekce a <strong>vzájemně se posilují</strong>. Když nativní detektor identifikuje hotspot algoritmické složitosti a skener AST-grep nezávisle najde databázový dotaz uvnitř cyklu ve stejném souboru, kombinovaný důkaz je mnohem silnější než kterýkoli nález samostatně.</p>
+
+<h2 id="ast-grep-families">Co zachycuje AST-Grep</h2>
+
+<p>Skener AST-grep pracuje napříč třemi rodinami nálezů:</p>
+
+<h3>Algoritmická složitost</h3>
+<p>Detekuje nákladné operace uvnitř cyklů, které způsobují problémy s výkonem při škálování:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — Kompilace regulárních výrazů uvnitř iterace místo jednou</li>
+<li><code>JsonDecodeInLoop</code> — Parsování JSON/YAML uvnitř těsných cyklů</li>
+<li><code>FilesystemReadInLoop</code> — Čtení souborů uvnitř iterace</li>
+<li><code>DatabaseQueryInLoop</code> — Spouštění SQL dotazů uvnitř cyklů (klasický N+1)</li>
+<li><code>HttpCallInLoop</code> — Provádění HTTP požadavků uvnitř iterace</li>
+<li><code>CacheLookupInLoop</code> — Čtení cache uvnitř cyklů, které by mělo být dávkové</li>
+</ul>
+
+<p>Tyto vzory pokrývají Python, JavaScript/TypeScript, PHP, Ruby a Rust — každý s jazykově odpovídajícími konstrukcemi cyklů a vzory API.</p>
+
+<h3>Bezpečnost: Nebezpečná API</h3>
+<p>Detekuje nebezpečné použití API se strukturální přesností:</p>
+
+<ul>
+<li>Volání <code>eval()</code> a <code>exec()</code> napříč všemi podporovanými jazyky</li>
+<li>Nebezpečná deserializace (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>Nebezpečný HTML výstup (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>Spouštění shellu (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> s <code>shell=True</code>)</li>
+</ul>
+
+<h3>Zneužití frameworku</h3>
+<p>Zachycuje vzory porušující konvence frameworku:</p>
+
+<ul>
+<li>Surová volání <code>env()</code> mimo hranice config/bootstrap (Laravel)</li>
+<li>Přímý přístup k <code>app()</code> / <code>resolve()</code> kontejneru mimo poskytovatele (Laravel)</li>
+<li>Surový přístup k <code>os.environ</code> mimo moduly nastavení (Django)</li>
+<li>Přímý přístup k atributům <code>settings</code> obcházející vzory <code>getattr</code> (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">Katalogy specifické pro frameworky</h2>
+
+<p>Jednou z klíčových inovací je <strong>systém katalogů frameworků</strong>. Místo zakódování pravidel frameworku přímo do jádra skeneru používá AigisCode typované katalogy, které se aktivují na základě heuristik na úrovni souborů.</p>
+
+<p>Když AigisCode detekuje projekt Laravel (nalezením <code>artisan</code>, <code>composer.json</code> se závislostmi Laravel nebo vzory <code>.env</code>), aktivuje katalog Laravel. To přidá pravidla specifická pro framework, která by v projektu bez Laravel byla šumem, ale v projektu Laravel jsou skutečné vzory zneužití.</p>
+
+<p>Totéž platí pro Django s vlastním katalogem anti-vzorů specifických pro framework. Katalogy jsou aditivní — přispívají nálezy s explicitní proveniencí jako <code>ast_grep.pattern.laravel</code> a <code>ast_grep.pattern.django</code>, takže zdroj každého nálezu je vždy sledovatelný.</p>
+
+<h2 id="prefiltering">Inteligentní předfiltrování</h2>
+
+<p>Spouštění pravidel AST-grep na každém souboru ve velké kódové základně by bylo plýtvání. AigisCode nyní obsahuje <strong>předfiltr rodiny</strong>, který rychle prohledá každý soubor na relevantní tokeny před vyvoláním plného AST-grep enginu.</p>
+
+<p>Pokud soubor neobsahuje žádné konstrukce cyklů, přeskočí všechna pravidla složitosti. Pokud neobsahuje žádné tokeny nebezpečných API, přeskočí bezpečnostní pravidla. Pokud projekt nemá detekovaný framework, přeskočí pravidla zneužití frameworku úplně. To udržuje skener rychlý i na kódových základnách s desítkami tisíc souborů.</p>
+
+<p>Soubory překračující práh velikosti jsou také sledovány v seznamu <code>skipped_files</code> s důvodem a počtem bajtů, takže analýza je transparentní ohledně hranic svého pokrytí.</p>
+
+<h2 id="reinforcement">Jak se obě roviny vzájemně posilují</h2>
+
+<p>Skutečná síla se projeví, když obě skenovací roviny přispívají ke stejnému nálezu. Takto to funguje v praxi:</p>
+
+<ol>
+<li>Nativní detektor identifikuje soubor jako <strong>úzké hrdlo grafu</strong> — mnoho dalších souborů na něm závisí, má vysokou centralitu</li>
+<li>Skener AST-grep nezávisle najde <strong>tři databázové dotazy uvnitř cyklu for</strong> ve stejném souboru</li>
+<li>AigisCode sloučí tyto signály: soubor s vysokým provozem a úzkým hrdlem s potvrzenými vzory N+1 dotazů je <strong>kritický výkonnostní nález</strong>, ne jen varování</li>
+</ol>
+
+<p>Pole <code>supporting_scanners</code> u každého nálezu uvádí, které skenovací roviny přispěly důkazy, a artefakt <code>.aigiscode/ast-grep-scan.json</code> uchovává surový výstup AST-grep s úplnou proveniencí pro audit.</p>
+
+<h2 id="scanner-visibility">Viditelnost skenerů v reportech</h2>
+
+<p>Sekce souhrnu v <code>aigiscode-report.json</code> a přehled v <code>architecture-surface.json</code> nyní zobrazují počty skenerů na úrovni rodin. Na první pohled vidíte, kolik nálezů pochází z pravidel složitosti, bezpečnostních pravidel a pravidel zneužití frameworku — bez nutnosti načítat surový artefakt skeneru.</p>
+
+<h2 id="try-it">Vyzkoušejte to</h2>
+
+<p>Architektura dvou skenerů je aktivní při každém spuštění AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Zkontrolujte <code>.aigiscode/ast-grep-scan.json</code> pro surový výstup skeneru a <code>.aigiscode/deterministic-findings.json</code> pro nálezy zobrazující sloučené důkazy z obou rovin.</p>
+`,
+      fr: `
+<p>Les outils d'analyse de code adoptent généralement une seule approche : soit ils parsent les AST et font correspondre des motifs, soit ils construisent des graphes sémantiques et raisonnent sur la structure. Chaque approche a ses forces. La correspondance de motifs est précise et rapide pour les anti-patterns connus. L'analyse de graphes comprend les relations et le contexte. AigisCode utilise désormais les deux — simultanément.</p>
+
+<h2 id="two-scanner-planes">Deux plans de scan, une seule analyse</h2>
+
+<p>Le pipeline d'analyse d'AigisCode exécute deux plans de scan distincts lors de chaque analyse :</p>
+
+<ol>
+<li><strong>Détecteurs natifs Rust</strong> — Ceux-ci construisent le graphe sémantique, résolvent les imports, tracent les relations d'appel et produisent des résultats étayés par des preuves du graphe. Ils comprennent le contexte : est-ce du code mort ? Cette fonction est-elle un goulot d'étranglement ? Est-ce un hotspot architectural ?</li>
+<li><strong>Scanner structurel AST-grep</strong> — Celui-ci exécute des règles de motifs typées contre l'arbre syntaxique réel de chaque fichier. Il capture des motifs de code spécifiques avec provenance : opérations coûteuses dans les boucles, appels d'API dangereux, motifs de mauvaise utilisation de framework.</li>
+</ol>
+
+<p>Les deux plans ne sont pas redondants. Ils couvrent des axes de détection différents et <strong>se renforcent mutuellement</strong>. Quand le détecteur natif identifie un hotspot de complexité algorithmique et que le scanner AST-grep trouve indépendamment une requête de base de données à l'intérieur d'une boucle dans le même fichier, la preuve combinée est bien plus forte que chaque résultat isolé.</p>
+
+<h2 id="ast-grep-families">Ce que capture AST-Grep</h2>
+
+<p>Le scanner AST-grep opère à travers trois familles de résultats :</p>
+
+<h3>Complexité algorithmique</h3>
+<p>Détecte les opérations coûteuses à l'intérieur des boucles qui causent des problèmes de performance à grande échelle :</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — Compilation de motifs regex à l'intérieur de l'itération au lieu d'une seule fois</li>
+<li><code>JsonDecodeInLoop</code> — Parsing JSON/YAML à l'intérieur de boucles serrées</li>
+<li><code>FilesystemReadInLoop</code> — Lecture de fichiers à l'intérieur de l'itération</li>
+<li><code>DatabaseQueryInLoop</code> — Exécution de requêtes SQL à l'intérieur de boucles (le classique N+1)</li>
+<li><code>HttpCallInLoop</code> — Requêtes HTTP à l'intérieur de l'itération</li>
+<li><code>CacheLookupInLoop</code> — Lectures de cache à l'intérieur de boucles qui devraient être groupées</li>
+</ul>
+
+<p>Ces motifs couvrent Python, JavaScript/TypeScript, PHP, Ruby et Rust — chacun avec les constructions de boucle et les motifs d'API appropriés au langage.</p>
+
+<h3>Sécurité : API dangereuses</h3>
+<p>Détecte l'utilisation d'API dangereuses avec une précision structurelle :</p>
+
+<ul>
+<li>Appels <code>eval()</code> et <code>exec()</code> dans tous les langages supportés</li>
+<li>Désérialisation non sécurisée (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>Sortie HTML non sécurisée (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>Exécution shell (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> avec <code>shell=True</code>)</li>
+</ul>
+
+<h3>Mauvaise utilisation de framework</h3>
+<p>Capture les motifs qui violent les conventions du framework :</p>
+
+<ul>
+<li>Appels bruts <code>env()</code> en dehors des limites config/bootstrap (Laravel)</li>
+<li>Accès direct au conteneur <code>app()</code> / <code>resolve()</code> en dehors des providers (Laravel)</li>
+<li>Accès brut à <code>os.environ</code> en dehors des modules de paramètres (Django)</li>
+<li>Accès direct aux attributs <code>settings</code> contournant les motifs <code>getattr</code> (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">Catalogues spécifiques aux frameworks</h2>
+
+<p>L'une des innovations clés est le <strong>système de catalogues de frameworks</strong>. Au lieu de coder en dur les règles de framework dans le scanner principal, AigisCode utilise des catalogues typés qui s'activent en fonction d'heuristiques au niveau des fichiers.</p>
+
+<p>Quand AigisCode détecte un projet Laravel (en trouvant <code>artisan</code>, <code>composer.json</code> avec des dépendances Laravel, ou des motifs <code>.env</code>), il active le catalogue Laravel. Cela ajoute des règles spécifiques au framework qui seraient du bruit dans un projet non-Laravel mais sont de véritables motifs de mauvaise utilisation dans un projet Laravel.</p>
+
+<p>Il en va de même pour Django, avec son propre catalogue d'anti-patterns spécifiques au framework. Les catalogues sont additifs — ils contribuent des résultats avec une provenance explicite comme <code>ast_grep.pattern.laravel</code> et <code>ast_grep.pattern.django</code>, de sorte que la source de chaque résultat est toujours traçable.</p>
+
+<h2 id="prefiltering">Préfiltrage intelligent</h2>
+
+<p>Exécuter les règles AST-grep sur chaque fichier d'une grande base de code serait du gaspillage. AigisCode inclut désormais un <strong>préfiltre de famille</strong> qui scanne rapidement chaque fichier à la recherche de tokens pertinents avant d'invoquer le moteur AST-grep complet.</p>
+
+<p>Si un fichier ne contient aucune construction de boucle, il saute toutes les règles de complexité. S'il ne contient aucun token d'API dangereuse, il saute les règles de sécurité. Si le projet n'a pas de framework détecté, il saute entièrement les règles de mauvaise utilisation de framework. Cela maintient la rapidité du scanner même sur des bases de code de dizaines de milliers de fichiers.</p>
+
+<p>Les fichiers dépassant un seuil de taille sont également suivis dans une liste <code>skipped_files</code> avec la raison et le nombre d'octets, rendant l'analyse transparente sur les limites de sa couverture.</p>
+
+<h2 id="reinforcement">Comment les deux plans se renforcent mutuellement</h2>
+
+<p>La vraie puissance émerge quand les deux plans de scan contribuent au même résultat. Voici comment cela fonctionne en pratique :</p>
+
+<ol>
+<li>Le détecteur natif identifie un fichier comme un <strong>goulot d'étranglement du graphe</strong> — de nombreux autres fichiers en dépendent, il a une centralité élevée</li>
+<li>Le scanner AST-grep trouve indépendamment <strong>trois requêtes de base de données à l'intérieur d'une boucle for</strong> dans ce même fichier</li>
+<li>AigisCode fusionne ces signaux : un fichier goulot d'étranglement à fort trafic avec des motifs de requêtes N+1 confirmés est un <strong>résultat de performance critique</strong>, pas juste un avertissement</li>
+</ol>
+
+<p>Le champ <code>supporting_scanners</code> de chaque résultat liste quels plans de scan ont contribué des preuves, et l'artefact <code>.aigiscode/ast-grep-scan.json</code> préserve la sortie brute AST-grep avec une provenance complète pour l'audit.</p>
+
+<h2 id="scanner-visibility">Visibilité des scanners dans les rapports</h2>
+
+<p>La section résumé de <code>aigiscode-report.json</code> et la vue d'ensemble dans <code>architecture-surface.json</code> exposent désormais les compteurs de scanners au niveau des familles. Vous pouvez voir d'un coup d'œil combien de résultats proviennent des règles de complexité, des règles de sécurité et des règles de mauvaise utilisation de framework — sans avoir à charger l'artefact brut du scanner.</p>
+
+<h2 id="try-it">Essayez-le</h2>
+
+<p>L'architecture à double scanner est active dans chaque exécution d'AigisCode :</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Consultez <code>.aigiscode/ast-grep-scan.json</code> pour la sortie brute du scanner et <code>.aigiscode/deterministic-findings.json</code> pour les résultats montrant des preuves fusionnées des deux plans.</p>
+`,
+      es: `
+<p>Las herramientas de análisis de código típicamente adoptan un solo enfoque: o parsean ASTs y hacen coincidencia de patrones, o construyen grafos semánticos y razonan sobre la estructura. Cada enfoque tiene fortalezas. La coincidencia de patrones es precisa y rápida para anti-patrones conocidos. El análisis de grafos entiende relaciones y contexto. AigisCode ahora usa ambos — simultáneamente.</p>
+
+<h2 id="two-scanner-planes">Dos planos de escaneo, un solo análisis</h2>
+
+<p>El pipeline de análisis de AigisCode ejecuta dos planos de escaneo distintos en cada análisis:</p>
+
+<ol>
+<li><strong>Detectores nativos de Rust</strong> — Estos construyen el grafo semántico, resuelven importaciones, rastrean relaciones de llamada y producen hallazgos respaldados por evidencia del grafo. Entienden el contexto: ¿es código muerto? ¿Es esta función un cuello de botella? ¿Es un hotspot arquitectónico?</li>
+<li><strong>Escáner estructural AST-grep</strong> — Este ejecuta reglas de patrones tipadas contra el árbol sintáctico real de cada archivo. Captura patrones de código específicos con procedencia: operaciones costosas en bucles, llamadas a API peligrosas, patrones de uso incorrecto de framework.</li>
+</ol>
+
+<p>Los dos planos no son redundantes. Cubren diferentes ejes de detección y <strong>se refuerzan mutuamente</strong>. Cuando el detector nativo identifica un hotspot de complejidad algorítmica y el escáner AST-grep encuentra independientemente una consulta de base de datos dentro de un bucle en el mismo archivo, la evidencia combinada es mucho más fuerte que cualquier hallazgo por separado.</p>
+
+<h2 id="ast-grep-families">Qué captura AST-Grep</h2>
+
+<p>El escáner AST-grep opera en tres familias de hallazgos:</p>
+
+<h3>Complejidad algorítmica</h3>
+<p>Detecta operaciones costosas dentro de bucles que causan problemas de rendimiento a escala:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — Compilar patrones regex dentro de la iteración en lugar de una vez</li>
+<li><code>JsonDecodeInLoop</code> — Parsear JSON/YAML dentro de bucles ajustados</li>
+<li><code>FilesystemReadInLoop</code> — Leer archivos dentro de la iteración</li>
+<li><code>DatabaseQueryInLoop</code> — Ejecutar consultas SQL dentro de bucles (el clásico N+1)</li>
+<li><code>HttpCallInLoop</code> — Hacer peticiones HTTP dentro de la iteración</li>
+<li><code>CacheLookupInLoop</code> — Lecturas de caché dentro de bucles que deberían hacerse por lotes</li>
+</ul>
+
+<p>Estos patrones abarcan Python, JavaScript/TypeScript, PHP, Ruby y Rust — cada uno con las construcciones de bucle y patrones de API apropiados para el lenguaje.</p>
+
+<h3>Seguridad: APIs peligrosas</h3>
+<p>Detecta el uso de APIs peligrosas con precisión estructural:</p>
+
+<ul>
+<li>Llamadas <code>eval()</code> y <code>exec()</code> en todos los lenguajes soportados</li>
+<li>Deserialización insegura (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>Salida HTML insegura (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>Ejecución de shell (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> con <code>shell=True</code>)</li>
+</ul>
+
+<h3>Uso incorrecto de framework</h3>
+<p>Captura patrones que violan las convenciones del framework:</p>
+
+<ul>
+<li>Llamadas crudas a <code>env()</code> fuera de los límites config/bootstrap (Laravel)</li>
+<li>Acceso directo al contenedor <code>app()</code> / <code>resolve()</code> fuera de providers (Laravel)</li>
+<li>Acceso crudo a <code>os.environ</code> fuera de módulos de configuración (Django)</li>
+<li>Acceso directo a atributos <code>settings</code> saltando patrones <code>getattr</code> (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">Catálogos específicos de framework</h2>
+
+<p>Una de las innovaciones clave es el <strong>sistema de catálogos de framework</strong>. En lugar de codificar reglas de framework directamente en el escáner principal, AigisCode usa catálogos tipados que se activan basándose en heurísticas a nivel de archivo.</p>
+
+<p>Cuando AigisCode detecta un proyecto Laravel (al encontrar <code>artisan</code>, <code>composer.json</code> con dependencias de Laravel, o patrones <code>.env</code>), activa el catálogo Laravel. Esto agrega reglas específicas del framework que serían ruido en un proyecto sin Laravel pero son patrones genuinos de uso incorrecto en un proyecto Laravel.</p>
+
+<p>Lo mismo aplica para Django, con su propio catálogo de anti-patrones específicos del framework. Los catálogos son aditivos — contribuyen hallazgos con procedencia explícita como <code>ast_grep.pattern.laravel</code> y <code>ast_grep.pattern.django</code>, de modo que la fuente de cada hallazgo siempre es rastreable.</p>
+
+<h2 id="prefiltering">Prefiltrado inteligente</h2>
+
+<p>Ejecutar reglas AST-grep en cada archivo de una base de código grande sería un desperdicio. AigisCode ahora incluye un <strong>prefiltro de familia</strong> que escanea rápidamente cada archivo en busca de tokens relevantes antes de invocar el motor AST-grep completo.</p>
+
+<p>Si un archivo no contiene construcciones de bucle, omite todas las reglas de complejidad. Si no contiene tokens de API peligrosas, omite las reglas de seguridad. Si el proyecto no tiene un framework detectado, omite completamente las reglas de uso incorrecto de framework. Esto mantiene al escáner rápido incluso en bases de código con decenas de miles de archivos.</p>
+
+<p>Los archivos que exceden un umbral de tamaño también se rastrean en una lista <code>skipped_files</code> con la razón y el conteo de bytes, de modo que el análisis es transparente sobre los límites de su cobertura.</p>
+
+<h2 id="reinforcement">Cómo los dos planos se refuerzan mutuamente</h2>
+
+<p>El verdadero poder emerge cuando ambos planos de escaneo contribuyen al mismo hallazgo. Así funciona en la práctica:</p>
+
+<ol>
+<li>El detector nativo identifica un archivo como un <strong>cuello de botella del grafo</strong> — muchos otros archivos dependen de él, tiene alta centralidad</li>
+<li>El escáner AST-grep encuentra independientemente <strong>tres consultas de base de datos dentro de un bucle for</strong> en ese mismo archivo</li>
+<li>AigisCode fusiona estas señales: un archivo cuello de botella de alto tráfico con patrones de consultas N+1 confirmados es un <strong>hallazgo de rendimiento crítico</strong>, no solo una advertencia</li>
+</ol>
+
+<p>El campo <code>supporting_scanners</code> de cada hallazgo lista qué planos de escaneo contribuyeron evidencia, y el artefacto <code>.aigiscode/ast-grep-scan.json</code> preserva la salida cruda de AST-grep con procedencia completa para auditoría.</p>
+
+<h2 id="scanner-visibility">Visibilidad de escáneres en reportes</h2>
+
+<p>La sección de resumen de <code>aigiscode-report.json</code> y la vista general en <code>architecture-surface.json</code> ahora exponen conteos de escáneres a nivel de familia. Puede ver de un vistazo cuántos hallazgos provienen de reglas de complejidad, reglas de seguridad y reglas de uso incorrecto de framework — sin necesidad de cargar el artefacto crudo del escáner.</p>
+
+<h2 id="try-it">Pruébelo</h2>
+
+<p>La arquitectura de doble escáner está activa en cada ejecución de AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Consulte <code>.aigiscode/ast-grep-scan.json</code> para la salida cruda del escáner y <code>.aigiscode/deterministic-findings.json</code> para hallazgos que muestran evidencia fusionada de ambos planos.</p>
+`,
+      zh: `
+<p>代码分析工具通常采用一种方法：要么解析 AST 并匹配模式，要么构建语义图并推理结构。每种方法都有优势。模式匹配对已知反模式精确且快速。图分析理解关系和上下文。AigisCode 现在同时使用两者。</p>
+
+<h2 id="two-scanner-planes">两个扫描器层，一次分析</h2>
+
+<p>AigisCode 的分析管道在每次分析中运行两个不同的扫描器层：</p>
+
+<ol>
+<li><strong>原生 Rust 检测器</strong> — 这些构建语义图、解析导入、追踪调用关系，并生成由图证据支持的发现。它们理解上下文：这是死代码吗？这个函数是瓶颈吗？这是架构热点吗？</li>
+<li><strong>AST-grep 结构扫描器</strong> — 这在每个文件的实际语法树上运行类型化的模式规则。它以溯源方式捕获特定的代码模式：循环内的昂贵操作、危险 API 调用、框架误用模式。</li>
+</ol>
+
+<p>这两个层并不冗余。它们覆盖不同的检测维度并<strong>相互增强</strong>。当原生检测器识别出一个算法复杂度热点，而 AST-grep 扫描器独立地在同一文件中发现循环内的数据库查询时，组合证据远比单一发现更有力。</p>
+
+<h2 id="ast-grep-families">AST-Grep 捕获什么</h2>
+
+<p>AST-grep 扫描器在三个发现族中运行：</p>
+
+<h3>算法复杂度</h3>
+<p>检测循环内导致大规模性能问题的昂贵操作：</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — 在迭代内编译正则表达式模式而不是一次性编译</li>
+<li><code>JsonDecodeInLoop</code> — 在紧密循环内解析 JSON/YAML</li>
+<li><code>FilesystemReadInLoop</code> — 在迭代内读取文件</li>
+<li><code>DatabaseQueryInLoop</code> — 在循环内运行 SQL 查询（经典的 N+1）</li>
+<li><code>HttpCallInLoop</code> — 在迭代内发起 HTTP 请求</li>
+<li><code>CacheLookupInLoop</code> — 循环内的缓存读取应该批量处理</li>
+</ul>
+
+<p>这些模式跨越 Python、JavaScript/TypeScript、PHP、Ruby 和 Rust——每种都有语言适当的循环构造和 API 模式。</p>
+
+<h3>安全：危险 API</h3>
+<p>以结构精度检测危险 API 使用：</p>
+
+<ul>
+<li>所有支持语言中的 <code>eval()</code> 和 <code>exec()</code> 调用</li>
+<li>不安全的反序列化（<code>pickle.loads</code>、<code>unserialize</code>、<code>Marshal.load</code>）</li>
+<li>不安全的 HTML 输出（<code>dangerouslySetInnerHTML</code>、<code>{!! $var !!}</code>、<code>| safe</code>）</li>
+<li>Shell 执行（<code>system()</code>、<code>exec()</code>、带 <code>shell=True</code> 的 <code>subprocess</code>）</li>
+</ul>
+
+<h3>框架误用</h3>
+<p>捕获违反框架约定的模式：</p>
+
+<ul>
+<li>在 config/bootstrap 边界之外的原始 <code>env()</code> 调用（Laravel）</li>
+<li>在 provider 之外直接使用 <code>app()</code> / <code>resolve()</code> 容器访问（Laravel）</li>
+<li>在 settings 模块之外的原始 <code>os.environ</code> 访问（Django）</li>
+<li>绕过 <code>getattr</code> 模式直接访问 <code>settings</code> 属性（Django）</li>
+</ul>
+
+<h2 id="framework-catalogs">框架特定目录</h2>
+
+<p>关键创新之一是<strong>框架目录系统</strong>。AigisCode 不是将框架规则硬编码到核心扫描器中，而是使用基于文件级启发式激活的类型化目录。</p>
+
+<p>当 AigisCode 检测到一个 Laravel 项目（通过找到 <code>artisan</code>、带有 Laravel 依赖的 <code>composer.json</code> 或 <code>.env</code> 模式），它会激活 Laravel 目录。这添加了在非 Laravel 代码库中是噪音但在 Laravel 项目中是真正误用模式的框架特定规则。</p>
+
+<p>Django 也是如此，有自己的框架特定反模式目录。目录是累加的——它们贡献带有显式溯源的发现，如 <code>ast_grep.pattern.laravel</code> 和 <code>ast_grep.pattern.django</code>，因此每个发现的来源始终可追溯。</p>
+
+<h2 id="prefiltering">智能预过滤</h2>
+
+<p>在大型代码库的每个文件上运行 AST-grep 规则将是浪费的。AigisCode 现在包含一个<strong>族预过滤器</strong>，在调用完整的 AST-grep 引擎之前快速扫描每个文件的相关标记。</p>
+
+<p>如果文件不包含循环构造，则跳过所有复杂度规则。如果不包含危险 API 标记，则跳过安全规则。如果项目没有检测到框架，则完全跳过框架误用规则。这使得扫描器即使在拥有数万个文件的代码库上也保持快速。</p>
+
+<p>超过大小阈值的文件也会被跟踪在 <code>skipped_files</code> 列表中，包含原因和字节计数，因此分析对其覆盖边界是透明的。</p>
+
+<h2 id="reinforcement">两个层如何相互增强</h2>
+
+<p>真正的力量在两个扫描器层都对同一发现做出贡献时浮现。以下是实际工作方式：</p>
+
+<ol>
+<li>原生检测器将一个文件识别为<strong>图瓶颈</strong>——许多其他文件依赖于它，它具有高中心性</li>
+<li>AST-grep 扫描器独立地在同一文件中发现了 <strong>for 循环内的三个数据库查询</strong></li>
+<li>AigisCode 合并这些信号：一个具有确认的 N+1 查询模式的高流量瓶颈文件是一个<strong>关键性能发现</strong>，而不仅仅是一个警告</li>
+</ol>
+
+<p>每个发现上的 <code>supporting_scanners</code> 字段列出了哪些扫描器层贡献了证据，<code>.aigiscode/ast-grep-scan.json</code> 产物保留了完整溯源的原始 AST-grep 输出，用于审计。</p>
+
+<h2 id="scanner-visibility">报告中的扫描器可见性</h2>
+
+<p><code>aigiscode-report.json</code> 的摘要部分和 <code>architecture-surface.json</code> 的概览现在公开族级别的扫描器计数。您可以一目了然地看到有多少发现来自复杂度规则、安全规则和框架误用规则——无需加载原始扫描器产物。</p>
+
+<h2 id="try-it">试用</h2>
+
+<p>双扫描器架构在每次 AigisCode 运行中都处于活动状态：</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>查看 <code>.aigiscode/ast-grep-scan.json</code> 获取原始扫描器输出，查看 <code>.aigiscode/deterministic-findings.json</code> 获取显示来自两个层合并证据的发现。</p>
+`,
+      hi: `
+<p>कोड विश्लेषण टूल आमतौर पर एक दृष्टिकोण अपनाते हैं: या तो वे AST पार्स करते हैं और पैटर्न मैच करते हैं, या वे सिमेंटिक ग्राफ़ बनाते हैं और संरचना के बारे में तर्क करते हैं। प्रत्येक दृष्टिकोण की अपनी ताकत है। पैटर्न मैचिंग ज्ञात एंटी-पैटर्न के लिए सटीक और तेज़ है। ग्राफ़ विश्लेषण संबंधों और संदर्भ को समझता है। AigisCode अब दोनों का उपयोग करता है — एक साथ।</p>
+
+<h2 id="two-scanner-planes">दो स्कैनर प्लेन, एक विश्लेषण</h2>
+
+<p>AigisCode की विश्लेषण पाइपलाइन हर विश्लेषण में दो अलग-अलग स्कैनर प्लेन चलाती है:</p>
+
+<ol>
+<li><strong>नेटिव Rust डिटेक्टर</strong> — ये सिमेंटिक ग्राफ़ बनाते हैं, इम्पोर्ट रिज़ॉल्व करते हैं, कॉल संबंधों को ट्रेस करते हैं, और ग्राफ़ साक्ष्य द्वारा समर्थित खोजें उत्पन्न करते हैं। वे संदर्भ समझते हैं: क्या यह डेड कोड है? क्या यह फ़ंक्शन बॉटलनेक है? क्या यह आर्किटेक्चरल हॉटस्पॉट है?</li>
+<li><strong>AST-grep स्ट्रक्चरल स्कैनर</strong> — यह हर फ़ाइल के वास्तविक सिंटैक्स ट्री पर टाइप्ड पैटर्न रूल चलाता है। यह प्रोवेनेंस के साथ विशिष्ट कोड पैटर्न पकड़ता है: लूप-लोकल महंगे ऑपरेशन, खतरनाक API कॉल, फ़्रेमवर्क दुरुपयोग पैटर्न।</li>
+</ol>
+
+<p>दो प्लेन अनावश्यक नहीं हैं। वे विभिन्न डिटेक्शन अक्षों को कवर करते हैं और <strong>एक दूसरे को मजबूत करते हैं</strong>। जब नेटिव डिटेक्टर एक एल्गोरिथमिक जटिलता हॉटस्पॉट की पहचान करता है और AST-grep स्कैनर स्वतंत्र रूप से उसी फ़ाइल में एक लूप के अंदर डेटाबेस क्वेरी पाता है, तो संयुक्त साक्ष्य किसी भी अकेली खोज से कहीं अधिक मजबूत है।</p>
+
+<h2 id="ast-grep-families">AST-Grep क्या पकड़ता है</h2>
+
+<p>AST-grep स्कैनर तीन खोज परिवारों में काम करता है:</p>
+
+<h3>एल्गोरिथमिक जटिलता</h3>
+<p>लूप के अंदर महंगे ऑपरेशन का पता लगाता है जो बड़े पैमाने पर प्रदर्शन समस्याएं पैदा करते हैं:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — एक बार के बजाय इटरेशन के अंदर रीजेक्स पैटर्न कंपाइल करना</li>
+<li><code>JsonDecodeInLoop</code> — टाइट लूप के अंदर JSON/YAML पार्स करना</li>
+<li><code>FilesystemReadInLoop</code> — इटरेशन के अंदर फ़ाइलें पढ़ना</li>
+<li><code>DatabaseQueryInLoop</code> — लूप के अंदर SQL क्वेरी चलाना (क्लासिक N+1)</li>
+<li><code>HttpCallInLoop</code> — इटरेशन के अंदर HTTP रिक्वेस्ट बनाना</li>
+<li><code>CacheLookupInLoop</code> — लूप के अंदर कैश रीड जो बैच किए जाने चाहिए</li>
+</ul>
+
+<p>ये पैटर्न Python, JavaScript/TypeScript, PHP, Ruby और Rust तक फैले हुए हैं — प्रत्येक में भाषा-उपयुक्त लूप कंस्ट्रक्ट और API पैटर्न हैं।</p>
+
+<h3>सुरक्षा: खतरनाक API</h3>
+<p>स्ट्रक्चरल सटीकता के साथ खतरनाक API उपयोग का पता लगाता है:</p>
+
+<ul>
+<li>सभी समर्थित भाषाओं में <code>eval()</code> और <code>exec()</code> कॉल</li>
+<li>असुरक्षित डीसीरियलाइज़ेशन (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>असुरक्षित HTML आउटपुट (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>शेल एक्सीक्यूशन (<code>system()</code>, <code>exec()</code>, <code>shell=True</code> के साथ <code>subprocess</code>)</li>
+</ul>
+
+<h3>फ़्रेमवर्क दुरुपयोग</h3>
+<p>फ़्रेमवर्क सम्मेलनों का उल्लंघन करने वाले पैटर्न पकड़ता है:</p>
+
+<ul>
+<li>config/bootstrap सीमाओं के बाहर कच्चे <code>env()</code> कॉल (Laravel)</li>
+<li>प्रोवाइडर के बाहर सीधे <code>app()</code> / <code>resolve()</code> कंटेनर एक्सेस (Laravel)</li>
+<li>settings मॉड्यूल के बाहर कच्चे <code>os.environ</code> एक्सेस (Django)</li>
+<li><code>getattr</code> पैटर्न को बायपास करते हुए सीधे <code>settings</code> एट्रीब्यूट एक्सेस (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">फ़्रेमवर्क-विशिष्ट कैटलॉग</h2>
+
+<p>प्रमुख नवाचारों में से एक है <strong>फ़्रेमवर्क कैटलॉग सिस्टम</strong>। कोर स्कैनर में फ़्रेमवर्क नियमों को हार्डकोड करने के बजाय, AigisCode टाइप्ड कैटलॉग का उपयोग करता है जो फ़ाइल-लेवल ह्यूरिस्टिक्स के आधार पर सक्रिय होते हैं।</p>
+
+<p>जब AigisCode एक Laravel प्रोजेक्ट का पता लगाता है (Laravel डिपेंडेंसी के साथ <code>artisan</code>, <code>composer.json</code>, या <code>.env</code> पैटर्न खोजकर), तो यह Laravel कैटलॉग सक्रिय करता है। यह फ़्रेमवर्क-विशिष्ट नियम जोड़ता है जो गैर-Laravel कोडबेस में शोर होंगे लेकिन Laravel प्रोजेक्ट में वास्तविक दुरुपयोग पैटर्न हैं।</p>
+
+<p>यही Django पर भी लागू होता है, जिसका अपना फ़्रेमवर्क-विशिष्ट एंटी-पैटर्न कैटलॉग है। कैटलॉग योगात्मक हैं — वे <code>ast_grep.pattern.laravel</code> और <code>ast_grep.pattern.django</code> जैसे स्पष्ट प्रोवेनेंस के साथ खोजें योगदान करते हैं, इसलिए हर खोज का स्रोत हमेशा ट्रेस करने योग्य है।</p>
+
+<h2 id="prefiltering">इंटेलिजेंट प्रीफ़िल्टरिंग</h2>
+
+<p>बड़े कोडबेस में हर फ़ाइल पर AST-grep नियम चलाना बेकार होगा। AigisCode में अब एक <strong>फ़ैमिली प्रीफ़िल्टर</strong> शामिल है जो पूर्ण AST-grep इंजन को इनवोक करने से पहले प्रत्येक फ़ाइल को प्रासंगिक टोकन के लिए तेज़ी से स्कैन करता है।</p>
+
+<p>अगर किसी फ़ाइल में कोई लूप कंस्ट्रक्ट नहीं है, तो यह सभी जटिलता नियमों को छोड़ देता है। अगर इसमें कोई खतरनाक API टोकन नहीं है, तो यह सुरक्षा नियमों को छोड़ देता है। अगर प्रोजेक्ट में कोई फ़्रेमवर्क नहीं पाया गया, तो यह फ़्रेमवर्क दुरुपयोग नियमों को पूरी तरह छोड़ देता है। यह स्कैनर को दसियों हज़ार फ़ाइलों वाले कोडबेस पर भी तेज़ रखता है।</p>
+
+<p>आकार सीमा से अधिक फ़ाइलों को भी <code>skipped_files</code> सूची में कारण और बाइट गणना के साथ ट्रैक किया जाता है, इसलिए विश्लेषण अपनी कवरेज सीमाओं के बारे में पारदर्शी है।</p>
+
+<h2 id="reinforcement">दो प्लेन एक दूसरे को कैसे मजबूत करते हैं</h2>
+
+<p>वास्तविक शक्ति तब उभरती है जब दोनों स्कैनर प्लेन एक ही खोज में योगदान करते हैं। यहां बताया गया है कि यह व्यवहार में कैसे काम करता है:</p>
+
+<ol>
+<li>नेटिव डिटेक्टर एक फ़ाइल को <strong>ग्राफ़ बॉटलनेक</strong> के रूप में पहचानता है — कई अन्य फ़ाइलें इस पर निर्भर करती हैं, इसकी उच्च सेंट्रालिटी है</li>
+<li>AST-grep स्कैनर स्वतंत्र रूप से उसी फ़ाइल में <strong>for लूप के अंदर तीन डेटाबेस क्वेरी</strong> पाता है</li>
+<li>AigisCode इन सिग्नलों को मर्ज करता है: पुष्टि किए गए N+1 क्वेरी पैटर्न वाली उच्च-ट्रैफ़िक बॉटलनेक फ़ाइल एक <strong>क्रिटिकल परफ़ॉर्मेंस खोज</strong> है, केवल एक चेतावनी नहीं</li>
+</ol>
+
+<p>प्रत्येक खोज पर <code>supporting_scanners</code> फ़ील्ड सूचीबद्ध करता है कि किन स्कैनर प्लेन ने साक्ष्य योगदान दिया, और <code>.aigiscode/ast-grep-scan.json</code> आर्टिफ़ैक्ट ऑडिटिंग के लिए पूर्ण प्रोवेनेंस के साथ कच्चे AST-grep आउटपुट को संरक्षित करता है।</p>
+
+<h2 id="scanner-visibility">रिपोर्ट में स्कैनर दृश्यता</h2>
+
+<p><code>aigiscode-report.json</code> का सारांश अनुभाग और <code>architecture-surface.json</code> का अवलोकन अब फ़ैमिली-लेवल स्कैनर गणना प्रदर्शित करता है। आप एक नज़र में देख सकते हैं कि कितनी खोजें जटिलता नियमों, सुरक्षा नियमों और फ़्रेमवर्क दुरुपयोग नियमों से आईं — कच्चे स्कैनर आर्टिफ़ैक्ट को लोड किए बिना।</p>
+
+<h2 id="try-it">इसे आज़माएं</h2>
+
+<p>ड्यूल-स्कैनर आर्किटेक्चर हर AigisCode रन में सक्रिय है:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>कच्चे स्कैनर आउटपुट के लिए <code>.aigiscode/ast-grep-scan.json</code> और दोनों प्लेन से मर्ज किए गए साक्ष्य दिखाने वाली खोजों के लिए <code>.aigiscode/deterministic-findings.json</code> देखें।</p>
+`,
+      pt: `
+<p>Ferramentas de análise de código normalmente adotam uma abordagem: ou analisam ASTs e fazem correspondência de padrões, ou constroem grafos semânticos e raciocinam sobre estrutura. Cada abordagem tem pontos fortes. A correspondência de padrões é precisa e rápida para anti-padrões conhecidos. A análise de grafos compreende relacionamentos e contexto. O AigisCode agora usa ambas — simultaneamente.</p>
+
+<h2 id="two-scanner-planes">Dois Planos de Scanner, Uma Análise</h2>
+
+<p>O pipeline de análise do AigisCode executa dois planos de scanner distintos em cada análise:</p>
+
+<ol>
+<li><strong>Detectores nativos em Rust</strong> — Estes constroem o grafo semântico, resolvem importações, rastreiam relacionamentos de chamada e produzem descobertas respaldadas por evidências do grafo. Eles entendem o contexto: isto é código morto? Esta função é um gargalo? Este é um ponto quente arquitetural?</li>
+<li><strong>Scanner estrutural AST-grep</strong> — Este executa regras de padrão tipadas contra a árvore sintática real de cada arquivo. Ele captura padrões de código específicos com proveniência: operações caras locais em loops, chamadas de API perigosas, padrões de uso incorreto de frameworks.</li>
+</ol>
+
+<p>Os dois planos não são redundantes. Eles cobrem eixos de detecção diferentes e <strong>reforçam um ao outro</strong>. Quando o detector nativo identifica um ponto quente de complexidade algorítmica e o scanner AST-grep independentemente encontra uma consulta de banco de dados dentro de um loop no mesmo arquivo, a evidência combinada é muito mais forte do que qualquer descoberta isolada.</p>
+
+<h2 id="ast-grep-families">O que o AST-Grep Captura</h2>
+
+<p>O scanner AST-grep opera em três famílias de descobertas:</p>
+
+<h3>Complexidade Algorítmica</h3>
+<p>Detecta operações caras dentro de loops que causam problemas de desempenho em escala:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — Compilar padrões regex dentro de iteração em vez de uma vez</li>
+<li><code>JsonDecodeInLoop</code> — Analisar JSON/YAML dentro de loops apertados</li>
+<li><code>FilesystemReadInLoop</code> — Ler arquivos dentro de iteração</li>
+<li><code>DatabaseQueryInLoop</code> — Executar consultas SQL dentro de loops (o clássico N+1)</li>
+<li><code>HttpCallInLoop</code> — Fazer requisições HTTP dentro de iteração</li>
+<li><code>CacheLookupInLoop</code> — Leituras de cache dentro de loops que deveriam ser em lote</li>
+</ul>
+
+<p>Esses padrões abrangem Python, JavaScript/TypeScript, PHP, Ruby e Rust — cada um com construções de loop e padrões de API apropriados à linguagem.</p>
+
+<h3>Segurança: APIs Perigosas</h3>
+<p>Detecta uso de APIs perigosas com precisão estrutural:</p>
+
+<ul>
+<li>Chamadas <code>eval()</code> e <code>exec()</code> em todas as linguagens suportadas</li>
+<li>Desserialização insegura (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>Saída HTML insegura (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>Execução de shell (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> com <code>shell=True</code>)</li>
+</ul>
+
+<h3>Uso Incorreto de Framework</h3>
+<p>Captura padrões que violam convenções de framework:</p>
+
+<ul>
+<li>Chamadas <code>env()</code> brutas fora dos limites de config/bootstrap (Laravel)</li>
+<li>Acesso direto ao contêiner <code>app()</code> / <code>resolve()</code> fora de providers (Laravel)</li>
+<li>Acesso bruto a <code>os.environ</code> fora de módulos de settings (Django)</li>
+<li>Acesso direto ao atributo <code>settings</code> contornando padrões <code>getattr</code> (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">Catálogos Específicos de Framework</h2>
+
+<p>Uma das inovações-chave é o <strong>sistema de catálogos de framework</strong>. Em vez de codificar regras de framework no scanner principal, o AigisCode usa catálogos tipados que são ativados com base em heurísticas no nível de arquivo.</p>
+
+<p>Quando o AigisCode detecta um projeto Laravel (encontrando <code>artisan</code>, <code>composer.json</code> com dependências Laravel, ou padrões <code>.env</code>), ele ativa o catálogo Laravel. Isso adiciona regras específicas do framework que seriam ruído em uma base de código não-Laravel mas são padrões genuínos de uso incorreto em um projeto Laravel.</p>
+
+<p>O mesmo se aplica ao Django, com seu próprio catálogo de anti-padrões específicos do framework. Os catálogos são aditivos — eles contribuem descobertas com proveniência explícita como <code>ast_grep.pattern.laravel</code> e <code>ast_grep.pattern.django</code>, portanto a origem de cada descoberta é sempre rastreável.</p>
+
+<h2 id="prefiltering">Pré-filtragem Inteligente</h2>
+
+<p>Executar regras AST-grep em cada arquivo de uma grande base de código seria desperdiçador. O AigisCode agora inclui um <strong>pré-filtro de família</strong> que verifica rapidamente cada arquivo em busca de tokens relevantes antes de invocar o motor AST-grep completo.</p>
+
+<p>Se um arquivo não contém construções de loop, ele pula todas as regras de complexidade. Se não contém tokens de API perigosas, pula regras de segurança. Se o projeto não tem framework detectado, pula regras de uso incorreto de framework inteiramente. Isso mantém o scanner rápido mesmo em bases de código com dezenas de milhares de arquivos.</p>
+
+<p>Arquivos que excedem um limite de tamanho também são rastreados em uma lista <code>skipped_files</code> com o motivo e contagem de bytes, para que a análise seja transparente sobre seus limites de cobertura.</p>
+
+<h2 id="reinforcement">Como os Dois Planos se Reforçam</h2>
+
+<p>O verdadeiro poder emerge quando ambos os planos de scanner contribuem para a mesma descoberta. Veja como funciona na prática:</p>
+
+<ol>
+<li>O detector nativo identifica um arquivo como um <strong>gargalo no grafo</strong> — muitos outros arquivos dependem dele, tem alta centralidade</li>
+<li>O scanner AST-grep independentemente encontra <strong>três consultas de banco de dados dentro de um loop for</strong> nesse mesmo arquivo</li>
+<li>O AigisCode mescla esses sinais: um arquivo de gargalo de alto tráfego com padrões confirmados de consulta N+1 é uma <strong>descoberta crítica de desempenho</strong>, não apenas um aviso</li>
+</ol>
+
+<p>O campo <code>supporting_scanners</code> em cada descoberta lista quais planos de scanner contribuíram com evidências, e o artefato <code>.aigiscode/ast-grep-scan.json</code> preserva a saída bruta do AST-grep com proveniência completa para auditoria.</p>
+
+<h2 id="scanner-visibility">Visibilidade do Scanner nos Relatórios</h2>
+
+<p>A seção de resumo do <code>aigiscode-report.json</code> e a visão geral em <code>architecture-surface.json</code> agora expõem contagens de scanner no nível de família. Você pode ver rapidamente quantas descobertas vieram de regras de complexidade, regras de segurança e regras de uso incorreto de framework — sem precisar carregar o artefato bruto do scanner.</p>
+
+<h2 id="try-it">Experimente</h2>
+
+<p>A arquitetura de scanner duplo está ativa em cada execução do AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Verifique <code>.aigiscode/ast-grep-scan.json</code> para a saída bruta do scanner e <code>.aigiscode/deterministic-findings.json</code> para descobertas que mostram evidências mescladas de ambos os planos.</p>
+`,
+      ar: `
+<p>تتخذ أدوات تحليل الكود عادةً منهجاً واحداً: إما تحلل أشجار AST وتطابق الأنماط، أو تبني رسوماً بيانية دلالية وتستنتج حول البنية. لكل منهج نقاط قوة. مطابقة الأنماط دقيقة وسريعة للأنماط المضادة المعروفة. تحليل الرسم البياني يفهم العلاقات والسياق. يستخدم AigisCode الآن كلا المنهجين — في وقت واحد.</p>
+
+<h2 id="two-scanner-planes">مستويا ماسحين، تحليل واحد</h2>
+
+<p>يشغّل خط أنابيب التحليل في AigisCode مستويين متميزين من الماسحات في كل تحليل:</p>
+
+<ol>
+<li><strong>كاشفات Rust الأصلية</strong> — تبني الرسم البياني الدلالي، وتحل الاستيرادات، وتتتبع علاقات الاستدعاء، وتنتج نتائج مدعومة بأدلة الرسم البياني. تفهم السياق: هل هذا كود ميت؟ هل هذه الدالة عنق زجاجة؟ هل هذه نقطة ساخنة معمارية؟</li>
+<li><strong>ماسح AST-grep الهيكلي</strong> — يشغّل قواعد أنماط مصنّفة ضد شجرة البنية الفعلية لكل ملف. يلتقط أنماط كود محددة مع مصدرها: عمليات مكلفة داخل الحلقات، استدعاءات API خطيرة، أنماط سوء استخدام الإطار.</li>
+</ol>
+
+<p>المستويان ليسا متكررين. يغطيان محاور كشف مختلفة و<strong>يعززان بعضهما البعض</strong>. عندما يحدد الكاشف الأصلي نقطة ساخنة للتعقيد الخوارزمي ويجد ماسح AST-grep بشكل مستقل استعلام قاعدة بيانات داخل حلقة في نفس الملف، فإن الأدلة المجمعة أقوى بكثير من أي نتيجة بمفردها.</p>
+
+<h2 id="ast-grep-families">ما يلتقطه AST-Grep</h2>
+
+<p>يعمل ماسح AST-grep عبر ثلاث عائلات من النتائج:</p>
+
+<h3>التعقيد الخوارزمي</h3>
+<p>يكشف العمليات المكلفة داخل الحلقات التي تسبب مشاكل أداء على نطاق واسع:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — تجميع أنماط التعبيرات النمطية داخل التكرار بدلاً من مرة واحدة</li>
+<li><code>JsonDecodeInLoop</code> — تحليل JSON/YAML داخل حلقات ضيقة</li>
+<li><code>FilesystemReadInLoop</code> — قراءة الملفات داخل التكرار</li>
+<li><code>DatabaseQueryInLoop</code> — تشغيل استعلامات SQL داخل الحلقات (مشكلة N+1 الكلاسيكية)</li>
+<li><code>HttpCallInLoop</code> — إجراء طلبات HTTP داخل التكرار</li>
+<li><code>CacheLookupInLoop</code> — قراءات الذاكرة المؤقتة داخل الحلقات التي يجب تجميعها</li>
+</ul>
+
+<p>تمتد هذه الأنماط عبر Python وJavaScript/TypeScript وPHP وRuby وRust — كل منها بتراكيب حلقات وأنماط API مناسبة للغة.</p>
+
+<h3>الأمان: واجهات API الخطيرة</h3>
+<p>يكشف استخدام API الخطير بدقة هيكلية:</p>
+
+<ul>
+<li>استدعاءات <code>eval()</code> و<code>exec()</code> عبر جميع اللغات المدعومة</li>
+<li>إلغاء التسلسل غير الآمن (<code>pickle.loads</code>، <code>unserialize</code>، <code>Marshal.load</code>)</li>
+<li>إخراج HTML غير الآمن (<code>dangerouslySetInnerHTML</code>، <code>{!! $var !!}</code>، <code>| safe</code>)</li>
+<li>تنفيذ الأوامر (<code>system()</code>، <code>exec()</code>، <code>subprocess</code> مع <code>shell=True</code>)</li>
+</ul>
+
+<h3>سوء استخدام الإطار</h3>
+<p>يلتقط الأنماط التي تنتهك اتفاقيات الإطار:</p>
+
+<ul>
+<li>استدعاءات <code>env()</code> الخام خارج حدود config/bootstrap (Laravel)</li>
+<li>وصول مباشر لـ <code>app()</code> / <code>resolve()</code> للحاوية خارج المزودين (Laravel)</li>
+<li>وصول خام لـ <code>os.environ</code> خارج وحدات الإعدادات (Django)</li>
+<li>وصول مباشر لسمات <code>settings</code> متجاوزاً أنماط <code>getattr</code> (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">كتالوجات خاصة بالإطار</h2>
+
+<p>أحد الابتكارات الرئيسية هو <strong>نظام كتالوج الإطار</strong>. بدلاً من تشفير قواعد الإطار في الماسح الأساسي، يستخدم AigisCode كتالوجات مصنّفة تنشط بناءً على الاستدلالات على مستوى الملف.</p>
+
+<p>عندما يكتشف AigisCode مشروع Laravel (بالعثور على <code>artisan</code>، أو <code>composer.json</code> مع تبعيات Laravel، أو أنماط <code>.env</code>)، ينشط كتالوج Laravel. يضيف هذا قواعد خاصة بالإطار ستكون ضوضاء في قاعدة كود غير Laravel لكنها أنماط سوء استخدام حقيقية في مشروع Laravel.</p>
+
+<p>ينطبق الأمر نفسه على Django، مع كتالوجه الخاص من الأنماط المضادة الخاصة بالإطار. الكتالوجات إضافية — تساهم بنتائج مع مصدر صريح مثل <code>ast_grep.pattern.laravel</code> و<code>ast_grep.pattern.django</code>، لذا يمكن دائماً تتبع مصدر كل نتيجة.</p>
+
+<h2 id="prefiltering">التصفية المسبقة الذكية</h2>
+
+<p>تشغيل قواعد AST-grep على كل ملف في قاعدة كود كبيرة سيكون مضيعة. يتضمن AigisCode الآن <strong>مرشحاً مسبقاً للعائلة</strong> يمسح كل ملف بسرعة بحثاً عن الرموز ذات الصلة قبل استدعاء محرك AST-grep الكامل.</p>
+
+<p>إذا لم يحتوِ ملف على تراكيب حلقات، يتخطى جميع قواعد التعقيد. إذا لم يحتوِ على رموز API خطيرة، يتخطى قواعد الأمان. إذا لم يكن للمشروع إطار مكتشف، يتخطى قواعد سوء استخدام الإطار بالكامل. يحافظ هذا على سرعة الماسح حتى على قواعد الكود التي تحتوي على عشرات الآلاف من الملفات.</p>
+
+<p>يتم أيضاً تتبع الملفات التي تتجاوز حداً للحجم في قائمة <code>skipped_files</code> مع السبب وعدد البايتات، لذا يكون التحليل شفافاً حول حدود تغطيته.</p>
+
+<h2 id="reinforcement">كيف يعزز المستويان بعضهما البعض</h2>
+
+<p>تظهر القوة الحقيقية عندما يساهم كلا مستويي الماسح في نفس النتيجة. إليك كيف يعمل في الممارسة:</p>
+
+<ol>
+<li>يحدد الكاشف الأصلي ملفاً كـ <strong>عنق زجاجة في الرسم البياني</strong> — العديد من الملفات الأخرى تعتمد عليه، لديه مركزية عالية</li>
+<li>يجد ماسح AST-grep بشكل مستقل <strong>ثلاثة استعلامات قاعدة بيانات داخل حلقة for</strong> في نفس الملف</li>
+<li>يدمج AigisCode هذه الإشارات: ملف عنق زجاجة عالي الحركة مع أنماط استعلام N+1 مؤكدة هو <strong>نتيجة أداء حرجة</strong>، وليس مجرد تحذير</li>
+</ol>
+
+<p>يسرد حقل <code>supporting_scanners</code> في كل نتيجة أي مستويات ماسح ساهمت بالأدلة، ويحفظ أرتيفاكت <code>.aigiscode/ast-grep-scan.json</code> مخرجات AST-grep الخام مع المصدر الكامل للتدقيق.</p>
+
+<h2 id="scanner-visibility">رؤية الماسح في التقارير</h2>
+
+<p>يعرض قسم الملخص في <code>aigiscode-report.json</code> والنظرة العامة في <code>architecture-surface.json</code> الآن أعداد الماسح على مستوى العائلة. يمكنك أن ترى بنظرة واحدة عدد النتائج التي جاءت من قواعد التعقيد وقواعد الأمان وقواعد سوء استخدام الإطار — بدون الحاجة لتحميل أرتيفاكت الماسح الخام.</p>
+
+<h2 id="try-it">جرّبه</h2>
+
+<p>معمارية الماسح المزدوج نشطة في كل تحليل يُجريه AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>تحقق من <code>.aigiscode/ast-grep-scan.json</code> لمخرجات الماسح الخام و<code>.aigiscode/deterministic-findings.json</code> للنتائج التي تُظهر أدلة مدمجة من كلا المستويين.</p>
+`,
+      pl: `
+<p>Narzędzia do analizy kodu zazwyczaj przyjmują jedno podejście: albo parsują AST i dopasowują wzorce, albo budują grafy semantyczne i wnioskują o strukturze. Każde podejście ma swoje mocne strony. Dopasowywanie wzorców jest precyzyjne i szybkie dla znanych antywzorców. Analiza grafów rozumie relacje i kontekst. AigisCode teraz używa obu — jednocześnie.</p>
+
+<h2 id="two-scanner-planes">Dwa poziomy skanerów, jedna analiza</h2>
+
+<p>Potok analizy AigisCode uruchamia dwa odrębne poziomy skanerów w każdej analizie:</p>
+
+<ol>
+<li><strong>Natywne detektory Rust</strong> — Budują graf semantyczny, rozwiązują importy, śledzą relacje wywołań i produkują wyniki poparte dowodami z grafu. Rozumieją kontekst: czy to martwy kod? Czy ta funkcja jest wąskim gardłem? Czy to architektoniczny hotspot?</li>
+<li><strong>Skaner strukturalny AST-grep</strong> — Uruchamia typowane reguły wzorców na rzeczywistym drzewie składni każdego pliku. Wychwytuje konkretne wzorce kodu z proweniencją: kosztowne operacje wewnątrz pętli, niebezpieczne wywołania API, wzorce nadużycia frameworka.</li>
+</ol>
+
+<p>Oba poziomy nie są redundantne. Pokrywają różne osie detekcji i <strong>wzajemnie się wzmacniają</strong>. Gdy natywny detektor identyfikuje hotspot złożoności algorytmicznej, a skaner AST-grep niezależnie znajduje zapytanie do bazy danych wewnątrz pętli w tym samym pliku, połączone dowody są znacznie silniejsze niż każdy wynik z osobna.</p>
+
+<h2 id="ast-grep-families">Co wychwytuje AST-Grep</h2>
+
+<p>Skaner AST-grep działa w trzech rodzinach wyników:</p>
+
+<h3>Złożoność algorytmiczna</h3>
+<p>Wykrywa kosztowne operacje wewnątrz pętli, które powodują problemy wydajnościowe na dużą skalę:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — Kompilowanie wzorców regex wewnątrz iteracji zamiast raz</li>
+<li><code>JsonDecodeInLoop</code> — Parsowanie JSON/YAML wewnątrz ciasnych pętli</li>
+<li><code>FilesystemReadInLoop</code> — Odczyt plików wewnątrz iteracji</li>
+<li><code>DatabaseQueryInLoop</code> — Uruchamianie zapytań SQL wewnątrz pętli (klasyczny N+1)</li>
+<li><code>HttpCallInLoop</code> — Wykonywanie żądań HTTP wewnątrz iteracji</li>
+<li><code>CacheLookupInLoop</code> — Odczyty cache wewnątrz pętli, które powinny być zbatchowane</li>
+</ul>
+
+<p>Te wzorce obejmują Python, JavaScript/TypeScript, PHP, Ruby i Rust — każdy z odpowiednimi dla języka konstrukcjami pętli i wzorcami API.</p>
+
+<h3>Bezpieczeństwo: niebezpieczne API</h3>
+<p>Wykrywa niebezpieczne użycie API z precyzją strukturalną:</p>
+
+<ul>
+<li>Wywołania <code>eval()</code> i <code>exec()</code> we wszystkich obsługiwanych językach</li>
+<li>Niebezpieczna deserializacja (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>Niebezpieczne wyjście HTML (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>Wykonywanie poleceń powłoki (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> z <code>shell=True</code>)</li>
+</ul>
+
+<h3>Nadużycie frameworka</h3>
+<p>Wychwytuje wzorce naruszające konwencje frameworka:</p>
+
+<ul>
+<li>Surowe wywołania <code>env()</code> poza granicami config/bootstrap (Laravel)</li>
+<li>Bezpośredni dostęp do kontenera <code>app()</code> / <code>resolve()</code> poza providerami (Laravel)</li>
+<li>Surowy dostęp do <code>os.environ</code> poza modułami ustawień (Django)</li>
+<li>Bezpośredni dostęp do atrybutów <code>settings</code> z pominięciem wzorców <code>getattr</code> (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">Katalogi specyficzne dla frameworka</h2>
+
+<p>Jedną z kluczowych innowacji jest <strong>system katalogów frameworka</strong>. Zamiast zakodowania reguł frameworka w podstawowym skanerze, AigisCode używa typowanych katalogów, które aktywują się na podstawie heurystyk na poziomie pliku.</p>
+
+<p>Gdy AigisCode wykryje projekt Laravel (znajdując <code>artisan</code>, <code>composer.json</code> z zależnościami Laravel lub wzorce <code>.env</code>), aktywuje katalog Laravel. Dodaje to reguły specyficzne dla frameworka, które byłyby szumem w kodzie nie-Laravelowym, ale są prawdziwymi wzorcami nadużycia w projekcie Laravel.</p>
+
+<p>To samo dotyczy Django, z własnym katalogiem antywzorców specyficznych dla frameworka. Katalogi są addytywne — wnoszą wyniki z jawną proweniencją, taką jak <code>ast_grep.pattern.laravel</code> i <code>ast_grep.pattern.django</code>, więc źródło każdego wyniku jest zawsze możliwe do prześledzenia.</p>
+
+<h2 id="prefiltering">Inteligentne prefiltrowanie</h2>
+
+<p>Uruchamianie reguł AST-grep na każdym pliku w dużej bazie kodu byłoby marnotrawstwem. AigisCode zawiera teraz <strong>prefiltr rodzinny</strong>, który szybko skanuje każdy plik pod kątem istotnych tokenów przed wywołaniem pełnego silnika AST-grep.</p>
+
+<p>Jeśli plik nie zawiera konstrukcji pętli, pomija wszystkie reguły złożoności. Jeśli nie zawiera tokenów niebezpiecznych API, pomija reguły bezpieczeństwa. Jeśli projekt nie ma wykrytego frameworka, pomija reguły nadużycia frameworka całkowicie. Utrzymuje to szybkość skanera nawet na bazach kodu z dziesiątkami tysięcy plików.</p>
+
+<p>Pliki przekraczające próg rozmiaru są również śledzone na liście <code>skipped_files</code> z powodem i liczbą bajtów, więc analiza jest transparentna w kwestii granic pokrycia.</p>
+
+<h2 id="reinforcement">Jak oba poziomy się wzajemnie wzmacniają</h2>
+
+<p>Prawdziwa moc ujawnia się, gdy oba poziomy skanerów wnoszą wkład do tego samego wyniku. Oto jak to działa w praktyce:</p>
+
+<ol>
+<li>Natywny detektor identyfikuje plik jako <strong>wąskie gardło w grafie</strong> — wiele innych plików od niego zależy, ma wysoką centralność</li>
+<li>Skaner AST-grep niezależnie znajduje <strong>trzy zapytania do bazy danych wewnątrz pętli for</strong> w tym samym pliku</li>
+<li>AigisCode łączy te sygnały: plik będący wąskim gardłem o dużym ruchu z potwierdzonymi wzorcami zapytań N+1 to <strong>krytyczny wynik wydajnościowy</strong>, a nie tylko ostrzeżenie</li>
+</ol>
+
+<p>Pole <code>supporting_scanners</code> w każdym wyniku wymienia, które poziomy skanerów wniosły dowody, a artefakt <code>.aigiscode/ast-grep-scan.json</code> zachowuje surowe wyjście AST-grep z pełną proweniencją do audytu.</p>
+
+<h2 id="scanner-visibility">Widoczność skanera w raportach</h2>
+
+<p>Sekcja podsumowania <code>aigiscode-report.json</code> i przegląd w <code>architecture-surface.json</code> teraz eksponują liczniki skanera na poziomie rodziny. Można na pierwszy rzut oka zobaczyć, ile wyników pochodzi z reguł złożoności, reguł bezpieczeństwa i reguł nadużycia frameworka — bez konieczności ładowania surowego artefaktu skanera.</p>
+
+<h2 id="try-it">Wypróbuj</h2>
+
+<p>Architektura podwójnego skanera jest aktywna w każdym uruchomieniu AigisCode:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>Sprawdź <code>.aigiscode/ast-grep-scan.json</code> pod kątem surowego wyjścia skanera i <code>.aigiscode/deterministic-findings.json</code> pod kątem wyników pokazujących scalone dowody z obu poziomów.</p>
+`,
+      bn: `
+<p>কোড অ্যানালাইসিস টুলগুলো সাধারণত একটি পদ্ধতি অবলম্বন করে: হয় তারা AST পার্স করে এবং প্যাটার্ন ম্যাচ করে, অথবা সিমান্টিক গ্রাফ তৈরি করে এবং স্ট্রাকচার সম্পর্কে যুক্তি দেয়। প্রতিটি পদ্ধতির শক্তি আছে। প্যাটার্ন ম্যাচিং পরিচিত অ্যান্টি-প্যাটার্নের জন্য সুনির্দিষ্ট এবং দ্রুত। গ্রাফ অ্যানালাইসিস সম্পর্ক এবং প্রসঙ্গ বোঝে। AigisCode এখন দুটোই ব্যবহার করে — একসাথে।</p>
+
+<h2 id="two-scanner-planes">দুটি স্ক্যানার প্লেন, একটি বিশ্লেষণ</h2>
+
+<p>AigisCode-এর অ্যানালাইসিস পাইপলাইন প্রতিটি বিশ্লেষণে দুটি আলাদা স্ক্যানার প্লেন চালায়:</p>
+
+<ol>
+<li><strong>নেটিভ Rust ডিটেক্টর</strong> — এগুলো সিমান্টিক গ্রাফ তৈরি করে, ইমপোর্ট রিজলভ করে, কল রিলেশনশিপ ট্রেস করে এবং গ্রাফ এভিডেন্স দ্বারা সমর্থিত ফলাফল উৎপন্ন করে। এগুলো প্রসঙ্গ বোঝে: এটি কি ডেড কোড? এই ফাংশনটি কি বটলনেক? এটি কি আর্কিটেকচারাল হটস্পট?</li>
+<li><strong>AST-grep স্ট্রাকচারাল স্ক্যানার</strong> — এটি প্রতিটি ফাইলের প্রকৃত সিনট্যাক্স ট্রির বিরুদ্ধে টাইপড প্যাটার্ন রুল চালায়। এটি সুনির্দিষ্ট কোড প্যাটার্ন ক্যাচ করে প্রভেন্যান্স সহ: লুপ-লোকাল ব্যয়বহুল অপারেশন, বিপজ্জনক API কল, ফ্রেমওয়ার্ক অপব্যবহারের প্যাটার্ন।</li>
+</ol>
+
+<p>দুটি প্লেন অপ্রয়োজনীয় নয়। এগুলো বিভিন্ন ডিটেকশন অক্ষ কভার করে এবং <strong>একে অপরকে শক্তিশালী করে</strong>। যখন নেটিভ ডিটেক্টর একটি অ্যালগরিদমিক কমপ্লেক্সিটি হটস্পট চিহ্নিত করে এবং AST-grep স্ক্যানার স্বাধীনভাবে একই ফাইলে একটি লুপের ভিতরে ডাটাবেস কোয়েরি খুঁজে পায়, সম্মিলিত প্রমাণ যেকোনো একক ফলাফলের চেয়ে অনেক শক্তিশালী।</p>
+
+<h2 id="ast-grep-families">AST-Grep কী ক্যাচ করে</h2>
+
+<p>AST-grep স্ক্যানার তিনটি ফাইন্ডিং ফ্যামিলি জুড়ে কাজ করে:</p>
+
+<h3>অ্যালগরিদমিক কমপ্লেক্সিটি</h3>
+<p>লুপের ভিতরে ব্যয়বহুল অপারেশন শনাক্ত করে যা বড় স্কেলে পারফরম্যান্স সমস্যা সৃষ্টি করে:</p>
+
+<ul>
+<li><code>RegexCompileInLoop</code> — একবারের বদলে ইটারেশনের ভিতরে regex প্যাটার্ন কম্পাইল করা</li>
+<li><code>JsonDecodeInLoop</code> — টাইট লুপের ভিতরে JSON/YAML পার্সিং</li>
+<li><code>FilesystemReadInLoop</code> — ইটারেশনের ভিতরে ফাইল পড়া</li>
+<li><code>DatabaseQueryInLoop</code> — লুপের ভিতরে SQL কোয়েরি চালানো (ক্লাসিক N+1)</li>
+<li><code>HttpCallInLoop</code> — ইটারেশনের ভিতরে HTTP রিকোয়েস্ট করা</li>
+<li><code>CacheLookupInLoop</code> — লুপের ভিতরে ক্যাশ রিড যা ব্যাচ করা উচিত</li>
+</ul>
+
+<p>এই প্যাটার্নগুলো Python, JavaScript/TypeScript, PHP, Ruby এবং Rust জুড়ে বিস্তৃত — প্রতিটিতে ভাষা-উপযুক্ত লুপ কনস্ট্রাক্ট এবং API প্যাটার্ন।</p>
+
+<h3>নিরাপত্তা: বিপজ্জনক API</h3>
+<p>স্ট্রাকচারাল নির্ভুলতায় বিপজ্জনক API ব্যবহার শনাক্ত করে:</p>
+
+<ul>
+<li>সমস্ত সমর্থিত ভাষায় <code>eval()</code> এবং <code>exec()</code> কল</li>
+<li>অনিরাপদ ডিসিরিয়ালাইজেশন (<code>pickle.loads</code>, <code>unserialize</code>, <code>Marshal.load</code>)</li>
+<li>অনিরাপদ HTML আউটপুট (<code>dangerouslySetInnerHTML</code>, <code>{!! $var !!}</code>, <code>| safe</code>)</li>
+<li>শেল এক্সিকিউশন (<code>system()</code>, <code>exec()</code>, <code>subprocess</code> with <code>shell=True</code>)</li>
+</ul>
+
+<h3>ফ্রেমওয়ার্ক অপব্যবহার</h3>
+<p>ফ্রেমওয়ার্ক কনভেনশন লঙ্ঘনকারী প্যাটার্ন ক্যাচ করে:</p>
+
+<ul>
+<li>config/bootstrap সীমানার বাইরে কাঁচা <code>env()</code> কল (Laravel)</li>
+<li>প্রোভাইডারের বাইরে সরাসরি <code>app()</code> / <code>resolve()</code> কন্টেইনার অ্যাক্সেস (Laravel)</li>
+<li>সেটিংস মডিউলের বাইরে কাঁচা <code>os.environ</code> অ্যাক্সেস (Django)</li>
+<li><code>getattr</code> প্যাটার্ন বাইপাস করে সরাসরি <code>settings</code> অ্যাট্রিবিউট অ্যাক্সেস (Django)</li>
+</ul>
+
+<h2 id="framework-catalogs">ফ্রেমওয়ার্ক-নির্দিষ্ট ক্যাটালগ</h2>
+
+<p>একটি মূল উদ্ভাবন হল <strong>ফ্রেমওয়ার্ক ক্যাটালগ সিস্টেম</strong>। কোর স্ক্যানারে ফ্রেমওয়ার্ক রুল হার্ডকোড করার বদলে, AigisCode টাইপড ক্যাটালগ ব্যবহার করে যা ফাইল-লেভেল হিউরিস্টিকসের উপর ভিত্তি করে সক্রিয় হয়।</p>
+
+<p>যখন AigisCode একটি Laravel প্রকল্প শনাক্ত করে (<code>artisan</code>, Laravel ডিপেন্ডেন্সি সহ <code>composer.json</code>, বা <code>.env</code> প্যাটার্ন খুঁজে পেয়ে), এটি Laravel ক্যাটালগ সক্রিয় করে। এটি ফ্রেমওয়ার্ক-নির্দিষ্ট রুল যোগ করে যা নন-Laravel কোডবেসে শুধু গোলমাল হবে কিন্তু Laravel প্রকল্পে প্রকৃত অপব্যবহারের প্যাটার্ন।</p>
+
+<p>Django-র ক্ষেত্রেও একই প্রযোজ্য, নিজস্ব ফ্রেমওয়ার্ক-নির্দিষ্ট অ্যান্টি-প্যাটার্নের ক্যাটালগ সহ। ক্যাটালগগুলো সংযোজনমূলক — এগুলো সুস্পষ্ট প্রভেন্যান্স যেমন <code>ast_grep.pattern.laravel</code> এবং <code>ast_grep.pattern.django</code> সহ ফলাফল অবদান রাখে, তাই প্রতিটি ফলাফলের উৎস সবসময় ট্রেসযোগ্য।</p>
+
+<h2 id="prefiltering">ইন্টেলিজেন্ট প্রিফিল্টারিং</h2>
+
+<p>একটি বড় কোডবেসের প্রতিটি ফাইলে AST-grep রুল চালানো অপচয় হবে। AigisCode-এ এখন একটি <strong>ফ্যামিলি প্রিফিল্টার</strong> আছে যা পূর্ণ AST-grep ইঞ্জিন চালানোর আগে প্রতিটি ফাইলে প্রাসঙ্গিক টোকেনের জন্য দ্রুত স্ক্যান করে।</p>
+
+<p>যদি একটি ফাইলে কোনো লুপ কনস্ট্রাক্ট না থাকে, সমস্ত কমপ্লেক্সিটি রুল স্কিপ করে। যদি কোনো বিপজ্জনক API টোকেন না থাকে, সিকিউরিটি রুল স্কিপ করে। যদি প্রকল্পের কোনো শনাক্ত ফ্রেমওয়ার্ক না থাকে, ফ্রেমওয়ার্ক অপব্যবহারের রুল সম্পূর্ণ স্কিপ করে। এটি দশ হাজার ফাইলের কোডবেসেও স্ক্যানারকে দ্রুত রাখে।</p>
+
+<p>আকারের সীমা অতিক্রমকারী ফাইলগুলোও কারণ এবং বাইট সংখ্যা সহ <code>skipped_files</code> তালিকায় ট্র্যাক করা হয়, তাই বিশ্লেষণ তার কভারেজ সীমানা সম্পর্কে স্বচ্ছ।</p>
+
+<h2 id="reinforcement">কিভাবে দুটি প্লেন একে অপরকে শক্তিশালী করে</h2>
+
+<p>প্রকৃত শক্তি প্রকাশ পায় যখন উভয় স্ক্যানার প্লেন একই ফলাফলে অবদান রাখে। এটি বাস্তবে কিভাবে কাজ করে:</p>
+
+<ol>
+<li>নেটিভ ডিটেক্টর একটি ফাইলকে <strong>গ্রাফ বটলনেক</strong> হিসেবে চিহ্নিত করে — অনেক অন্যান্য ফাইল এটির উপর নির্ভর করে, এর উচ্চ সেন্ট্রালিটি আছে</li>
+<li>AST-grep স্ক্যানার স্বাধীনভাবে সেই একই ফাইলে <strong>একটি for লুপের ভিতরে তিনটি ডাটাবেস কোয়েরি</strong> খুঁজে পায়</li>
+<li>AigisCode এই সংকেতগুলো মার্জ করে: নিশ্চিত N+1 কোয়েরি প্যাটার্ন সহ একটি উচ্চ-ট্রাফিক বটলনেক ফাইল হল একটি <strong>গুরুতর পারফরম্যান্স ফলাফল</strong>, শুধু একটি সতর্কতা নয়</li>
+</ol>
+
+<p>প্রতিটি ফলাফলের <code>supporting_scanners</code> ফিল্ড কোন স্ক্যানার প্লেন প্রমাণ অবদান করেছে তা তালিকাভুক্ত করে, এবং <code>.aigiscode/ast-grep-scan.json</code> আর্টিফ্যাক্ট অডিটের জন্য সম্পূর্ণ প্রভেন্যান্স সহ কাঁচা AST-grep আউটপুট সংরক্ষণ করে।</p>
+
+<h2 id="scanner-visibility">রিপোর্টে স্ক্যানার ভিজিবিলিটি</h2>
+
+<p><code>aigiscode-report.json</code>-এর সামারি সেকশন এবং <code>architecture-surface.json</code>-এর ওভারভিউ এখন ফ্যামিলি-লেভেল স্ক্যানার কাউন্ট এক্সপোজ করে। আপনি এক নজরে দেখতে পারেন কমপ্লেক্সিটি রুল, সিকিউরিটি রুল এবং ফ্রেমওয়ার্ক অপব্যবহারের রুল থেকে কতগুলো ফলাফল এসেছে — কাঁচা স্ক্যানার আর্টিফ্যাক্ট লোড না করেই।</p>
+
+<h2 id="try-it">ব্যবহার করুন</h2>
+
+<p>ডুয়াল-স্ক্যানার আর্কিটেকচার প্রতিটি AigisCode রানে সক্রিয়:</p>
+
+<pre><code>aigiscode analyze /path/to/your/project</code></pre>
+
+<p>কাঁচা স্ক্যানার আউটপুটের জন্য <code>.aigiscode/ast-grep-scan.json</code> এবং উভয় প্লেন থেকে মার্জড এভিডেন্স দেখানো ফলাফলের জন্য <code>.aigiscode/deterministic-findings.json</code> দেখুন।</p>
+`,
+    },
+  },
+
+  /* ======================================================================== */
+  /*  CI Pipeline Hardening: From 93 Clippy Warnings to Zero                 */
+  /* ======================================================================== */
+  {
+    slug: 'ci-pipeline-hardening-rust',
+    date: '2026-03-26',
+    readTime: 7,
+    tags: ['Engineering', 'CI/CD', 'Rust', 'Open Source'],
+    image: '/blog-ci-hardening.jpg',
+    author: { name: 'David Strejc', role: 'Creator of AigisCode' },
+    relatedSlugs: [
+      'from-python-to-rust-rewrite',
+      'dual-scanner-ast-grep-architecture',
+    ],
+    title: {
+      en: 'From 93 Clippy Warnings to Zero: Hardening AigisCode\'s CI Pipeline',
+      cs: 'Od 93 varování Clippy k nule: Zpevnění CI pipeline AigisCode',
+      fr: 'De 93 avertissements Clippy à zéro : renforcer le pipeline CI d\'AigisCode',
+      es: 'De 93 advertencias de Clippy a cero: endureciendo el pipeline CI de AigisCode',
+      zh: '从93个 Clippy 警告到零：强化 AigisCode 的 CI 流水线',
+      hi: '93 Clippy चेतावनियों से शून्य तक: AigisCode की CI पाइपलाइन को मजबूत बनाना',
+      pt: 'De 93 Avisos do Clippy a Zero: Fortalecendo o Pipeline de CI do AigisCode',
+      ar: 'من 93 تحذير Clippy إلى صفر: تقوية خط أنابيب CI في AigisCode',
+      pl: 'Od 93 ostrzeżeń Clippy do zera: Wzmacnianie potoku CI w AigisCode',
+      bn: '93 Clippy সতর্কতা থেকে শূন্যে: AigisCode-এর CI পাইপলাইন শক্তিশালীকরণ',
+    },
+    description: {
+      en: 'How we fixed 93 Clippy warnings, upgraded to Node 24, added Kuzu test gating, and built a production-grade CI pipeline for a growing Rust codebase.',
+      cs: 'Jak jsme opravili 93 varování Clippy, upgradovali na Node 24, přidali podmíněné spouštění testů Kuzu a vybudovali produkční CI pipeline pro rostoucí Rust kódovou základnu.',
+      fr: 'Comment nous avons corrigé 93 avertissements Clippy, mis à niveau vers Node 24, ajouté le contrôle conditionnel des tests Kuzu et construit un pipeline CI de qualité production pour une base de code Rust en croissance.',
+      es: 'Cómo corregimos 93 advertencias de Clippy, actualizamos a Node 24, agregamos control condicional de pruebas Kuzu y construimos un pipeline CI de grado producción para una base de código Rust en crecimiento.',
+      zh: '我们如何修复了93个 Clippy 警告、升级到 Node 24、添加了 Kuzu 测试门控，并为不断增长的 Rust 代码库构建了生产级 CI 流水线。',
+      hi: 'हमने कैसे 93 Clippy चेतावनियों को ठीक किया, Node 24 में अपग्रेड किया, Kuzu टेस्ट गेटिंग जोड़ी, और बढ़ते Rust कोडबेस के लिए प्रोडक्शन-ग्रेड CI पाइपलाइन बनाई।',
+      pt: 'Como corrigimos 93 avisos do Clippy, atualizamos para o Node 24, adicionamos controle condicional de testes Kuzu e construímos um pipeline de CI de nível de produção para uma base de código Rust em crescimento.',
+      ar: 'كيف أصلحنا 93 تحذير Clippy، وترقّينا إلى Node 24، وأضفنا بوابة اختبار Kuzu، وبنينا خط أنابيب CI بمستوى الإنتاج لقاعدة كود Rust المتنامية.',
+      pl: 'Jak naprawiliśmy 93 ostrzeżenia Clippy, zaktualizowaliśmy do Node 24, dodaliśmy bramkowanie testów Kuzu i zbudowaliśmy produkcyjny potok CI dla rosnącej bazy kodu Rust.',
+      bn: 'কিভাবে আমরা 93টি Clippy সতর্কতা ঠিক করলাম, Node 24-এ আপগ্রেড করলাম, Kuzu টেস্ট গেটিং যোগ করলাম, এবং একটি ক্রমবর্ধমান Rust কোডবেসের জন্য প্রোডাকশন-গ্রেড CI পাইপলাইন তৈরি করলাম।',
+    },
+    metaDescription: {
+      en: 'A practical guide to hardening CI for Rust projects: fixing 93 Clippy warnings, upgrading GitHub Actions to Node 24, gating optional dependency tests, and adding concurrency controls.',
+      cs: 'Praktický průvodce zpevněním CI pro projekty v Rustu: oprava 93 varování Clippy, upgrade GitHub Actions na Node 24, podmíněné spouštění testů volitelných závislostí a přidání řízení souběžnosti.',
+      fr: 'Un guide pratique pour renforcer le CI des projets Rust : correction de 93 avertissements Clippy, mise à niveau des GitHub Actions vers Node 24, contrôle conditionnel des tests de dépendances optionnelles et ajout de contrôles de concurrence.',
+      es: 'Una guía práctica para endurecer el CI en proyectos Rust: corregir 93 advertencias de Clippy, actualizar GitHub Actions a Node 24, controlar condicionalmente las pruebas de dependencias opcionales y agregar controles de concurrencia.',
+      zh: '强化 Rust 项目 CI 的实用指南：修复93个 Clippy 警告、升级 GitHub Actions 到 Node 24、对可选依赖测试进行门控以及添加并发控制。',
+      hi: 'Rust प्रोजेक्ट्स के लिए CI को मजबूत बनाने की व्यावहारिक मार्गदर्शिका: 93 Clippy चेतावनियों को ठीक करना, GitHub Actions को Node 24 में अपग्रेड करना, वैकल्पिक डिपेंडेंसी टेस्ट को गेट करना, और कंकरेंसी कंट्रोल जोड़ना।',
+      pt: 'Um guia prático para fortalecer o CI em projetos Rust: corrigir 93 avisos do Clippy, atualizar GitHub Actions para Node 24, controlar condicionalmente testes de dependências opcionais e adicionar controles de concorrência.',
+      ar: 'دليل عملي لتقوية CI لمشاريع Rust: إصلاح 93 تحذير Clippy، ترقية GitHub Actions إلى Node 24، بوابة اختبارات التبعيات الاختيارية، وإضافة ضوابط التزامن.',
+      pl: 'Praktyczny przewodnik po wzmacnianiu CI dla projektów Rust: naprawianie 93 ostrzeżeń Clippy, aktualizacja GitHub Actions do Node 24, bramkowanie testów opcjonalnych zależności i dodawanie kontroli współbieżności.',
+      bn: 'Rust প্রকল্পের জন্য CI শক্তিশালীকরণের ব্যবহারিক গাইড: 93টি Clippy সতর্কতা ঠিক করা, GitHub Actions Node 24-এ আপগ্রেড করা, ঐচ্ছিক নির্ভরতা পরীক্ষার গেটিং এবং কনকারেন্সি নিয়ন্ত্রণ যোগ করা।',
+    },
+    content: {
+      en: `
+<p>When you are moving fast on a Rust project — adding detectors, scanners, graph analysis, MCP integration — it is easy to let the CI pipeline drift. Warnings accumulate. Tests depend on optional external services. Actions use deprecated Node versions. At some point, the pipeline is not protecting you anymore — it is just noise.</p>
+
+<p>We hit that point with AigisCode and decided to fix it properly. Here is what we did and what we learned.</p>
+
+<h2 id="the-starting-state">The Starting State</h2>
+
+<p>Before the cleanup, AigisCode's CI had several problems:</p>
+
+<ul>
+<li><strong>93 Clippy warnings</strong> — accumulated over weeks of rapid feature development</li>
+<li><strong>Flaky Kuzu tests</strong> — the graph database tests assumed the Node.js Kuzu bridge was always available, which it is not on all CI runners</li>
+<li><strong>Deprecated GitHub Actions</strong> — using <code>actions/checkout@v4</code> and <code>actions/setup-node@v4</code>, which are scheduled for deprecation with Node.js 24</li>
+<li><strong>No concurrency control</strong> — multiple CI runs for the same branch could run in parallel, wasting resources</li>
+<li><strong>Leaked analysis reports</strong> — the <code>reports/</code> directory was committed to the repository, including large JSON outputs from test runs</li>
+</ul>
+
+<h2 id="fixing-clippy">Fixing 93 Clippy Warnings</h2>
+
+<p>The Clippy warnings fell into a few categories that are common in fast-moving Rust codebases:</p>
+
+<table>
+<thead>
+<tr><th>Category</th><th>Count</th><th>Fix</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>Compare borrowed strings instead of cloning</td></tr>
+<tr><td><code>&PathBuf</code> params</td><td>~12</td><td>Accept <code>&Path</code> instead — more generic, zero-cost</td></tr>
+<tr><td><code>let-else</code> patterns</td><td>~10</td><td>Replace verbose match/if-let with <code>let ... else</code></td></tr>
+<tr><td>Large error variants</td><td>~8</td><td>Box large enum variants to reduce stack size</td></tr>
+<tr><td>Nested <code>format!</code></td><td>~6</td><td>Inline format arguments instead of nesting</td></tr>
+<tr><td>Identical if-blocks</td><td>~5</td><td>Merge duplicated conditional branches</td></tr>
+<tr><td>Other</td><td>~37</td><td>Miscellaneous Clippy lints</td></tr>
+</tbody>
+</table>
+
+<p>The most impactful fix was boxing large error variants. Rust enums are as large as their biggest variant. When you have an error enum where one variant contains a 200-byte struct and another is a simple string, every instance of that enum is 200+ bytes on the stack. Boxing the large variants brings this down to pointer size.</p>
+
+<p>We also bumped the MSRV (Minimum Supported Rust Version) from 1.77 to 1.82 to take advantage of newer Clippy lints and the <code>let-else</code> syntax.</p>
+
+<h2 id="gating-kuzu-tests">Gating Optional Dependency Tests</h2>
+
+<p>AigisCode has an optional integration with <a href="https://kuzudb.com/">Kuzu</a>, an embedded graph database. The MCP server can write analysis results to a Kuzu database for graph querying. But the Kuzu bridge requires a Node.js native module that is not available everywhere.</p>
+
+<p>The fix was straightforward: an <code>is_kuzu_available()</code> function that checks whether the bridge can load, and a test gate that skips Kuzu-dependent tests when it cannot:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>We also fixed a logic bug where the <code>write_kuzu</code> flag was incorrectly coupled with <code>write_artifacts</code>. The condition was <code>write_artifacts || write_kuzu</code>, which meant requesting artifact writes would also trigger Kuzu writes — and fail on environments without the bridge. Now each flag is honored independently.</p>
+
+<h2 id="upgrading-actions">Upgrading GitHub Actions to Node 24</h2>
+
+<p>GitHub Actions v4 for checkout and setup-node use Node.js 20, which reaches end of life. The v6 versions use Node.js 24. The upgrade is a one-line change per action, but missing it means your CI will break when GitHub drops Node 20 support.</p>
+
+<pre><code># Before
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# After
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>We also switched to the stable Rust toolchain instead of pinning a specific nightly version, which reduces maintenance overhead and ensures we are always testing against what users will actually run.</p>
+
+<h2 id="concurrency-and-permissions">Concurrency Groups and Least Privilege</h2>
+
+<p>Two small but important additions:</p>
+
+<p><strong>Concurrency groups</strong> prevent multiple CI runs for the same branch from running simultaneously. When you push twice in quick succession, the first run is cancelled:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>Least-privilege permissions</strong> restrict the CI token to only what is needed. Most CI workflows only need to read repository contents, not write to packages or manage deployments:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>These are the kinds of settings that do not matter until they do. A CI token with write permissions that gets leaked through a dependency supply-chain attack is a much bigger problem than a read-only token.</p>
+
+<h2 id="cleaning-up-leaks">Cleaning Up Leaked Outputs</h2>
+
+<p>The <code>reports/</code> directory had been accidentally committed with full analysis outputs — including 12,000+ line JSON reports from test runs against real codebases. This added unnecessary weight to the repository and could potentially contain information about codebases being analyzed during development.</p>
+
+<p>We added <code>reports/</code> to <code>.gitignore</code>, removed the tracked files, and cleaned up the stale <code>.gitattributes</code> entry.</p>
+
+<h2 id="badges">Badges: Small but Meaningful</h2>
+
+<p>We added CI status, Rust version, and license badges to the README. This is a small thing, but it signals to potential users and contributors that the project takes quality seriously. A green CI badge means the tests actually pass. A Rust version badge means you know what toolchain you need. A license badge means you can check legal compatibility at a glance.</p>
+
+<h2 id="the-result">The Result</h2>
+
+<p>After the cleanup:</p>
+
+<ul>
+<li><strong>Zero Clippy warnings</strong> on <code>cargo clippy -- -D warnings</code></li>
+<li><strong>All tests pass</strong> on CI runners without optional dependencies</li>
+<li><strong>CI runs complete faster</strong> thanks to concurrency groups and npm caching</li>
+<li><strong>Pipeline includes</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code>, and <code>tsc</code> checks for the website</li>
+<li><strong>No leaked outputs</strong> in the repository</li>
+</ul>
+
+<p>A clean CI pipeline is not a feature you ship to users. But it is the foundation that makes every other feature reliable. When the pipeline is noisy, real problems hide in the noise. When it is clean, every failure is a signal worth investigating.</p>
+`,
+      cs: `
+<p>Když se na projektu v Rustu pohybujete rychle — přidáváte detektory, skenery, analýzu grafů, integraci MCP — je snadné nechat CI pipeline sklouzávat. Varování se hromadí. Testy závisejí na volitelných externích službách. Akce používají zastaralé verze Node. V určitém bodě vás pipeline již nechrání — je to jen šum.</p>
+
+<p>Tohoto bodu jsme s AigisCode dosáhli a rozhodli jsme se to řádně opravit. Zde je, co jsme udělali a co jsme se naučili.</p>
+
+<h2 id="the-starting-state">Výchozí stav</h2>
+
+<p>Před vyčištěním mělo CI AigisCode několik problémů:</p>
+
+<ul>
+<li><strong>93 varování Clippy</strong> — nahromaděných za týdny rychlého vývoje funkcí</li>
+<li><strong>Nestabilní testy Kuzu</strong> — testy grafové databáze předpokládaly, že Node.js Kuzu bridge je vždy dostupný, což na všech CI runnerech neplatí</li>
+<li><strong>Zastaralé GitHub Actions</strong> — používání <code>actions/checkout@v4</code> a <code>actions/setup-node@v4</code>, které jsou plánovány k ukončení s Node.js 24</li>
+<li><strong>Žádné řízení souběžnosti</strong> — více CI běhů pro stejnou větev mohlo běžet paralelně a plýtvat prostředky</li>
+<li><strong>Uniknuté analytické reporty</strong> — adresář <code>reports/</code> byl commitnut do repozitáře, včetně velkých JSON výstupů z testovacích běhů</li>
+</ul>
+
+<h2 id="fixing-clippy">Oprava 93 varování Clippy</h2>
+
+<p>Varování Clippy spadala do několika kategorií běžných v rychle se vyvíjejících Rust kódových základnách:</p>
+
+<table>
+<thead>
+<tr><th>Kategorie</th><th>Počet</th><th>Oprava</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>Porovnávat vypůjčené řetězce místo klonování</td></tr>
+<tr><td>Parametry <code>&PathBuf</code></td><td>~12</td><td>Přijímat <code>&Path</code> místo toho — obecnější, bezplatné</td></tr>
+<tr><td>Vzory <code>let-else</code></td><td>~10</td><td>Nahradit upovídaný match/if-let za <code>let ... else</code></td></tr>
+<tr><td>Velké varianty chyb</td><td>~8</td><td>Zabalit velké varianty enumu do Boxu pro zmenšení velikosti zásobníku</td></tr>
+<tr><td>Vnořený <code>format!</code></td><td>~6</td><td>Vložit argumenty formátu přímo místo vnořování</td></tr>
+<tr><td>Identické if-bloky</td><td>~5</td><td>Sloučit duplicitní podmíněné větve</td></tr>
+<tr><td>Ostatní</td><td>~37</td><td>Různé linty Clippy</td></tr>
+</tbody>
+</table>
+
+<p>Nejúčinnější opravou bylo zabalení velkých variant chyb do Boxu. Rust enumy jsou tak velké jako jejich největší varianta. Když máte chybový enum, kde jedna varianta obsahuje 200bajtovou strukturu a jiná je jednoduchý řetězec, každá instance tohoto enumu zabírá 200+ bajtů na zásobníku. Zabalení velkých variant do Boxu to sníží na velikost ukazatele.</p>
+
+<p>Také jsme zvýšili MSRV (Minimální podporovaná verze Rustu) z 1.77 na 1.82, abychom mohli využít novější linty Clippy a syntaxi <code>let-else</code>.</p>
+
+<h2 id="gating-kuzu-tests">Podmíněné spouštění testů volitelných závislostí</h2>
+
+<p>AigisCode má volitelnou integraci s <a href="https://kuzudb.com/">Kuzu</a>, vestavěnou grafovou databází. MCP server může zapisovat výsledky analýzy do databáze Kuzu pro dotazování grafů. Ale Kuzu bridge vyžaduje nativní modul Node.js, který není dostupný všude.</p>
+
+<p>Oprava byla přímočará: funkce <code>is_kuzu_available()</code>, která kontroluje, zda se bridge může načíst, a podmínka testu, která přeskočí testy závislé na Kuzu, když nemůže:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>Také jsme opravili logickou chybu, kde příznak <code>write_kuzu</code> byl nesprávně propojen s <code>write_artifacts</code>. Podmínka byla <code>write_artifacts || write_kuzu</code>, což znamenalo, že požadavek na zápis artefaktů by také spustil zápisy Kuzu — a selhal v prostředích bez bridge. Nyní je každý příznak respektován nezávisle.</p>
+
+<h2 id="upgrading-actions">Upgrade GitHub Actions na Node 24</h2>
+
+<p>GitHub Actions v4 pro checkout a setup-node používají Node.js 20, kterému končí podpora. Verze v6 používají Node.js 24. Upgrade je jednořádková změna na akci, ale jeho vynechání znamená, že vaše CI se rozbije, až GitHub ukončí podporu Node 20.</p>
+
+<pre><code># Před
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# Po
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>Také jsme přešli na stabilní Rust toolchain místo připnutí konkrétní noční verze, což snižuje údržbu a zajišťuje, že vždy testujeme proti tomu, co uživatelé skutečně spustí.</p>
+
+<h2 id="concurrency-and-permissions">Skupiny souběžnosti a nejmenší oprávnění</h2>
+
+<p>Dva malé, ale důležité doplňky:</p>
+
+<p><strong>Skupiny souběžnosti</strong> zabraňují současnému běhu více CI běhů pro stejnou větev. Když pushnete dvakrát rychle za sebou, první běh se zruší:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>Oprávnění s nejmenšími právy</strong> omezují CI token pouze na to, co je potřeba. Většina CI workflow potřebuje pouze číst obsah repozitáře, ne zapisovat do balíčků nebo spravovat nasazení:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>Toto jsou typy nastavení, na kterých nezáleží, dokud nezáleží. CI token s oprávněním k zápisu, který unikne přes útok na dodavatelský řetězec závislostí, je mnohem větší problém než token pouze pro čtení.</p>
+
+<h2 id="cleaning-up-leaks">Vyčištění uniknutých výstupů</h2>
+
+<p>Adresář <code>reports/</code> byl omylem commitnut s plnými analytickými výstupy — včetně JSON reportů o více než 12 000 řádcích z testovacích běhů proti reálným kódovým základnám. To přidávalo zbytečnou váhu repozitáři a mohlo potenciálně obsahovat informace o kódových základnách analyzovaných během vývoje.</p>
+
+<p>Přidali jsme <code>reports/</code> do <code>.gitignore</code>, odstranili sledované soubory a vyčistili zastaralý záznam v <code>.gitattributes</code>.</p>
+
+<h2 id="badges">Odznaky: Malé, ale důležité</h2>
+
+<p>Přidali jsme odznaky stavu CI, verze Rustu a licence do README. Je to malá věc, ale signalizuje potenciálním uživatelům a přispěvatelům, že projekt bere kvalitu vážně. Zelený odznak CI znamená, že testy skutečně procházejí. Odznak verze Rustu znamená, že víte, jaký toolchain potřebujete. Odznak licence znamená, že můžete zkontrolovat právní kompatibilitu na první pohled.</p>
+
+<h2 id="the-result">Výsledek</h2>
+
+<p>Po vyčištění:</p>
+
+<ul>
+<li><strong>Nula varování Clippy</strong> při <code>cargo clippy -- -D warnings</code></li>
+<li><strong>Všechny testy procházejí</strong> na CI runnerech bez volitelných závislostí</li>
+<li><strong>CI běhy se dokončují rychleji</strong> díky skupinám souběžnosti a cachování npm</li>
+<li><strong>Pipeline zahrnuje</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code> a kontroly <code>tsc</code> pro web</li>
+<li><strong>Žádné uniknuté výstupy</strong> v repozitáři</li>
+</ul>
+
+<p>Čistá CI pipeline není funkce, kterou dodáváte uživatelům. Ale je to základ, který činí každou další funkci spolehlivou. Když je pipeline hlučná, skutečné problémy se skrývají v šumu. Když je čistá, každé selhání je signál, který stojí za prozkoumání.</p>
+`,
+      fr: `
+<p>Quand vous avancez vite sur un projet Rust — en ajoutant des détecteurs, des scanners, de l'analyse de graphes, de l'intégration MCP — il est facile de laisser le pipeline CI dériver. Les avertissements s'accumulent. Les tests dépendent de services externes optionnels. Les actions utilisent des versions de Node obsolètes. À un moment, le pipeline ne vous protège plus — ce n'est que du bruit.</p>
+
+<p>Nous avons atteint ce point avec AigisCode et avons décidé de le corriger proprement. Voici ce que nous avons fait et ce que nous avons appris.</p>
+
+<h2 id="the-starting-state">L'état initial</h2>
+
+<p>Avant le nettoyage, le CI d'AigisCode avait plusieurs problèmes :</p>
+
+<ul>
+<li><strong>93 avertissements Clippy</strong> — accumulés sur des semaines de développement rapide de fonctionnalités</li>
+<li><strong>Tests Kuzu instables</strong> — les tests de base de données graphe supposaient que le bridge Node.js Kuzu était toujours disponible, ce qui n'est pas le cas sur tous les runners CI</li>
+<li><strong>GitHub Actions obsolètes</strong> — utilisant <code>actions/checkout@v4</code> et <code>actions/setup-node@v4</code>, programmés pour dépréciation avec Node.js 24</li>
+<li><strong>Aucun contrôle de concurrence</strong> — plusieurs exécutions CI pour la même branche pouvaient tourner en parallèle, gaspillant des ressources</li>
+<li><strong>Rapports d'analyse fuités</strong> — le répertoire <code>reports/</code> avait été commité dans le dépôt, incluant de grandes sorties JSON de tests</li>
+</ul>
+
+<h2 id="fixing-clippy">Correction de 93 avertissements Clippy</h2>
+
+<p>Les avertissements Clippy tombaient dans quelques catégories courantes dans les bases de code Rust en évolution rapide :</p>
+
+<table>
+<thead>
+<tr><th>Catégorie</th><th>Nombre</th><th>Correction</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>Comparer des chaînes empruntées au lieu de cloner</td></tr>
+<tr><td>Paramètres <code>&PathBuf</code></td><td>~12</td><td>Accepter <code>&Path</code> à la place — plus générique, coût zéro</td></tr>
+<tr><td>Motifs <code>let-else</code></td><td>~10</td><td>Remplacer les match/if-let verbeux par <code>let ... else</code></td></tr>
+<tr><td>Grandes variantes d'erreur</td><td>~8</td><td>Boxer les grandes variantes d'enum pour réduire la taille de la pile</td></tr>
+<tr><td><code>format!</code> imbriqué</td><td>~6</td><td>Inliner les arguments de format au lieu d'imbriquer</td></tr>
+<tr><td>Blocs if identiques</td><td>~5</td><td>Fusionner les branches conditionnelles dupliquées</td></tr>
+<tr><td>Autres</td><td>~37</td><td>Lints Clippy divers</td></tr>
+</tbody>
+</table>
+
+<p>La correction la plus impactante a été le boxing des grandes variantes d'erreur. Les enums Rust ont la taille de leur plus grande variante. Quand vous avez un enum d'erreur où une variante contient une structure de 200 octets et une autre est une simple chaîne, chaque instance de cet enum fait 200+ octets sur la pile. Boxer les grandes variantes ramène cela à la taille d'un pointeur.</p>
+
+<p>Nous avons également relevé le MSRV (Version Rust Minimale Supportée) de 1.77 à 1.82 pour profiter des lints Clippy plus récents et de la syntaxe <code>let-else</code>.</p>
+
+<h2 id="gating-kuzu-tests">Contrôle conditionnel des tests de dépendances optionnelles</h2>
+
+<p>AigisCode a une intégration optionnelle avec <a href="https://kuzudb.com/">Kuzu</a>, une base de données graphe embarquée. Le serveur MCP peut écrire les résultats d'analyse dans une base Kuzu pour l'interrogation de graphes. Mais le bridge Kuzu nécessite un module natif Node.js qui n'est pas disponible partout.</p>
+
+<p>La correction était simple : une fonction <code>is_kuzu_available()</code> qui vérifie si le bridge peut se charger, et une condition de test qui saute les tests dépendants de Kuzu quand il ne peut pas :</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>Nous avons aussi corrigé un bug logique où le flag <code>write_kuzu</code> était incorrectement couplé avec <code>write_artifacts</code>. La condition était <code>write_artifacts || write_kuzu</code>, ce qui signifiait que demander l'écriture d'artefacts déclenchait aussi les écritures Kuzu — et échouait dans les environnements sans bridge. Maintenant chaque flag est honoré indépendamment.</p>
+
+<h2 id="upgrading-actions">Mise à niveau des GitHub Actions vers Node 24</h2>
+
+<p>Les GitHub Actions v4 pour checkout et setup-node utilisent Node.js 20, qui arrive en fin de vie. Les versions v6 utilisent Node.js 24. La mise à niveau est un changement d'une ligne par action, mais la manquer signifie que votre CI cassera quand GitHub abandonnera le support de Node 20.</p>
+
+<pre><code># Avant
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# Après
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>Nous sommes aussi passés à la toolchain Rust stable au lieu d'épingler une version nightly spécifique, ce qui réduit la maintenance et garantit que nous testons toujours contre ce que les utilisateurs exécuteront réellement.</p>
+
+<h2 id="concurrency-and-permissions">Groupes de concurrence et moindre privilège</h2>
+
+<p>Deux ajouts petits mais importants :</p>
+
+<p><strong>Les groupes de concurrence</strong> empêchent plusieurs exécutions CI pour la même branche de tourner simultanément. Quand vous poussez deux fois rapidement, la première exécution est annulée :</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>Les permissions de moindre privilège</strong> restreignent le token CI à ce qui est nécessaire. La plupart des workflows CI n'ont besoin que de lire le contenu du dépôt, pas d'écrire dans les packages ou de gérer les déploiements :</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>Ce sont le genre de paramètres qui n'ont pas d'importance jusqu'à ce qu'ils en aient. Un token CI avec des permissions d'écriture qui fuite via une attaque de chaîne d'approvisionnement de dépendances est un problème bien plus grave qu'un token en lecture seule.</p>
+
+<h2 id="cleaning-up-leaks">Nettoyage des sorties fuitées</h2>
+
+<p>Le répertoire <code>reports/</code> avait été accidentellement commité avec les sorties d'analyse complètes — incluant des rapports JSON de plus de 12 000 lignes issus de tests sur de vraies bases de code. Cela ajoutait du poids inutile au dépôt et pouvait potentiellement contenir des informations sur les bases de code analysées pendant le développement.</p>
+
+<p>Nous avons ajouté <code>reports/</code> au <code>.gitignore</code>, supprimé les fichiers suivis et nettoyé l'entrée obsolète dans <code>.gitattributes</code>.</p>
+
+<h2 id="badges">Badges : petits mais significatifs</h2>
+
+<p>Nous avons ajouté des badges de statut CI, de version Rust et de licence au README. C'est une petite chose, mais cela signale aux utilisateurs et contributeurs potentiels que le projet prend la qualité au sérieux. Un badge CI vert signifie que les tests passent vraiment. Un badge de version Rust signifie que vous savez quelle toolchain vous avez besoin. Un badge de licence signifie que vous pouvez vérifier la compatibilité légale d'un coup d'œil.</p>
+
+<h2 id="the-result">Le résultat</h2>
+
+<p>Après le nettoyage :</p>
+
+<ul>
+<li><strong>Zéro avertissement Clippy</strong> sur <code>cargo clippy -- -D warnings</code></li>
+<li><strong>Tous les tests passent</strong> sur les runners CI sans dépendances optionnelles</li>
+<li><strong>Les exécutions CI se terminent plus vite</strong> grâce aux groupes de concurrence et au cache npm</li>
+<li><strong>Le pipeline inclut</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code> et les vérifications <code>tsc</code> pour le site web</li>
+<li><strong>Aucune sortie fuitée</strong> dans le dépôt</li>
+</ul>
+
+<p>Un pipeline CI propre n'est pas une fonctionnalité que vous livrez aux utilisateurs. Mais c'est le fondement qui rend chaque autre fonctionnalité fiable. Quand le pipeline est bruyant, les vrais problèmes se cachent dans le bruit. Quand il est propre, chaque échec est un signal qui mérite d'être investigué.</p>
+`,
+      es: `
+<p>Cuando te mueves rápido en un proyecto Rust — agregando detectores, escáneres, análisis de grafos, integración MCP — es fácil dejar que el pipeline CI se deteriore. Las advertencias se acumulan. Las pruebas dependen de servicios externos opcionales. Las acciones usan versiones de Node obsoletas. En algún momento, el pipeline ya no te protege — es solo ruido.</p>
+
+<p>Llegamos a ese punto con AigisCode y decidimos arreglarlo correctamente. Esto es lo que hicimos y lo que aprendimos.</p>
+
+<h2 id="the-starting-state">El estado inicial</h2>
+
+<p>Antes de la limpieza, el CI de AigisCode tenía varios problemas:</p>
+
+<ul>
+<li><strong>93 advertencias de Clippy</strong> — acumuladas durante semanas de desarrollo rápido de funcionalidades</li>
+<li><strong>Pruebas Kuzu inestables</strong> — las pruebas de base de datos de grafos asumían que el bridge Node.js Kuzu siempre estaba disponible, lo cual no es así en todos los runners CI</li>
+<li><strong>GitHub Actions obsoletas</strong> — usando <code>actions/checkout@v4</code> y <code>actions/setup-node@v4</code>, programadas para deprecación con Node.js 24</li>
+<li><strong>Sin control de concurrencia</strong> — múltiples ejecuciones CI para la misma rama podían correr en paralelo, desperdiciando recursos</li>
+<li><strong>Reportes de análisis filtrados</strong> — el directorio <code>reports/</code> fue committeado al repositorio, incluyendo grandes salidas JSON de ejecuciones de prueba</li>
+</ul>
+
+<h2 id="fixing-clippy">Corrigiendo 93 advertencias de Clippy</h2>
+
+<p>Las advertencias de Clippy caían en algunas categorías comunes en bases de código Rust de rápido movimiento:</p>
+
+<table>
+<thead>
+<tr><th>Categoría</th><th>Cantidad</th><th>Corrección</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>Comparar cadenas prestadas en vez de clonar</td></tr>
+<tr><td>Parámetros <code>&PathBuf</code></td><td>~12</td><td>Aceptar <code>&Path</code> en su lugar — más genérico, costo cero</td></tr>
+<tr><td>Patrones <code>let-else</code></td><td>~10</td><td>Reemplazar match/if-let verbosos con <code>let ... else</code></td></tr>
+<tr><td>Variantes de error grandes</td><td>~8</td><td>Encapsular variantes grandes de enum en Box para reducir el tamaño de pila</td></tr>
+<tr><td><code>format!</code> anidado</td><td>~6</td><td>Insertar argumentos de formato en línea en vez de anidar</td></tr>
+<tr><td>Bloques if idénticos</td><td>~5</td><td>Fusionar ramas condicionales duplicadas</td></tr>
+<tr><td>Otros</td><td>~37</td><td>Lints de Clippy misceláneos</td></tr>
+</tbody>
+</table>
+
+<p>La corrección más impactante fue encapsular las variantes de error grandes en Box. Los enums de Rust son tan grandes como su variante más grande. Cuando tienes un enum de error donde una variante contiene una estructura de 200 bytes y otra es una cadena simple, cada instancia de ese enum ocupa 200+ bytes en la pila. Encapsular las variantes grandes en Box reduce esto al tamaño de un puntero.</p>
+
+<p>También elevamos el MSRV (Versión Mínima de Rust Soportada) de 1.77 a 1.82 para aprovechar los lints más nuevos de Clippy y la sintaxis <code>let-else</code>.</p>
+
+<h2 id="gating-kuzu-tests">Control condicional de pruebas de dependencias opcionales</h2>
+
+<p>AigisCode tiene una integración opcional con <a href="https://kuzudb.com/">Kuzu</a>, una base de datos de grafos embebida. El servidor MCP puede escribir resultados de análisis en una base de datos Kuzu para consultas de grafos. Pero el bridge de Kuzu requiere un módulo nativo de Node.js que no está disponible en todas partes.</p>
+
+<p>La corrección fue directa: una función <code>is_kuzu_available()</code> que verifica si el bridge puede cargarse, y una condición de prueba que omite las pruebas dependientes de Kuzu cuando no puede:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>También corregimos un error lógico donde el flag <code>write_kuzu</code> estaba incorrectamente acoplado con <code>write_artifacts</code>. La condición era <code>write_artifacts || write_kuzu</code>, lo que significaba que solicitar la escritura de artefactos también activaba las escrituras de Kuzu — y fallaba en entornos sin el bridge. Ahora cada flag se respeta independientemente.</p>
+
+<h2 id="upgrading-actions">Actualización de GitHub Actions a Node 24</h2>
+
+<p>Las GitHub Actions v4 para checkout y setup-node usan Node.js 20, que llega al fin de su vida útil. Las versiones v6 usan Node.js 24. La actualización es un cambio de una línea por acción, pero no hacerlo significa que tu CI se romperá cuando GitHub deje de soportar Node 20.</p>
+
+<pre><code># Antes
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# Después
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>También cambiamos al toolchain estable de Rust en lugar de fijar una versión nightly específica, lo que reduce el mantenimiento y asegura que siempre probamos contra lo que los usuarios realmente ejecutarán.</p>
+
+<h2 id="concurrency-and-permissions">Grupos de concurrencia y mínimo privilegio</h2>
+
+<p>Dos adiciones pequeñas pero importantes:</p>
+
+<p><strong>Los grupos de concurrencia</strong> previenen que múltiples ejecuciones CI para la misma rama corran simultáneamente. Cuando haces push dos veces rápidamente, la primera ejecución se cancela:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>Los permisos de mínimo privilegio</strong> restringen el token CI a solo lo necesario. La mayoría de los workflows CI solo necesitan leer el contenido del repositorio, no escribir en paquetes ni gestionar despliegues:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>Estos son el tipo de configuraciones que no importan hasta que importan. Un token CI con permisos de escritura que se filtra a través de un ataque a la cadena de suministro de dependencias es un problema mucho mayor que un token de solo lectura.</p>
+
+<h2 id="cleaning-up-leaks">Limpieza de salidas filtradas</h2>
+
+<p>El directorio <code>reports/</code> había sido committeado accidentalmente con salidas de análisis completas — incluyendo reportes JSON de más de 12,000 líneas de ejecuciones de prueba contra bases de código reales. Esto agregaba peso innecesario al repositorio y podía potencialmente contener información sobre las bases de código analizadas durante el desarrollo.</p>
+
+<p>Agregamos <code>reports/</code> al <code>.gitignore</code>, eliminamos los archivos rastreados y limpiamos la entrada obsoleta en <code>.gitattributes</code>.</p>
+
+<h2 id="badges">Insignias: pequeñas pero significativas</h2>
+
+<p>Agregamos insignias de estado CI, versión de Rust y licencia al README. Es algo pequeño, pero señala a potenciales usuarios y colaboradores que el proyecto toma la calidad en serio. Una insignia CI verde significa que las pruebas realmente pasan. Una insignia de versión de Rust significa que sabes qué toolchain necesitas. Una insignia de licencia significa que puedes verificar la compatibilidad legal de un vistazo.</p>
+
+<h2 id="the-result">El resultado</h2>
+
+<p>Después de la limpieza:</p>
+
+<ul>
+<li><strong>Cero advertencias de Clippy</strong> con <code>cargo clippy -- -D warnings</code></li>
+<li><strong>Todas las pruebas pasan</strong> en runners CI sin dependencias opcionales</li>
+<li><strong>Las ejecuciones CI terminan más rápido</strong> gracias a grupos de concurrencia y caché de npm</li>
+<li><strong>El pipeline incluye</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code> y verificaciones <code>tsc</code> para el sitio web</li>
+<li><strong>Sin salidas filtradas</strong> en el repositorio</li>
+</ul>
+
+<p>Un pipeline CI limpio no es una funcionalidad que entregas a los usuarios. Pero es la base que hace que cada otra funcionalidad sea confiable. Cuando el pipeline es ruidoso, los problemas reales se esconden en el ruido. Cuando está limpio, cada fallo es una señal que vale la pena investigar.</p>
+`,
+      zh: `
+<p>当你在 Rust 项目上快速推进——添加检测器、扫描器、图分析、MCP 集成——很容易让 CI 流水线偏离轨道。警告不断累积。测试依赖于可选的外部服务。Actions 使用已弃用的 Node 版本。到了某个时刻，流水线不再保护你——它只是噪音。</p>
+
+<p>我们在 AigisCode 上遇到了这个问题，并决定彻底修复它。以下是我们做了什么以及学到了什么。</p>
+
+<h2 id="the-starting-state">初始状态</h2>
+
+<p>在清理之前，AigisCode 的 CI 有几个问题：</p>
+
+<ul>
+<li><strong>93个 Clippy 警告</strong>——在数周的快速功能开发中累积</li>
+<li><strong>不稳定的 Kuzu 测试</strong>——图数据库测试假设 Node.js Kuzu 桥始终可用，但并非所有 CI 运行器都是如此</li>
+<li><strong>已弃用的 GitHub Actions</strong>——使用 <code>actions/checkout@v4</code> 和 <code>actions/setup-node@v4</code>，它们计划随 Node.js 24 弃用</li>
+<li><strong>无并发控制</strong>——同一分支的多个 CI 运行可能并行运行，浪费资源</li>
+<li><strong>泄露的分析报告</strong>——<code>reports/</code> 目录已提交到仓库，包括测试运行的大型 JSON 输出</li>
+</ul>
+
+<h2 id="fixing-clippy">修复93个 Clippy 警告</h2>
+
+<p>Clippy 警告分为几个在快速开发的 Rust 代码库中常见的类别：</p>
+
+<table>
+<thead>
+<tr><th>类别</th><th>数量</th><th>修复方式</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>比较借用字符串而不是克隆</td></tr>
+<tr><td><code>&PathBuf</code> 参数</td><td>~12</td><td>接受 <code>&Path</code>——更通用，零成本</td></tr>
+<tr><td><code>let-else</code> 模式</td><td>~10</td><td>用 <code>let ... else</code> 替换冗长的 match/if-let</td></tr>
+<tr><td>大型错误变体</td><td>~8</td><td>Box 大型枚举变体以减少栈大小</td></tr>
+<tr><td>嵌套 <code>format!</code></td><td>~6</td><td>内联格式参数而不是嵌套</td></tr>
+<tr><td>相同的 if 块</td><td>~5</td><td>合并重复的条件分支</td></tr>
+<tr><td>其他</td><td>~37</td><td>杂项 Clippy lint</td></tr>
+</tbody>
+</table>
+
+<p>影响最大的修复是 Box 大型错误变体。Rust 枚举的大小与其最大变体一样大。当你有一个错误枚举，其中一个变体包含200字节的结构体，另一个是简单字符串时，该枚举的每个实例在栈上都是200+字节。Box 大型变体将其减小到指针大小。</p>
+
+<p>我们还将 MSRV（最低支持 Rust 版本）从1.77提升到1.82，以利用更新的 Clippy lint 和 <code>let-else</code> 语法。</p>
+
+<h2 id="gating-kuzu-tests">对可选依赖测试进行门控</h2>
+
+<p>AigisCode 有一个与 <a href="https://kuzudb.com/">Kuzu</a> 的可选集成，这是一个嵌入式图数据库。MCP 服务器可以将分析结果写入 Kuzu 数据库以进行图查询。但 Kuzu 桥需要一个并非随处可用的 Node.js 原生模块。</p>
+
+<p>修复方法很直接：一个 <code>is_kuzu_available()</code> 函数检查桥是否可以加载，以及一个测试门控在无法加载时跳过 Kuzu 相关测试：</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>我们还修复了一个逻辑错误，其中 <code>write_kuzu</code> 标志错误地与 <code>write_artifacts</code> 耦合。条件是 <code>write_artifacts || write_kuzu</code>，这意味着请求写入产物也会触发 Kuzu 写入——并在没有桥的环境中失败。现在每个标志独立生效。</p>
+
+<h2 id="upgrading-actions">升级 GitHub Actions 到 Node 24</h2>
+
+<p>GitHub Actions v4 的 checkout 和 setup-node 使用 Node.js 20，该版本即将到期。v6 版本使用 Node.js 24。升级只需每个 action 改一行，但错过它意味着当 GitHub 停止支持 Node 20 时你的 CI 将会中断。</p>
+
+<pre><code># 之前
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# 之后
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>我们还切换到稳定的 Rust 工具链而不是固定特定的 nightly 版本，这减少了维护开销并确保我们始终针对用户实际运行的版本进行测试。</p>
+
+<h2 id="concurrency-and-permissions">并发组和最小权限</h2>
+
+<p>两个小但重要的添加：</p>
+
+<p><strong>并发组</strong>防止同一分支的多个 CI 运行同时执行。当你快速连续推送两次时，第一次运行会被取消：</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>最小权限</strong>将 CI 令牌限制为仅需要的权限。大多数 CI 工作流只需要读取仓库内容，而不是写入包或管理部署：</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>这些设置在出问题之前无关紧要。通过依赖供应链攻击泄露的具有写权限的 CI 令牌比只读令牌问题大得多。</p>
+
+<h2 id="cleaning-up-leaks">清理泄露的输出</h2>
+
+<p><code>reports/</code> 目录意外提交了完整的分析输出——包括来自真实代码库测试运行的12,000+行 JSON 报告。这给仓库增加了不必要的负担，并可能包含开发期间分析的代码库信息。</p>
+
+<p>我们将 <code>reports/</code> 添加到 <code>.gitignore</code>，删除了已跟踪的文件，并清理了过时的 <code>.gitattributes</code> 条目。</p>
+
+<h2 id="badges">徽章：小但有意义</h2>
+
+<p>我们在 README 中添加了 CI 状态、Rust 版本和许可证徽章。这是一件小事，但它向潜在用户和贡献者表明项目认真对待质量。绿色的 CI 徽章意味着测试确实通过了。Rust 版本徽章意味着你知道需要什么工具链。许可证徽章意味着你可以一目了然地检查法律兼容性。</p>
+
+<h2 id="the-result">结果</h2>
+
+<p>清理之后：</p>
+
+<ul>
+<li>在 <code>cargo clippy -- -D warnings</code> 上<strong>零 Clippy 警告</strong></li>
+<li>在没有可选依赖的 CI 运行器上<strong>所有测试通过</strong></li>
+<li>由于并发组和 npm 缓存，<strong>CI 运行完成更快</strong></li>
+<li><strong>流水线包含</strong> <code>cargo fmt</code>、<code>cargo clippy</code>、<code>cargo test</code> 和网站的 <code>tsc</code> 检查</li>
+<li>仓库中<strong>无泄露输出</strong></li>
+</ul>
+
+<p>干净的 CI 流水线不是你交付给用户的功能。但它是使每个其他功能可靠的基础。当流水线嘈杂时，真正的问题隐藏在噪音中。当它干净时，每个失败都是值得调查的信号。</p>
+`,
+      hi: `
+<p>जब आप एक Rust प्रोजेक्ट पर तेज़ी से आगे बढ़ रहे होते हैं — डिटेक्टर, स्कैनर, ग्राफ़ एनालिसिस, MCP इंटीग्रेशन जोड़ रहे होते हैं — तो CI पाइपलाइन को भटकने देना आसान है। चेतावनियां जमा होती हैं। टेस्ट वैकल्पिक बाहरी सेवाओं पर निर्भर करते हैं। Actions पुराने Node वर्ज़न का उपयोग करते हैं। किसी बिंदु पर, पाइपलाइन अब आपकी रक्षा नहीं कर रही — यह सिर्फ शोर है।</p>
+
+<p>हम AigisCode के साथ उस बिंदु पर पहुंचे और इसे ठीक से ठीक करने का फैसला किया। यहां बताया गया है कि हमने क्या किया और क्या सीखा।</p>
+
+<h2 id="the-starting-state">शुरुआती स्थिति</h2>
+
+<p>सफाई से पहले, AigisCode की CI में कई समस्याएं थीं:</p>
+
+<ul>
+<li><strong>93 Clippy चेतावनियां</strong> — हफ्तों की तेज़ फीचर डेवलपमेंट में जमा हुईं</li>
+<li><strong>अस्थिर Kuzu टेस्ट</strong> — ग्राफ़ डेटाबेस टेस्ट मानते थे कि Node.js Kuzu ब्रिज हमेशा उपलब्ध है, जो सभी CI रनर पर नहीं है</li>
+<li><strong>पुराने GitHub Actions</strong> — <code>actions/checkout@v4</code> और <code>actions/setup-node@v4</code> का उपयोग, जो Node.js 24 के साथ बंद होने वाले हैं</li>
+<li><strong>कोई कंकरेंसी कंट्रोल नहीं</strong> — एक ही ब्रांच के कई CI रन समानांतर में चल सकते थे, संसाधनों की बर्बादी</li>
+<li><strong>लीक हुई विश्लेषण रिपोर्ट</strong> — <code>reports/</code> डायरेक्टरी रिपोज़िटरी में कमिट हो गई थी, जिसमें टेस्ट रन से बड़े JSON आउटपुट शामिल थे</li>
+</ul>
+
+<h2 id="fixing-clippy">93 Clippy चेतावनियों को ठीक करना</h2>
+
+<p>Clippy चेतावनियां कुछ श्रेणियों में आईं जो तेज़-चलने वाले Rust कोडबेस में आम हैं:</p>
+
+<table>
+<thead>
+<tr><th>श्रेणी</th><th>संख्या</th><th>समाधान</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>क्लोन करने के बजाय बॉरो की गई स्ट्रिंग की तुलना करें</td></tr>
+<tr><td><code>&PathBuf</code> पैरामीटर</td><td>~12</td><td>इसके बजाय <code>&Path</code> स्वीकार करें — अधिक जेनेरिक, ज़ीरो-कॉस्ट</td></tr>
+<tr><td><code>let-else</code> पैटर्न</td><td>~10</td><td>वर्बोज़ match/if-let को <code>let ... else</code> से बदलें</td></tr>
+<tr><td>बड़े एरर वेरिएंट</td><td>~8</td><td>स्टैक साइज़ कम करने के लिए बड़े enum वेरिएंट को Box करें</td></tr>
+<tr><td>नेस्टेड <code>format!</code></td><td>~6</td><td>नेस्टिंग के बजाय इनलाइन फ़ॉर्मेट आर्गुमेंट</td></tr>
+<tr><td>समान if-ब्लॉक</td><td>~5</td><td>डुप्लिकेट कंडीशनल ब्रांच को मर्ज करें</td></tr>
+<tr><td>अन्य</td><td>~37</td><td>विविध Clippy lint</td></tr>
+</tbody>
+</table>
+
+<p>सबसे प्रभावशाली फिक्स बड़े एरर वेरिएंट को Box करना था। Rust enum उनके सबसे बड़े वेरिएंट जितने बड़े होते हैं। जब आपके पास एक एरर enum है जहां एक वेरिएंट में 200-बाइट स्ट्रक्ट है और दूसरा एक सिंपल स्ट्रिंग है, तो उस enum का हर इंस्टेंस स्टैक पर 200+ बाइट है। बड़े वेरिएंट को Box करने से यह पॉइंटर साइज़ तक कम हो जाता है।</p>
+
+<p>हमने नए Clippy lint और <code>let-else</code> सिंटैक्स का लाभ उठाने के लिए MSRV (न्यूनतम समर्थित Rust संस्करण) को 1.77 से 1.82 तक बढ़ाया।</p>
+
+<h2 id="gating-kuzu-tests">वैकल्पिक डिपेंडेंसी टेस्ट को गेट करना</h2>
+
+<p>AigisCode में <a href="https://kuzudb.com/">Kuzu</a> के साथ एक वैकल्पिक इंटीग्रेशन है, जो एक एम्बेडेड ग्राफ़ डेटाबेस है। MCP सर्वर ग्राफ़ क्वेरी के लिए विश्लेषण परिणामों को Kuzu डेटाबेस में लिख सकता है। लेकिन Kuzu ब्रिज को एक Node.js नेटिव मॉड्यूल की आवश्यकता होती है जो हर जगह उपलब्ध नहीं है।</p>
+
+<p>समाधान सीधा था: एक <code>is_kuzu_available()</code> फ़ंक्शन जो जांचता है कि ब्रिज लोड हो सकता है या नहीं, और एक टेस्ट गेट जो उपलब्ध न होने पर Kuzu-निर्भर टेस्ट को छोड़ देता है:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>हमने एक लॉजिक बग भी ठीक किया जहां <code>write_kuzu</code> फ़्लैग गलत तरीके से <code>write_artifacts</code> के साथ जुड़ा हुआ था। कंडीशन <code>write_artifacts || write_kuzu</code> थी, जिसका मतलब था कि आर्टिफ़ैक्ट राइट का अनुरोध करने से Kuzu राइट भी ट्रिगर होता — और ब्रिज के बिना वातावरण में विफल हो जाता। अब प्रत्येक फ़्लैग स्वतंत्र रूप से काम करता है।</p>
+
+<h2 id="upgrading-actions">GitHub Actions को Node 24 में अपग्रेड करना</h2>
+
+<p>checkout और setup-node के लिए GitHub Actions v4 Node.js 20 का उपयोग करते हैं, जो एंड ऑफ लाइफ तक पहुंच रहा है। v6 वर्ज़न Node.js 24 का उपयोग करते हैं। अपग्रेड प्रति action एक-लाइन का बदलाव है, लेकिन इसे छोड़ने का मतलब है कि जब GitHub Node 20 सपोर्ट बंद करेगा तो आपकी CI टूट जाएगी।</p>
+
+<pre><code># पहले
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# बाद में
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>हमने एक विशिष्ट nightly वर्ज़न पिन करने के बजाय स्टेबल Rust टूलचेन में भी स्विच किया, जो मेंटेनेंस ओवरहेड कम करता है और सुनिश्चित करता है कि हम हमेशा उसके खिलाफ़ टेस्ट कर रहे हैं जो यूज़र वास्तव में चलाएंगे।</p>
+
+<h2 id="concurrency-and-permissions">कंकरेंसी ग्रुप और न्यूनतम विशेषाधिकार</h2>
+
+<p>दो छोटे लेकिन महत्वपूर्ण जोड़:</p>
+
+<p><strong>कंकरेंसी ग्रुप</strong> एक ही ब्रांच के कई CI रन को एक साथ चलने से रोकते हैं। जब आप तेज़ी से दो बार पुश करते हैं, तो पहला रन कैंसल हो जाता है:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>न्यूनतम-विशेषाधिकार अनुमतियां</strong> CI टोकन को केवल आवश्यक चीज़ों तक सीमित करती हैं। अधिकांश CI वर्कफ़्लो को केवल रिपोज़िटरी सामग्री पढ़ने की आवश्यकता होती है, पैकेज लिखने या डिप्लॉयमेंट प्रबंधित करने की नहीं:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>ये वे सेटिंग्स हैं जो तब तक मायने नहीं रखतीं जब तक रखती हैं। डिपेंडेंसी सप्लाई-चेन अटैक के माध्यम से लीक हुआ राइट परमिशन वाला CI टोकन रीड-ओनली टोकन से कहीं बड़ी समस्या है।</p>
+
+<h2 id="cleaning-up-leaks">लीक हुए आउटपुट की सफाई</h2>
+
+<p><code>reports/</code> डायरेक्टरी गलती से पूर्ण विश्लेषण आउटपुट के साथ कमिट हो गई थी — जिसमें वास्तविक कोडबेस के खिलाफ़ टेस्ट रन से 12,000+ लाइन JSON रिपोर्ट शामिल थीं। इसने रिपोज़िटरी में अनावश्यक भार जोड़ा और संभावित रूप से विकास के दौरान विश्लेषित कोडबेस की जानकारी हो सकती थी।</p>
+
+<p>हमने <code>reports/</code> को <code>.gitignore</code> में जोड़ा, ट्रैक की गई फ़ाइलों को हटाया, और पुरानी <code>.gitattributes</code> एंट्री को साफ किया।</p>
+
+<h2 id="badges">बैज: छोटे लेकिन सार्थक</h2>
+
+<p>हमने README में CI स्टेटस, Rust वर्ज़न और लाइसेंस बैज जोड़े। यह एक छोटी बात है, लेकिन यह संभावित यूज़र और कंट्रीब्यूटर को संकेत देती है कि प्रोजेक्ट गुणवत्ता को गंभीरता से लेता है। हरा CI बैज मतलब टेस्ट वास्तव में पास होते हैं। Rust वर्ज़न बैज मतलब आप जानते हैं कि आपको कौन सा टूलचेन चाहिए। लाइसेंस बैज मतलब आप एक नज़र में कानूनी संगतता जांच सकते हैं।</p>
+
+<h2 id="the-result">परिणाम</h2>
+
+<p>सफाई के बाद:</p>
+
+<ul>
+<li><code>cargo clippy -- -D warnings</code> पर <strong>शून्य Clippy चेतावनियां</strong></li>
+<li>वैकल्पिक डिपेंडेंसी के बिना CI रनर पर <strong>सभी टेस्ट पास</strong></li>
+<li>कंकरेंसी ग्रुप और npm कैशिंग की बदौलत <strong>CI रन तेज़ी से पूरे होते हैं</strong></li>
+<li><strong>पाइपलाइन में शामिल हैं</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code>, और वेबसाइट के लिए <code>tsc</code> चेक</li>
+<li>रिपोज़िटरी में <strong>कोई लीक हुए आउटपुट नहीं</strong></li>
+</ul>
+
+<p>एक साफ CI पाइपलाइन वह फ़ीचर नहीं है जो आप यूज़र को शिप करते हैं। लेकिन यह वह नींव है जो हर दूसरे फ़ीचर को विश्वसनीय बनाती है। जब पाइपलाइन शोरगुल वाली होती है, तो वास्तविक समस्याएं शोर में छिप जाती हैं। जब यह साफ होती है, तो हर विफलता जांच के लायक संकेत है।</p>
+`,
+      pt: `
+<p>Quando se avança rapidamente em um projeto Rust — adicionando detectores, scanners, análise de grafos, integração MCP — é fácil deixar o pipeline de CI se desviar. Avisos se acumulam. Testes dependem de serviços externos opcionais. Actions usam versões obsoletas do Node. Em algum momento, o pipeline não está mais protegendo você — é apenas ruído.</p>
+
+<p>Chegamos a esse ponto com o AigisCode e decidimos corrigir adequadamente. Aqui está o que fizemos e o que aprendemos.</p>
+
+<h2 id="the-starting-state">O Estado Inicial</h2>
+
+<p>Antes da limpeza, o CI do AigisCode tinha vários problemas:</p>
+
+<ul>
+<li><strong>93 avisos do Clippy</strong> — acumulados ao longo de semanas de desenvolvimento rápido de funcionalidades</li>
+<li><strong>Testes Kuzu instáveis</strong> — os testes do banco de dados de grafos assumiam que a ponte Node.js Kuzu estava sempre disponível, o que não acontece em todos os runners de CI</li>
+<li><strong>GitHub Actions obsoletas</strong> — usando <code>actions/checkout@v4</code> e <code>actions/setup-node@v4</code>, que estão programadas para descontinuação com o Node.js 24</li>
+<li><strong>Sem controle de concorrência</strong> — múltiplas execuções de CI para a mesma branch podiam rodar em paralelo, desperdiçando recursos</li>
+<li><strong>Relatórios de análise vazados</strong> — o diretório <code>reports/</code> foi commitado no repositório, incluindo grandes saídas JSON de execuções de teste</li>
+</ul>
+
+<h2 id="fixing-clippy">Corrigindo 93 Avisos do Clippy</h2>
+
+<p>Os avisos do Clippy se encaixaram em algumas categorias comuns em bases de código Rust de desenvolvimento rápido:</p>
+
+<table>
+<thead>
+<tr><th>Categoria</th><th>Quantidade</th><th>Correção</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>Comparar strings emprestadas em vez de clonar</td></tr>
+<tr><td>Parâmetros <code>&PathBuf</code></td><td>~12</td><td>Aceitar <code>&Path</code> — mais genérico, custo zero</td></tr>
+<tr><td>Padrões <code>let-else</code></td><td>~10</td><td>Substituir match/if-let verbosos por <code>let ... else</code></td></tr>
+<tr><td>Variantes de erro grandes</td><td>~8</td><td>Encaixotar variantes grandes de enum para reduzir o tamanho da pilha</td></tr>
+<tr><td><code>format!</code> aninhado</td><td>~6</td><td>Argumentos de formato inline em vez de aninhar</td></tr>
+<tr><td>Blocos if idênticos</td><td>~5</td><td>Mesclar branches condicionais duplicadas</td></tr>
+<tr><td>Outros</td><td>~37</td><td>Lints diversos do Clippy</td></tr>
+</tbody>
+</table>
+
+<p>A correção de maior impacto foi encaixotar variantes grandes de erro. Enums em Rust são tão grandes quanto sua maior variante. Quando você tem um enum de erro onde uma variante contém uma struct de 200 bytes e outra é uma string simples, cada instância desse enum ocupa 200+ bytes na pilha. Encaixotar as variantes grandes reduz isso para o tamanho de um ponteiro.</p>
+
+<p>Também aumentamos o MSRV (Versão Mínima Suportada do Rust) de 1.77 para 1.82 para aproveitar lints mais recentes do Clippy e a sintaxe <code>let-else</code>.</p>
+
+<h2 id="gating-kuzu-tests">Controlando Condicionalmente Testes de Dependências Opcionais</h2>
+
+<p>O AigisCode tem uma integração opcional com o <a href="https://kuzudb.com/">Kuzu</a>, um banco de dados de grafos embarcado. O servidor MCP pode gravar resultados de análise em um banco de dados Kuzu para consultas de grafos. Mas a ponte Kuzu requer um módulo nativo do Node.js que não está disponível em todos os ambientes.</p>
+
+<p>A correção foi direta: uma função <code>is_kuzu_available()</code> que verifica se a ponte pode ser carregada, e um controle de teste que pula testes dependentes do Kuzu quando não pode:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>Também corrigimos um bug de lógica onde a flag <code>write_kuzu</code> estava incorretamente acoplada com <code>write_artifacts</code>. A condição era <code>write_artifacts || write_kuzu</code>, o que significava que solicitar gravação de artefatos também disparava gravações Kuzu — e falhava em ambientes sem a ponte. Agora cada flag funciona independentemente.</p>
+
+<h2 id="upgrading-actions">Atualizando GitHub Actions para Node 24</h2>
+
+<p>As GitHub Actions v4 para checkout e setup-node usam Node.js 20, que está chegando ao fim de vida. As versões v6 usam Node.js 24. A atualização é uma mudança de uma linha por action, mas perdê-la significa que seu CI vai quebrar quando o GitHub descontinuar o suporte ao Node 20.</p>
+
+<pre><code># Antes
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# Depois
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>Também mudamos para a toolchain estável do Rust em vez de fixar uma versão nightly específica, o que reduz a sobrecarga de manutenção e garante que estamos sempre testando contra o que os usuários realmente executarão.</p>
+
+<h2 id="concurrency-and-permissions">Grupos de Concorrência e Privilégio Mínimo</h2>
+
+<p>Duas adições pequenas mas importantes:</p>
+
+<p><strong>Grupos de concorrência</strong> impedem que múltiplas execuções de CI para a mesma branch rodem simultaneamente. Quando você faz push duas vezes em rápida sucessão, a primeira execução é cancelada:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>Permissões de privilégio mínimo</strong> restringem o token de CI apenas ao necessário. A maioria dos workflows de CI precisa apenas ler o conteúdo do repositório, não gravar em pacotes ou gerenciar implantações:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>Essas são configurações que não importam até que importem. Um token de CI com permissões de gravação que vaza através de um ataque à cadeia de suprimentos de dependências é um problema muito maior do que um token somente leitura.</p>
+
+<h2 id="cleaning-up-leaks">Limpando Saídas Vazadas</h2>
+
+<p>O diretório <code>reports/</code> havia sido acidentalmente commitado com saídas completas de análise — incluindo relatórios JSON de mais de 12.000 linhas de execuções de teste contra bases de código reais. Isso adicionou peso desnecessário ao repositório e poderia potencialmente conter informações sobre bases de código sendo analisadas durante o desenvolvimento.</p>
+
+<p>Adicionamos <code>reports/</code> ao <code>.gitignore</code>, removemos os arquivos rastreados e limpamos a entrada obsoleta do <code>.gitattributes</code>.</p>
+
+<h2 id="badges">Badges: Pequenos mas Significativos</h2>
+
+<p>Adicionamos badges de status do CI, versão do Rust e licença ao README. Isso é algo pequeno, mas sinaliza para potenciais usuários e contribuidores que o projeto leva qualidade a sério. Um badge verde de CI significa que os testes realmente passam. Um badge de versão do Rust significa que você sabe qual toolchain precisa. Um badge de licença significa que você pode verificar a compatibilidade legal rapidamente.</p>
+
+<h2 id="the-result">O Resultado</h2>
+
+<p>Após a limpeza:</p>
+
+<ul>
+<li><strong>Zero avisos do Clippy</strong> em <code>cargo clippy -- -D warnings</code></li>
+<li><strong>Todos os testes passam</strong> em runners de CI sem dependências opcionais</li>
+<li><strong>Execuções de CI completam mais rápido</strong> graças a grupos de concorrência e cache npm</li>
+<li><strong>Pipeline inclui</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code> e verificações <code>tsc</code> para o site</li>
+<li><strong>Nenhuma saída vazada</strong> no repositório</li>
+</ul>
+
+<p>Um pipeline de CI limpo não é uma funcionalidade que você entrega aos usuários. Mas é a fundação que torna todas as outras funcionalidades confiáveis. Quando o pipeline é ruidoso, problemas reais se escondem no ruído. Quando está limpo, cada falha é um sinal que vale a pena investigar.</p>
+`,
+      ar: `
+<p>عندما تتحرك بسرعة في مشروع Rust — إضافة كاشفات، ماسحات، تحليل رسوم بيانية، تكامل MCP — من السهل ترك خط أنابيب CI ينحرف. تتراكم التحذيرات. تعتمد الاختبارات على خدمات خارجية اختيارية. تستخدم الإجراءات إصدارات Node مهملة. في مرحلة ما، لم يعد خط الأنابيب يحميك — بل أصبح مجرد ضوضاء.</p>
+
+<p>وصلنا إلى تلك النقطة مع AigisCode وقررنا إصلاحها بشكل صحيح. إليكم ما فعلناه وما تعلمناه.</p>
+
+<h2 id="the-starting-state">الحالة الأولية</h2>
+
+<p>قبل التنظيف، كان لدى CI في AigisCode عدة مشاكل:</p>
+
+<ul>
+<li><strong>93 تحذير Clippy</strong> — تراكمت على مدى أسابيع من التطوير السريع للميزات</li>
+<li><strong>اختبارات Kuzu غير مستقرة</strong> — افترضت اختبارات قاعدة بيانات الرسم البياني أن جسر Node.js Kuzu متاح دائماً، وهو ليس كذلك على جميع مشغلات CI</li>
+<li><strong>GitHub Actions مهملة</strong> — استخدام <code>actions/checkout@v4</code> و<code>actions/setup-node@v4</code>، المجدولة للإهمال مع Node.js 24</li>
+<li><strong>لا ضوابط تزامن</strong> — يمكن أن تعمل عمليات CI متعددة لنفس الفرع بالتوازي، مما يهدر الموارد</li>
+<li><strong>تقارير تحليل مسربة</strong> — تم إيداع دليل <code>reports/</code> في المستودع، بما في ذلك مخرجات JSON كبيرة من تشغيلات الاختبار</li>
+</ul>
+
+<h2 id="fixing-clippy">إصلاح 93 تحذير Clippy</h2>
+
+<p>وقعت تحذيرات Clippy في عدة فئات شائعة في قواعد كود Rust سريعة الحركة:</p>
+
+<table>
+<thead>
+<tr><th>الفئة</th><th>العدد</th><th>الإصلاح</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>مقارنة السلاسل المستعارة بدلاً من النسخ</td></tr>
+<tr><td>معاملات <code>&PathBuf</code></td><td>~12</td><td>قبول <code>&Path</code> بدلاً من ذلك — أكثر عمومية، بدون تكلفة</td></tr>
+<tr><td>أنماط <code>let-else</code></td><td>~10</td><td>استبدال match/if-let المطول بـ <code>let ... else</code></td></tr>
+<tr><td>متغيرات خطأ كبيرة</td><td>~8</td><td>تغليف متغيرات التعداد الكبيرة لتقليل حجم المكدس</td></tr>
+<tr><td><code>format!</code> متداخل</td><td>~6</td><td>دمج وسائط التنسيق بدلاً من التداخل</td></tr>
+<tr><td>كتل if متطابقة</td><td>~5</td><td>دمج الفروع الشرطية المكررة</td></tr>
+<tr><td>أخرى</td><td>~37</td><td>تحذيرات Clippy متنوعة</td></tr>
+</tbody>
+</table>
+
+<p>كان الإصلاح الأكثر تأثيراً هو تغليف متغيرات الخطأ الكبيرة. تكون تعدادات Rust بحجم أكبر متغيراتها. عندما يكون لديك تعداد خطأ حيث يحتوي أحد المتغيرات على هيكل بحجم 200 بايت وآخر مجرد سلسلة بسيطة، كل مثيل من ذلك التعداد يأخذ 200+ بايت على المكدس. تغليف المتغيرات الكبيرة يقلل هذا إلى حجم المؤشر.</p>
+
+<p>رفعنا أيضاً MSRV (الحد الأدنى لإصدار Rust المدعوم) من 1.77 إلى 1.82 للاستفادة من تحذيرات Clippy الأحدث وبنية <code>let-else</code>.</p>
+
+<h2 id="gating-kuzu-tests">بوابة اختبارات التبعيات الاختيارية</h2>
+
+<p>لدى AigisCode تكامل اختياري مع <a href="https://kuzudb.com/">Kuzu</a>، قاعدة بيانات رسم بياني مدمجة. يمكن لخادم MCP كتابة نتائج التحليل إلى قاعدة بيانات Kuzu للاستعلام عن الرسم البياني. لكن جسر Kuzu يتطلب وحدة Node.js أصلية غير متاحة في كل مكان.</p>
+
+<p>كان الإصلاح مباشراً: دالة <code>is_kuzu_available()</code> تتحقق مما إذا كان الجسر يمكنه التحميل، وبوابة اختبار تتخطى الاختبارات المعتمدة على Kuzu عندما لا يمكنه ذلك:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>أصلحنا أيضاً خطأ منطقي حيث كان علم <code>write_kuzu</code> مقترناً بشكل خاطئ مع <code>write_artifacts</code>. كان الشرط <code>write_artifacts || write_kuzu</code>، مما يعني أن طلب كتابة الأرتيفاكتات كان يُفعّل أيضاً كتابات Kuzu — ويفشل في البيئات بدون الجسر. الآن يُحترم كل علم بشكل مستقل.</p>
+
+<h2 id="upgrading-actions">ترقية GitHub Actions إلى Node 24</h2>
+
+<p>إصدار v4 من GitHub Actions لـ checkout وsetup-node يستخدم Node.js 20، الذي يصل إلى نهاية العمر. إصدارات v6 تستخدم Node.js 24. الترقية هي تغيير سطر واحد لكل إجراء، لكن تفويتها يعني أن CI الخاص بك سينقطع عندما تُسقط GitHub دعم Node 20.</p>
+
+<pre><code># Before
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# After
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>تحولنا أيضاً إلى سلسلة أدوات Rust المستقرة بدلاً من تثبيت إصدار nightly محدد، مما يقلل عبء الصيانة ويضمن أننا نختبر دائماً ضد ما سيشغله المستخدمون فعلاً.</p>
+
+<h2 id="concurrency-and-permissions">مجموعات التزامن والحد الأدنى من الصلاحيات</h2>
+
+<p>إضافتان صغيرتان لكن مهمتان:</p>
+
+<p><strong>مجموعات التزامن</strong> تمنع عمليات CI متعددة لنفس الفرع من العمل في وقت واحد. عندما تدفع مرتين متتاليتين، يُلغى التشغيل الأول:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>صلاحيات الحد الأدنى من الامتيازات</strong> تقيّد رمز CI إلى ما هو مطلوب فقط. معظم سير عمل CI تحتاج فقط لقراءة محتويات المستودع، وليس الكتابة على الحزم أو إدارة عمليات النشر:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>هذه هي أنواع الإعدادات التي لا تهم حتى تهم. رمز CI بصلاحيات الكتابة يتسرب من خلال هجوم سلسلة توريد التبعيات هو مشكلة أكبر بكثير من رمز للقراءة فقط.</p>
+
+<h2 id="cleaning-up-leaks">تنظيف المخرجات المسربة</h2>
+
+<p>تم إيداع دليل <code>reports/</code> عن طريق الخطأ مع مخرجات تحليل كاملة — بما في ذلك تقارير JSON تتجاوز 12,000 سطر من تشغيلات اختبار ضد قواعد كود حقيقية. أضاف هذا وزناً غير ضروري للمستودع وقد يحتوي على معلومات حول قواعد الكود التي تم تحليلها أثناء التطوير.</p>
+
+<p>أضفنا <code>reports/</code> إلى <code>.gitignore</code>، وحذفنا الملفات المتتبعة، ونظفنا إدخال <code>.gitattributes</code> القديم.</p>
+
+<h2 id="badges">الشارات: صغيرة لكنها ذات معنى</h2>
+
+<p>أضفنا شارات حالة CI وإصدار Rust والترخيص إلى README. هذا شيء صغير، لكنه يشير للمستخدمين والمساهمين المحتملين أن المشروع يأخذ الجودة على محمل الجد. شارة CI خضراء تعني أن الاختبارات تنجح فعلاً. شارة إصدار Rust تعني أنك تعرف سلسلة الأدوات التي تحتاجها. شارة الترخيص تعني أنه يمكنك التحقق من التوافق القانوني بنظرة واحدة.</p>
+
+<h2 id="the-result">النتيجة</h2>
+
+<p>بعد التنظيف:</p>
+
+<ul>
+<li><strong>صفر تحذيرات Clippy</strong> على <code>cargo clippy -- -D warnings</code></li>
+<li><strong>جميع الاختبارات تنجح</strong> على مشغلات CI بدون التبعيات الاختيارية</li>
+<li><strong>تشغيلات CI تكتمل أسرع</strong> بفضل مجموعات التزامن والتخزين المؤقت لـ npm</li>
+<li><strong>خط الأنابيب يتضمن</strong> <code>cargo fmt</code>، <code>cargo clippy</code>، <code>cargo test</code>، وفحوصات <code>tsc</code> للموقع</li>
+<li><strong>لا مخرجات مسربة</strong> في المستودع</li>
+</ul>
+
+<p>خط أنابيب CI نظيف ليس ميزة تشحنها للمستخدمين. لكنه الأساس الذي يجعل كل ميزة أخرى موثوقة. عندما يكون خط الأنابيب صاخباً، تختبئ المشاكل الحقيقية في الضوضاء. عندما يكون نظيفاً، كل فشل هو إشارة تستحق التحقيق.</p>
+`,
+      pl: `
+<p>Gdy pracujesz szybko nad projektem Rust — dodając detektory, skanery, analizę grafów, integrację MCP — łatwo pozwolić potokowi CI na dryfowanie. Ostrzeżenia się kumulują. Testy zależą od opcjonalnych usług zewnętrznych. Akcje używają przestarzałych wersji Node. W pewnym momencie potok już cię nie chroni — to po prostu szum.</p>
+
+<p>Osiągnęliśmy ten punkt z AigisCode i postanowiliśmy to naprawić porządnie. Oto co zrobiliśmy i czego się nauczyliśmy.</p>
+
+<h2 id="the-starting-state">Stan początkowy</h2>
+
+<p>Przed porządkami CI AigisCode miało kilka problemów:</p>
+
+<ul>
+<li><strong>93 ostrzeżenia Clippy</strong> — nagromadzone przez tygodnie szybkiego rozwoju funkcjonalności</li>
+<li><strong>Niestabilne testy Kuzu</strong> — testy bazy danych grafów zakładały, że most Node.js Kuzu jest zawsze dostępny, a tak nie jest na wszystkich runnerach CI</li>
+<li><strong>Przestarzałe GitHub Actions</strong> — używanie <code>actions/checkout@v4</code> i <code>actions/setup-node@v4</code>, które są zaplanowane do wycofania z Node.js 24</li>
+<li><strong>Brak kontroli współbieżności</strong> — wiele uruchomień CI dla tego samego brancha mogło działać równolegle, marnując zasoby</li>
+<li><strong>Wyciekłe raporty analizy</strong> — katalog <code>reports/</code> został zacommitowany do repozytorium, w tym duże wyjścia JSON z uruchomień testowych</li>
+</ul>
+
+<h2 id="fixing-clippy">Naprawianie 93 ostrzeżeń Clippy</h2>
+
+<p>Ostrzeżenia Clippy wpadały w kilka kategorii typowych dla szybko rozwijanych baz kodu Rust:</p>
+
+<table>
+<thead>
+<tr><th>Kategoria</th><th>Liczba</th><th>Naprawa</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>Porównywanie pożyczonych ciągów zamiast klonowania</td></tr>
+<tr><td>Parametry <code>&PathBuf</code></td><td>~12</td><td>Przyjmowanie <code>&Path</code> zamiast tego — bardziej ogólne, zero kosztów</td></tr>
+<tr><td>Wzorce <code>let-else</code></td><td>~10</td><td>Zamiana rozwlekłych match/if-let na <code>let ... else</code></td></tr>
+<tr><td>Duże warianty błędów</td><td>~8</td><td>Boxowanie dużych wariantów enum, aby zmniejszyć rozmiar stosu</td></tr>
+<tr><td>Zagnieżdżone <code>format!</code></td><td>~6</td><td>Wstawianie argumentów formatowania zamiast zagnieżdżania</td></tr>
+<tr><td>Identyczne bloki if</td><td>~5</td><td>Scalanie zduplikowanych gałęzi warunkowych</td></tr>
+<tr><td>Inne</td><td>~37</td><td>Różne linty Clippy</td></tr>
+</tbody>
+</table>
+
+<p>Najbardziej wpływową poprawką było boxowanie dużych wariantów błędów. Enumy Rust mają rozmiar swojego największego wariantu. Gdy masz enum błędu, w którym jeden wariant zawiera 200-bajtową strukturę, a inny to prosty ciąg, każda instancja tego enuma zajmuje 200+ bajtów na stosie. Boxowanie dużych wariantów redukuje to do rozmiaru wskaźnika.</p>
+
+<p>Podnieśliśmy również MSRV (Minimalna Obsługiwana Wersja Rust) z 1.77 do 1.82, aby skorzystać z nowszych lintów Clippy i składni <code>let-else</code>.</p>
+
+<h2 id="gating-kuzu-tests">Bramkowanie testów opcjonalnych zależności</h2>
+
+<p>AigisCode ma opcjonalną integrację z <a href="https://kuzudb.com/">Kuzu</a>, wbudowaną bazą danych grafów. Serwer MCP może zapisywać wyniki analizy do bazy danych Kuzu do zapytań grafowych. Ale most Kuzu wymaga natywnego modułu Node.js, który nie jest dostępny wszędzie.</p>
+
+<p>Rozwiązanie było proste: funkcja <code>is_kuzu_available()</code> sprawdzająca, czy most może się załadować, i bramka testowa pomijająca testy zależne od Kuzu, gdy nie może:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>Naprawiliśmy również błąd logiczny, w którym flaga <code>write_kuzu</code> była niepoprawnie powiązana z <code>write_artifacts</code>. Warunek był <code>write_artifacts || write_kuzu</code>, co oznaczało, że żądanie zapisu artefaktów uruchamiało również zapisy Kuzu — i zawodziło w środowiskach bez mostu. Teraz każda flaga jest honorowana niezależnie.</p>
+
+<h2 id="upgrading-actions">Aktualizacja GitHub Actions do Node 24</h2>
+
+<p>GitHub Actions v4 dla checkout i setup-node używają Node.js 20, który kończy wsparcie. Wersje v6 używają Node.js 24. Aktualizacja to jednolinijkowa zmiana na akcję, ale jej pominięcie oznacza, że twoje CI przestanie działać, gdy GitHub zakończy wsparcie Node 20.</p>
+
+<pre><code># Before
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# After
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>Przeszliśmy również na stabilny toolchain Rust zamiast przypinać konkretną wersję nightly, co zmniejsza obciążenie konserwacyjne i zapewnia, że zawsze testujemy na tym, co użytkownicy faktycznie będą uruchamiać.</p>
+
+<h2 id="concurrency-and-permissions">Grupy współbieżności i zasada najmniejszych uprawnień</h2>
+
+<p>Dwa małe, ale ważne dodatki:</p>
+
+<p><strong>Grupy współbieżności</strong> zapobiegają jednoczesnym uruchomieniom wielu CI dla tego samego brancha. Gdy pushasz dwa razy szybko po sobie, pierwsze uruchomienie jest anulowane:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>Uprawnienia najmniejszych przywilejów</strong> ograniczają token CI tylko do tego, co jest potrzebne. Większość workflowów CI potrzebuje jedynie odczytu zawartości repozytorium, a nie zapisu do pakietów czy zarządzania wdrożeniami:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>To są ustawienia, które nie mają znaczenia, dopóki nie zaczną mieć. Token CI z uprawnieniami do zapisu, który wycieknie przez atak na łańcuch dostaw zależności, jest znacznie większym problemem niż token tylko do odczytu.</p>
+
+<h2 id="cleaning-up-leaks">Porządkowanie wyciekłych wyjść</h2>
+
+<p>Katalog <code>reports/</code> został przypadkowo zacommitowany z pełnymi wyjściami analizy — w tym raportami JSON o ponad 12 000 linii z uruchomień testowych na rzeczywistych bazach kodu. Dodawało to niepotrzebnej wagi repozytorium i mogło potencjalnie zawierać informacje o bazach kodu analizowanych podczas rozwoju.</p>
+
+<p>Dodaliśmy <code>reports/</code> do <code>.gitignore</code>, usunęliśmy śledzone pliki i wyczyściliśmy przestarzały wpis <code>.gitattributes</code>.</p>
+
+<h2 id="badges">Odznaki: małe, ale znaczące</h2>
+
+<p>Dodaliśmy odznaki statusu CI, wersji Rust i licencji do README. To drobiazg, ale sygnalizuje potencjalnym użytkownikom i współtwórcom, że projekt traktuje jakość poważnie. Zielona odznaka CI oznacza, że testy faktycznie przechodzą. Odznaka wersji Rust oznacza, że wiesz, jakiego toolchaina potrzebujesz. Odznaka licencji oznacza, że możesz sprawdzić zgodność prawną na pierwszy rzut oka.</p>
+
+<h2 id="the-result">Wynik</h2>
+
+<p>Po porządkach:</p>
+
+<ul>
+<li><strong>Zero ostrzeżeń Clippy</strong> na <code>cargo clippy -- -D warnings</code></li>
+<li><strong>Wszystkie testy przechodzą</strong> na runnerach CI bez opcjonalnych zależności</li>
+<li><strong>Uruchomienia CI kończą się szybciej</strong> dzięki grupom współbieżności i cachowaniu npm</li>
+<li><strong>Potok obejmuje</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code> i sprawdzenia <code>tsc</code> dla strony</li>
+<li><strong>Brak wyciekłych wyjść</strong> w repozytorium</li>
+</ul>
+
+<p>Czysty potok CI to nie jest funkcjonalność, którą wysyłasz użytkownikom. Ale to fundament, który sprawia, że każda inna funkcjonalność jest niezawodna. Gdy potok jest hałaśliwy, prawdziwe problemy kryją się w szumie. Gdy jest czysty, każda awaria to sygnał warty zbadania.</p>
+`,
+      bn: `
+<p>যখন আপনি একটি Rust প্রকল্পে দ্রুত এগিয়ে যাচ্ছেন — ডিটেক্টর, স্ক্যানার, গ্রাফ অ্যানালাইসিস, MCP ইন্টিগ্রেশন যোগ করছেন — CI পাইপলাইনকে ড্রিফট করতে দেওয়া সহজ। সতর্কতা জমা হয়। টেস্টগুলো ঐচ্ছিক বাহ্যিক সার্ভিসের উপর নির্ভর করে। অ্যাকশনগুলো পুরনো Node ভার্সন ব্যবহার করে। একটা সময়ে পাইপলাইন আপনাকে আর রক্ষা করছে না — এটা শুধু গোলমাল।</p>
+
+<p>AigisCode-এর সাথে আমরা সেই পয়েন্টে পৌঁছেছিলাম এবং এটি সঠিকভাবে ঠিক করার সিদ্ধান্ত নিয়েছিলাম। এখানে আমরা কী করেছি এবং কী শিখেছি।</p>
+
+<h2 id="the-starting-state">শুরুর অবস্থা</h2>
+
+<p>পরিষ্কারের আগে, AigisCode-এর CI-তে বেশ কিছু সমস্যা ছিল:</p>
+
+<ul>
+<li><strong>93টি Clippy সতর্কতা</strong> — সপ্তাহব্যাপী দ্রুত ফিচার ডেভেলপমেন্টের সময় জমা হয়েছিল</li>
+<li><strong>অস্থির Kuzu টেস্ট</strong> — গ্রাফ ডাটাবেস টেস্টগুলো ধরে নিয়েছিল Node.js Kuzu ব্রিজ সবসময় পাওয়া যায়, যা সব CI রানারে হয় না</li>
+<li><strong>পুরনো GitHub Actions</strong> — <code>actions/checkout@v4</code> এবং <code>actions/setup-node@v4</code> ব্যবহার করা, যেগুলো Node.js 24-এ বাতিল হওয়ার জন্য নির্ধারিত</li>
+<li><strong>কোনো কনকারেন্সি নিয়ন্ত্রণ নেই</strong> — একই ব্রাঞ্চের জন্য একাধিক CI রান সমান্তরালে চলতে পারত, রিসোর্স অপচয় করে</li>
+<li><strong>ফাঁস হওয়া অ্যানালাইসিস রিপোর্ট</strong> — <code>reports/</code> ডিরেক্টরি রিপোজিটরিতে কমিট করা হয়েছিল, টেস্ট রান থেকে বড় JSON আউটপুট সহ</li>
+</ul>
+
+<h2 id="fixing-clippy">93টি Clippy সতর্কতা ঠিক করা</h2>
+
+<p>Clippy সতর্কতাগুলো দ্রুত চলমান Rust কোডবেসে সাধারণ কয়েকটি ক্যাটেগরিতে পড়েছিল:</p>
+
+<table>
+<thead>
+<tr><th>ক্যাটেগরি</th><th>সংখ্যা</th><th>সমাধান</th></tr>
+</thead>
+<tbody>
+<tr><td><code>cmp_owned</code></td><td>~15</td><td>ক্লোনিংয়ের বদলে বোরোড স্ট্রিং তুলনা</td></tr>
+<tr><td><code>&PathBuf</code> প্যারামিটার</td><td>~12</td><td>পরিবর্তে <code>&Path</code> গ্রহণ — আরও জেনেরিক, জিরো-কস্ট</td></tr>
+<tr><td><code>let-else</code> প্যাটার্ন</td><td>~10</td><td>ভারবোজ match/if-let-কে <code>let ... else</code> দিয়ে প্রতিস্থাপন</td></tr>
+<tr><td>বড় এরর ভ্যারিয়েন্ট</td><td>~8</td><td>স্ট্যাক সাইজ কমাতে বড় enum ভ্যারিয়েন্ট বক্স করা</td></tr>
+<tr><td>নেস্টেড <code>format!</code></td><td>~6</td><td>নেস্টিংয়ের বদলে ফরম্যাট আর্গুমেন্ট ইনলাইন করা</td></tr>
+<tr><td>অভিন্ন if-ব্লক</td><td>~5</td><td>ডুপ্লিকেট কন্ডিশনাল ব্রাঞ্চ মার্জ করা</td></tr>
+<tr><td>অন্যান্য</td><td>~37</td><td>বিবিধ Clippy লিন্ট</td></tr>
+</tbody>
+</table>
+
+<p>সবচেয়ে প্রভাবশালী ফিক্স ছিল বড় এরর ভ্যারিয়েন্ট বক্স করা। Rust enum তার সবচেয়ে বড় ভ্যারিয়েন্টের সমান আকারের হয়। যখন আপনার একটি এরর enum আছে যেখানে একটি ভ্যারিয়েন্টে 200-বাইটের স্ট্রাক্ট আছে এবং অন্যটি একটি সাধারণ স্ট্রিং, সেই enum-এর প্রতিটি ইন্সট্যান্স স্ট্যাকে 200+ বাইট নেয়। বড় ভ্যারিয়েন্ট বক্স করলে এটি পয়েন্টার সাইজে নেমে আসে।</p>
+
+<p>আমরা নতুন Clippy লিন্ট এবং <code>let-else</code> সিনট্যাক্সের সুবিধা নিতে MSRV (মিনিমাম সাপোর্টেড Rust ভার্সন) 1.77 থেকে 1.82-তে বাড়িয়েছি।</p>
+
+<h2 id="gating-kuzu-tests">ঐচ্ছিক ডিপেন্ডেন্সি টেস্ট গেটিং</h2>
+
+<p>AigisCode-এর <a href="https://kuzudb.com/">Kuzu</a>-র সাথে একটি ঐচ্ছিক ইন্টিগ্রেশন আছে, একটি এমবেডেড গ্রাফ ডাটাবেস। MCP সার্ভার গ্রাফ কোয়েরির জন্য Kuzu ডাটাবেসে অ্যানালাইসিস রেজাল্ট লিখতে পারে। কিন্তু Kuzu ব্রিজের জন্য একটি Node.js নেটিভ মডিউল প্রয়োজন যা সর্বত্র পাওয়া যায় না।</p>
+
+<p>সমাধান ছিল সরল: একটি <code>is_kuzu_available()</code> ফাংশন যা ব্রিজ লোড করতে পারে কিনা তা পরীক্ষা করে, এবং একটি টেস্ট গেট যা Kuzu-নির্ভর টেস্ট স্কিপ করে যখন এটি পারে না:</p>
+
+<pre><code>if !is_kuzu_available() {
+    eprintln!("Kuzu bridge unavailable, skipping test");
+    return;
+}
+</code></pre>
+
+<p>আমরা একটি লজিক বাগও ঠিক করেছি যেখানে <code>write_kuzu</code> ফ্ল্যাগ ভুলভাবে <code>write_artifacts</code>-এর সাথে যুক্ত ছিল। শর্তটি ছিল <code>write_artifacts || write_kuzu</code>, যার মানে আর্টিফ্যাক্ট রাইট রিকোয়েস্ট করলে Kuzu রাইটও ট্রিগার হতো — এবং ব্রিজ ছাড়া পরিবেশে ব্যর্থ হতো। এখন প্রতিটি ফ্ল্যাগ স্বাধীনভাবে সম্মান করা হয়।</p>
+
+<h2 id="upgrading-actions">GitHub Actions Node 24-এ আপগ্রেড করা</h2>
+
+<p>checkout এবং setup-node-এর জন্য GitHub Actions v4 Node.js 20 ব্যবহার করে, যা জীবনকালের শেষে পৌঁছেছে। v6 ভার্সন Node.js 24 ব্যবহার করে। আপগ্রেড প্রতি অ্যাকশনে এক-লাইন পরিবর্তন, কিন্তু মিস করলে মানে GitHub Node 20 সাপোর্ট বন্ধ করলে আপনার CI ভেঙে যাবে।</p>
+
+<pre><code># Before
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+
+# After
+- uses: actions/checkout@v6
+- uses: actions/setup-node@v6
+</code></pre>
+
+<p>আমরা একটি নির্দিষ্ট nightly ভার্সন পিন করার বদলে স্ট্যাবল Rust টুলচেইনেও সুইচ করেছি, যা মেইনটেন্যান্স ওভারহেড কমায় এবং নিশ্চিত করে যে আমরা সবসময় সেটার বিরুদ্ধে টেস্ট করছি যা ইউজাররা আসলে চালাবে।</p>
+
+<h2 id="concurrency-and-permissions">কনকারেন্সি গ্রুপ এবং ন্যূনতম অধিকার</h2>
+
+<p>দুটি ছোট কিন্তু গুরুত্বপূর্ণ সংযোজন:</p>
+
+<p><strong>কনকারেন্সি গ্রুপ</strong> একই ব্রাঞ্চের জন্য একাধিক CI রানকে একসাথে চলা থেকে বিরত রাখে। যখন আপনি দ্রুত পরপর দুবার পুশ করেন, প্রথম রান বাতিল হয়:</p>
+
+<pre><code>concurrency:
+  group: ci-$&lbrace;&lbrace; github.ref &rbrace;&rbrace;
+  cancel-in-progress: true
+</code></pre>
+
+<p><strong>ন্যূনতম-অধিকার পারমিশন</strong> CI টোকেনকে শুধু যা প্রয়োজন তাতে সীমাবদ্ধ করে। বেশিরভাগ CI ওয়ার্কফ্লোর শুধু রিপোজিটরি কন্টেন্ট পড়তে হয়, প্যাকেজে লিখতে বা ডিপ্লয়মেন্ট পরিচালনা করতে নয়:</p>
+
+<pre><code>permissions:
+  contents: read
+</code></pre>
+
+<p>এগুলো সেই ধরনের সেটিংস যা গুরুত্বপূর্ণ হয় না যতক্ষণ না হয়। রাইট পারমিশন সহ একটি CI টোকেন যা ডিপেন্ডেন্সি সাপ্লাই-চেইন অ্যাটাকের মাধ্যমে ফাঁস হয় তা একটি রিড-অনলি টোকেনের চেয়ে অনেক বড় সমস্যা।</p>
+
+<h2 id="cleaning-up-leaks">ফাঁস হওয়া আউটপুট পরিষ্কার করা</h2>
+
+<p><code>reports/</code> ডিরেক্টরি ভুলবশত সম্পূর্ণ অ্যানালাইসিস আউটপুট সহ কমিট করা হয়েছিল — প্রকৃত কোডবেসে টেস্ট রান থেকে 12,000+ লাইনের JSON রিপোর্ট সহ। এটি রিপোজিটরিতে অপ্রয়োজনীয় ওজন যোগ করেছিল এবং সম্ভাব্যভাবে ডেভেলপমেন্টের সময় বিশ্লেষিত কোডবেস সম্পর্কে তথ্য থাকতে পারত।</p>
+
+<p>আমরা <code>reports/</code> কে <code>.gitignore</code>-এ যোগ করেছি, ট্র্যাক করা ফাইলগুলো সরিয়েছি, এবং পুরনো <code>.gitattributes</code> এন্ট্রি পরিষ্কার করেছি।</p>
+
+<h2 id="badges">ব্যাজ: ছোট কিন্তু অর্থবহ</h2>
+
+<p>আমরা README-তে CI স্ট্যাটাস, Rust ভার্সন এবং লাইসেন্স ব্যাজ যোগ করেছি। এটি ছোট জিনিস, কিন্তু এটি সম্ভাব্য ইউজার এবং কন্ট্রিবিউটরদের সংকেত দেয় যে প্রকল্পটি গুণমানকে গুরুত্ব সহকারে নেয়। একটি সবুজ CI ব্যাজ মানে টেস্টগুলো আসলেই পাস করে। একটি Rust ভার্সন ব্যাজ মানে আপনি জানেন কোন টুলচেইন দরকার। একটি লাইসেন্স ব্যাজ মানে আপনি এক নজরে আইনি সামঞ্জস্যতা পরীক্ষা করতে পারেন।</p>
+
+<h2 id="the-result">ফলাফল</h2>
+
+<p>পরিষ্কারের পরে:</p>
+
+<ul>
+<li><strong>শূন্য Clippy সতর্কতা</strong> <code>cargo clippy -- -D warnings</code>-এ</li>
+<li><strong>সমস্ত টেস্ট পাস করে</strong> ঐচ্ছিক ডিপেন্ডেন্সি ছাড়া CI রানারে</li>
+<li><strong>CI রান দ্রুত সম্পন্ন হয়</strong> কনকারেন্সি গ্রুপ এবং npm ক্যাশিংয়ের কারণে</li>
+<li><strong>পাইপলাইনে অন্তর্ভুক্ত</strong> <code>cargo fmt</code>, <code>cargo clippy</code>, <code>cargo test</code>, এবং ওয়েবসাইটের জন্য <code>tsc</code> চেক</li>
+<li><strong>কোনো ফাঁস হওয়া আউটপুট নেই</strong> রিপোজিটরিতে</li>
+</ul>
+
+<p>একটি পরিষ্কার CI পাইপলাইন এমন ফিচার নয় যা আপনি ইউজারদের কাছে পাঠান। কিন্তু এটি সেই ভিত্তি যা প্রতিটি অন্য ফিচারকে নির্ভরযোগ্য করে। যখন পাইপলাইন গোলমেলে, সত্যিকারের সমস্যাগুলো গোলমালে লুকিয়ে থাকে। যখন এটি পরিষ্কার, প্রতিটি ব্যর্থতা তদন্তযোগ্য একটি সংকেত।</p>
+`,
+    },
+  },
+
+  /* ======================================================================== */
   /*  Zeus Shield: How AigisCode Guards Your Architecture                     */
   /* ======================================================================== */
   {
