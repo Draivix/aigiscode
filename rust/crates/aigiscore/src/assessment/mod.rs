@@ -2,6 +2,7 @@ use crate::detectors::dead_code::DeadCodeResult;
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringResult};
 use crate::external::{ExternalAnalysisResult, ExternalSeverity};
 use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
+use crate::graph::{RelationKind, SemanticGraph};
 use crate::identity::{normalized_path, stable_fingerprint};
 use crate::scanners::ast_grep::{
     run_ast_grep_scan, AstGrepComplexitySubtype, AstGrepFindingKind, AstGrepFrameworkMisuseSubtype,
@@ -9,7 +10,7 @@ use crate::scanners::ast_grep::{
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::ops::Not;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -39,8 +40,68 @@ pub struct ArchitecturalAssessmentFinding {
     pub bottleneck_centrality_millis: u32,
     pub warning_families: Vec<String>,
     pub severity_millis: u16,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pressure_path: Vec<ArchitecturalPressureHop>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expensive_operation_sites: Vec<ArchitecturalComplexitySite>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expensive_operation_flow: Vec<ArchitecturalComplexityFlowStep>,
     #[serde(default)]
     pub fingerprint: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchitecturalPressureHop {
+    pub file_path: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relation_to_next: Option<RelationKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_symbol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_symbol: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ComplexityEvidenceSource {
+    Native,
+    AstGrep,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchitecturalComplexitySite {
+    pub file_path: PathBuf,
+    pub line: usize,
+    pub subtype: String,
+    pub token: String,
+    pub source: ComplexityEvidenceSource,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ArchitecturalComplexityFlowStepKind {
+    PressureHop,
+    OperationSite,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchitecturalComplexityFlowStep {
+    pub kind: ArchitecturalComplexityFlowStepKind,
+    pub file_path: PathBuf,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub relation_to_next: Option<RelationKind>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_symbol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_symbol: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subtype: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence_source: Option<ComplexityEvidenceSource>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -65,13 +126,14 @@ pub fn build_architectural_assessment(
     parsed_sources: &[(PathBuf, String)],
 ) -> ArchitecturalAssessment {
     let ast_grep_scan = run_ast_grep_scan(parsed_sources);
-    build_architectural_assessment_with_ast_grep(
+    build_architectural_assessment_with_ast_grep_and_graph(
         graph_analysis,
         dead_code,
         hardwiring,
         external_analysis,
         parsed_sources,
         &ast_grep_scan,
+        None,
     )
 }
 
@@ -82,6 +144,26 @@ pub fn build_architectural_assessment_with_ast_grep(
     external_analysis: &ExternalAnalysisResult,
     parsed_sources: &[(PathBuf, String)],
     ast_grep_scan: &AstGrepScanResult,
+) -> ArchitecturalAssessment {
+    build_architectural_assessment_with_ast_grep_and_graph(
+        graph_analysis,
+        dead_code,
+        hardwiring,
+        external_analysis,
+        parsed_sources,
+        ast_grep_scan,
+        None,
+    )
+}
+
+pub fn build_architectural_assessment_with_ast_grep_and_graph(
+    graph_analysis: &GraphAnalysis,
+    dead_code: &DeadCodeResult,
+    hardwiring: &HardwiringResult,
+    external_analysis: &ExternalAnalysisResult,
+    parsed_sources: &[(PathBuf, String)],
+    ast_grep_scan: &AstGrepScanResult,
+    semantic_graph: Option<&SemanticGraph>,
 ) -> ArchitecturalAssessment {
     let mut findings = detect_warning_heavy_hotspots(
         &graph_analysis.bottleneck_files,
@@ -133,6 +215,7 @@ pub fn build_architectural_assessment_with_ast_grep(
         parsed_sources,
         ast_grep_scan,
     ));
+    attach_complexity_graph_pressure(&mut findings, graph_analysis, semantic_graph);
     for finding in &mut findings {
         finding.fingerprint = architectural_assessment_fingerprint(finding);
     }
@@ -144,6 +227,272 @@ pub fn build_architectural_assessment_with_ast_grep(
             .then(left.kind.cmp(&right.kind))
     });
     ArchitecturalAssessment { findings }
+}
+
+fn attach_complexity_graph_pressure(
+    findings: &mut [ArchitecturalAssessmentFinding],
+    graph_analysis: &GraphAnalysis,
+    semantic_graph: Option<&SemanticGraph>,
+) {
+    let Some(semantic_graph) = semantic_graph else {
+        return;
+    };
+    let entry_roots = graph_analysis
+        .runtime_entry_candidates
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+    if entry_roots.is_empty() {
+        return;
+    }
+    let entry_paths = graph_reachability_paths_for_hotspots(semantic_graph, &entry_roots);
+    for finding in findings
+        .iter_mut()
+        .filter(|finding| finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot)
+    {
+        if entry_roots.contains(&finding.file_path) {
+            push_unique_string(
+                &mut finding.warning_families,
+                String::from("pressure:direct_runtime_entry"),
+            );
+            push_unique_string(
+                &mut finding.related_identifiers,
+                format!("entry_path: {}", finding.file_path.display()),
+            );
+            finding.pressure_path = vec![ArchitecturalPressureHop {
+                file_path: finding.file_path.clone(),
+                line: None,
+                relation_to_next: None,
+                source_symbol: None,
+                target_symbol: None,
+            }];
+            finding.expensive_operation_flow = build_complexity_operation_flow(
+                &finding.pressure_path,
+                &finding.expensive_operation_sites,
+            );
+            finding.severity_millis = finding.severity_millis.saturating_add(60).min(1000);
+            continue;
+        }
+        let Some(path) = entry_paths.get(&finding.file_path) else {
+            continue;
+        };
+        push_unique_string(
+            &mut finding.warning_families,
+            String::from("pressure:entry_reachable_via_graph"),
+        );
+        push_unique_string(
+            &mut finding.related_identifiers,
+            format!(
+                "entry_path: {}",
+                path.iter()
+                    .map(|part| part.file_path.display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(" -> ")
+            ),
+        );
+        if let Some(symbols) = architectural_pressure_symbol_summary(path) {
+            push_unique_string(
+                &mut finding.related_identifiers,
+                format!("pressure_path_symbols: {symbols}"),
+            );
+        }
+        if path
+            .iter()
+            .any(|hop| matches!(hop.relation_to_next, Some(RelationKind::Call)))
+        {
+            push_unique_string(
+                &mut finding.warning_families,
+                String::from("pressure:caller_callee_path"),
+            );
+            finding.severity_millis = finding.severity_millis.saturating_add(40).min(1000);
+        }
+        finding.pressure_path = path.clone();
+        finding.expensive_operation_flow =
+            build_complexity_operation_flow(path, &finding.expensive_operation_sites);
+        for related in path
+            .iter()
+            .map(|hop| &hop.file_path)
+            .filter(|path| **path != finding.file_path)
+        {
+            if !finding.related_file_paths.contains(related) {
+                finding.related_file_paths.push(related.clone());
+            }
+        }
+        finding.severity_millis = finding.severity_millis.saturating_add(80).min(1000);
+    }
+    for finding in findings
+        .iter_mut()
+        .filter(|finding| finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot)
+    {
+        if finding.expensive_operation_flow.is_empty()
+            && !finding.expensive_operation_sites.is_empty()
+        {
+            finding.expensive_operation_flow = build_complexity_operation_flow(
+                &finding.pressure_path,
+                &finding.expensive_operation_sites,
+            );
+        }
+    }
+}
+
+fn graph_reachability_paths_for_hotspots(
+    semantic_graph: &SemanticGraph,
+    roots: &HashSet<PathBuf>,
+) -> HashMap<PathBuf, Vec<ArchitecturalPressureHop>> {
+    const MAX_HOPS: usize = 8;
+    #[derive(Clone)]
+    struct OutboundHop {
+        target_file_path: PathBuf,
+        line: usize,
+        relation_kind: RelationKind,
+        source_symbol: Option<String>,
+        target_symbol: Option<String>,
+    }
+
+    #[derive(Clone)]
+    struct PredecessorHop {
+        previous_file_path: PathBuf,
+        line: usize,
+        relation_kind: RelationKind,
+        source_symbol: Option<String>,
+        target_symbol: Option<String>,
+    }
+
+    let mut outbound = HashMap::<&Path, Vec<OutboundHop>>::new();
+    let mut predecessor = HashMap::<PathBuf, PredecessorHop>::new();
+    let symbol_names = semantic_graph
+        .symbols
+        .iter()
+        .map(|symbol| (symbol.id.clone(), symbol.name.clone()))
+        .collect::<HashMap<_, _>>();
+
+    for edge in &semantic_graph.resolved_edges {
+        if !supports_complexity_entry_pressure(edge.relation_kind) {
+            continue;
+        }
+        outbound
+            .entry(edge.source_file_path.as_path())
+            .or_default()
+            .push(OutboundHop {
+                target_file_path: edge.target_file_path.clone(),
+                line: edge.line,
+                relation_kind: edge.relation_kind,
+                source_symbol: edge
+                    .source_symbol_id
+                    .as_ref()
+                    .and_then(|id| symbol_names.get(id))
+                    .cloned(),
+                target_symbol: symbol_names.get(&edge.target_symbol_id).cloned(),
+            });
+    }
+    for targets in outbound.values_mut() {
+        targets.sort_by(|left, right| {
+            pressure_relation_rank(right.relation_kind)
+                .cmp(&pressure_relation_rank(left.relation_kind))
+                .then(left.line.cmp(&right.line))
+                .then(left.target_file_path.cmp(&right.target_file_path))
+        });
+    }
+
+    let mut visited = roots.iter().cloned().collect::<HashSet<_>>();
+    let mut queue = roots
+        .iter()
+        .cloned()
+        .map(|path| (path, 0usize))
+        .collect::<VecDeque<_>>();
+
+    while let Some((current, depth)) = queue.pop_front() {
+        if depth >= MAX_HOPS {
+            continue;
+        }
+        let Some(targets) = outbound.get(current.as_path()) else {
+            continue;
+        };
+        for target in targets {
+            if !visited.insert(target.target_file_path.clone()) {
+                continue;
+            }
+            predecessor.insert(
+                target.target_file_path.clone(),
+                PredecessorHop {
+                    previous_file_path: current.clone(),
+                    line: target.line,
+                    relation_kind: target.relation_kind,
+                    source_symbol: target.source_symbol.clone(),
+                    target_symbol: target.target_symbol.clone(),
+                },
+            );
+            queue.push_back((target.target_file_path.clone(), depth + 1));
+        }
+    }
+
+    predecessor
+        .keys()
+        .cloned()
+        .map(|target| {
+            let mut chain = vec![ArchitecturalPressureHop {
+                file_path: target.clone(),
+                line: None,
+                relation_to_next: None,
+                source_symbol: None,
+                target_symbol: None,
+            }];
+            let mut cursor = target.clone();
+            while let Some(previous) = predecessor.get(&cursor) {
+                chain.push(ArchitecturalPressureHop {
+                    file_path: previous.previous_file_path.clone(),
+                    line: Some(previous.line),
+                    relation_to_next: Some(previous.relation_kind),
+                    source_symbol: previous.source_symbol.clone(),
+                    target_symbol: previous.target_symbol.clone(),
+                });
+                cursor = previous.previous_file_path.clone();
+            }
+            chain.reverse();
+            (target, chain)
+        })
+        .collect()
+}
+
+fn pressure_relation_rank(kind: RelationKind) -> usize {
+    match kind {
+        RelationKind::Call => 5,
+        RelationKind::Dispatch => 4,
+        RelationKind::ContainerResolution => 3,
+        RelationKind::EventPublish => 2,
+        RelationKind::Import => 1,
+        _ => 0,
+    }
+}
+
+fn architectural_pressure_symbol_summary(path: &[ArchitecturalPressureHop]) -> Option<String> {
+    let labels = path
+        .iter()
+        .filter_map(|hop| {
+            hop.source_symbol
+                .as_ref()
+                .zip(hop.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
+}
+
+fn supports_complexity_entry_pressure(kind: RelationKind) -> bool {
+    matches!(
+        kind,
+        RelationKind::Import
+            | RelationKind::Call
+            | RelationKind::Dispatch
+            | RelationKind::ContainerResolution
+            | RelationKind::EventPublish
+    )
+}
+
+fn push_unique_string(target: &mut Vec<String>, value: String) {
+    if !target.contains(&value) {
+        target.push(value);
+    }
 }
 
 fn detect_warning_heavy_hotspots(
@@ -240,6 +589,9 @@ fn detect_warning_heavy_hotspots(
                     / 2.0
                     * 1000.0)
                     .round() as u16,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             },
         )
@@ -311,6 +663,9 @@ enum ComplexitySubtype {
     RegexCompileInLoop,
     JsonDecodeInLoop,
     FilesystemReadInLoop,
+    DatabaseQueryInLoop,
+    HttpCallInLoop,
+    CacheLookupInLoop,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -396,6 +751,12 @@ fn detect_algorithmic_complexity_hotspots(
                 bottleneck_centrality_millis: 0,
                 warning_families,
                 severity_millis: complexity_severity_millis(subtype, subtype_observations.len()),
+                pressure_path: Vec::new(),
+                expensive_operation_sites: complexity_operation_sites_for_observations(
+                    path,
+                    &subtype_observations,
+                ),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             });
         }
@@ -614,7 +975,80 @@ fn ast_grep_complexity_subtype(subtype: AstGrepComplexitySubtype) -> ComplexityS
         AstGrepComplexitySubtype::RegexCompileInLoop => ComplexitySubtype::RegexCompileInLoop,
         AstGrepComplexitySubtype::JsonDecodeInLoop => ComplexitySubtype::JsonDecodeInLoop,
         AstGrepComplexitySubtype::FilesystemReadInLoop => ComplexitySubtype::FilesystemReadInLoop,
+        AstGrepComplexitySubtype::DatabaseQueryInLoop => ComplexitySubtype::DatabaseQueryInLoop,
+        AstGrepComplexitySubtype::HttpCallInLoop => ComplexitySubtype::HttpCallInLoop,
+        AstGrepComplexitySubtype::CacheLookupInLoop => ComplexitySubtype::CacheLookupInLoop,
     }
+}
+
+fn complexity_evidence_source(source: ComplexityObservationSource) -> ComplexityEvidenceSource {
+    match source {
+        ComplexityObservationSource::Native => ComplexityEvidenceSource::Native,
+        ComplexityObservationSource::AstGrep => ComplexityEvidenceSource::AstGrep,
+    }
+}
+
+fn complexity_operation_sites_for_observations(
+    path: &Path,
+    observations: &[ComplexityObservation],
+) -> Vec<ArchitecturalComplexitySite> {
+    let mut observations = observations.to_vec();
+    observations.sort_by(|left, right| {
+        left.line
+            .cmp(&right.line)
+            .then(right.source.cmp(&left.source))
+            .then(left.token.len().cmp(&right.token.len()))
+            .then(left.token.cmp(&right.token))
+    });
+    observations.dedup_by(|left, right| left.subtype == right.subtype && left.line == right.line);
+    observations
+        .into_iter()
+        .take(3)
+        .map(|observation| ArchitecturalComplexitySite {
+            file_path: path.to_path_buf(),
+            line: observation.line,
+            subtype: String::from(complexity_subtype_label(observation.subtype)),
+            token: observation.token,
+            source: complexity_evidence_source(observation.source),
+        })
+        .collect()
+}
+
+fn build_complexity_operation_flow(
+    pressure_path: &[ArchitecturalPressureHop],
+    sites: &[ArchitecturalComplexitySite],
+) -> Vec<ArchitecturalComplexityFlowStep> {
+    let mut flow = pressure_path
+        .iter()
+        .map(|hop| ArchitecturalComplexityFlowStep {
+            kind: ArchitecturalComplexityFlowStepKind::PressureHop,
+            file_path: hop.file_path.clone(),
+            line: hop.line,
+            relation_to_next: hop.relation_to_next,
+            source_symbol: hop.source_symbol.clone(),
+            target_symbol: hop.target_symbol.clone(),
+            subtype: None,
+            token: None,
+            evidence_source: None,
+        })
+        .collect::<Vec<_>>();
+    flow.extend(
+        sites
+            .iter()
+            .take(1)
+            .map(|site| ArchitecturalComplexityFlowStep {
+                kind: ArchitecturalComplexityFlowStepKind::OperationSite,
+                file_path: site.file_path.clone(),
+                line: Some(site.line),
+                relation_to_next: None,
+                source_symbol: None,
+                target_symbol: None,
+                subtype: Some(site.subtype.clone()),
+                token: Some(site.token.clone()),
+                evidence_source: Some(site.source),
+            }),
+    );
+    flow
 }
 
 fn brace_delta(line: &str) -> (usize, usize) {
@@ -638,6 +1072,9 @@ fn complexity_weight(subtype: ComplexitySubtype) -> usize {
         ComplexitySubtype::RegexCompileInLoop => 2,
         ComplexitySubtype::JsonDecodeInLoop => 2,
         ComplexitySubtype::FilesystemReadInLoop => 2,
+        ComplexitySubtype::DatabaseQueryInLoop => 4,
+        ComplexitySubtype::HttpCallInLoop => 4,
+        ComplexitySubtype::CacheLookupInLoop => 3,
     }
 }
 
@@ -649,6 +1086,9 @@ fn complexity_severity_millis(subtype: ComplexitySubtype, occurrences: usize) ->
         ComplexitySubtype::RegexCompileInLoop => 760u16,
         ComplexitySubtype::JsonDecodeInLoop => 780u16,
         ComplexitySubtype::FilesystemReadInLoop => 800u16,
+        ComplexitySubtype::DatabaseQueryInLoop => 900u16,
+        ComplexitySubtype::HttpCallInLoop => 920u16,
+        ComplexitySubtype::CacheLookupInLoop => 840u16,
     };
     (base + (occurrences.saturating_sub(1) as u16 * 40)).min(980)
 }
@@ -661,6 +1101,9 @@ fn complexity_subtype_label(subtype: ComplexitySubtype) -> &'static str {
         ComplexitySubtype::RegexCompileInLoop => "regex_compile_in_loop",
         ComplexitySubtype::JsonDecodeInLoop => "json_decode_in_loop",
         ComplexitySubtype::FilesystemReadInLoop => "filesystem_read_in_loop",
+        ComplexitySubtype::DatabaseQueryInLoop => "database_query_in_loop",
+        ComplexitySubtype::HttpCallInLoop => "http_call_in_loop",
+        ComplexitySubtype::CacheLookupInLoop => "cache_lookup_in_loop",
     }
 }
 
@@ -857,6 +1300,9 @@ fn detect_split_identity_models(
                 bottleneck_centrality_millis: 0,
                 warning_families: vec![format!("concept:{stem}")],
                 severity_millis: severity,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             })
         })
@@ -951,6 +1397,9 @@ fn detect_compatibility_scars(
                 bottleneck_centrality_millis: centrality,
                 warning_families,
                 severity_millis: severity,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             })
         })
@@ -1099,6 +1548,9 @@ fn detect_duplicate_mechanisms(
                 bottleneck_centrality_millis: *primary_centrality,
                 warning_families,
                 severity_millis: severity,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             })
         })
@@ -1272,6 +1724,9 @@ fn detect_sanctioned_path_bypasses(
                     + warning_count.min(4) as u16 * 70
                     + ((centrality / 200).min(180) as u16))
                     .min(1000),
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             })
         })
@@ -1423,6 +1878,9 @@ fn detect_abstraction_sprawl(
                 bottleneck_centrality_millis: *primary_centrality,
                 warning_families,
                 severity_millis: severity,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             })
         })
@@ -1641,6 +2099,9 @@ fn detect_hand_rolled_parsing(
                 bottleneck_centrality_millis: *primary_centrality,
                 warning_families,
                 severity_millis: severity,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::new(),
             })
         })
@@ -1777,6 +2238,9 @@ fn detect_scheduler_dsl_stacks(
         bottleneck_centrality_millis: *primary_centrality,
         warning_families,
         severity_millis: severity,
+        pressure_path: Vec::new(),
+        expensive_operation_sites: Vec::new(),
+        expensive_operation_flow: Vec::new(),
         fingerprint: String::new(),
     }]
 }
@@ -1918,6 +2382,9 @@ fn detect_filesystem_page_resolution_stacks(
         bottleneck_centrality_millis: *primary_centrality,
         warning_families,
         severity_millis: severity,
+        pressure_path: Vec::new(),
+        expensive_operation_sites: Vec::new(),
+        expensive_operation_flow: Vec::new(),
         fingerprint: String::new(),
     }]
 }
@@ -2048,6 +2515,9 @@ fn detect_manifest_backed_policy_engine_stacks(
         bottleneck_centrality_millis: *primary_centrality,
         warning_families,
         severity_millis: severity,
+        pressure_path: Vec::new(),
+        expensive_operation_sites: Vec::new(),
+        expensive_operation_flow: Vec::new(),
         fingerprint: String::new(),
     }]
 }
@@ -2928,7 +3398,10 @@ fn is_low_signal_identity_path(path: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_architectural_assessment, ArchitecturalAssessmentKind};
+    use super::{
+        build_architectural_assessment, build_architectural_assessment_with_ast_grep_and_graph,
+        ArchitecturalAssessmentKind,
+    };
     use crate::detectors::dead_code::{
         DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier, DeadCodeResult,
     };
@@ -2937,8 +3410,14 @@ mod tests {
         ExternalAnalysisResult, ExternalConfidence, ExternalFinding, ExternalSeverity,
     };
     use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
+    use crate::graph::{RelationKind, SemanticGraph, SymbolKind, Visibility};
+    use crate::ingestion::pipeline::analyze_project;
+    use crate::ingestion::scan::ScanConfig;
+    use crate::scanners::ast_grep::run_ast_grep_scan;
     use serde_json::Map;
+    use std::fs;
     use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
     fn detects_warning_heavy_hotspots_from_centrality_and_findings() {
@@ -2991,6 +3470,7 @@ mod tests {
                 confidence: ExternalConfidence::High,
                 file_path: Some(PathBuf::from("src/service.ts")),
                 line: Some(13),
+                locations: Vec::new(),
                 message: String::from("issue"),
                 fingerprint: String::from("fp"),
                 extras: Map::new(),
@@ -4379,6 +4859,312 @@ final class AppServiceProvider extends ServiceProvider
     }
 
     #[test]
+    fn detects_laravel_database_query_in_loop_as_algorithmic_complexity_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Services/InvoiceSyncService.php"),
+                String::from(
+                    r#"
+                    <?php
+                    use Illuminate\Support\Facades\DB;
+
+                    final class InvoiceSyncService {
+                        public function sync(array $ids): array {
+                            $rows = [];
+                            foreach ($ids as $id) {
+                                $rows[] = DB::select('select * from invoices where id = ?', [$id]);
+                            }
+                            return $rows;
+                        }
+                    }
+                "#,
+                ),
+            )],
+        );
+
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            })
+            .expect("expected algorithmic complexity hotspot");
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "complexity:database_query_in_loop"));
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "scanner:ast_grep"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| identifier.contains("DB::select(")));
+        assert_eq!(finding.expensive_operation_sites.len(), 1);
+        assert_eq!(finding.expensive_operation_sites[0].line, 9);
+        assert_eq!(
+            finding.expensive_operation_sites[0].subtype,
+            "database_query_in_loop"
+        );
+        assert!(finding.expensive_operation_sites[0]
+            .token
+            .contains("DB::select("));
+    }
+
+    #[test]
+    fn graph_reachable_complexity_hotspot_records_entry_pressure() {
+        let fixture = unique_fixture_dir("assessment-complexity-entry-pressure");
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.ts"),
+            "import { run } from './runner';\n\nrun();\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/runner.ts"),
+            r#"
+export function run(items: string[][]) {
+  for (const row of items) {
+    row.sort();
+  }
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let finding = analysis
+            .architectural_assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+                    && finding.file_path == PathBuf::from("src/runner.ts")
+            })
+            .expect("expected graph-reachable complexity hotspot");
+
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "pressure:entry_reachable_via_graph"));
+        assert!(finding
+            .related_file_paths
+            .contains(&PathBuf::from("src/main.ts")));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| { identifier == "entry_path: src/main.ts -> src/runner.ts" }));
+        assert_eq!(finding.pressure_path.len(), 2);
+        assert_eq!(
+            finding.pressure_path[0].file_path,
+            PathBuf::from("src/main.ts")
+        );
+        assert_eq!(finding.pressure_path[0].line, Some(3));
+        assert_eq!(
+            finding.pressure_path[0].relation_to_next,
+            Some(RelationKind::Call)
+        );
+        assert_eq!(finding.pressure_path[0].source_symbol, None);
+        assert_eq!(
+            finding.pressure_path[0].target_symbol.as_deref(),
+            Some("run")
+        );
+        assert_eq!(
+            finding.pressure_path[1].file_path,
+            PathBuf::from("src/runner.ts")
+        );
+        assert_eq!(finding.pressure_path[1].line, None);
+        assert_eq!(finding.pressure_path[1].relation_to_next, None);
+        assert_eq!(finding.pressure_path[1].source_symbol, None);
+        assert_eq!(finding.pressure_path[1].target_symbol, None);
+        assert_eq!(finding.expensive_operation_sites.len(), 1);
+        assert_eq!(finding.expensive_operation_sites[0].line, 4);
+        assert_eq!(finding.expensive_operation_sites[0].subtype, "sort_in_loop");
+        assert!(finding.expensive_operation_sites[0]
+            .token
+            .contains("row.sort("));
+        assert_eq!(finding.expensive_operation_flow.len(), 3);
+        assert_eq!(
+            finding.expensive_operation_flow[0].file_path,
+            PathBuf::from("src/main.ts")
+        );
+        assert_eq!(
+            finding.expensive_operation_flow[1].file_path,
+            PathBuf::from("src/runner.ts")
+        );
+        assert_eq!(
+            finding.expensive_operation_flow[2].subtype.as_deref(),
+            Some("sort_in_loop")
+        );
+        assert_eq!(finding.expensive_operation_flow[2].line, Some(4));
+    }
+
+    #[test]
+    fn complexity_pressure_paths_prefer_call_edges_over_plain_imports_when_both_exist() {
+        let parsed_sources = vec![
+            (
+                PathBuf::from("src/main.ts"),
+                String::from("import { handler } from './handler';\nhandler();\n"),
+            ),
+            (
+                PathBuf::from("src/handler.ts"),
+                String::from(
+                    "import { run } from './runner';\nexport function handler(items) { return run(items); }\n",
+                ),
+            ),
+            (
+                PathBuf::from("src/runner.ts"),
+                String::from(
+                    "export function run(items) { for (const row of items) { row.sort(); } }\n",
+                ),
+            ),
+        ];
+        let graph_analysis = GraphAnalysis {
+            runtime_entry_candidates: vec![PathBuf::from("src/main.ts")],
+            ..GraphAnalysis::default()
+        };
+        let semantic_graph = SemanticGraph {
+            files: Vec::new(),
+            symbols: vec![
+                crate::graph::SymbolNode {
+                    id: String::from("symbol:src/handler.ts:handler"),
+                    file_path: PathBuf::from("src/handler.ts"),
+                    kind: SymbolKind::Function,
+                    name: String::from("handler"),
+                    qualified_name: String::from("handler"),
+                    parent_symbol_id: None,
+                    owner_type_name: None,
+                    return_type_name: None,
+                    visibility: Visibility::Public,
+                    parameter_count: 1,
+                    required_parameter_count: 1,
+                    start_line: 2,
+                    end_line: 2,
+                },
+                crate::graph::SymbolNode {
+                    id: String::from("symbol:src/runner.ts:run"),
+                    file_path: PathBuf::from("src/runner.ts"),
+                    kind: SymbolKind::Function,
+                    name: String::from("run"),
+                    qualified_name: String::from("run"),
+                    parent_symbol_id: None,
+                    owner_type_name: None,
+                    return_type_name: None,
+                    visibility: Visibility::Public,
+                    parameter_count: 1,
+                    required_parameter_count: 1,
+                    start_line: 1,
+                    end_line: 1,
+                },
+            ],
+            references: Vec::new(),
+            resolved_edges: vec![
+                crate::graph::ResolvedEdge {
+                    source_file_path: PathBuf::from("src/main.ts"),
+                    source_symbol_id: None,
+                    target_file_path: PathBuf::from("src/handler.ts"),
+                    target_symbol_id: String::from("symbol:src/handler.ts:handler"),
+                    reference_target_name: None,
+                    kind: crate::graph::ReferenceKind::Call,
+                    relation_kind: RelationKind::Import,
+                    layer: crate::graph::GraphLayer::Structural,
+                    strength: crate::graph::EdgeStrength::Hard,
+                    origin: crate::graph::EdgeOrigin::Resolver,
+                    resolution_tier: crate::graph::ResolutionTier::ImportScoped,
+                    confidence_millis: 800,
+                    reason: String::from("import"),
+                    line: 1,
+                    occurrence_index: 0,
+                },
+                crate::graph::ResolvedEdge {
+                    source_file_path: PathBuf::from("src/handler.ts"),
+                    source_symbol_id: None,
+                    target_file_path: PathBuf::from("src/runner.ts"),
+                    target_symbol_id: String::from("symbol:src/runner.ts:run"),
+                    reference_target_name: None,
+                    kind: crate::graph::ReferenceKind::Call,
+                    relation_kind: RelationKind::Import,
+                    layer: crate::graph::GraphLayer::Structural,
+                    strength: crate::graph::EdgeStrength::Hard,
+                    origin: crate::graph::EdgeOrigin::Resolver,
+                    resolution_tier: crate::graph::ResolutionTier::ImportScoped,
+                    confidence_millis: 800,
+                    reason: String::from("import"),
+                    line: 1,
+                    occurrence_index: 0,
+                },
+                crate::graph::ResolvedEdge {
+                    source_file_path: PathBuf::from("src/handler.ts"),
+                    source_symbol_id: Some(String::from("symbol:src/handler.ts:handler")),
+                    target_file_path: PathBuf::from("src/runner.ts"),
+                    target_symbol_id: String::from("symbol:src/runner.ts:run"),
+                    reference_target_name: Some(String::from("run")),
+                    kind: crate::graph::ReferenceKind::Call,
+                    relation_kind: RelationKind::Call,
+                    layer: crate::graph::GraphLayer::Structural,
+                    strength: crate::graph::EdgeStrength::Hard,
+                    origin: crate::graph::EdgeOrigin::Resolver,
+                    resolution_tier: crate::graph::ResolutionTier::ImportScoped,
+                    confidence_millis: 950,
+                    reason: String::from("call"),
+                    line: 2,
+                    occurrence_index: 0,
+                },
+            ],
+        };
+
+        let assessment = build_architectural_assessment_with_ast_grep_and_graph(
+            &graph_analysis,
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &parsed_sources,
+            &run_ast_grep_scan(&parsed_sources),
+            Some(&semantic_graph),
+        );
+        let finding = assessment
+            .findings
+            .iter()
+            .find(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+                    && finding.file_path == PathBuf::from("src/runner.ts")
+            })
+            .expect("expected graph-reachable complexity hotspot");
+
+        assert!(finding
+            .warning_families
+            .iter()
+            .any(|family| family == "pressure:caller_callee_path"));
+        assert!(finding
+            .related_identifiers
+            .iter()
+            .any(|identifier| { identifier == "pressure_path_symbols: handler -> run" }));
+        assert_eq!(finding.pressure_path.len(), 3);
+        assert_eq!(
+            finding.pressure_path[0].file_path,
+            PathBuf::from("src/main.ts")
+        );
+        assert_eq!(
+            finding.pressure_path[1].relation_to_next,
+            Some(RelationKind::Call)
+        );
+        assert_eq!(finding.pressure_path[1].line, Some(2));
+        assert_eq!(
+            finding.pressure_path[1].source_symbol.as_deref(),
+            Some("handler")
+        );
+        assert_eq!(
+            finding.pressure_path[1].target_symbol.as_deref(),
+            Some("run")
+        );
+    }
+
+    #[test]
     fn ignores_simple_single_loop_without_expensive_inner_work() {
         let assessment = build_architectural_assessment(
             &GraphAnalysis::default(),
@@ -4477,5 +5263,13 @@ final class AppServiceProvider extends ServiceProvider
             .findings
             .iter()
             .all(|finding| finding.kind != ArchitecturalAssessmentKind::SplitIdentityModel));
+    }
+
+    fn unique_fixture_dir(label: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("aigiscode-{label}-{unique}"))
     }
 }

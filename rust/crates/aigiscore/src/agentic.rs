@@ -5,6 +5,7 @@ use crate::artifacts::{
 use crate::doctrine::DoctrineRegistry;
 use crate::evidence::EvidenceAnchor;
 use crate::graph::{ReferenceKind, RelationKind, ResolvedEdge, SemanticGraph, SymbolNode};
+use crate::identity::stable_fingerprint;
 use crate::ingestion::pipeline::ProjectAnalysis;
 use regex::Regex;
 use schemars::{schema_for, JsonSchema};
@@ -59,6 +60,9 @@ pub struct GraphPacket {
     pub primary_anchor: Option<EvidenceAnchor>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub evidence_anchors: Vec<EvidenceAnchor>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<EvidenceAnchor>,
+    pub evidence_refs: AgenticPrimaryEvidenceRefs,
     pub doctrine_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preferred_mechanism: Option<String>,
@@ -280,6 +284,9 @@ pub struct AgenticTaskPacket {
     pub primary_anchor: Option<EvidenceAnchor>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub evidence_anchors: Vec<EvidenceAnchor>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<EvidenceAnchor>,
+    pub evidence_refs: AgenticPrimaryEvidenceRefs,
     pub doctrine_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub preferred_mechanism: Option<String>,
@@ -300,6 +307,18 @@ pub struct AgenticEvidenceChain {
     pub semantic_state_flows: Vec<AgenticSemanticStateFlow>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct AgenticPrimaryEvidenceRefs {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_graph_trace_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_code_flow_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_source_sink_path_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_semantic_state_flow_id: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct AgenticEvidenceLocation {
     pub role: String,
@@ -310,6 +329,7 @@ pub struct AgenticEvidenceLocation {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct AgenticGraphTrace {
+    pub id: String,
     pub label: String,
     pub kind: AgenticGraphTraceKind,
     pub primary_file_path: String,
@@ -353,13 +373,19 @@ pub struct AgenticGraphTraceHop {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct AgenticCodeFlow {
+    pub id: String,
+    pub graph_trace_id: String,
     pub label: String,
     pub kind: AgenticCodeFlowKind,
+    pub trace_kind: AgenticGraphTraceKind,
     pub entry_file_path: String,
     pub exit_file_path: String,
+    pub source: AgenticPathEndpoint,
+    pub sink: AgenticPathEndpoint,
     pub aggregate_confidence_millis: u16,
     pub relation_sequence: Vec<String>,
     pub truncated: bool,
+    pub supporting_locations: Vec<AgenticEvidenceLocation>,
     pub steps: Vec<AgenticCodeFlowStep>,
 }
 
@@ -380,11 +406,24 @@ pub struct AgenticCodeFlowStep {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub relation_to_next: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub layer_to_next: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin_to_next: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub strength_to_next: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolution_tier_to_next: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence_millis_to_next: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub next_file_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct AgenticSourceSinkPath {
+    pub id: String,
+    pub graph_trace_id: String,
+    pub code_flow_id: String,
     pub label: String,
     pub kind: AgenticSourceSinkKind,
     pub source: AgenticPathEndpoint,
@@ -686,7 +725,7 @@ pub fn build_agentic_review_artifact(
 
     AgenticReviewArtifact {
         root: analysis.root.display().to_string(),
-        contract_version: String::from("2026-03-22"),
+        contract_version: String::from("2026-03-28"),
         transport: AgenticTransportContract {
             provider_family: String::from("openai"),
             recommended_protocol: String::from("responses_api"),
@@ -772,6 +811,8 @@ pub fn build_graph_packet_artifact(
             primary_file_path: packet.primary_target_file.clone(),
             primary_anchor: packet.primary_anchor.clone(),
             evidence_anchors: packet.evidence_anchors.clone(),
+            locations: packet.locations.clone(),
+            evidence_refs: packet.evidence_refs.clone(),
             doctrine_refs: packet.doctrine_refs.clone(),
             preferred_mechanism: packet.preferred_mechanism.clone(),
             obligations: packet.obligations.clone(),
@@ -830,6 +871,13 @@ pub fn build_graph_packet_artifact(
                 primary_file_path: file_path.clone(),
                 primary_anchor: None,
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                evidence_refs: build_primary_evidence_refs(
+                    &graph_traces,
+                    &code_flows,
+                    &source_sink_paths,
+                    &semantic_state_flows,
+                ),
                 doctrine_refs: review.summary.doctrine_refs.clone(),
                 preferred_mechanism: None,
                 obligations: Vec::new(),
@@ -1106,7 +1154,7 @@ fn build_execution_contract(
     ];
     let structured_output = AgenticStructuredOutputContract {
         schema_name: String::from("aigiscode_agentic_review_response"),
-        schema_version: String::from("2026-03-22"),
+        schema_version: String::from("2026-03-28"),
         must_cover_task_packets,
         required_markdown_sections: vec![
             String::from("Verdict"),
@@ -1354,6 +1402,7 @@ fn build_task_packets(
                 String::from("guard-decision.json"),
                 String::from("aigiscode-handoff.json"),
             ];
+            let evidence_chain = build_evidence_chain(packet, &required_artifacts, context);
             let task_packet = AgenticTaskPacket {
                 id: packet.id.clone(),
                 status,
@@ -1364,11 +1413,18 @@ fn build_task_packets(
                 primary_target_file: packet.primary_target_file.clone(),
                 primary_anchor: packet.primary_anchor.clone(),
                 evidence_anchors: packet.evidence_anchors.clone(),
+                locations: packet.locations.clone(),
+                evidence_refs: build_primary_evidence_refs(
+                    &evidence_chain.graph_traces,
+                    &evidence_chain.code_flows,
+                    &evidence_chain.source_sink_paths,
+                    &evidence_chain.semantic_state_flows,
+                ),
                 doctrine_refs: packet.doctrine_refs.clone(),
                 preferred_mechanism: packet.preferred_mechanism.clone(),
                 obligations: packet.obligations.clone(),
                 required_artifacts: required_artifacts.clone(),
-                evidence_chain: build_evidence_chain(packet, &required_artifacts, context),
+                evidence_chain,
                 review_radius_files,
             };
             trace_agentic_step(
@@ -1511,6 +1567,20 @@ fn build_evidence_chain(
     }
 }
 
+fn build_primary_evidence_refs(
+    graph_traces: &[AgenticGraphTrace],
+    code_flows: &[AgenticCodeFlow],
+    source_sink_paths: &[AgenticSourceSinkPath],
+    semantic_state_flows: &[AgenticSemanticStateFlow],
+) -> AgenticPrimaryEvidenceRefs {
+    AgenticPrimaryEvidenceRefs {
+        primary_graph_trace_id: graph_traces.first().map(|trace| trace.id.clone()),
+        primary_code_flow_id: code_flows.first().map(|flow| flow.id.clone()),
+        primary_source_sink_path_id: source_sink_paths.first().map(|path| path.id.clone()),
+        primary_semantic_state_flow_id: semantic_state_flows.first().map(|flow| flow.id.clone()),
+    }
+}
+
 fn packet_supports_semantic_state_flows(packet: &GuardianPacket) -> bool {
     packet.focus == "hand_rolled_parsing"
 }
@@ -1571,6 +1641,12 @@ fn build_graph_traces_with_context(
             trace.kind = AgenticGraphTraceKind::ReverseSupportPath;
             trace.primary_file_path = primary.to_owned();
             trace.supporting_file_path = Some(target.clone());
+            trace.id = graph_trace_id_for_hops(
+                AgenticGraphTraceKind::ReverseSupportPath,
+                primary,
+                target.as_str(),
+                &trace.hops,
+            );
             trace
         }) {
             if seen_labels.insert(trace.label.clone()) {
@@ -1586,6 +1662,12 @@ fn build_graph_traces_with_context(
             let label = format!("{source} -> {target}");
             if seen_labels.insert(label.clone()) {
                 traces.push(AgenticGraphTrace {
+                    id: graph_trace_id_for_edges(
+                        AgenticGraphTraceKind::ContextualSupportPath,
+                        primary,
+                        if source == primary { &target } else { &source },
+                        &[edge],
+                    ),
                     label,
                     kind: AgenticGraphTraceKind::ContextualSupportPath,
                     primary_file_path: primary.to_owned(),
@@ -1632,30 +1714,62 @@ fn build_code_flows(traces: &[AgenticGraphTrace]) -> Vec<AgenticCodeFlow> {
         .map(|trace| {
             let mut steps = Vec::new();
             for (index, hop) in trace.hops.iter().enumerate() {
+                let next_hop = trace.hops.get(index + 1);
                 if index == 0 {
                     steps.push(AgenticCodeFlowStep {
                         file_path: hop.source_file_path.clone(),
                         symbol_name: hop.source_symbol_name.clone(),
                         line: Some(hop.line),
                         relation_to_next: Some(hop.relation_kind.clone()),
+                        layer_to_next: Some(hop.layer.clone()),
+                        origin_to_next: Some(hop.origin.clone()),
+                        strength_to_next: Some(hop.strength.clone()),
+                        resolution_tier_to_next: Some(hop.resolution_tier.clone()),
+                        confidence_millis_to_next: Some(hop.confidence_millis),
                         next_file_path: Some(hop.target_file_path.clone()),
                     });
                 }
                 steps.push(AgenticCodeFlowStep {
                     file_path: hop.target_file_path.clone(),
                     symbol_name: hop.target_symbol_name.clone(),
-                    line: Some(hop.line),
-                    relation_to_next: trace
-                        .hops
-                        .get(index + 1)
-                        .map(|next_hop| next_hop.relation_kind.clone()),
-                    next_file_path: trace
-                        .hops
-                        .get(index + 1)
-                        .map(|next_hop| next_hop.target_file_path.clone()),
+                    line: next_hop.map(|next_hop| next_hop.line).or(Some(hop.line)),
+                    relation_to_next: next_hop.map(|next_hop| next_hop.relation_kind.clone()),
+                    layer_to_next: next_hop.map(|next_hop| next_hop.layer.clone()),
+                    origin_to_next: next_hop.map(|next_hop| next_hop.origin.clone()),
+                    strength_to_next: next_hop.map(|next_hop| next_hop.strength.clone()),
+                    resolution_tier_to_next: next_hop
+                        .map(|next_hop| next_hop.resolution_tier.clone()),
+                    confidence_millis_to_next: next_hop.map(|next_hop| next_hop.confidence_millis),
+                    next_file_path: next_hop.map(|next_hop| next_hop.target_file_path.clone()),
                 });
             }
+            let first_hop = trace.hops.first().expect("non-empty trace hops");
+            let last_hop = trace.hops.last().expect("non-empty trace hops");
+            let source = AgenticPathEndpoint {
+                role: source_role(trace.kind).to_owned(),
+                file_path: first_hop.source_file_path.clone(),
+                line: Some(first_hop.line),
+                symbol_name: first_hop.source_symbol_name.clone(),
+            };
+            let sink = AgenticPathEndpoint {
+                role: sink_role(trace.kind).to_owned(),
+                file_path: last_hop.target_file_path.clone(),
+                line: Some(last_hop.line),
+                symbol_name: last_hop.target_symbol_name.clone(),
+            };
+            let supporting_locations = steps
+                .iter()
+                .skip(1)
+                .take(steps.len().saturating_sub(2))
+                .map(|step| AgenticEvidenceLocation {
+                    role: String::from("supporting_flow"),
+                    file_path: step.file_path.clone(),
+                    line: step.line,
+                })
+                .collect::<Vec<_>>();
             AgenticCodeFlow {
+                id: code_flow_id(trace),
+                graph_trace_id: trace.id.clone(),
                 label: trace.label.clone(),
                 kind: match trace.kind {
                     AgenticGraphTraceKind::DirectedSupportPath => {
@@ -1666,19 +1780,15 @@ fn build_code_flows(traces: &[AgenticGraphTrace]) -> Vec<AgenticCodeFlow> {
                         AgenticCodeFlowKind::BackwardPropagation
                     }
                 },
-                entry_file_path: trace
-                    .hops
-                    .first()
-                    .map(|hop| hop.source_file_path.clone())
-                    .unwrap_or_else(|| trace.primary_file_path.clone()),
-                exit_file_path: trace
-                    .hops
-                    .last()
-                    .map(|hop| hop.target_file_path.clone())
-                    .unwrap_or_else(|| trace.primary_file_path.clone()),
+                trace_kind: trace.kind,
+                entry_file_path: source.file_path.clone(),
+                exit_file_path: sink.file_path.clone(),
+                source,
+                sink,
                 aggregate_confidence_millis: trace.aggregate_confidence_millis,
                 relation_sequence: trace.relation_sequence.clone(),
                 truncated: trace.truncated,
+                supporting_locations,
                 steps,
             }
         })
@@ -1706,35 +1816,29 @@ fn build_source_sink_paths(
             let first_hop = trace.hops.first()?;
             let last_hop = trace.hops.last()?;
             let source = AgenticPathEndpoint {
-                role: source_role(trace.kind).to_owned(),
-                file_path: first_hop.source_file_path.clone(),
-                line: line_lookup
-                    .get(first_hop.source_file_path.as_str())
-                    .copied()
+                role: flow.source.role.clone(),
+                file_path: flow.source.file_path.clone(),
+                line: flow
+                    .source
+                    .line
+                    .or_else(|| line_lookup.get(flow.source.file_path.as_str()).copied())
                     .or(Some(first_hop.line)),
-                symbol_name: first_hop.source_symbol_name.clone(),
+                symbol_name: flow.source.symbol_name.clone(),
             };
             let sink = AgenticPathEndpoint {
-                role: sink_role(trace.kind).to_owned(),
-                file_path: last_hop.target_file_path.clone(),
-                line: line_lookup
-                    .get(last_hop.target_file_path.as_str())
-                    .copied()
+                role: flow.sink.role.clone(),
+                file_path: flow.sink.file_path.clone(),
+                line: flow
+                    .sink
+                    .line
+                    .or_else(|| line_lookup.get(flow.sink.file_path.as_str()).copied())
                     .or(Some(last_hop.line)),
-                symbol_name: last_hop.target_symbol_name.clone(),
+                symbol_name: flow.sink.symbol_name.clone(),
             };
-            let supporting_locations = flow
-                .steps
-                .iter()
-                .skip(1)
-                .take(flow.steps.len().saturating_sub(2))
-                .map(|step| AgenticEvidenceLocation {
-                    role: String::from("supporting_flow"),
-                    file_path: step.file_path.clone(),
-                    line: step.line,
-                })
-                .collect::<Vec<_>>();
             Some(AgenticSourceSinkPath {
+                id: source_sink_path_id(trace, flow),
+                graph_trace_id: trace.id.clone(),
+                code_flow_id: flow.id.clone(),
                 label: trace.label.clone(),
                 kind: match trace.kind {
                     AgenticGraphTraceKind::DirectedSupportPath => {
@@ -1752,7 +1856,7 @@ fn build_source_sink_paths(
                 aggregate_confidence_millis: trace.aggregate_confidence_millis,
                 relation_sequence: trace.relation_sequence.clone(),
                 truncated: trace.truncated,
-                supporting_locations,
+                supporting_locations: flow.supporting_locations.clone(),
             })
         })
         .collect()
@@ -3368,6 +3472,12 @@ fn directed_graph_traces(
         .into_iter()
         .enumerate()
         .map(|(index, path)| AgenticGraphTrace {
+            id: graph_trace_id_for_edges(
+                AgenticGraphTraceKind::DirectedSupportPath,
+                start_file_path,
+                goal_file_path,
+                &path,
+            ),
             label: trace_label(start_file_path, goal_file_path, index),
             kind: AgenticGraphTraceKind::DirectedSupportPath,
             primary_file_path: start_file_path.to_owned(),
@@ -3454,6 +3564,91 @@ fn trace_label(start: &str, goal: &str, index: usize) -> String {
     } else {
         format!("{start} -> {goal} [alt {}]", index + 1)
     }
+}
+
+fn graph_trace_id_for_edges(
+    kind: AgenticGraphTraceKind,
+    primary_file_path: &str,
+    supporting_file_path: &str,
+    path: &[&ResolvedEdge],
+) -> String {
+    let mut owned_parts = vec![
+        graph_trace_kind_id_label(kind).to_string(),
+        primary_file_path.to_string(),
+        supporting_file_path.to_string(),
+    ];
+    for edge in path {
+        owned_parts.push(path_id_component(&edge.source_file_path));
+        owned_parts.push(edge.line.to_string());
+        owned_parts.push(path_id_component(&edge.target_file_path));
+        owned_parts.push(edge.target_symbol_id.clone());
+        owned_parts.push(relation_kind_id_label(edge.relation_kind).to_string());
+    }
+    let parts = owned_parts.iter().map(String::as_str).collect::<Vec<_>>();
+    format!("graph-trace|{}", stable_fingerprint(&parts))
+}
+
+fn graph_trace_id_for_hops(
+    kind: AgenticGraphTraceKind,
+    primary_file_path: &str,
+    supporting_file_path: &str,
+    hops: &[AgenticGraphTraceHop],
+) -> String {
+    let mut owned_parts = vec![
+        graph_trace_kind_id_label(kind).to_string(),
+        primary_file_path.to_string(),
+        supporting_file_path.to_string(),
+    ];
+    for hop in hops {
+        owned_parts.push(hop.source_file_path.clone());
+        owned_parts.push(hop.line.to_string());
+        owned_parts.push(hop.target_file_path.clone());
+        owned_parts.push(hop.target_symbol_id.clone().unwrap_or_default());
+        owned_parts.push(hop.relation_kind.clone());
+    }
+    let parts = owned_parts.iter().map(String::as_str).collect::<Vec<_>>();
+    format!("graph-trace|{}", stable_fingerprint(&parts))
+}
+
+fn path_id_component(path: &std::path::Path) -> String {
+    path.to_string_lossy().into_owned()
+}
+
+fn graph_trace_kind_id_label(kind: AgenticGraphTraceKind) -> &'static str {
+    match kind {
+        AgenticGraphTraceKind::DirectedSupportPath => "directed",
+        AgenticGraphTraceKind::ReverseSupportPath => "reverse",
+        AgenticGraphTraceKind::ContextualSupportPath => "contextual",
+    }
+}
+
+fn relation_kind_id_label(kind: RelationKind) -> &'static str {
+    match kind {
+        RelationKind::Import => "import",
+        RelationKind::Call => "call",
+        RelationKind::Dispatch => "dispatch",
+        RelationKind::ContainerResolution => "container_resolution",
+        RelationKind::EventSubscribe => "event_subscribe",
+        RelationKind::EventPublish => "event_publish",
+        RelationKind::TypeUse => "type_use",
+        RelationKind::Extends => "extends",
+        RelationKind::Implements => "implements",
+        RelationKind::Overrides => "overrides",
+    }
+}
+
+fn code_flow_id(trace: &AgenticGraphTrace) -> String {
+    format!(
+        "code-flow|{}",
+        stable_fingerprint(&[trace.id.as_str(), "v1"])
+    )
+}
+
+fn source_sink_path_id(trace: &AgenticGraphTrace, flow: &AgenticCodeFlow) -> String {
+    format!(
+        "source-sink|{}",
+        stable_fingerprint(&[trace.id.as_str(), flow.id.as_str(), "v1"])
+    )
 }
 
 fn aggregate_path_confidence(path: &[&ResolvedEdge]) -> u16 {
@@ -3786,9 +3981,10 @@ mod tests {
         focus_agentic_review_artifact, graph_neighbors_for_file, graph_trace_between_files,
         packet_supports_semantic_state_flows, should_build_semantic_state_flows,
         strongest_context_edges, AgenticContextArtifact, AgenticDiffSummary, AgenticEvidenceChain,
-        AgenticEvidenceLocation, AgenticGraphPriority, AgenticGraphTraceKind,
-        AgenticReviewArtifact, AgenticReviewSummary, AgenticTaskPacket, AgenticTransportContract,
-        GraphPacketKind, SemanticStateProofKind,
+        AgenticEvidenceLocation, AgenticGraphPriority, AgenticGraphTrace, AgenticGraphTraceHop,
+        AgenticGraphTraceKind, AgenticPrimaryEvidenceRefs, AgenticReviewArtifact,
+        AgenticReviewSummary, AgenticTaskPacket, AgenticTransportContract, GraphPacketKind,
+        SemanticStateProofKind,
     };
     use crate::artifacts::{
         build_agent_handoff_artifact, build_convergence_history_artifact,
@@ -3850,11 +4046,36 @@ mod tests {
             artifact.execution.structured_output.schema_name,
             "aigiscode_agentic_review_response"
         );
+        assert_eq!(artifact.contract_version, "2026-03-28");
+        assert_eq!(
+            artifact.execution.structured_output.schema_version,
+            "2026-03-28"
+        );
         assert!(artifact
             .execution
             .report_targets
             .iter()
             .any(|target| target.file_name == "agent-review.md"));
+        assert!(artifact.task_packets.iter().all(|packet| {
+            packet.evidence_refs.primary_graph_trace_id
+                == packet
+                    .evidence_chain
+                    .graph_traces
+                    .first()
+                    .map(|trace| trace.id.clone())
+                && packet.evidence_refs.primary_code_flow_id
+                    == packet
+                        .evidence_chain
+                        .code_flows
+                        .first()
+                        .map(|flow| flow.id.clone())
+                && packet.evidence_refs.primary_source_sink_path_id
+                    == packet
+                        .evidence_chain
+                        .source_sink_paths
+                        .first()
+                        .map(|path| path.id.clone())
+        }));
         assert_eq!(
             artifact.graph_priority.architecture_source,
             "dependency-graph.json"
@@ -3921,6 +4142,7 @@ mod tests {
                 file_paths: vec![String::from("src/main.rs")],
                 line: Some(1),
                 primary_anchor: None,
+                locations: Vec::new(),
             }],
         };
         let review_surface = crate::review::ReviewSurface {
@@ -3945,6 +4167,8 @@ mod tests {
                 line: Some(1),
                 primary_anchor: None,
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                supporting_context: Vec::new(),
                 precision: String::from("modeled"),
                 confidence_millis: 800,
                 provenance: vec![String::from("graph_analysis")],
@@ -4039,6 +4263,7 @@ mod tests {
             target_files: vec![String::from("src/main.rs"), String::from("src/lib.rs")],
             primary_anchor: None,
             evidence_anchors: Vec::new(),
+            locations: Vec::new(),
             finding_ids: vec![String::from("finding-1")],
             context_labels: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
@@ -4074,18 +4299,114 @@ mod tests {
                 .iter()
                 .any(|step| step.file_path == "src/lib.rs" || step.file_path == "src/main.rs")
         }));
+        assert!(code_flows
+            .iter()
+            .all(|flow| !flow.source.file_path.is_empty()));
+        assert!(code_flows
+            .iter()
+            .all(|flow| !flow.sink.file_path.is_empty()));
+        assert!(traces.iter().all(|trace| !trace.id.is_empty()));
+        assert!(code_flows
+            .iter()
+            .all(|flow| !flow.id.is_empty() && !flow.graph_trace_id.is_empty()));
+        assert!(code_flows
+            .iter()
+            .all(|flow| { traces.iter().any(|trace| trace.id == flow.graph_trace_id) }));
+        assert!(code_flows
+            .iter()
+            .flat_map(|flow| flow.steps.iter())
+            .any(|step| step.layer_to_next.is_some() || step.origin_to_next.is_some()));
         let source_sink_paths = build_source_sink_paths(
             &traces,
             &code_flows,
-            &[AgenticEvidenceLocation {
-                role: String::from("primary"),
-                file_path: String::from("src/main.rs"),
-                line: Some(2),
-            }],
+            &[
+                AgenticEvidenceLocation {
+                    role: String::from("primary"),
+                    file_path: String::from("src/main.rs"),
+                    line: Some(2),
+                },
+                AgenticEvidenceLocation {
+                    role: String::from("support"),
+                    file_path: String::from("src/lib.rs"),
+                    line: Some(1),
+                },
+            ],
         );
         assert!(!source_sink_paths.is_empty());
+        assert!(!source_sink_paths[0].id.is_empty());
+        assert_eq!(
+            source_sink_paths[0].graph_trace_id,
+            code_flows[0].graph_trace_id
+        );
+        assert_eq!(source_sink_paths[0].code_flow_id, code_flows[0].id);
         assert_eq!(source_sink_paths[0].source.file_path, "src/main.rs");
         assert_eq!(source_sink_paths[0].source.line, Some(2));
+        assert_eq!(
+            source_sink_paths[0].sink.file_path,
+            code_flows[0].sink.file_path
+        );
+        assert_eq!(source_sink_paths[0].sink.line, code_flows[0].sink.line);
+        assert_eq!(
+            source_sink_paths[0].supporting_locations,
+            code_flows[0].supporting_locations
+        );
+    }
+
+    #[test]
+    fn code_flows_use_next_hop_line_for_intermediate_target_steps() {
+        let traces = vec![AgenticGraphTrace {
+            id: String::from("graph-trace|example"),
+            label: String::from("a.rs -> c.rs"),
+            kind: AgenticGraphTraceKind::DirectedSupportPath,
+            primary_file_path: String::from("a.rs"),
+            supporting_file_path: Some(String::from("c.rs")),
+            aggregate_confidence_millis: 900,
+            relation_sequence: vec![String::from("Call"), String::from("Import")],
+            truncated: false,
+            hops: vec![
+                AgenticGraphTraceHop {
+                    source_file_path: String::from("a.rs"),
+                    source_symbol_id: Some(String::from("function:a.rs:start")),
+                    source_symbol_name: Some(String::from("start")),
+                    target_file_path: String::from("b.rs"),
+                    target_symbol_id: Some(String::from("function:b.rs:mid")),
+                    target_symbol_name: Some(String::from("mid")),
+                    relation_kind: String::from("Call"),
+                    layer: String::from("Structural"),
+                    origin: String::from("Resolver"),
+                    strength: String::from("Hard"),
+                    resolution_tier: String::from("SameFile"),
+                    line: 11,
+                    confidence_millis: 900,
+                    reason: String::from("call"),
+                },
+                AgenticGraphTraceHop {
+                    source_file_path: String::from("b.rs"),
+                    source_symbol_id: Some(String::from("function:b.rs:mid")),
+                    source_symbol_name: Some(String::from("mid")),
+                    target_file_path: String::from("c.rs"),
+                    target_symbol_id: Some(String::from("function:c.rs:end")),
+                    target_symbol_name: Some(String::from("end")),
+                    relation_kind: String::from("Import"),
+                    layer: String::from("Structural"),
+                    origin: String::from("Resolver"),
+                    strength: String::from("Hard"),
+                    resolution_tier: String::from("ImportScoped"),
+                    line: 27,
+                    confidence_millis: 850,
+                    reason: String::from("import"),
+                },
+            ],
+        }];
+
+        let flows = build_code_flows(&traces);
+        assert_eq!(flows.len(), 1);
+        assert_eq!(flows[0].steps.len(), 3);
+        assert_eq!(flows[0].steps[1].file_path, "b.rs");
+        assert_eq!(flows[0].steps[1].line, Some(27));
+        assert_eq!(flows[0].supporting_locations.len(), 1);
+        assert_eq!(flows[0].supporting_locations[0].file_path, "b.rs");
+        assert_eq!(flows[0].supporting_locations[0].line, Some(27));
     }
 
     #[test]
@@ -4128,6 +4449,11 @@ fn helper() {}"#,
         let packets = build_graph_packet_artifact(&review, &analysis);
         assert!(packets.summary.total_packets >= 1);
         assert!(!packets.packets.is_empty());
+        assert!(packets.packets.iter().any(|packet| {
+            packet.evidence_refs.primary_graph_trace_id.is_some()
+                || packet.evidence_refs.primary_code_flow_id.is_some()
+                || packet.evidence_refs.primary_source_sink_path_id.is_some()
+        }));
         assert!(packets.packets[0].neighbors.iter().all(|neighbor| {
             !neighbor.file_path.is_empty() && !neighbor.relation_histogram.is_empty()
         }));
@@ -4183,6 +4509,10 @@ fn helper() {}"#,
         assert!(!focus_packet.graph_traces.is_empty());
         assert!(!focus_packet.code_flows.is_empty());
         assert!(!focus_packet.source_sink_paths.is_empty());
+        assert!(focus_packet
+            .code_flows
+            .iter()
+            .all(|flow| !flow.source.file_path.is_empty() && !flow.sink.file_path.is_empty()));
     }
 
     #[test]
@@ -4252,6 +4582,7 @@ fn helper() {}"#,
             target_files: vec![String::from("src/main.rs"), String::from("src/support.rs")],
             primary_anchor: None,
             evidence_anchors: Vec::new(),
+            locations: Vec::new(),
             finding_ids: vec![String::from("finding-2")],
             context_labels: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
@@ -4332,6 +4663,7 @@ fn helper() {}"#,
             target_files: vec![String::from("src/a.rs"), String::from("src/goal.rs")],
             primary_anchor: None,
             evidence_anchors: Vec::new(),
+            locations: Vec::new(),
             finding_ids: vec![String::from("finding-3")],
             context_labels: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
@@ -4417,6 +4749,7 @@ fn helper() {}"#,
             ],
             primary_anchor: None,
             evidence_anchors: Vec::new(),
+            locations: Vec::new(),
             finding_ids: vec![String::from("finding-4")],
             context_labels: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
@@ -4456,6 +4789,7 @@ fn helper() {}"#,
             ],
             primary_anchor: None,
             evidence_anchors: Vec::new(),
+            locations: Vec::new(),
             finding_ids: vec![String::from("finding-5")],
             context_labels: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
@@ -5077,7 +5411,7 @@ class Consumer {
     fn focuses_review_on_single_task_packet() {
         let artifact = AgenticReviewArtifact {
             root: String::from("/tmp/example"),
-            contract_version: String::from("2026-03-22"),
+            contract_version: String::from("2026-03-28"),
             transport: AgenticTransportContract {
                 provider_family: String::from("openai"),
                 recommended_protocol: String::from("responses_api"),
@@ -5105,6 +5439,8 @@ class Consumer {
                     primary_target_file: String::from("src/main.rs"),
                     primary_anchor: None,
                     evidence_anchors: Vec::new(),
+                    locations: Vec::new(),
+                    evidence_refs: AgenticPrimaryEvidenceRefs::default(),
                     doctrine_refs: vec![String::from("guardian.test")],
                     preferred_mechanism: Some(String::from("preferred_path")),
                     obligations: Vec::new(),
@@ -5162,6 +5498,8 @@ class Consumer {
                 primary_target_file: String::from("src/main.rs"),
                 primary_anchor: None,
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                evidence_refs: AgenticPrimaryEvidenceRefs::default(),
                 doctrine_refs: vec![String::from("guardian.test")],
                 preferred_mechanism: Some(String::from("preferred_path")),
                 obligations: Vec::new(),
@@ -5191,6 +5529,7 @@ class Consumer {
                 file_paths: vec![String::from("src/main.rs")],
                 line: Some(1),
                 primary_anchor: None,
+                locations: Vec::new(),
             }],
             next_steps: vec![String::from("Inspect src/main.rs")],
         };

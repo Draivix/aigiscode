@@ -1061,8 +1061,8 @@ mod tests {
         GUARD_URI, HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI, REPOSITORY_TOPOLOGY_URI,
     };
     use crate::agentic::{
-        GraphNeighbor, GraphNeighborDirection, GraphNeighborsParams, GraphPacket,
-        GraphPacketArtifact, GraphPacketKind, GraphPacketSummary, GraphTraceParams,
+        AgenticPrimaryEvidenceRefs, GraphNeighbor, GraphNeighborDirection, GraphNeighborsParams,
+        GraphPacket, GraphPacketArtifact, GraphPacketKind, GraphPacketSummary, GraphTraceParams,
         ListGraphPacketsParams,
     };
     use crate::evidence::EvidenceAnchor;
@@ -1153,6 +1153,15 @@ fn main() {
                 + overview.overview.ast_grep_security_dangerous_api_count
                 + overview.overview.ast_grep_framework_misuse_count
         );
+        assert_eq!(
+            overview.overview.ast_grep_skipped_file_count,
+            overview.overview.ast_grep_skipped_files_preview.len()
+        );
+        if overview.overview.ast_grep_skipped_file_count == 0 {
+            assert_eq!(overview.overview.ast_grep_skipped_bytes, 0);
+        } else {
+            assert!(overview.overview.ast_grep_skipped_bytes > 0);
+        }
         assert!(overview.convergence.current_findings >= overview.review_summary.visible_findings);
         assert!(!overview.guard_decision.verdict.is_empty());
         assert_eq!(
@@ -1472,6 +1481,8 @@ fn helper() {}"#,
                     label: String::from("anchored"),
                 }),
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                evidence_refs: AgenticPrimaryEvidenceRefs::default(),
                 doctrine_refs: Vec::new(),
                 preferred_mechanism: None,
                 obligations: Vec::new(),

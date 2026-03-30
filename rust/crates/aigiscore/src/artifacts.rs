@@ -177,6 +177,10 @@ pub struct ReportSummary {
     pub ast_grep_algorithmic_complexity_count: usize,
     pub ast_grep_security_dangerous_api_count: usize,
     pub ast_grep_framework_misuse_count: usize,
+    pub ast_grep_skipped_file_count: usize,
+    pub ast_grep_skipped_bytes: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ast_grep_skipped_files_preview: Vec<crate::scanners::ast_grep::AstGrepSkippedFile>,
     pub dead_code_count: usize,
     pub hardwiring_count: usize,
     pub security_finding_count: usize,
@@ -557,6 +561,8 @@ pub struct ConvergenceGraphDelta {
     pub hand_rolled_parsing_delta: isize,
     #[serde(default)]
     pub abstraction_sprawl_delta: isize,
+    #[serde(default)]
+    pub algorithmic_complexity_hotspot_delta: isize,
     pub visible_finding_delta: isize,
 }
 
@@ -672,6 +678,8 @@ pub struct GuardDecisionPressure {
     pub hand_rolled_parsing_regression: bool,
     #[serde(default)]
     pub abstraction_sprawl_regression: bool,
+    #[serde(default)]
+    pub algorithmic_complexity_hotspot_regression: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -742,6 +750,8 @@ pub struct AgentHandoffFinding {
     pub line: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub primary_anchor: Option<EvidenceAnchor>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<EvidenceAnchor>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -758,6 +768,8 @@ pub struct GuardianPacket {
     pub primary_anchor: Option<EvidenceAnchor>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub evidence_anchors: Vec<EvidenceAnchor>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<EvidenceAnchor>,
     pub finding_ids: Vec<String>,
     pub context_labels: Vec<String>,
     pub provenance: Vec<String>,
@@ -989,6 +1001,20 @@ pub fn write_project_analysis_artifacts(
             ast_grep_algorithmic_complexity_count: ast_grep_family_counts.algorithmic_complexity,
             ast_grep_security_dangerous_api_count: ast_grep_family_counts.security_dangerous_api,
             ast_grep_framework_misuse_count: ast_grep_family_counts.framework_misuse,
+            ast_grep_skipped_file_count: analysis.ast_grep_scan.skipped_files.len(),
+            ast_grep_skipped_bytes: analysis
+                .ast_grep_scan
+                .skipped_files
+                .iter()
+                .map(|file| file.bytes)
+                .sum(),
+            ast_grep_skipped_files_preview: analysis
+                .ast_grep_scan
+                .skipped_files
+                .iter()
+                .take(5)
+                .cloned()
+                .collect(),
             dead_code_count: analysis.dead_code.findings.len(),
             hardwiring_count: analysis.hardwiring.findings.len(),
             security_finding_count: analysis.security_analysis.findings.len(),
@@ -3599,6 +3625,10 @@ pub fn build_convergence_history_artifact(
                 previous_overview.map(|overview| overview.abstraction_sprawl_count),
                 current_overview.abstraction_sprawl_count,
             ),
+            algorithmic_complexity_hotspot_delta: delta(
+                previous_overview.map(|overview| overview.algorithmic_complexity_hotspot_count),
+                current_overview.algorithmic_complexity_hotspot_count,
+            ),
             visible_finding_delta: delta(
                 previous_review_surface.map(|surface| surface.summary.visible_findings),
                 current_review_surface.summary.visible_findings,
@@ -3691,6 +3721,8 @@ pub fn build_guard_decision_artifact(
         convergence.graph_delta.sanctioned_path_bypass_delta > 0;
     let hand_rolled_parsing_regression = convergence.graph_delta.hand_rolled_parsing_delta > 0;
     let abstraction_sprawl_regression = convergence.graph_delta.abstraction_sprawl_delta > 0;
+    let algorithmic_complexity_hotspot_regression =
+        convergence.graph_delta.algorithmic_complexity_hotspot_delta > 0;
     let exact_or_modeled_attention_items = convergence
         .attention_items
         .iter()
@@ -3722,6 +3754,7 @@ pub fn build_guard_decision_artifact(
         sanctioned_path_bypass_regression,
         hand_rolled_parsing_regression,
         abstraction_sprawl_regression,
+        algorithmic_complexity_hotspot_regression,
     };
 
     let mut reasons = Vec::new();
@@ -3979,6 +4012,38 @@ pub fn build_guard_decision_artifact(
                 String::from("convergence_history"),
             ],
             doctrine_refs: vec![String::from("guardian.overengineering")],
+        });
+    }
+    if algorithmic_complexity_hotspot_regression {
+        let message = String::from(
+            "Algorithmic-complexity hotspot pressure increased relative to the previous run.",
+        );
+        reasons.push(message.clone());
+        doctrine_refs.extend([
+            String::from("performance.scaling"),
+            String::from("guardian.superlinear-risk"),
+        ]);
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Warn,
+            message,
+            precision: String::from("heuristic"),
+            confidence_millis: 820,
+            provenance: vec![
+                String::from("architectural_assessment"),
+                String::from("convergence_history"),
+            ],
+            doctrine_refs: vec![
+                String::from("performance.scaling"),
+                String::from("guardian.superlinear-risk"),
+            ],
+        });
+        obligations.push(GuardianObligation {
+            action: String::from(
+                "Review the new algorithmic-complexity hotspot and justify, batch, cache, hoist, or remove the repeated expensive path.",
+            ),
+            acceptance: String::from(
+                "Algorithmic-complexity hotspot count no longer regresses relative to the previous run, or the new hotspot is explicitly justified.",
+            ),
         });
     }
     if hand_rolled_parsing_regression {
@@ -4620,6 +4685,7 @@ pub fn build_agent_handoff_artifact(
                 file_paths: finding.file_paths.clone(),
                 line: finding.line,
                 primary_anchor: finding.primary_anchor.clone(),
+                locations: finding.locations.clone(),
             })
             .collect(),
     }
@@ -4700,6 +4766,9 @@ fn build_guardian_packets(
             finding
                 .contexts
                 .contains(&SecurityContext::ExternallyReachable)
+                || finding
+                    .contexts
+                    .contains(&SecurityContext::EntryReachableViaGraph)
                 || matches!(finding.severity, crate::security::SecuritySeverity::High)
         }) {
             "high"
@@ -4738,6 +4807,7 @@ fn build_guardian_packets(
                 .take(3)
                 .map(|finding| anchor(&finding.file_path, Some(finding.line), "supporting"))
                 .collect(),
+            locations: Vec::new(),
             finding_ids: visible_security_ids,
             provenance: vec![
                 String::from("native_security"),
@@ -4839,6 +4909,7 @@ fn build_guardian_packets(
                         "primary",
                     ),
                     evidence_anchors: Vec::new(),
+                    locations: Vec::new(),
                     finding_ids: condensed_packet_finding_ids(&visible),
                     provenance: vec![
                         String::from("graph_analysis"),
@@ -4927,6 +4998,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5017,6 +5089,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5100,6 +5173,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5175,6 +5249,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5259,6 +5334,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5394,6 +5470,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5428,16 +5505,92 @@ fn build_guardian_packets(
                 target_files.sort();
                 target_files.dedup();
                 let mut context_labels = finding.warning_families.clone();
-                context_labels.extend(
-                    finding
-                        .related_identifiers
-                        .iter()
-                        .take(4)
-                        .map(|identifier| format!("token:{identifier}")),
-                );
+                context_labels.extend(finding.related_identifiers.iter().take(4).map(
+                    |identifier| {
+                        if identifier.starts_with("entry_path:") {
+                            identifier.clone()
+                        } else {
+                            format!("token:{identifier}")
+                        }
+                    },
+                ));
+                if finding.pressure_path.len() > 1 {
+                    context_labels.push(format!(
+                        "pressure_path: {}",
+                        finding
+                            .pressure_path
+                            .iter()
+                            .map(|hop| hop.file_path.display().to_string())
+                            .collect::<Vec<_>>()
+                            .join(" -> ")
+                    ));
+                }
+                if let Some(symbols) = finding
+                    .pressure_path
+                    .iter()
+                    .filter_map(|hop| {
+                        hop.source_symbol
+                            .as_ref()
+                            .zip(hop.target_symbol.as_ref())
+                            .map(|(source, target)| format!("{source} -> {target}"))
+                    })
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .reduce(|left, right| format!("{left} | {right}"))
+                {
+                    context_labels.push(format!("pressure_path_symbols: {symbols}"));
+                }
+                if !finding.expensive_operation_flow.is_empty() {
+                    context_labels.push(format!(
+                        "expensive_operation_flow: {}",
+                        finding
+                            .expensive_operation_flow
+                            .iter()
+                            .map(|step| match step.kind {
+                                crate::assessment::ArchitecturalComplexityFlowStepKind::PressureHop => {
+                                    let mut label = step.file_path.display().to_string();
+                                    if let Some(line) = step.line {
+                                        label.push(':');
+                                        label.push_str(&line.to_string());
+                                    }
+                                    if let Some(relation) = step.relation_to_next {
+                                        label.push(':');
+                                        label.push_str(&format!("{relation:?}"));
+                                    }
+                                    label
+                                }
+                                crate::assessment::ArchitecturalComplexityFlowStepKind::OperationSite => format!(
+                                    "{}:{}:{}",
+                                    step.file_path.display(),
+                                    step.line.unwrap_or_default(),
+                                    step.subtype.as_deref().unwrap_or("operation")
+                                ),
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" -> ")
+                    ));
+                }
+                if let Some(symbols) = finding
+                    .expensive_operation_flow
+                    .iter()
+                    .filter_map(|step| {
+                        step.source_symbol
+                            .as_ref()
+                            .zip(step.target_symbol.as_ref())
+                            .map(|(source, target)| format!("{source} -> {target}"))
+                    })
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .reduce(|left, right| format!("{left} | {right}"))
+                {
+                    context_labels.push(format!("expensive_operation_flow_symbols: {symbols}"));
+                }
                 if finding.warning_count > 0 {
                     context_labels.push(format!("occurrences:{}", finding.warning_count));
                 }
+                context_labels.extend(finding.expensive_operation_sites.iter().take(3).map(
+                    |site| format!("operation:{}@{}:{}", site.subtype, site.line, site.token),
+                ));
                 let finding_id = format!(
                     "architecture:algorithmic-complexity:{}:{}",
                     finding.file_path.display(),
@@ -5481,6 +5634,7 @@ fn build_guardian_packets(
                         finding,
                         analysis,
                     ),
+                    locations: Vec::new(),
                     finding_ids: vec![finding_id],
                     provenance: vec![
                         String::from("architectural_assessment"),
@@ -5512,6 +5666,10 @@ fn build_guardian_packets(
         if let Some(finding) = best_packet_supporting_finding(packet, visible_findings) {
             packet.primary_anchor = finding.primary_anchor.clone();
             packet.evidence_anchors = finding.evidence_anchors.clone();
+            packet.locations = finding.locations.clone();
+        } else {
+            packet.locations =
+                ordered_packet_locations(packet.primary_anchor.as_ref(), &packet.evidence_anchors);
         }
     }
 
@@ -5569,6 +5727,7 @@ fn merge_algorithmic_complexity_packet(target: &mut GuardianPacket, packet: Guar
 
     merge_sorted_unique_strings(&mut target.target_files, packet.target_files);
     merge_sorted_unique_anchors(&mut target.evidence_anchors, packet.evidence_anchors);
+    merge_sorted_unique_anchors(&mut target.locations, packet.locations);
     merge_sorted_unique_strings(&mut target.finding_ids, packet.finding_ids);
     merge_sorted_unique_strings(&mut target.provenance, packet.provenance);
     merge_sorted_unique_strings(&mut target.doctrine_refs, packet.doctrine_refs);
@@ -5580,6 +5739,8 @@ fn merge_algorithmic_complexity_packet(target: &mut GuardianPacket, packet: Guar
 }
 
 fn finalize_algorithmic_complexity_packet(mut packet: GuardianPacket) -> GuardianPacket {
+    packet.locations =
+        ordered_packet_locations(packet.primary_anchor.as_ref(), &packet.evidence_anchors);
     let total_occurrences = packet
         .context_labels
         .iter()
@@ -5629,10 +5790,40 @@ fn finalize_algorithmic_complexity_packet(mut packet: GuardianPacket) -> Guardia
         .iter()
         .map(|label| label.trim_start_matches("complexity:"))
         .collect::<Vec<_>>();
+    let entry_pressure = packet
+        .context_labels
+        .iter()
+        .any(|label| label == "pressure:entry_reachable_via_graph");
+    let direct_entry = packet
+        .context_labels
+        .iter()
+        .any(|label| label == "pressure:direct_runtime_entry");
+    let entry_path = packet
+        .context_labels
+        .iter()
+        .find(|label| label.starts_with("entry_path:"))
+        .cloned()
+        .or_else(|| {
+            packet
+                .context_labels
+                .iter()
+                .find(|label| label.starts_with("pressure_path:"))
+                .cloned()
+        });
     packet.summary = format!(
-        "{} contains repeated expensive loop-local work ({}). Reduce the hotspot before it turns into visible scale debt.",
+        "{} contains repeated expensive loop-local work ({}).{}{} Reduce the hotspot before it turns into visible scale debt.",
         packet.primary_target_file,
-        summary_kinds.join(", ")
+        summary_kinds.join(", "),
+        if direct_entry {
+            " It sits directly on a runtime entry."
+        } else if entry_pressure {
+            " It is reachable from runtime entry code."
+        } else {
+            ""
+        },
+        entry_path
+            .map(|path| format!(" {}", path))
+            .unwrap_or_default()
     );
     packet.obligations = guardian_packet_obligations(
         "algorithmic_complexity_hotspot",
@@ -5671,6 +5862,22 @@ fn merge_sorted_unique_anchors(target: &mut Vec<EvidenceAnchor>, source: Vec<Evi
             .then(left.label.cmp(&right.label))
     });
     target.dedup();
+}
+
+fn ordered_packet_locations(
+    primary_anchor: Option<&EvidenceAnchor>,
+    evidence_anchors: &[EvidenceAnchor],
+) -> Vec<EvidenceAnchor> {
+    let mut locations = Vec::new();
+    if let Some(anchor) = primary_anchor {
+        locations.push(anchor.clone());
+    }
+    for anchor in evidence_anchors {
+        if !locations.contains(anchor) {
+            locations.push(anchor.clone());
+        }
+    }
+    locations
 }
 
 fn select_diverse_guardian_packet_budget(
@@ -5923,10 +6130,11 @@ fn guardian_packet_preferred_mechanism(
 
     match focus {
         "security_hotspot" => Some(
-            if context_labels
-                .iter()
-                .any(|label| label == "externally_reachable" || label == "interactive_execution")
-            {
+            if context_labels.iter().any(|label| {
+                label == "externally_reachable"
+                    || label == "entry_reachable_via_graph"
+                    || label == "interactive_execution"
+            }) {
                 String::from("sanctioned_security_boundary")
             } else {
                 String::from("trusted_runtime_wrapper")
@@ -6156,7 +6364,9 @@ fn guardian_packet_questions(
         "security_hotspot" => {
             let externally_reachable = context_labels
                 .iter()
-                .any(|label| label == "externally_reachable");
+                .any(|label| {
+                    label == "externally_reachable" || label == "entry_reachable_via_graph"
+                });
             let mut questions = vec![
                 format!(
                     "What concrete inputs can reach dangerous primitives in `{primary_file}`, and through which route, hook, signal, or runtime entry?"
@@ -6250,6 +6460,11 @@ fn guardian_packet_questions(
 fn security_context_label(context: SecurityContext) -> String {
     match context {
         SecurityContext::ExternallyReachable => String::from("externally_reachable"),
+        SecurityContext::EntryReachableViaGraph => String::from("entry_reachable_via_graph"),
+        SecurityContext::BoundaryInputInSameFile => String::from("boundary_input_in_same_file"),
+        SecurityContext::BoundaryInputReachableViaGraph => {
+            String::from("boundary_input_reachable_via_graph")
+        }
         SecurityContext::InteractiveExecution => String::from("interactive_execution"),
         SecurityContext::CacheStorage => String::from("cache_storage"),
         SecurityContext::DatabaseTooling => String::from("database_tooling"),
@@ -6357,6 +6572,26 @@ fn build_markdown_report(
         framework_misuse: ast_grep_framework_misuse_count,
         security_dangerous_api: ast_grep_security_dangerous_api_count,
     } = analysis.ast_grep_scan.family_counts();
+    let ast_grep_skipped_preview = if report.summary.ast_grep_skipped_files_preview.is_empty() {
+        None
+    } else {
+        Some(
+            report
+                .summary
+                .ast_grep_skipped_files_preview
+                .iter()
+                .map(|file| {
+                    format!(
+                        "{} ({} bytes; {})",
+                        file.file_path.display(),
+                        file.bytes,
+                        file.reason
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", "),
+        )
+    };
     let mut lines = vec![
         String::from("# AigisCode Report"),
         String::new(),
@@ -6387,12 +6622,17 @@ fn build_markdown_report(
             report.summary.security_finding_count
         ),
         format!(
-            "- Secondary scanner findings: {} (complexity: {}, security: {}, framework misuse: {})",
+            "- Secondary scanner findings: {} (complexity: {}, security: {}, framework misuse: {}, skipped files: {}, skipped bytes: {})",
             report.summary.ast_grep_finding_count,
             ast_grep_algorithmic_complexity_count,
             ast_grep_security_dangerous_api_count,
-            ast_grep_framework_misuse_count
+            ast_grep_framework_misuse_count,
+            report.summary.ast_grep_skipped_file_count,
+            report.summary.ast_grep_skipped_bytes
         ),
+        ast_grep_skipped_preview
+            .map(|preview| format!("- Secondary scanner skipped preview: {}", preview))
+            .unwrap_or_default(),
         format!(
             "- External findings: {}",
             report.summary.external_finding_count
@@ -6779,9 +7019,9 @@ mod tests {
     };
     use crate::agentic::{
         AgenticEvidenceLocation, AgenticGraphTrace, AgenticGraphTraceHop, AgenticGraphTraceKind,
-        AgenticSemanticStateEvent, AgenticSemanticStateEventRole, AgenticSemanticStateFlow,
-        AgenticSemanticStateFlowKind, GraphPacket, GraphPacketArtifact, GraphPacketKind,
-        GraphPacketSummary, SemanticStateProofKind,
+        AgenticPrimaryEvidenceRefs, AgenticSemanticStateEvent, AgenticSemanticStateEventRole,
+        AgenticSemanticStateFlow, AgenticSemanticStateFlowKind, GraphPacket, GraphPacketArtifact,
+        GraphPacketKind, GraphPacketSummary, SemanticStateProofKind,
     };
     use crate::doctrine::{built_in_doctrine_registry, load_doctrine_registry};
     use crate::graph::SemanticGraph;
@@ -6806,6 +7046,7 @@ mod tests {
                 relation_kinds: Vec::new(),
                 examples: Vec::new(),
                 support_paths: vec![AgenticGraphTrace {
+                    id: String::from("graph-trace|criteria-filter"),
                     label: String::from("Criteria.php -> Filter/Filter.php"),
                     kind: AgenticGraphTraceKind::DirectedSupportPath,
                     primary_file_path: String::from("Criteria.php"),
@@ -6843,6 +7084,7 @@ mod tests {
                 relation_kinds: Vec::new(),
                 examples: Vec::new(),
                 support_paths: vec![AgenticGraphTrace {
+                    id: String::from("graph-trace|criteria-aggregation"),
                     label: String::from("Criteria.php -> Aggregation/Aggregation.php"),
                     kind: AgenticGraphTraceKind::DirectedSupportPath,
                     primary_file_path: String::from("Criteria.php"),
@@ -6902,6 +7144,8 @@ mod tests {
                 primary_file_path: String::from("Primary.php"),
                 primary_anchor: None,
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                evidence_refs: AgenticPrimaryEvidenceRefs::default(),
                 doctrine_refs: Vec::new(),
                 preferred_mechanism: None,
                 obligations: Vec::new(),
@@ -7012,6 +7256,8 @@ mod tests {
                 primary_file_path: String::from("Primary.php"),
                 primary_anchor: None,
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                evidence_refs: AgenticPrimaryEvidenceRefs::default(),
                 doctrine_refs: Vec::new(),
                 preferred_mechanism: None,
                 obligations: Vec::new(),
@@ -7065,6 +7311,7 @@ mod tests {
                 relation: String::from("call"),
             }],
             support_paths: vec![AgenticGraphTrace {
+                id: String::from("graph-trace|criteria-aggregation-example"),
                 label: String::from("Criteria.php -> Aggregation/Aggregation.php"),
                 kind: AgenticGraphTraceKind::DirectedSupportPath,
                 primary_file_path: String::from("Criteria.php"),
@@ -7206,6 +7453,13 @@ fn main() {
         assert!(report_payload["summary"]["ast_grep_framework_misuse_count"]
             .as_u64()
             .is_some());
+        assert!(report_payload["summary"]["ast_grep_skipped_file_count"]
+            .as_u64()
+            .is_some());
+        assert!(report_payload["summary"]["ast_grep_skipped_bytes"]
+            .as_u64()
+            .is_some());
+        assert!(report_payload["summary"]["ast_grep_skipped_files_preview"].is_array());
         assert!(
             report_payload["architecture_surface"]["overview"]["resolved_edges"]
                 .as_u64()
@@ -7611,6 +7865,48 @@ fn main() {
     }
 
     #[test]
+    fn report_and_surface_propagate_ast_grep_prefilter_skips() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/app.ts"), "export const answer = 42;\n").unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let output_dir = fixture.join("artifacts");
+        let paths = write_project_analysis_artifacts(&analysis, Some(&output_dir)).unwrap();
+
+        let ast_grep_payload: Value =
+            serde_json::from_str(&fs::read_to_string(paths.ast_grep_scan).unwrap()).unwrap();
+        assert_eq!(
+            ast_grep_payload["skipped_files"][0]["reason"],
+            Value::from("no_family_prefilter_hit")
+        );
+
+        let report_payload: Value =
+            serde_json::from_str(&fs::read_to_string(paths.aigiscode_report).unwrap()).unwrap();
+        assert_eq!(report_payload["summary"]["ast_grep_skipped_file_count"], 1);
+        assert_eq!(report_payload["summary"]["ast_grep_skipped_bytes"], 26);
+        assert_eq!(
+            report_payload["summary"]["ast_grep_skipped_files_preview"][0]["file_path"],
+            Value::from("src/app.ts")
+        );
+
+        let surface_payload: Value =
+            serde_json::from_str(&fs::read_to_string(paths.architecture_surface).unwrap()).unwrap();
+        assert_eq!(
+            surface_payload["overview"]["ast_grep_skipped_file_count"],
+            Value::from(1)
+        );
+        assert_eq!(
+            surface_payload["overview"]["ast_grep_skipped_bytes"],
+            Value::from(26)
+        );
+        assert_eq!(
+            surface_payload["overview"]["ast_grep_skipped_files_preview"][0]["reason"],
+            Value::from("no_family_prefilter_hit")
+        );
+    }
+
+    #[test]
     fn convergence_history_tracks_previous_run_deltas() {
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src")).unwrap();
@@ -7729,6 +8025,7 @@ fn main() {
                 duplicate_mechanism_delta: 1,
                 sanctioned_path_bypass_delta: 0,
                 visible_finding_delta: 0,
+                algorithmic_complexity_hotspot_delta: 0,
             },
             contract_delta: ConvergenceContractDelta {
                 routes: ContractValueDelta {
@@ -7799,6 +8096,92 @@ fn main() {
         assert!(messages
             .iter()
             .any(|message| message.contains("Duplicate-mechanism pressure increased")));
+    }
+
+    #[test]
+    fn guard_decision_surfaces_algorithmic_complexity_regressions() {
+        let convergence = ConvergenceHistoryArtifact {
+            root: String::from("/tmp/example"),
+            summary: ConvergenceSummary {
+                current_findings: 0,
+                previous_findings: 0,
+                new_findings: 0,
+                worsened_findings: 0,
+                improved_findings: 0,
+                unchanged_findings: 0,
+                resolved_findings: 0,
+            },
+            graph_delta: ConvergenceGraphDelta {
+                strong_cycle_delta: 0,
+                total_cycle_delta: 0,
+                bottleneck_delta: 0,
+                architectural_smell_delta: 0,
+                warning_heavy_hotspot_delta: 0,
+                abstraction_sprawl_delta: 0,
+                hand_rolled_parsing_delta: 0,
+                split_identity_model_delta: 0,
+                compatibility_scar_delta: 0,
+                duplicate_mechanism_delta: 0,
+                sanctioned_path_bypass_delta: 0,
+                algorithmic_complexity_hotspot_delta: 2,
+                visible_finding_delta: 0,
+            },
+            contract_delta: ConvergenceContractDelta {
+                routes: ContractValueDelta {
+                    added_count: 0,
+                    removed_count: 0,
+                    added: Vec::new(),
+                    removed: Vec::new(),
+                },
+                hooks: ContractValueDelta {
+                    added_count: 0,
+                    removed_count: 0,
+                    added: Vec::new(),
+                    removed: Vec::new(),
+                },
+                registered_keys: ContractValueDelta {
+                    added_count: 0,
+                    removed_count: 0,
+                    added: Vec::new(),
+                    removed: Vec::new(),
+                },
+                symbolic_literals: ContractValueDelta {
+                    added_count: 0,
+                    removed_count: 0,
+                    added: Vec::new(),
+                    removed: Vec::new(),
+                },
+                env_keys: ContractValueDelta {
+                    added_count: 0,
+                    removed_count: 0,
+                    added: Vec::new(),
+                    removed: Vec::new(),
+                },
+                config_keys: ContractValueDelta {
+                    added_count: 0,
+                    removed_count: 0,
+                    added: Vec::new(),
+                    removed: Vec::new(),
+                },
+            },
+            required_investigation_files: Vec::new(),
+            required_radius: ConvergenceRequiredRadius {
+                anchor_files: Vec::new(),
+                one_hop_files: Vec::new(),
+                inbound_neighbor_count: 0,
+                outbound_neighbor_count: 0,
+            },
+            attention_items: Vec::new(),
+            findings: Vec::new(),
+        };
+
+        let guard = build_guard_decision_artifact(Path::new("/tmp/example"), &convergence);
+
+        assert_eq!(guard.verdict, GuardVerdict::Warn);
+        assert!(guard.pressure.algorithmic_complexity_hotspot_regression);
+        assert!(guard.triggers.iter().any(|trigger| trigger
+            .message
+            .contains("Algorithmic-complexity hotspot pressure increased")));
     }
 
     #[test]
@@ -8130,6 +8513,7 @@ final class FilterDefinitionResolver {
                 target_files: vec![format!("{id}.rs")],
                 primary_anchor: None,
                 evidence_anchors: Vec::new(),
+                locations: Vec::new(),
                 finding_ids: vec![id.to_string()],
                 context_labels: Vec::new(),
                 provenance: vec![String::from("test")],

@@ -424,6 +424,7 @@ pub struct GuardDecisionPressureOutput {
     pub duplicate_mechanism_regression: bool,
     pub sanctioned_path_bypass_regression: bool,
     pub abstraction_sprawl_regression: bool,
+    pub algorithmic_complexity_hotspot_regression: bool,
 }
 
 impl GuardDecisionPressureOutput {
@@ -448,6 +449,8 @@ impl GuardDecisionPressureOutput {
             duplicate_mechanism_regression: pressure.duplicate_mechanism_regression,
             sanctioned_path_bypass_regression: pressure.sanctioned_path_bypass_regression,
             abstraction_sprawl_regression: pressure.abstraction_sprawl_regression,
+            algorithmic_complexity_hotspot_regression: pressure
+                .algorithmic_complexity_hotspot_regression,
         }
     }
 }
@@ -552,6 +555,7 @@ pub struct ConvergenceGraphDeltaOutput {
     pub sanctioned_path_bypass_delta: isize,
     pub hand_rolled_parsing_delta: isize,
     pub abstraction_sprawl_delta: isize,
+    pub algorithmic_complexity_hotspot_delta: isize,
     pub visible_finding_delta: isize,
 }
 
@@ -569,6 +573,7 @@ impl ConvergenceGraphDeltaOutput {
             sanctioned_path_bypass_delta: delta.sanctioned_path_bypass_delta,
             hand_rolled_parsing_delta: delta.hand_rolled_parsing_delta,
             abstraction_sprawl_delta: delta.abstraction_sprawl_delta,
+            algorithmic_complexity_hotspot_delta: delta.algorithmic_complexity_hotspot_delta,
             visible_finding_delta: delta.visible_finding_delta,
         }
     }
@@ -770,6 +775,10 @@ pub struct OverviewOutput {
     pub ast_grep_algorithmic_complexity_count: usize,
     pub ast_grep_security_dangerous_api_count: usize,
     pub ast_grep_framework_misuse_count: usize,
+    pub ast_grep_skipped_file_count: usize,
+    pub ast_grep_skipped_bytes: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ast_grep_skipped_files_preview: Vec<crate::scanners::ast_grep::AstGrepSkippedFile>,
     pub route_contract_count: usize,
     pub hook_contract_count: usize,
     pub registered_key_count: usize,
@@ -822,6 +831,9 @@ impl OverviewOutput {
                 .overview
                 .ast_grep_security_dangerous_api_count,
             ast_grep_framework_misuse_count: surface.overview.ast_grep_framework_misuse_count,
+            ast_grep_skipped_file_count: surface.overview.ast_grep_skipped_file_count,
+            ast_grep_skipped_bytes: surface.overview.ast_grep_skipped_bytes,
+            ast_grep_skipped_files_preview: surface.overview.ast_grep_skipped_files_preview.clone(),
             route_contract_count: surface.overview.route_contract_count,
             hook_contract_count: surface.overview.hook_contract_count,
             registered_key_count: surface.overview.registered_key_count,
@@ -1042,6 +1054,8 @@ pub struct FindingSummaryOutput {
     pub line: Option<usize>,
     pub primary_anchor: Option<EvidenceAnchorOutput>,
     pub evidence_anchors: Vec<EvidenceAnchorOutput>,
+    pub locations: Vec<EvidenceAnchorOutput>,
+    pub supporting_context: Vec<String>,
     pub languages: Vec<String>,
     pub provenance: Vec<String>,
     pub doctrine_refs: Vec<String>,
@@ -1071,6 +1085,12 @@ impl FindingSummaryOutput {
                 .iter()
                 .map(EvidenceAnchorOutput::from_anchor)
                 .collect(),
+            locations: finding
+                .locations
+                .iter()
+                .map(EvidenceAnchorOutput::from_anchor)
+                .collect(),
+            supporting_context: finding.supporting_context.clone(),
             languages: infer_languages_from_strings(&finding.file_paths),
             provenance: finding.provenance.clone(),
             doctrine_refs: finding.doctrine_refs.clone(),
@@ -1954,10 +1974,174 @@ fn external_kind(finding: &ExternalFinding) -> String {
 }
 
 fn security_explanation(finding: &SecurityFinding) -> String {
-    format!(
+    let mut explanation = format!(
         "AigisCode detected a native dangerous API pattern in this file: {}",
         finding.message
-    )
+    );
+    if !finding.contexts.is_empty() {
+        let contexts = finding
+            .contexts
+            .iter()
+            .map(|context| match context {
+                crate::security::SecurityContext::ExternallyReachable => "externally reachable",
+                crate::security::SecurityContext::EntryReachableViaGraph => {
+                    "graph-reachable from entry code"
+                }
+                crate::security::SecurityContext::BoundaryInputInSameFile => {
+                    "boundary-derived input in the same file"
+                }
+                crate::security::SecurityContext::BoundaryInputReachableViaGraph => {
+                    "graph-reachable from boundary-derived input"
+                }
+                crate::security::SecurityContext::InteractiveExecution => "interactive execution",
+                crate::security::SecurityContext::CacheStorage => "cache storage",
+                crate::security::SecurityContext::DatabaseTooling => "database tooling",
+                crate::security::SecurityContext::MigrationSupport => "migration support",
+                crate::security::SecurityContext::DevelopmentRuntime => "development runtime",
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        explanation.push_str(&format!(" Context: {contexts}."));
+    }
+    if !finding.supporting_scanners.is_empty() {
+        explanation.push_str(&format!(
+            " Supporting scanners: {}.",
+            finding.supporting_scanners.join(", ")
+        ));
+    }
+    if finding.reachability_path.len() > 1 {
+        explanation.push_str(&format!(
+            " Entry path: {}.",
+            finding
+                .reachability_path
+                .iter()
+                .map(|hop| hop.file_path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(" -> ")
+        ));
+        if let Some(symbols) = security_path_symbol_summary(&finding.reachability_path) {
+            explanation.push_str(&format!(" Entry path symbols: {symbols}."));
+        }
+    }
+    if !finding.boundary_input_sources.is_empty() {
+        explanation.push_str(&format!(
+            " Boundary inputs: {}.",
+            finding
+                .boundary_input_sources
+                .iter()
+                .map(|source| format!(
+                    "{} at {}:{}",
+                    match source.kind {
+                        crate::security::SecurityInputKind::RequestQuery => "request query",
+                        crate::security::SecurityInputKind::RequestBody => "request body",
+                        crate::security::SecurityInputKind::RequestParams => "request params",
+                        crate::security::SecurityInputKind::RequestInput => "request input",
+                        crate::security::SecurityInputKind::CliArgument => "CLI argument",
+                    },
+                    source.file_path.display(),
+                    source.line
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    if finding.boundary_input_path.len() > 1 {
+        explanation.push_str(&format!(
+            " Boundary input path: {}.",
+            finding
+                .boundary_input_path
+                .iter()
+                .map(|hop| hop.file_path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(" -> ")
+        ));
+        if let Some(symbols) = security_path_symbol_summary(&finding.boundary_input_path) {
+            explanation.push_str(&format!(" Boundary input path symbols: {symbols}."));
+        }
+    }
+    if let Some(flow) = security_boundary_flow_summary(&finding.boundary_to_sink_flow) {
+        explanation.push_str(&format!(" Boundary-to-sink flow: {flow}."));
+    }
+    if let Some(symbols) = security_boundary_flow_symbol_summary(&finding.boundary_to_sink_flow) {
+        explanation.push_str(&format!(" Boundary-to-sink flow symbols: {symbols}."));
+    }
+    explanation
+}
+
+fn security_path_symbol_summary(
+    path: &[crate::security::SecurityReachabilityHop],
+) -> Option<String> {
+    let labels = path
+        .iter()
+        .filter_map(|hop| {
+            hop.source_symbol
+                .as_ref()
+                .zip(hop.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
+}
+
+fn security_boundary_flow_summary(flow: &[crate::security::SecurityFlowStep]) -> Option<String> {
+    (flow.len() > 1).then(|| {
+        flow.iter()
+            .map(|step| match step.kind {
+                crate::security::SecurityFlowStepKind::BoundaryInput => format!(
+                    "{}:{}:{}",
+                    step.file_path.display(),
+                    step.line
+                        .map(|line| line.to_string())
+                        .unwrap_or_else(|| String::from("?")),
+                    step.input_kind
+                        .map(|kind| match kind {
+                            crate::security::SecurityInputKind::RequestQuery => "request_query",
+                            crate::security::SecurityInputKind::RequestBody => "request_body",
+                            crate::security::SecurityInputKind::RequestParams => "request_params",
+                            crate::security::SecurityInputKind::RequestInput => "request_input",
+                            crate::security::SecurityInputKind::CliArgument => "cli_argument",
+                        })
+                        .unwrap_or("boundary")
+                ),
+                crate::security::SecurityFlowStepKind::GraphHop => step
+                    .relation_to_next
+                    .map(|relation| {
+                        if let Some(line) = step.line {
+                            format!("{}:{line}:{relation:?}", step.file_path.display())
+                        } else {
+                            format!("{}:{relation:?}", step.file_path.display())
+                        }
+                    })
+                    .unwrap_or_else(|| match step.line {
+                        Some(line) => format!("{}:{line}", step.file_path.display()),
+                        None => step.file_path.display().to_string(),
+                    }),
+                crate::security::SecurityFlowStepKind::Sink => {
+                    if let Some(line) = step.line {
+                        format!("{}:{line}:sink", step.file_path.display())
+                    } else {
+                        format!("{}:sink", step.file_path.display())
+                    }
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" -> ")
+    })
+}
+
+fn security_boundary_flow_symbol_summary(
+    flow: &[crate::security::SecurityFlowStep],
+) -> Option<String> {
+    let labels = flow
+        .iter()
+        .filter_map(|step| {
+            step.source_symbol
+                .as_ref()
+                .zip(step.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
 }
 
 fn security_kind(category: SecurityCategory) -> String {
@@ -2269,7 +2453,7 @@ pub fn display_path(path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::build_finding_details;
+    use super::{build_finding_details, security_explanation};
     use crate::assessment::{
         ArchitecturalAssessment, ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind,
     };
@@ -2277,6 +2461,10 @@ mod tests {
     use crate::ingestion::scan::ScanConfig;
     use crate::policy::PolicyBundle;
     use crate::review::build_review_surface;
+    use crate::security::{
+        SecurityCategory, SecurityFinding, SecurityInputKind, SecurityInputSource,
+        SecurityReachabilityHop,
+    };
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -2343,6 +2531,9 @@ final class OrderByValidator {
                     String::from("concern:custom_parsing"),
                 ],
                 severity_millis: 1000,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
                 fingerprint: String::from("architecture|hand-rolled-parsing|fixture"),
             }],
         };
@@ -2382,5 +2573,149 @@ final class OrderByValidator {
             .unwrap()
             .as_nanos();
         std::env::temp_dir().join(format!("aigiscode-{label}-{unique}"))
+    }
+
+    #[test]
+    fn security_explanation_mentions_graph_reachable_context_and_supporting_scanners() {
+        let finding = SecurityFinding {
+            kind: crate::security::SecurityFindingKind::DangerousApi,
+            category: SecurityCategory::CommandExecution,
+            severity: crate::security::SecuritySeverity::High,
+            file_path: PathBuf::from("app/runner.php"),
+            line: 7,
+            message: String::from("Potential command execution in graph-reachable entry code"),
+            evidence: String::from("system($command);"),
+            fingerprint: String::from("security|fixture"),
+            supporting_scanners: vec![String::from("ast_grep")],
+            contexts: vec![
+                crate::security::SecurityContext::EntryReachableViaGraph,
+                crate::security::SecurityContext::BoundaryInputInSameFile,
+            ],
+            reachability_path: vec![
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("app/routes.php"),
+                    line: Some(4),
+                    relation_to_next: Some(crate::graph::RelationKind::Import),
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                },
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("app/runner.php"),
+                    line: Some(7),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                },
+            ],
+            boundary_input_sources: vec![SecurityInputSource {
+                kind: SecurityInputKind::RequestBody,
+                file_path: PathBuf::from("app/runner.php"),
+                line: 6,
+                evidence: String::from("const script = req.body.script;"),
+            }],
+            boundary_input_path: Vec::new(),
+            boundary_to_sink_flow: Vec::new(),
+        };
+
+        let explanation = security_explanation(&finding);
+
+        assert!(explanation.contains("graph-reachable from entry code"));
+        assert!(explanation.contains("boundary-derived input in the same file"));
+        assert!(explanation.contains("Supporting scanners: ast_grep."));
+        assert!(explanation.contains("Entry path: app/routes.php -> app/runner.php."));
+        assert!(explanation.contains("Boundary inputs: request body at app/runner.php:6."));
+    }
+
+    #[test]
+    fn security_explanation_mentions_boundary_input_path() {
+        let finding = SecurityFinding {
+            kind: crate::security::SecurityFindingKind::DangerousApi,
+            category: SecurityCategory::CodeInjection,
+            severity: crate::security::SecuritySeverity::High,
+            file_path: PathBuf::from("src/runner.ts"),
+            line: 3,
+            message: String::from(
+                "Dangerous code-evaluation API `javascript-eval` used with graph-reachable boundary-derived input",
+            ),
+            evidence: String::from("eval(script);"),
+            fingerprint: String::from("security|boundary-graph"),
+            supporting_scanners: vec![String::from("ast_grep")],
+            contexts: vec![crate::security::SecurityContext::BoundaryInputReachableViaGraph],
+            reachability_path: Vec::new(),
+            boundary_input_sources: vec![SecurityInputSource {
+                kind: SecurityInputKind::RequestBody,
+                file_path: PathBuf::from("src/handler.ts"),
+                line: 4,
+                evidence: String::from("const script = req.body.script;"),
+            }],
+            boundary_input_path: vec![
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("src/handler.ts"),
+                    line: Some(1),
+                    relation_to_next: Some(crate::graph::RelationKind::Import),
+                    source_symbol: Some(String::from("handler")),
+                    target_symbol: Some(String::from("run")),
+                    reference_target_name: Some(String::from("run")),
+                    occurrence_index: 0,
+                },
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("src/runner.ts"),
+                    line: Some(3),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                },
+            ],
+            boundary_to_sink_flow: vec![
+                crate::security::SecurityFlowStep {
+                    kind: crate::security::SecurityFlowStepKind::BoundaryInput,
+                    file_path: PathBuf::from("src/handler.ts"),
+                    line: Some(4),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                    input_kind: Some(SecurityInputKind::RequestBody),
+                    evidence: Some(String::from("const script = req.body.script;")),
+                },
+                crate::security::SecurityFlowStep {
+                    kind: crate::security::SecurityFlowStepKind::GraphHop,
+                    file_path: PathBuf::from("src/handler.ts"),
+                    line: Some(1),
+                    relation_to_next: Some(crate::graph::RelationKind::Import),
+                    source_symbol: Some(String::from("handler")),
+                    target_symbol: Some(String::from("run")),
+                    reference_target_name: Some(String::from("run")),
+                    occurrence_index: 0,
+                    input_kind: None,
+                    evidence: None,
+                },
+                crate::security::SecurityFlowStep {
+                    kind: crate::security::SecurityFlowStepKind::Sink,
+                    file_path: PathBuf::from("src/runner.ts"),
+                    line: Some(3),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                    input_kind: None,
+                    evidence: None,
+                },
+            ],
+        };
+
+        let explanation = security_explanation(&finding);
+
+        assert!(explanation.contains("graph-reachable from boundary-derived input"));
+        assert!(explanation.contains("Boundary inputs: request body at src/handler.ts:4."));
+        assert!(explanation.contains("Boundary input path: src/handler.ts -> src/runner.ts."));
     }
 }

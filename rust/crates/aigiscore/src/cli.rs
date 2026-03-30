@@ -15,7 +15,7 @@ use crate::artifacts::{
     EXTERNAL_ANALYSIS_FILE, GRAPH_PACKETS_FILE, GUARD_DECISION_FILE, REPOSITORY_TOPOLOGY_FILE,
     REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
 };
-use crate::assessment::build_architectural_assessment_with_ast_grep;
+use crate::assessment::build_architectural_assessment_with_ast_grep_and_graph;
 use crate::doctrine::load_doctrine_registry;
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
@@ -328,6 +328,10 @@ struct AnalyzeCommandSummary {
     ast_grep_algorithmic_complexity_count: usize,
     ast_grep_security_dangerous_api_count: usize,
     ast_grep_framework_misuse_count: usize,
+    ast_grep_skipped_file_count: usize,
+    ast_grep_skipped_bytes: usize,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    ast_grep_skipped_files_preview: Vec<crate::scanners::ast_grep::AstGrepSkippedFile>,
     dead_code_count: usize,
     hardwiring_count: usize,
     security_finding_count: usize,
@@ -811,6 +815,20 @@ fn build_analysis_command_output(
             ast_grep_algorithmic_complexity_count: ast_grep_family_counts.algorithmic_complexity,
             ast_grep_security_dangerous_api_count: ast_grep_family_counts.security_dangerous_api,
             ast_grep_framework_misuse_count: ast_grep_family_counts.framework_misuse,
+            ast_grep_skipped_file_count: result.ast_grep_scan.skipped_files.len(),
+            ast_grep_skipped_bytes: result
+                .ast_grep_scan
+                .skipped_files
+                .iter()
+                .map(|file| file.bytes)
+                .sum(),
+            ast_grep_skipped_files_preview: result
+                .ast_grep_scan
+                .skipped_files
+                .iter()
+                .take(5)
+                .cloned()
+                .collect(),
             dead_code_count: result.dead_code.findings.len(),
             hardwiring_count: result.hardwiring.findings.len(),
             security_finding_count: result.security_analysis.findings.len(),
@@ -843,13 +861,14 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
                     Ok(external_analysis) => {
                         result.external_analysis = external_analysis;
                         result.architectural_assessment =
-                            build_architectural_assessment_with_ast_grep(
+                            build_architectural_assessment_with_ast_grep_and_graph(
                                 &result.graph_analysis,
                                 &result.dead_code,
                                 &result.hardwiring,
                                 &result.external_analysis,
                                 &result.parsed_sources,
                                 &result.ast_grep_scan,
+                                Some(&result.semantic_graph),
                             );
                     }
                     Err(error) => {
@@ -1094,13 +1113,14 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                     Ok(external_analysis) => {
                         result.external_analysis = external_analysis;
                         result.architectural_assessment =
-                            build_architectural_assessment_with_ast_grep(
+                            build_architectural_assessment_with_ast_grep_and_graph(
                                 &result.graph_analysis,
                                 &result.dead_code,
                                 &result.hardwiring,
                                 &result.external_analysis,
                                 &result.parsed_sources,
                                 &result.ast_grep_scan,
+                                Some(&result.semantic_graph),
                             );
                     }
                     Err(error) => {

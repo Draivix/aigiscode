@@ -1,4 +1,6 @@
-use crate::assessment::{ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind};
+use crate::assessment::{
+    ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind, ArchitecturalPressureHop,
+};
 use crate::contracts::ContractInventory;
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
@@ -10,8 +12,11 @@ use crate::graph::analysis::{
 use crate::graph::{GraphLayer, Language, ReferenceKind, RelationKind, ResolutionTier};
 use crate::identity::{normalized_path, stable_fingerprint};
 use crate::ingestion::pipeline::{PhaseTiming, ProjectAnalysis};
-use crate::security::{SecurityCategory, SecurityFinding, SecuritySeverity};
+use crate::security::{
+    SecurityCategory, SecurityFinding, SecurityFlowStep, SecurityFlowStepKind, SecuritySeverity,
+};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -156,6 +161,12 @@ pub struct SurfaceOverview {
     pub ast_grep_security_dangerous_api_count: usize,
     #[serde(default)]
     pub ast_grep_framework_misuse_count: usize,
+    #[serde(default)]
+    pub ast_grep_skipped_file_count: usize,
+    #[serde(default)]
+    pub ast_grep_skipped_bytes: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ast_grep_skipped_files_preview: Vec<crate::scanners::ast_grep::AstGrepSkippedFile>,
     pub route_contract_count: usize,
     pub hook_contract_count: usize,
     pub registered_key_count: usize,
@@ -229,6 +240,10 @@ pub struct SurfaceFinding {
     pub primary_anchor: Option<EvidenceAnchor>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub evidence_anchors: Vec<EvidenceAnchor>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub locations: Vec<EvidenceAnchor>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub supporting_context: Vec<String>,
     pub provenance: Vec<String>,
     pub doctrine_refs: Vec<String>,
 }
@@ -502,6 +517,20 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             ast_grep_algorithmic_complexity_count: ast_grep_family_counts.algorithmic_complexity,
             ast_grep_security_dangerous_api_count: ast_grep_family_counts.security_dangerous_api,
             ast_grep_framework_misuse_count: ast_grep_family_counts.framework_misuse,
+            ast_grep_skipped_file_count: analysis.ast_grep_scan.skipped_files.len(),
+            ast_grep_skipped_bytes: analysis
+                .ast_grep_scan
+                .skipped_files
+                .iter()
+                .map(|file| file.bytes)
+                .sum(),
+            ast_grep_skipped_files_preview: analysis
+                .ast_grep_scan
+                .skipped_files
+                .iter()
+                .take(5)
+                .cloned()
+                .collect(),
             route_contract_count: analysis.contract_inventory.summary.routes.unique_values,
             hook_contract_count: analysis.contract_inventory.summary.hooks.unique_values,
             registered_key_count: analysis
@@ -679,6 +708,20 @@ fn build_highlights(
         .enumerate()
     {
         highlights.push(SurfaceFinding {
+            locations: cycle
+                .files
+                .iter()
+                .enumerate()
+                .map(|(index, file_path)| EvidenceAnchor {
+                    file_path: file_path.clone(),
+                    line: None,
+                    label: if index == 0 {
+                        String::from("primary")
+                    } else {
+                        String::from("cycle-member")
+                    },
+                })
+                .collect(),
             id: format!("graph:cycle:{index}"),
             fingerprint: cycle.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
@@ -733,6 +776,7 @@ fn build_highlights(
                     label: String::from("cycle-member"),
                 })
                 .collect(),
+            supporting_context: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![String::from("structural.coherence")],
         });
@@ -759,6 +803,12 @@ fn build_highlights(
                 label: String::from("primary"),
             }),
             evidence_anchors: Vec::new(),
+            locations: vec![EvidenceAnchor {
+                file_path: path.clone(),
+                line: None,
+                label: String::from("primary"),
+            }],
+            supporting_context: Vec::new(),
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![String::from("structural.coherence")],
         });
@@ -789,6 +839,12 @@ fn build_highlights(
                 label: String::from("primary"),
             }),
             evidence_anchors: Vec::new(),
+            locations: vec![EvidenceAnchor {
+                file_path: path.clone(),
+                line: None,
+                label: String::from("primary"),
+            }],
+            supporting_context: boundary_context_preview(analysis),
             provenance: vec![String::from("graph_analysis"), String::from("analysis_scope")],
             doctrine_refs: vec![String::from("guardian.boundary-stability")],
         });
@@ -860,6 +916,32 @@ fn boundary_reason_labels(analysis: &ProjectAnalysis) -> Vec<String> {
         .collect()
 }
 
+fn boundary_context_preview(analysis: &ProjectAnalysis) -> Vec<String> {
+    let mut preview = vec![format!(
+        "boundary_truth: {}",
+        boundary_truth_label(analysis)
+    )];
+    preview.extend(
+        boundary_reason_labels(analysis)
+            .into_iter()
+            .map(|reason| format!("boundary_reason: {}", reason)),
+    );
+    if !analysis.scan.scope.include_path_prefixes.is_empty() {
+        preview.push(format!(
+            "include_path_prefixes: {}",
+            analysis
+                .scan
+                .scope
+                .include_path_prefixes
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    preview
+}
+
 fn surface_finding_from_architectural_assessment(
     finding: &ArchitecturalAssessmentFinding,
     analysis: &ProjectAnalysis,
@@ -869,6 +951,7 @@ fn surface_finding_from_architectural_assessment(
         best_effort_anchor_for_architectural_assessment(finding, analysis, context);
     let evidence_anchors =
         supporting_anchors_for_architectural_assessment(finding, analysis, context);
+    let locations = ordered_locations(primary_anchor.as_ref(), &evidence_anchors);
     let primary_line = primary_anchor.as_ref().and_then(|anchor| anchor.line);
     match finding.kind {
         ArchitecturalAssessmentKind::WarningHeavyHotspot => SurfaceFinding {
@@ -891,6 +974,8 @@ fn surface_finding_from_architectural_assessment(
             line: primary_line,
             primary_anchor,
             evidence_anchors,
+            locations: locations.clone(),
+            supporting_context: Vec::new(),
             provenance: vec![
                 String::from("graph_analysis"),
                 String::from("architectural_assessment"),
@@ -924,6 +1009,8 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: Vec::new(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -958,6 +1045,8 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: Vec::new(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -994,6 +1083,8 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: Vec::new(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -1029,6 +1120,8 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: Vec::new(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("hardwiring_detector"),
@@ -1064,6 +1157,8 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: Vec::new(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -1151,6 +1246,8 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: Vec::new(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
@@ -1177,7 +1274,16 @@ fn surface_finding_from_architectural_assessment(
         }
         ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot => {
             let mut file_paths = vec![finding.file_path.clone()];
-            file_paths.extend(finding.related_file_paths.clone());
+            for path in &finding.related_file_paths {
+                if !file_paths.contains(path) {
+                    file_paths.push(path.clone());
+                }
+            }
+            for path in finding.pressure_path.iter().map(|hop| &hop.file_path) {
+                if !file_paths.contains(path) {
+                    file_paths.push(path.clone());
+                }
+            }
             SurfaceFinding {
                 id: format!(
                     "architecture:algorithmic-complexity:{}:{}",
@@ -1199,9 +1305,12 @@ fn surface_finding_from_architectural_assessment(
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
+                locations,
+                supporting_context: architectural_pressure_supporting_context(finding),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),
+                    String::from("graph_analysis"),
                 ],
                 doctrine_refs: vec![
                     String::from("performance.scaling"),
@@ -1217,8 +1326,10 @@ fn surface_finding_from_architectural_smell(
     analysis: &ProjectAnalysis,
     context: &SurfaceBuildContext<'_>,
 ) -> SurfaceFinding {
-    let primary_anchor =
-        best_effort_anchor_for_component(&smell.subject, analysis, context, "primary");
+    let primary_anchor = dominant_anchor_for_architectural_smell(
+        smell, analysis, context, "primary",
+    )
+    .or_else(|| best_effort_anchor_for_component(&smell.subject, analysis, context, "primary"));
     let evidence_anchors = smell
         .related_components
         .iter()
@@ -1226,8 +1337,21 @@ fn surface_finding_from_architectural_smell(
             best_effort_anchor_for_component(component, analysis, context, "supporting")
         })
         .collect::<Vec<_>>();
+    let locations = ordered_locations(primary_anchor.as_ref(), &evidence_anchors);
     let file_paths =
         architectural_smell_file_paths(smell, context, primary_anchor.as_ref(), &evidence_anchors);
+    let supporting_context = smell
+        .relation_previews
+        .iter()
+        .cloned()
+        .chain(
+            smell
+                .related_components
+                .iter()
+                .map(|component| format!("component: {}", component)),
+        )
+        .take(5)
+        .collect::<Vec<_>>();
     match smell.kind {
         ArchitecturalSmellKind::HubLikeDependency => SurfaceFinding {
             id: format!("graph:smell:hub:{}", smell.subject),
@@ -1238,13 +1362,23 @@ fn surface_finding_from_architectural_smell(
             confidence_millis: 820,
             title: String::from("Hub-like dependency"),
             summary: format!(
-                "Module `{}` has high incoming and outgoing dependency pressure ({} cross-module links)",
-                smell.subject, smell.evidence_count
+                "Module `{}` has high incoming and outgoing dependency pressure ({} cross-module links; strongest neighbors: {})",
+                smell.subject,
+                smell.evidence_count,
+                smell
+                    .relation_previews
+                    .iter()
+                    .take(2)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
             file_paths,
             line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
             primary_anchor,
             evidence_anchors,
+            locations: locations.clone(),
+            supporting_context,
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![
                 String::from("structural.coherence"),
@@ -1264,14 +1398,23 @@ fn surface_finding_from_architectural_smell(
             confidence_millis: 780,
             title: String::from("Unstable dependency"),
             summary: format!(
-                "More stable module `{}` depends on more volatile module(s): {}",
+                "More stable module `{}` depends on more volatile module(s): {} ({})",
                 smell.subject,
-                smell.related_components.join(", ")
+                smell.related_components.join(", "),
+                smell
+                    .relation_previews
+                    .iter()
+                    .take(2)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
             file_paths,
             line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
             primary_anchor,
             evidence_anchors,
+            locations,
+            supporting_context,
             provenance: vec![String::from("graph_analysis")],
             doctrine_refs: vec![
                 String::from("structural.coherence"),
@@ -1310,6 +1453,123 @@ fn architectural_smell_file_paths(
     }
 
     file_paths
+}
+
+fn dominant_anchor_for_architectural_smell(
+    smell: &ArchitecturalSmell,
+    analysis: &ProjectAnalysis,
+    context: &SurfaceBuildContext<'_>,
+    label: &str,
+) -> Option<EvidenceAnchor> {
+    let subject_paths = component_candidate_paths(&smell.subject, context);
+    if subject_paths.is_empty() {
+        return None;
+    }
+    let related_components = smell
+        .related_components
+        .iter()
+        .cloned()
+        .collect::<HashSet<_>>();
+    let mut line_scores = HashMap::<(PathBuf, usize), usize>::new();
+
+    for edge in &analysis.semantic_graph.resolved_edges {
+        let source_in_subject = subject_paths.contains(&edge.source_file_path);
+        let target_in_subject = subject_paths.contains(&edge.target_file_path);
+        if !source_in_subject && !target_in_subject {
+            continue;
+        }
+        let source_component = top_level_component_label(&edge.source_file_path);
+        let target_component = top_level_component_label(&edge.target_file_path);
+        let line_candidate = if source_in_subject
+            && (related_components.is_empty() || related_components.contains(&target_component))
+        {
+            Some((edge.source_file_path.clone(), edge.line))
+        } else if target_in_subject
+            && (related_components.is_empty() || related_components.contains(&source_component))
+        {
+            Some((edge.target_file_path.clone(), edge.line))
+        } else {
+            None
+        };
+        if let Some(candidate) = line_candidate {
+            *line_scores.entry(candidate).or_insert(0) +=
+                relation_anchor_weight(edge.relation_kind);
+        }
+    }
+
+    let best_line = line_scores
+        .into_iter()
+        .max_by(|left, right| left.1.cmp(&right.1).then_with(|| left.0.cmp(&right.0)))
+        .map(|(location, _)| location);
+
+    if let Some((file_path, line)) = best_line {
+        return Some(anchor(&file_path, Some(line), label));
+    }
+
+    dominant_symbol_anchor_for_paths(&subject_paths, analysis, label)
+}
+
+fn component_candidate_paths(
+    component: &str,
+    context: &SurfaceBuildContext<'_>,
+) -> HashSet<PathBuf> {
+    let mut paths = HashSet::new();
+    if let Some(path) = resolve_component_path(component, context) {
+        paths.insert(path);
+    }
+    let normalized = component.trim_matches('/');
+    for path in context.parsed_source_lookup.keys() {
+        if normalized == "." {
+            paths.insert((*path).to_path_buf());
+            continue;
+        }
+        if path
+            .iter()
+            .next()
+            .map(|segment| segment.to_string_lossy() == normalized)
+            .unwrap_or(false)
+        {
+            paths.insert((*path).to_path_buf());
+        }
+    }
+    paths
+}
+
+fn dominant_symbol_anchor_for_paths(
+    paths: &HashSet<PathBuf>,
+    analysis: &ProjectAnalysis,
+    label: &str,
+) -> Option<EvidenceAnchor> {
+    analysis
+        .semantic_graph
+        .symbols
+        .iter()
+        .filter(|symbol| paths.contains(&symbol.file_path))
+        .max_by(|left, right| {
+            left.start_line
+                .cmp(&right.start_line)
+                .then_with(|| left.file_path.cmp(&right.file_path))
+        })
+        .map(|symbol| anchor(&symbol.file_path, Some(symbol.start_line), label))
+}
+
+fn top_level_component_label(path: &Path) -> String {
+    path.iter()
+        .next()
+        .map(|segment| segment.to_string_lossy().to_string())
+        .unwrap_or_else(|| String::from("."))
+}
+
+fn relation_anchor_weight(relation: RelationKind) -> usize {
+    match relation {
+        RelationKind::Call | RelationKind::Dispatch | RelationKind::EventPublish => 3,
+        RelationKind::ContainerResolution | RelationKind::EventSubscribe => 2,
+        RelationKind::Import
+        | RelationKind::TypeUse
+        | RelationKind::Extends
+        | RelationKind::Implements
+        | RelationKind::Overrides => 1,
+    }
 }
 
 fn surface_cycle_finding(index: usize, finding: &CycleFinding) -> SurfaceCycleFinding {
@@ -1374,6 +1634,7 @@ fn surface_finding_from_bottleneck(
 ) -> SurfaceFinding {
     let primary_anchor =
         best_effort_anchor_for_file(&bottleneck.file_path, analysis, context, "primary");
+    let locations = ordered_locations(primary_anchor.as_ref(), &[]);
     SurfaceFinding {
         id: format!("graph:bottleneck:{}", bottleneck.file_path.display()),
         fingerprint: bottleneck.fingerprint.clone(),
@@ -1391,6 +1652,8 @@ fn surface_finding_from_bottleneck(
         line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
         primary_anchor,
         evidence_anchors: Vec::new(),
+        locations,
+        supporting_context: Vec::new(),
         provenance: vec![String::from("graph_analysis")],
         doctrine_refs: vec![
             String::from("structural.coherence"),
@@ -1405,6 +1668,8 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         DeadCodeProofTier::Strong => ("modeled", 900),
         DeadCodeProofTier::Heuristic => ("heuristic", 700),
     };
+    let primary_anchor = Some(anchor(&finding.file_path, Some(finding.line), "primary"));
+    let locations = ordered_locations(primary_anchor.as_ref(), &[]);
     SurfaceFinding {
         id: format!(
             "dead-code:{}:{}:{}",
@@ -1428,8 +1693,10 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         ),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
-        primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
+        primary_anchor,
         evidence_anchors: Vec::new(),
+        locations,
+        supporting_context: Vec::new(),
         provenance: vec![
             String::from("dead_code_detector"),
             String::from("graph_analysis"),
@@ -1447,6 +1714,8 @@ fn dead_code_proof_tier_label(tier: DeadCodeProofTier) -> &'static str {
 }
 
 fn surface_finding_from_hardwiring(finding: &HardwiringFinding) -> SurfaceFinding {
+    let primary_anchor = Some(anchor(&finding.file_path, Some(finding.line), "primary"));
+    let locations = ordered_locations(primary_anchor.as_ref(), &[]);
     SurfaceFinding {
         id: format!(
             "hardwiring:{}:{}:{}",
@@ -1473,8 +1742,10 @@ fn surface_finding_from_hardwiring(finding: &HardwiringFinding) -> SurfaceFindin
         summary: format!("{} in `{}`", finding.value, finding.context),
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
-        primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
+        primary_anchor,
         evidence_anchors: Vec::new(),
+        locations,
+        supporting_context: Vec::new(),
         provenance: vec![String::from("hardwiring_detector")],
         doctrine_refs: vec![String::from("configuration.coherence")],
     }
@@ -1492,12 +1763,45 @@ fn hardwiring_severity(category: HardwiringCategory) -> SurfaceFindingSeverity {
 }
 
 fn surface_finding_from_external(finding: &ExternalFinding) -> SurfaceFinding {
-    let file_paths = finding
-        .file_path
-        .clone()
-        .map(|path| vec![path])
-        .unwrap_or_default();
+    let mut file_paths = Vec::new();
+    if let Some(path) = &finding.file_path {
+        file_paths.push(path.clone());
+    }
+    for location in &finding.locations {
+        if !file_paths.contains(&location.file_path) {
+            file_paths.push(location.file_path.clone());
+        }
+    }
     let title = format!("{} {}", finding.tool, finding.category.replace('_', " "));
+    let primary_anchor = finding.locations.first().cloned().or_else(|| {
+        finding
+            .file_path
+            .as_ref()
+            .map(|path| anchor(path, finding.line, "primary"))
+    });
+    let evidence_anchors = if finding.locations.len() > 1 {
+        finding.locations[1..].to_vec()
+    } else {
+        Vec::new()
+    };
+    let locations = if finding.locations.is_empty() {
+        ordered_locations(primary_anchor.as_ref(), &[])
+    } else {
+        finding.locations.clone()
+    };
+    let mut supporting_context = Vec::new();
+    for (key, label) in [
+        ("related_location_count", "related_locations"),
+        ("code_flow_count", "code_flows"),
+        ("thread_flow_count", "thread_flows"),
+        ("thread_flow_location_count", "thread_flow_locations"),
+        ("stack_count", "stacks"),
+        ("stack_frame_count", "stack_frames"),
+    ] {
+        if let Some(count) = finding.extras.get(key).and_then(Value::as_u64) {
+            supporting_context.push(format!("{label}: {count}"));
+        }
+    }
     SurfaceFinding {
         id: format!("external:{}:{}", finding.tool, finding.fingerprint),
         fingerprint: finding.fingerprint.clone(),
@@ -1512,12 +1816,11 @@ fn surface_finding_from_external(finding: &ExternalFinding) -> SurfaceFinding {
         title,
         summary: finding.message.clone(),
         file_paths,
-        line: finding.line,
-        primary_anchor: finding
-            .file_path
-            .as_ref()
-            .map(|path| anchor(path, finding.line, "primary")),
-        evidence_anchors: Vec::new(),
+        line: primary_anchor.as_ref().and_then(|anchor| anchor.line),
+        primary_anchor,
+        evidence_anchors,
+        locations,
+        supporting_context,
         provenance: vec![
             String::from("external_tool"),
             format!("tool:{}", finding.tool),
@@ -1527,6 +1830,9 @@ fn surface_finding_from_external(finding: &ExternalFinding) -> SurfaceFinding {
 }
 
 fn surface_finding_from_security(finding: &SecurityFinding) -> SurfaceFinding {
+    let primary_anchor = Some(anchor(&finding.file_path, Some(finding.line), "primary"));
+    let evidence_anchors = security_evidence_anchors(finding);
+    let locations = ordered_locations(primary_anchor.as_ref(), &evidence_anchors);
     SurfaceFinding {
         id: format!("security:native:{}", finding.fingerprint),
         fingerprint: finding.fingerprint.clone(),
@@ -1541,10 +1847,12 @@ fn surface_finding_from_security(finding: &SecurityFinding) -> SurfaceFinding {
             SecurityCategory::UnsafeHtmlOutput => String::from("Unsafe HTML output API"),
         },
         summary: finding.message.clone(),
-        file_paths: vec![finding.file_path.clone()],
+        file_paths: security_file_paths(finding),
         line: Some(finding.line),
-        primary_anchor: Some(anchor(&finding.file_path, Some(finding.line), "primary")),
-        evidence_anchors: Vec::new(),
+        primary_anchor,
+        evidence_anchors,
+        locations,
+        supporting_context: security_supporting_context(finding),
         provenance: vec![
             String::from("native_security"),
             String::from("contract_inventory"),
@@ -1554,6 +1862,251 @@ fn surface_finding_from_security(finding: &SecurityFinding) -> SurfaceFinding {
             String::from("guardian.trust-boundaries"),
         ],
     }
+}
+
+fn security_file_paths(finding: &SecurityFinding) -> Vec<PathBuf> {
+    let mut files = vec![finding.file_path.clone()];
+    for step in &finding.boundary_to_sink_flow {
+        if !files.contains(&step.file_path) {
+            files.push(step.file_path.clone());
+        }
+    }
+    for hop in &finding.reachability_path {
+        if !files.contains(&hop.file_path) {
+            files.push(hop.file_path.clone());
+        }
+    }
+    for hop in &finding.boundary_input_path {
+        if !files.contains(&hop.file_path) {
+            files.push(hop.file_path.clone());
+        }
+    }
+    for source in &finding.boundary_input_sources {
+        if !files.contains(&source.file_path) {
+            files.push(source.file_path.clone());
+        }
+    }
+    files
+}
+
+fn security_evidence_anchors(finding: &SecurityFinding) -> Vec<EvidenceAnchor> {
+    let mut anchors = finding
+        .reachability_path
+        .iter()
+        .filter(|hop| hop.file_path != finding.file_path)
+        .map(|hop| anchor(&hop.file_path, hop.line, "supporting"))
+        .collect::<Vec<_>>();
+    let flow_is_canonical = !finding.boundary_to_sink_flow.is_empty();
+    for step in security_boundary_flow_anchors(&finding.boundary_to_sink_flow) {
+        if !anchors.contains(&step) {
+            anchors.push(step);
+        }
+    }
+    if !flow_is_canonical {
+        for hop in &finding.boundary_input_path {
+            if hop.file_path == finding.file_path {
+                continue;
+            }
+            let anchor = EvidenceAnchor {
+                file_path: hop.file_path.clone(),
+                line: hop.line,
+                label: hop
+                    .relation_to_next
+                    .map(|relation| format!("boundary_path:{relation:?}"))
+                    .unwrap_or_else(|| String::from("boundary_path")),
+            };
+            if !anchors.contains(&anchor) {
+                anchors.push(anchor);
+            }
+        }
+        for source in &finding.boundary_input_sources {
+            let anchor = EvidenceAnchor {
+                file_path: source.file_path.clone(),
+                line: Some(source.line),
+                label: format!("boundary:{}", security_input_kind_label(source.kind)),
+            };
+            if !anchors.contains(&anchor) {
+                anchors.push(anchor);
+            }
+        }
+    }
+    anchors
+}
+
+fn security_supporting_context(finding: &SecurityFinding) -> Vec<String> {
+    let mut context = finding
+        .contexts
+        .iter()
+        .map(|security_context| {
+            format!(
+                "security_context: {}",
+                security_context_label(*security_context)
+            )
+        })
+        .collect::<Vec<_>>();
+    context.extend(
+        finding
+            .boundary_input_sources
+            .iter()
+            .map(|source| format!("boundary_input: {}", security_input_kind_label(source.kind))),
+    );
+    if finding.reachability_path.len() > 1 {
+        context.push(format!(
+            "entry_path: {}",
+            finding
+                .reachability_path
+                .iter()
+                .map(|hop| hop.file_path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(" -> ")
+        ));
+        if let Some(symbols) = security_path_symbol_summary(&finding.reachability_path) {
+            context.push(format!("entry_path_symbols: {symbols}"));
+        }
+    }
+    if finding.boundary_input_path.len() > 1 {
+        context.push(format!(
+            "boundary_input_path: {}",
+            finding
+                .boundary_input_path
+                .iter()
+                .map(|hop| hop.file_path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(" -> ")
+        ));
+        if let Some(symbols) = security_path_symbol_summary(&finding.boundary_input_path) {
+            context.push(format!("boundary_input_path_symbols: {symbols}"));
+        }
+    }
+    if let Some(flow) = security_boundary_flow_summary(&finding.boundary_to_sink_flow) {
+        context.push(format!("boundary_to_sink_flow: {flow}"));
+    }
+    if let Some(symbols) = security_boundary_flow_symbol_summary(&finding.boundary_to_sink_flow) {
+        context.push(format!("boundary_to_sink_flow_symbols: {symbols}"));
+    }
+    context.extend(
+        finding
+            .supporting_scanners
+            .iter()
+            .map(|scanner| format!("supporting_scanner: {scanner}")),
+    );
+    context
+}
+
+fn security_context_label(context: crate::security::SecurityContext) -> &'static str {
+    match context {
+        crate::security::SecurityContext::ExternallyReachable => "externally_reachable",
+        crate::security::SecurityContext::EntryReachableViaGraph => "entry_reachable_via_graph",
+        crate::security::SecurityContext::BoundaryInputInSameFile => "boundary_input_in_same_file",
+        crate::security::SecurityContext::BoundaryInputReachableViaGraph => {
+            "boundary_input_reachable_via_graph"
+        }
+        crate::security::SecurityContext::InteractiveExecution => "interactive_execution",
+        crate::security::SecurityContext::CacheStorage => "cache_storage",
+        crate::security::SecurityContext::DatabaseTooling => "database_tooling",
+        crate::security::SecurityContext::MigrationSupport => "migration_support",
+        crate::security::SecurityContext::DevelopmentRuntime => "development_runtime",
+    }
+}
+
+fn security_input_kind_label(kind: crate::security::SecurityInputKind) -> &'static str {
+    match kind {
+        crate::security::SecurityInputKind::RequestQuery => "request_query",
+        crate::security::SecurityInputKind::RequestBody => "request_body",
+        crate::security::SecurityInputKind::RequestParams => "request_params",
+        crate::security::SecurityInputKind::RequestInput => "request_input",
+        crate::security::SecurityInputKind::CliArgument => "cli_argument",
+    }
+}
+
+fn security_path_symbol_summary(
+    path: &[crate::security::SecurityReachabilityHop],
+) -> Option<String> {
+    let labels = path
+        .iter()
+        .filter_map(|hop| {
+            hop.source_symbol
+                .as_ref()
+                .zip(hop.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
+}
+
+fn security_boundary_flow_anchors(flow: &[SecurityFlowStep]) -> Vec<EvidenceAnchor> {
+    flow.iter()
+        .map(|step| EvidenceAnchor {
+            file_path: step.file_path.clone(),
+            line: step.line,
+            label: match step.kind {
+                SecurityFlowStepKind::BoundaryInput => format!(
+                    "boundary:{}",
+                    step.input_kind
+                        .map(security_input_kind_label)
+                        .unwrap_or("boundary")
+                ),
+                SecurityFlowStepKind::GraphHop => step
+                    .relation_to_next
+                    .map(|relation| format!("boundary_flow:{relation:?}"))
+                    .unwrap_or_else(|| String::from("boundary_flow")),
+                SecurityFlowStepKind::Sink => String::from("sink"),
+            },
+        })
+        .collect()
+}
+
+fn security_boundary_flow_summary(flow: &[SecurityFlowStep]) -> Option<String> {
+    (flow.len() > 1).then(|| {
+        flow.iter()
+            .map(|step| match step.kind {
+                SecurityFlowStepKind::BoundaryInput => format!(
+                    "{}:{}:{}",
+                    step.file_path.display(),
+                    step.line
+                        .map(|line| line.to_string())
+                        .unwrap_or_else(|| String::from("?")),
+                    step.input_kind
+                        .map(security_input_kind_label)
+                        .unwrap_or("boundary")
+                ),
+                SecurityFlowStepKind::GraphHop => step
+                    .relation_to_next
+                    .map(|relation| {
+                        if let Some(line) = step.line {
+                            format!("{}:{line}:{relation:?}", step.file_path.display())
+                        } else {
+                            format!("{}:{relation:?}", step.file_path.display())
+                        }
+                    })
+                    .unwrap_or_else(|| match step.line {
+                        Some(line) => format!("{}:{line}", step.file_path.display()),
+                        None => step.file_path.display().to_string(),
+                    }),
+                SecurityFlowStepKind::Sink => {
+                    if let Some(line) = step.line {
+                        format!("{}:{line}:sink", step.file_path.display())
+                    } else {
+                        format!("{}:sink", step.file_path.display())
+                    }
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" -> ")
+    })
+}
+
+fn security_boundary_flow_symbol_summary(flow: &[SecurityFlowStep]) -> Option<String> {
+    let labels = flow
+        .iter()
+        .filter_map(|step| {
+            step.source_symbol
+                .as_ref()
+                .zip(step.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
 }
 
 fn security_severity(severity: SecuritySeverity) -> SurfaceFindingSeverity {
@@ -1578,6 +2131,22 @@ fn anchor(file_path: &Path, line: Option<usize>, label: &str) -> EvidenceAnchor 
         line,
         label: String::from(label),
     }
+}
+
+fn ordered_locations(
+    primary_anchor: Option<&EvidenceAnchor>,
+    evidence_anchors: &[EvidenceAnchor],
+) -> Vec<EvidenceAnchor> {
+    let mut locations = Vec::new();
+    if let Some(anchor) = primary_anchor {
+        locations.push(anchor.clone());
+    }
+    for anchor in evidence_anchors {
+        if !locations.contains(anchor) {
+            locations.push(anchor.clone());
+        }
+    }
+    locations
 }
 
 fn best_effort_anchor_for_architectural_assessment(
@@ -1609,6 +2178,12 @@ fn best_effort_anchor_for_architectural_assessment(
             .filter_map(|family| family.split(':').next_back())
             .map(String::from),
     );
+    tokens.extend(
+        finding
+            .expensive_operation_sites
+            .iter()
+            .map(|site| site.token.clone()),
+    );
     best_effort_anchor_for_file_with_tokens(
         &finding.file_path,
         analysis,
@@ -1623,11 +2198,217 @@ fn supporting_anchors_for_architectural_assessment(
     analysis: &ProjectAnalysis,
     context: &SurfaceBuildContext<'_>,
 ) -> Vec<EvidenceAnchor> {
-    finding
+    let pressure_files = finding
+        .pressure_path
+        .iter()
+        .filter(|hop| hop.file_path != finding.file_path)
+        .map(|hop| hop.file_path.as_path())
+        .collect::<HashSet<_>>();
+    let mut anchors = finding
         .related_file_paths
         .iter()
+        .filter(|path| !pressure_files.contains(path.as_path()))
         .filter_map(|path| best_effort_anchor_for_file(path, analysis, context, "supporting"))
+        .collect::<Vec<_>>();
+    for hop in architectural_pressure_supporting_anchors(finding) {
+        if !anchors.contains(&hop) {
+            anchors.push(hop);
+        }
+    }
+    for site in architectural_complexity_operation_anchors(finding) {
+        if !anchors.contains(&site) {
+            anchors.push(site);
+        }
+    }
+    for step in architectural_complexity_flow_anchors(finding) {
+        if !anchors.contains(&step) {
+            anchors.push(step);
+        }
+    }
+    anchors
+}
+
+fn architectural_pressure_supporting_context(
+    finding: &ArchitecturalAssessmentFinding,
+) -> Vec<String> {
+    let mut context = finding
+        .warning_families
+        .iter()
+        .filter(|family| family.starts_with("pressure:") || family.starts_with("scanner:"))
+        .cloned()
+        .collect::<Vec<_>>();
+    if let Some(path) = architectural_pressure_path_summary(&finding.pressure_path) {
+        context.push(format!("pressure_path: {path}"));
+    }
+    if let Some(symbols) = architectural_pressure_symbol_summary(&finding.pressure_path) {
+        context.push(format!("pressure_path_symbols: {symbols}"));
+    }
+    if let Some(sites) = architectural_complexity_site_summary(finding) {
+        context.push(format!("expensive_operation_sites: {sites}"));
+    }
+    if let Some(flow) = architectural_complexity_flow_summary(&finding.expensive_operation_flow) {
+        context.push(format!("expensive_operation_flow: {flow}"));
+    }
+    if let Some(symbols) =
+        architectural_complexity_flow_symbol_summary(&finding.expensive_operation_flow)
+    {
+        context.push(format!("expensive_operation_flow_symbols: {symbols}"));
+    }
+    context.extend(
+        finding
+            .related_identifiers
+            .iter()
+            .filter(|identifier| identifier.starts_with("entry_path:"))
+            .cloned(),
+    );
+    context
+}
+
+fn architectural_pressure_supporting_anchors(
+    finding: &ArchitecturalAssessmentFinding,
+) -> Vec<EvidenceAnchor> {
+    finding
+        .pressure_path
+        .iter()
+        .filter(|hop| hop.file_path != finding.file_path)
+        .map(|hop| EvidenceAnchor {
+            file_path: hop.file_path.clone(),
+            line: hop.line,
+            label: hop
+                .relation_to_next
+                .map(|relation| format!("pressure:{relation:?}"))
+                .unwrap_or_else(|| String::from("pressure")),
+        })
         .collect()
+}
+
+fn architectural_complexity_operation_anchors(
+    finding: &ArchitecturalAssessmentFinding,
+) -> Vec<EvidenceAnchor> {
+    finding
+        .expensive_operation_sites
+        .iter()
+        .filter(|site| site.file_path == finding.file_path)
+        .map(|site| EvidenceAnchor {
+            file_path: site.file_path.clone(),
+            line: Some(site.line),
+            label: format!("operation:{}", site.subtype),
+        })
+        .collect()
+}
+
+fn architectural_complexity_flow_anchors(
+    finding: &ArchitecturalAssessmentFinding,
+) -> Vec<EvidenceAnchor> {
+    finding
+        .expensive_operation_flow
+        .iter()
+        .filter(|step| step.file_path != finding.file_path)
+        .map(|step| EvidenceAnchor {
+            file_path: step.file_path.clone(),
+            line: step.line,
+            label: match step.kind {
+                crate::assessment::ArchitecturalComplexityFlowStepKind::PressureHop => step
+                    .relation_to_next
+                    .map(|relation| format!("pressure:{relation:?}"))
+                    .unwrap_or_else(|| String::from("pressure")),
+                crate::assessment::ArchitecturalComplexityFlowStepKind::OperationSite => step
+                    .subtype
+                    .as_ref()
+                    .map(|subtype| format!("operation:{subtype}"))
+                    .unwrap_or_else(|| String::from("operation")),
+            },
+        })
+        .collect()
+}
+
+fn architectural_pressure_path_summary(path: &[ArchitecturalPressureHop]) -> Option<String> {
+    (path.len() > 1).then(|| {
+        path.iter()
+            .map(|hop| hop.file_path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(" -> ")
+    })
+}
+
+fn architectural_pressure_symbol_summary(path: &[ArchitecturalPressureHop]) -> Option<String> {
+    let labels = path
+        .iter()
+        .filter_map(|hop| {
+            hop.source_symbol
+                .as_ref()
+                .zip(hop.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
+}
+
+fn architectural_complexity_site_summary(
+    finding: &ArchitecturalAssessmentFinding,
+) -> Option<String> {
+    let labels = finding
+        .expensive_operation_sites
+        .iter()
+        .map(|site| {
+            format!(
+                "{}@{}:{}:{}",
+                site.subtype,
+                site.line,
+                match site.source {
+                    crate::assessment::ComplexityEvidenceSource::Native => "native",
+                    crate::assessment::ComplexityEvidenceSource::AstGrep => "ast_grep",
+                },
+                site.token
+            )
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
+}
+
+fn architectural_complexity_flow_summary(
+    flow: &[crate::assessment::ArchitecturalComplexityFlowStep],
+) -> Option<String> {
+    (!flow.is_empty()).then(|| {
+        flow.iter()
+            .map(|step| match step.kind {
+                crate::assessment::ArchitecturalComplexityFlowStepKind::PressureHop => {
+                    let mut label = step.file_path.display().to_string();
+                    if let Some(line) = step.line {
+                        label.push(':');
+                        label.push_str(&line.to_string());
+                    }
+                    if let Some(relation) = step.relation_to_next {
+                        label.push(':');
+                        label.push_str(&format!("{relation:?}"));
+                    }
+                    label
+                }
+                crate::assessment::ArchitecturalComplexityFlowStepKind::OperationSite => format!(
+                    "{}:{}:{}",
+                    step.file_path.display(),
+                    step.line.unwrap_or_default(),
+                    step.subtype.as_deref().unwrap_or("operation")
+                ),
+            })
+            .collect::<Vec<_>>()
+            .join(" -> ")
+    })
+}
+
+fn architectural_complexity_flow_symbol_summary(
+    flow: &[crate::assessment::ArchitecturalComplexityFlowStep],
+) -> Option<String> {
+    let labels = flow
+        .iter()
+        .filter_map(|step| {
+            step.source_symbol
+                .as_ref()
+                .zip(step.target_symbol.as_ref())
+                .map(|(source, target)| format!("{source} -> {target}"))
+        })
+        .collect::<Vec<_>>();
+    (!labels.is_empty()).then(|| labels.join(" | "))
 }
 
 fn best_effort_anchor_for_component(
@@ -1819,11 +2600,19 @@ fn reference_kind_label(kind: ReferenceKind) -> String {
 mod tests {
     use super::{
         architectural_smell_file_paths, best_effort_anchor_for_component,
-        build_architecture_surface, surface_finding_from_architectural_smell, SurfaceBuildContext,
+        build_architecture_surface, surface_finding_from_architectural_smell,
+        surface_finding_from_external, surface_finding_from_security, SurfaceBuildContext,
     };
+    use crate::evidence::EvidenceAnchor;
+    use crate::external::{ExternalFinding, ExternalSeverity};
     use crate::graph::analysis::{ArchitecturalSmell, ArchitecturalSmellKind};
     use crate::ingestion::pipeline::analyze_project;
     use crate::ingestion::scan::ScanConfig;
+    use crate::security::{
+        SecurityCategory, SecurityContext, SecurityFinding, SecurityFindingKind, SecurityInputKind,
+        SecurityInputSource, SecurityReachabilityHop, SecuritySeverity,
+    };
+    use serde_json::{Map, Value};
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -2054,6 +2843,20 @@ export function runA() { runB(); }
             .highlights
             .iter()
             .any(|finding| finding.id == "graph:boundary-truncated:src/a.ts"));
+        let boundary_finding = surface
+            .highlights
+            .iter()
+            .find(|finding| finding.id == "graph:boundary-truncated:src/a.ts")
+            .expect("expected boundary-truncated finding");
+        assert!(boundary_finding
+            .supporting_context
+            .contains(&String::from("boundary_truth: truncated_slice")));
+        assert!(boundary_finding
+            .supporting_context
+            .contains(&String::from("boundary_reason: include_path_prefixes")));
+        assert!(boundary_finding
+            .supporting_context
+            .contains(&String::from("include_path_prefixes: src")));
         assert!(surface
             .highlights
             .iter()
@@ -2087,6 +2890,9 @@ function load_manager() {}
             kind: ArchitecturalSmellKind::HubLikeDependency,
             subject: String::from("blocks.php"),
             related_components: vec![String::from("manager.php")],
+            relation_previews: vec![String::from(
+                "blocks.php <-> manager.php (2 cross-module links)",
+            )],
             evidence_count: 2,
             severity_millis: 820,
             fingerprint: String::from("test-smell"),
@@ -2124,6 +2930,24 @@ function load_manager() {}
                 .map(|anchor| anchor.file_path.clone()),
             Some(PathBuf::from("src/blocks.php"))
         );
+        assert_eq!(
+            finding.supporting_context,
+            vec![
+                String::from("blocks.php <-> manager.php (2 cross-module links)"),
+                String::from("component: manager.php")
+            ]
+        );
+        assert_eq!(finding.locations.len(), 2);
+        assert_eq!(finding.locations[0].label, "primary");
+        assert_eq!(
+            finding.locations[0].file_path,
+            PathBuf::from("src/blocks.php")
+        );
+        assert_eq!(finding.locations[1].label, "supporting");
+        assert_eq!(
+            finding.locations[1].file_path,
+            PathBuf::from("src/manager.php")
+        );
     }
 
     #[test]
@@ -2148,6 +2972,7 @@ function load_manager() {}
             kind: ArchitecturalSmellKind::UnstableDependency,
             subject: String::from("src"),
             related_components: vec![String::from("app")],
+            relation_previews: vec![String::from("src -> app (1 cross-module links)")],
             evidence_count: 1,
             severity_millis: 780,
             fingerprint: String::from("test-module-smell"),
@@ -2163,12 +2988,401 @@ function load_manager() {}
             ]
         );
         assert_eq!(
+            finding.supporting_context,
+            vec![
+                String::from("src -> app (1 cross-module links)"),
+                String::from("component: app")
+            ]
+        );
+        assert_eq!(
             finding
                 .primary_anchor
                 .as_ref()
                 .map(|anchor| anchor.file_path.clone()),
             Some(PathBuf::from("src/service.ts"))
         );
+    }
+
+    #[test]
+    fn architectural_smell_surface_finding_prefers_dominant_edge_line_over_file_prologue() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::create_dir_all(fixture.join("app")).unwrap();
+        fs::write(
+            fixture.join("src/service.ts"),
+            br#"// prologue
+// another comment
+
+import { boot } from '../app/runtime';
+
+export function load() {
+  boot();
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/runtime.ts"),
+            br#"export function boot() {}"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let context = SurfaceBuildContext::new(&analysis);
+        let smell = ArchitecturalSmell {
+            kind: ArchitecturalSmellKind::UnstableDependency,
+            subject: String::from("src"),
+            related_components: vec![String::from("app")],
+            relation_previews: vec![String::from("src -> app (1 cross-module links)")],
+            evidence_count: 1,
+            severity_millis: 780,
+            fingerprint: String::from("test-module-smell-dominant-line"),
+        };
+
+        let finding = surface_finding_from_architectural_smell(&smell, &analysis, &context);
+
+        assert_eq!(
+            finding
+                .primary_anchor
+                .as_ref()
+                .map(|anchor| anchor.file_path.clone()),
+            Some(PathBuf::from("src/service.ts"))
+        );
+        assert_ne!(
+            finding
+                .primary_anchor
+                .as_ref()
+                .and_then(|anchor| anchor.line),
+            Some(1)
+        );
+        assert_eq!(
+            finding
+                .primary_anchor
+                .as_ref()
+                .and_then(|anchor| anchor.line),
+            Some(7)
+        );
+    }
+
+    #[test]
+    fn external_surface_finding_preserves_related_locations() {
+        let finding = ExternalFinding {
+            tool: String::from("OpenGrep"),
+            domain: String::from("security"),
+            category: String::from("sast"),
+            rule_id: String::from("python.lang.security.audit.dangerous-subprocess-use"),
+            severity: ExternalSeverity::High,
+            confidence: crate::external::ExternalConfidence::High,
+            file_path: Some(PathBuf::from("app/views.py")),
+            line: Some(18),
+            locations: vec![
+                EvidenceAnchor {
+                    file_path: PathBuf::from("app/views.py"),
+                    line: Some(18),
+                    label: String::from("primary"),
+                },
+                EvidenceAnchor {
+                    file_path: PathBuf::from("app/helpers.py"),
+                    line: Some(9),
+                    label: String::from("supporting"),
+                },
+                EvidenceAnchor {
+                    file_path: PathBuf::from("app/urls.py"),
+                    line: Some(3),
+                    label: String::from("supporting"),
+                },
+            ],
+            message: String::from("User input reaches subprocess"),
+            fingerprint: String::from("sarif-fp-1"),
+            extras: Map::from_iter([
+                (String::from("related_location_count"), Value::from(2_u64)),
+                (String::from("code_flow_count"), Value::from(1_u64)),
+                (String::from("stack_count"), Value::from(1_u64)),
+            ]),
+        };
+
+        let surface = surface_finding_from_external(&finding);
+
+        assert_eq!(surface.file_paths.len(), 3);
+        assert_eq!(surface.file_paths[0], PathBuf::from("app/views.py"));
+        assert_eq!(surface.file_paths[1], PathBuf::from("app/helpers.py"));
+        assert_eq!(surface.file_paths[2], PathBuf::from("app/urls.py"));
+        assert_eq!(surface.evidence_anchors.len(), 2);
+        assert_eq!(surface.locations.len(), 3);
+        assert_eq!(
+            surface
+                .primary_anchor
+                .as_ref()
+                .map(|anchor| anchor.file_path.clone()),
+            Some(PathBuf::from("app/views.py"))
+        );
+        assert_eq!(
+            surface.supporting_context,
+            vec![
+                String::from("related_locations: 2"),
+                String::from("code_flows: 1"),
+                String::from("stacks: 1"),
+            ]
+        );
+    }
+
+    #[test]
+    fn native_security_surface_finding_carries_context_and_supporting_scanner() {
+        let security = SecurityFinding {
+            kind: SecurityFindingKind::DangerousApi,
+            category: SecurityCategory::CommandExecution,
+            severity: SecuritySeverity::High,
+            file_path: PathBuf::from("app/runner.php"),
+            line: 7,
+            message: String::from("Potential command execution in graph-reachable entry code"),
+            evidence: String::from("system($command);"),
+            fingerprint: String::from("security|surface-fixture"),
+            supporting_scanners: vec![String::from("ast_grep")],
+            contexts: vec![
+                SecurityContext::EntryReachableViaGraph,
+                SecurityContext::BoundaryInputInSameFile,
+            ],
+            reachability_path: vec![
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("app/routes.php"),
+                    line: Some(4),
+                    relation_to_next: Some(crate::graph::RelationKind::Import),
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                },
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("app/runner.php"),
+                    line: Some(7),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                },
+            ],
+            boundary_input_sources: vec![SecurityInputSource {
+                kind: SecurityInputKind::RequestBody,
+                file_path: PathBuf::from("app/runner.php"),
+                line: 6,
+                evidence: String::from("$command = $request->input('command');"),
+            }],
+            boundary_input_path: Vec::new(),
+            boundary_to_sink_flow: Vec::new(),
+        };
+        let finding = surface_finding_from_security(&security);
+
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("security_context: entry_reachable_via_graph")));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("supporting_scanner: ast_grep")));
+        assert!(finding.supporting_context.contains(&String::from(
+            "security_context: boundary_input_in_same_file"
+        )));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("boundary_input: request_body")));
+        assert!(finding.supporting_context.contains(&String::from(
+            "entry_path: app/routes.php -> app/runner.php"
+        )));
+        assert_eq!(finding.file_paths[0], PathBuf::from("app/runner.php"));
+        assert_eq!(finding.file_paths[1], PathBuf::from("app/routes.php"));
+        assert_eq!(finding.evidence_anchors.len(), 2);
+        assert_eq!(
+            finding.evidence_anchors[0].file_path,
+            PathBuf::from("app/routes.php")
+        );
+        assert_eq!(
+            finding.evidence_anchors[1].file_path,
+            PathBuf::from("app/runner.php")
+        );
+        assert_eq!(finding.evidence_anchors[1].line, Some(6));
+    }
+
+    #[test]
+    fn native_security_surface_finding_carries_boundary_input_path_context() {
+        let security = SecurityFinding {
+            kind: SecurityFindingKind::DangerousApi,
+            category: SecurityCategory::CodeInjection,
+            severity: SecuritySeverity::High,
+            file_path: PathBuf::from("src/runner.ts"),
+            line: 3,
+            message: String::from(
+                "Dangerous code-evaluation API `javascript-eval` used with graph-reachable boundary-derived input",
+            ),
+            evidence: String::from("eval(script);"),
+            fingerprint: String::from("security|boundary-graph-fixture"),
+            supporting_scanners: vec![String::from("ast_grep")],
+            contexts: vec![SecurityContext::BoundaryInputReachableViaGraph],
+            reachability_path: Vec::new(),
+            boundary_input_sources: vec![SecurityInputSource {
+                kind: SecurityInputKind::RequestBody,
+                file_path: PathBuf::from("src/handler.ts"),
+                line: 4,
+                evidence: String::from("const script = req.body.script;"),
+            }],
+            boundary_input_path: vec![
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("src/handler.ts"),
+                    line: Some(1),
+                    relation_to_next: Some(crate::graph::RelationKind::Import),
+                    source_symbol: Some(String::from("handler")),
+                    target_symbol: Some(String::from("run")),
+                    reference_target_name: Some(String::from("run")),
+                    occurrence_index: 0,
+                },
+                SecurityReachabilityHop {
+                    file_path: PathBuf::from("src/runner.ts"),
+                    line: Some(3),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                },
+            ],
+            boundary_to_sink_flow: vec![
+                crate::security::SecurityFlowStep {
+                    kind: crate::security::SecurityFlowStepKind::BoundaryInput,
+                    file_path: PathBuf::from("src/handler.ts"),
+                    line: Some(4),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                    input_kind: Some(SecurityInputKind::RequestBody),
+                    evidence: Some(String::from("const script = req.body.script;")),
+                },
+                crate::security::SecurityFlowStep {
+                    kind: crate::security::SecurityFlowStepKind::GraphHop,
+                    file_path: PathBuf::from("src/handler.ts"),
+                    line: Some(1),
+                    relation_to_next: Some(crate::graph::RelationKind::Import),
+                    source_symbol: Some(String::from("handler")),
+                    target_symbol: Some(String::from("run")),
+                    reference_target_name: Some(String::from("run")),
+                    occurrence_index: 0,
+                    input_kind: None,
+                    evidence: None,
+                },
+                crate::security::SecurityFlowStep {
+                    kind: crate::security::SecurityFlowStepKind::Sink,
+                    file_path: PathBuf::from("src/runner.ts"),
+                    line: Some(3),
+                    relation_to_next: None,
+                    source_symbol: None,
+                    target_symbol: None,
+                    reference_target_name: None,
+                    occurrence_index: 0,
+                    input_kind: None,
+                    evidence: None,
+                },
+            ],
+        };
+
+        let finding = surface_finding_from_security(&security);
+
+        assert!(finding.supporting_context.contains(&String::from(
+            "security_context: boundary_input_reachable_via_graph"
+        )));
+        assert!(finding.supporting_context.contains(&String::from(
+            "boundary_input_path: src/handler.ts -> src/runner.ts"
+        )));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("boundary_input_path_symbols: handler -> run")));
+        assert!(finding.supporting_context.contains(&String::from(
+            "boundary_to_sink_flow: src/handler.ts:4:request_body -> src/handler.ts:1:Import -> src/runner.ts:3:sink"
+        )));
+        assert!(finding.supporting_context.contains(&String::from(
+            "boundary_to_sink_flow_symbols: handler -> run"
+        )));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("boundary_input: request_body")));
+        assert!(finding
+            .evidence_anchors
+            .iter()
+            .any(|anchor| anchor.label == "boundary_flow:Import"));
+        assert!(finding
+            .locations
+            .iter()
+            .any(|anchor| anchor.file_path == PathBuf::from("src/handler.ts")));
+    }
+
+    #[test]
+    fn algorithmic_complexity_surface_finding_carries_entry_pressure_context() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.ts"),
+            "import { run } from './runner';\n\nrun();\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/runner.ts"),
+            r#"
+export function run(items: string[][]) {
+  for (const row of items) {
+    row.sort();
+  }
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+        let finding = surface
+            .highlights
+            .iter()
+            .find(|finding| {
+                finding
+                    .id
+                    .starts_with("architecture:algorithmic-complexity:src/runner.ts:")
+            })
+            .expect("expected complexity surface finding");
+
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("pressure:entry_reachable_via_graph")));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("pressure_path: src/main.ts -> src/runner.ts")));
+        assert!(finding
+            .supporting_context
+            .iter()
+            .any(|item| item.starts_with("expensive_operation_sites: sort_in_loop@4:")));
+        assert!(finding.supporting_context.contains(&String::from(
+            "expensive_operation_flow: src/main.ts:3:Call -> src/runner.ts -> src/runner.ts:4:sort_in_loop"
+        )));
+        assert!(finding
+            .supporting_context
+            .iter()
+            .all(|item| !item.starts_with("pressure_path_symbols:")));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("pressure:caller_callee_path")));
+        assert!(finding
+            .supporting_context
+            .contains(&String::from("entry_path: src/main.ts -> src/runner.ts")));
+        assert_eq!(finding.file_paths[0], PathBuf::from("src/runner.ts"));
+        assert_eq!(finding.file_paths[1], PathBuf::from("src/main.ts"));
+        assert!(!finding.evidence_anchors.is_empty());
+        assert_eq!(
+            finding.evidence_anchors[0].file_path,
+            PathBuf::from("src/main.ts")
+        );
+        assert_eq!(finding.evidence_anchors[0].line, Some(3));
+        assert_eq!(finding.evidence_anchors[0].label, "pressure:Call");
+        assert!(finding
+            .evidence_anchors
+            .iter()
+            .any(|anchor| anchor.label == "operation:sort_in_loop" && anchor.line == Some(4)));
     }
 
     fn create_fixture() -> PathBuf {

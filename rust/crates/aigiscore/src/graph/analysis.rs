@@ -75,6 +75,8 @@ pub struct ArchitecturalSmell {
     pub kind: ArchitecturalSmellKind,
     pub subject: String,
     pub related_components: Vec<String>,
+    #[serde(default)]
+    pub relation_previews: Vec<String>,
     pub evidence_count: usize,
     pub severity_millis: u16,
     #[serde(default)]
@@ -213,8 +215,12 @@ fn detect_architectural_smells(
     graph: &DiGraph<PathBuf, ()>,
     coupling_metrics: &[CouplingMetric],
 ) -> Vec<ArchitecturalSmell> {
-    let mut smells = detect_hub_like_dependencies(coupling_metrics);
-    smells.extend(detect_unstable_dependencies(graph, coupling_metrics));
+    let module_dependency_counts = build_module_dependency_counts(graph);
+    let mut smells = detect_hub_like_dependencies(coupling_metrics, &module_dependency_counts);
+    smells.extend(detect_unstable_dependencies(
+        coupling_metrics,
+        &module_dependency_counts,
+    ));
     smells.sort_by(|left, right| {
         right
             .severity_millis
@@ -225,7 +231,10 @@ fn detect_architectural_smells(
     smells
 }
 
-fn detect_hub_like_dependencies(coupling_metrics: &[CouplingMetric]) -> Vec<ArchitecturalSmell> {
+fn detect_hub_like_dependencies(
+    coupling_metrics: &[CouplingMetric],
+    module_dependency_counts: &HashMap<(String, String), usize>,
+) -> Vec<ArchitecturalSmell> {
     let mut totals = coupling_metrics
         .iter()
         .filter(|metric| metric.afferent >= 2 && metric.efferent >= 2)
@@ -247,10 +256,13 @@ fn detect_hub_like_dependencies(coupling_metrics: &[CouplingMetric]) -> Vec<Arch
                 return None;
             }
             let severity = ((total as f64 / max_total as f64) * 1000.0).round() as u16;
+            let (related_components, relation_previews) =
+                supporting_neighbors_for_module(&metric.module, module_dependency_counts, 3, 2);
             Some(ArchitecturalSmell {
                 kind: ArchitecturalSmellKind::HubLikeDependency,
                 subject: metric.module.clone(),
-                related_components: Vec::new(),
+                related_components,
+                relation_previews,
                 evidence_count: total,
                 severity_millis: severity,
                 fingerprint: String::new(),
@@ -265,8 +277,8 @@ fn detect_hub_like_dependencies(coupling_metrics: &[CouplingMetric]) -> Vec<Arch
 }
 
 fn detect_unstable_dependencies(
-    graph: &DiGraph<PathBuf, ()>,
     coupling_metrics: &[CouplingMetric],
+    module_dependency_counts: &HashMap<(String, String), usize>,
 ) -> Vec<ArchitecturalSmell> {
     let instability_by_module = coupling_metrics
         .iter()
@@ -277,16 +289,9 @@ fn detect_unstable_dependencies(
         .map(|metric| (metric.module.clone(), metric.afferent))
         .collect::<HashMap<_, _>>();
 
-    let module_dependencies = graph
-        .raw_edges()
-        .iter()
-        .filter_map(|edge| {
-            let source = graph.node_weight(edge.source())?;
-            let target = graph.node_weight(edge.target())?;
-            let source_module = top_level_module(source);
-            let target_module = top_level_module(target);
-            (source_module != target_module).then_some((source_module, target_module))
-        })
+    let module_dependencies = module_dependency_counts
+        .keys()
+        .cloned()
         .collect::<HashSet<_>>();
 
     let mut smells = module_dependencies
@@ -298,11 +303,18 @@ fn detect_unstable_dependencies(
             if source_afferent < 2 || source_instability + 250 > target_instability {
                 return None;
             }
+            let evidence_count = *module_dependency_counts
+                .get(&(source_module.clone(), target_module.clone()))
+                .unwrap_or(&1);
             Some(ArchitecturalSmell {
                 kind: ArchitecturalSmellKind::UnstableDependency,
-                subject: source_module,
-                related_components: vec![target_module],
-                evidence_count: 1,
+                subject: source_module.clone(),
+                related_components: vec![target_module.clone()],
+                relation_previews: vec![format!(
+                    "{} -> {} ({} cross-module links)",
+                    source_module, target_module, evidence_count
+                )],
+                evidence_count,
                 severity_millis: target_instability - source_instability,
                 fingerprint: String::new(),
             })
@@ -315,18 +327,111 @@ fn detect_unstable_dependencies(
     smells
 }
 
+fn build_module_dependency_counts(
+    graph: &DiGraph<PathBuf, ()>,
+) -> HashMap<(String, String), usize> {
+    let mut counts = HashMap::new();
+    for edge in graph.raw_edges() {
+        let Some(source) = graph.node_weight(edge.source()) else {
+            continue;
+        };
+        let Some(target) = graph.node_weight(edge.target()) else {
+            continue;
+        };
+        let source_module = top_level_module(source);
+        let target_module = top_level_module(target);
+        if source_module == target_module {
+            continue;
+        }
+        *counts.entry((source_module, target_module)).or_insert(0) += 1;
+    }
+    counts
+}
+
+fn supporting_neighbors_for_module(
+    subject: &str,
+    module_dependency_counts: &HashMap<(String, String), usize>,
+    component_limit: usize,
+    preview_limit: usize,
+) -> (Vec<String>, Vec<String>) {
+    let mut neighbor_counts = HashMap::<String, (usize, usize)>::new();
+    for ((source, target), count) in module_dependency_counts {
+        if source == subject {
+            neighbor_counts
+                .entry(target.clone())
+                .and_modify(|(outbound, _)| *outbound += *count)
+                .or_insert((*count, 0));
+        }
+        if target == subject {
+            neighbor_counts
+                .entry(source.clone())
+                .and_modify(|(_, inbound)| *inbound += *count)
+                .or_insert((0, *count));
+        }
+    }
+    let mut ranked = neighbor_counts.into_iter().collect::<Vec<_>>();
+    ranked.sort_by(|left, right| {
+        let left_total = left.1 .0 + left.1 .1;
+        let right_total = right.1 .0 + right.1 .1;
+        right_total.cmp(&left_total).then(left.0.cmp(&right.0))
+    });
+    let related_components = ranked
+        .iter()
+        .take(component_limit)
+        .map(|(neighbor, _)| neighbor.clone())
+        .collect::<Vec<_>>();
+    let relation_previews = ranked
+        .into_iter()
+        .take(preview_limit)
+        .map(
+            |(neighbor, (outbound, inbound))| match (outbound > 0, inbound > 0) {
+                (true, true) => format!(
+                    "{} <-> {} ({} cross-module links)",
+                    subject,
+                    neighbor,
+                    outbound + inbound
+                ),
+                (true, false) => {
+                    format!(
+                        "{} -> {} ({} cross-module links)",
+                        subject, neighbor, outbound
+                    )
+                }
+                (false, true) => {
+                    format!(
+                        "{} -> {} ({} cross-module links)",
+                        neighbor, subject, inbound
+                    )
+                }
+                (false, false) => format!("{} <> {} (0 cross-module links)", subject, neighbor),
+            },
+        )
+        .collect::<Vec<_>>();
+    (related_components, relation_previews)
+}
+
 fn build_file_dependency_graph<'a, I, F>(edges: I, include: F) -> DiGraph<PathBuf, ()>
 where
     I: IntoIterator<Item = &'a ResolvedEdge>,
     F: Fn(&ResolvedEdge) -> bool,
 {
+    trace("graph.build_file_dependency_graph start");
     let mut graph = DiGraph::<PathBuf, ()>::new();
     let mut indices: HashMap<PathBuf, NodeIndex> = HashMap::new();
     let mut seen_edges: HashSet<(NodeIndex, NodeIndex)> = HashSet::new();
+    let mut included_edges = 0usize;
 
     for edge in edges {
         if !include(edge) {
             continue;
+        }
+        included_edges += 1;
+        if included_edges == 1 || included_edges % 100 == 0 {
+            trace(&format!(
+                "graph.build_file_dependency_graph progress included_edges={included_edges} nodes={} edges={}",
+                graph.node_count(),
+                graph.edge_count()
+            ));
         }
         let source = *indices
             .entry(edge.source_file_path.clone())
@@ -339,6 +444,12 @@ where
             graph.add_edge(source, target, ());
         }
     }
+
+    trace(&format!(
+        "graph.build_file_dependency_graph done included_edges={included_edges} nodes={} edges={}",
+        graph.node_count(),
+        graph.edge_count()
+    ));
 
     graph
 }
@@ -844,7 +955,10 @@ mod tests {
         let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
         assert!(analysis.architectural_smells.iter().any(|smell| {
-            smell.kind == ArchitecturalSmellKind::HubLikeDependency && smell.subject == "core"
+            smell.kind == ArchitecturalSmellKind::HubLikeDependency
+                && smell.subject == "core"
+                && !smell.related_components.is_empty()
+                && !smell.relation_previews.is_empty()
         }));
     }
 
@@ -875,6 +989,8 @@ mod tests {
             smell.kind == ArchitecturalSmellKind::UnstableDependency
                 && smell.subject == "domain"
                 && smell.related_components == vec![String::from("ui")]
+                && smell.relation_previews
+                    == vec![String::from("domain -> ui (1 cross-module links)")]
         }));
     }
 

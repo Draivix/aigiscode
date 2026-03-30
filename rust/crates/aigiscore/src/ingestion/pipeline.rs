@@ -1,4 +1,6 @@
-use crate::assessment::{build_architectural_assessment_with_ast_grep, ArchitecturalAssessment};
+use crate::assessment::{
+    build_architectural_assessment_with_ast_grep_and_graph, ArchitecturalAssessment,
+};
 use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
@@ -11,7 +13,7 @@ use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::resolve::{load_resolve_config, resolve_graph_with_config};
 use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
-use crate::security::{analyze_security_findings, SecurityAnalysisResult};
+use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -180,17 +182,6 @@ pub fn analyze_project(
         hardwiring_started.elapsed().as_millis()
     ));
 
-    let security_started = Instant::now();
-    let security_analysis = analyze_security_findings(
-        &parsed_sources,
-        &contract_inventory,
-        &graph_analysis.runtime_entry_candidates,
-    );
-    trace(&format!(
-        "analyze.security elapsed_ms={}",
-        security_started.elapsed().as_millis()
-    ));
-
     let ast_grep_started = Instant::now();
     let ast_grep_scan = run_ast_grep_scan(&parsed_sources);
     trace(&format!(
@@ -198,14 +189,28 @@ pub fn analyze_project(
         ast_grep_started.elapsed().as_millis()
     ));
 
+    let security_started = Instant::now();
+    let security_analysis = analyze_security_findings_with_ast_grep_and_graph(
+        &parsed_sources,
+        &contract_inventory,
+        &graph_analysis.runtime_entry_candidates,
+        &ast_grep_scan,
+        Some(&semantic_graph),
+    );
+    trace(&format!(
+        "analyze.security elapsed_ms={}",
+        security_started.elapsed().as_millis()
+    ));
+
     let assessment_started = Instant::now();
-    let architectural_assessment = build_architectural_assessment_with_ast_grep(
+    let architectural_assessment = build_architectural_assessment_with_ast_grep_and_graph(
         &graph_analysis,
         &dead_code,
         &hardwiring,
         &ExternalAnalysisResult::default(),
         &parsed_sources,
         &ast_grep_scan,
+        Some(&semantic_graph),
     );
     trace(&format!(
         "analyze.architectural_assessment elapsed_ms={}",

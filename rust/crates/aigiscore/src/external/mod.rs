@@ -14,6 +14,8 @@ use sarif_rust::types::{
     ReportingDescriptorReference, Result as SarifResult, Run as SarifRun,
 };
 
+use crate::evidence::EvidenceAnchor;
+
 const REPORTS_DIR: &str = "reports";
 const RAW_DIR: &str = "raw";
 const GITLEAKS_TOOL: &str = "gitleaks";
@@ -87,6 +89,8 @@ pub struct ExternalFinding {
     pub confidence: ExternalConfidence,
     pub file_path: Option<PathBuf>,
     pub line: Option<usize>,
+    #[serde(default)]
+    pub locations: Vec<EvidenceAnchor>,
     pub message: String,
     pub fingerprint: String,
     pub extras: Map<String, Value>,
@@ -999,6 +1003,7 @@ fn parse_sarif_run(
         let rule_id = sarif_rule_id(result, rule_lookup).unwrap_or_else(|| String::from("sarif"));
         let rule_info = rule_lookup.get(&rule_id);
         let (file_path, line) = sarif_primary_location(project_path, result);
+        let locations = sarif_locations(project_path, result, file_path.clone(), line);
         let message = sarif_message_text(result).unwrap_or_else(|| rule_id.clone());
         let (domain, category) =
             infer_sarif_domain_category(tool, &rule_id, &message, rule_info, fallback);
@@ -1014,6 +1019,7 @@ fn parse_sarif_run(
             confidence,
             file_path,
             line,
+            locations,
             message,
             fingerprint,
             extras: sarif_extras(result, rule_info),
@@ -1171,6 +1177,71 @@ fn sarif_primary_location(
     (file_path, line)
 }
 
+fn sarif_locations(
+    project_path: &Path,
+    result: &SarifResult,
+    primary_file_path: Option<PathBuf>,
+    primary_line: Option<usize>,
+) -> Vec<EvidenceAnchor> {
+    let mut locations = Vec::new();
+
+    if let Some(path) = primary_file_path {
+        push_sarif_location(&mut locations, path, primary_line, "primary");
+    }
+
+    for location in result.locations.as_ref().into_iter().flatten().skip(1) {
+        if let Some((file_path, line)) = sarif_location_anchor(project_path, location) {
+            push_sarif_location(&mut locations, file_path, line, "supporting");
+        }
+    }
+
+    for location in result.related_locations.as_ref().into_iter().flatten() {
+        if let Some((file_path, line)) = sarif_location_anchor(project_path, location) {
+            push_sarif_location(&mut locations, file_path, line, "supporting");
+        }
+    }
+
+    locations
+}
+
+fn sarif_location_anchor(
+    project_path: &Path,
+    location: &sarif_rust::types::Location,
+) -> Option<(PathBuf, Option<usize>)> {
+    let file_path = location
+        .physical_location
+        .as_ref()
+        .and_then(|physical| physical.artifact_location.as_ref())
+        .and_then(sarif_artifact_path)
+        .map(|path| project_relative_path(project_path, &path))?;
+    let line = location
+        .physical_location
+        .as_ref()
+        .and_then(|physical| physical.region.as_ref())
+        .and_then(|region| region.start_line)
+        .map(|value| value as usize);
+    Some((file_path, line))
+}
+
+fn push_sarif_location(
+    locations: &mut Vec<EvidenceAnchor>,
+    file_path: PathBuf,
+    line: Option<usize>,
+    label: &str,
+) {
+    if locations
+        .iter()
+        .any(|location| location.file_path == file_path && location.line == line)
+    {
+        return;
+    }
+    locations.push(EvidenceAnchor {
+        file_path,
+        line,
+        label: String::from(label),
+    });
+}
+
 fn sarif_artifact_path(location: &SarifArtifactLocation) -> Option<String> {
     let raw = location.uri.as_ref()?;
     Some(
@@ -1265,6 +1336,46 @@ fn sarif_extras(result: &SarifResult, rule_info: Option<&SarifRuleInfo>) -> Map<
             Value::Object(value.clone().into_iter().collect()),
         );
     }
+    if let Some(related_locations) = &result.related_locations {
+        extras.insert(
+            String::from("related_location_count"),
+            Value::from(related_locations.len() as u64),
+        );
+    }
+    if let Some(code_flows) = &result.code_flows {
+        extras.insert(
+            String::from("code_flow_count"),
+            Value::from(code_flows.len() as u64),
+        );
+        let thread_flow_count: usize = code_flows
+            .iter()
+            .map(|code_flow| code_flow.thread_flows.len())
+            .sum();
+        let thread_flow_location_count: usize = code_flows
+            .iter()
+            .flat_map(|code_flow| &code_flow.thread_flows)
+            .map(|thread_flow| thread_flow.locations.len())
+            .sum();
+        extras.insert(
+            String::from("thread_flow_count"),
+            Value::from(thread_flow_count as u64),
+        );
+        extras.insert(
+            String::from("thread_flow_location_count"),
+            Value::from(thread_flow_location_count as u64),
+        );
+    }
+    if let Some(stacks) = &result.stacks {
+        extras.insert(
+            String::from("stack_count"),
+            Value::from(stacks.len() as u64),
+        );
+        let stack_frame_count: usize = stacks.iter().map(|stack| stack.frames.len()).sum();
+        extras.insert(
+            String::from("stack_frame_count"),
+            Value::from(stack_frame_count as u64),
+        );
+    }
     extras
 }
 
@@ -1297,6 +1408,7 @@ fn parse_ruff_payload(project_path: &Path, payload: &Value) -> Vec<ExternalFindi
                 .and_then(|location| location.get("row"))
                 .and_then(Value::as_u64)
                 .map(|row| row as usize),
+            locations: Vec::new(),
             message: item
                 .get("message")
                 .and_then(Value::as_str)
@@ -1356,6 +1468,7 @@ fn parse_gitleaks_payload(project_path: &Path, payload: &Value) -> Vec<ExternalF
                 confidence: ExternalConfidence::Medium,
                 file_path: Some(project_relative_path(project_path, file)),
                 line,
+                locations: Vec::new(),
                 message: item
                     .get("Description")
                     .and_then(Value::as_str)
@@ -1435,6 +1548,7 @@ fn parse_pip_audit_payload(payload: &Value) -> Vec<ExternalFinding> {
                 confidence: ExternalConfidence::High,
                 file_path: None,
                 line: None,
+                locations: Vec::new(),
                 message: format!("{package_name} {package_version} is affected by {vuln_id}"),
                 fingerprint: stable_fingerprint(&[
                     PIP_AUDIT_TOOL,
@@ -1522,6 +1636,7 @@ fn parse_osv_scanner_payload(payload: &Value) -> Vec<ExternalFinding> {
                     confidence: ExternalConfidence::High,
                     file_path: None,
                     line: None,
+                    locations: Vec::new(),
                     message: format!("{package_name} {package_version} is affected by {vuln_id}"),
                     fingerprint: stable_fingerprint(&[
                         OSV_SCANNER_TOOL,
@@ -1593,6 +1708,7 @@ fn parse_composer_audit_payload(payload: &Value) -> Vec<ExternalFinding> {
                     confidence: ExternalConfidence::High,
                     file_path: Some(PathBuf::from("composer.lock")),
                     line: Some(1),
+                    locations: Vec::new(),
                     message: format!("{package_name}: {title}"),
                     fingerprint: stable_fingerprint(&[
                         COMPOSER_AUDIT_TOOL,
@@ -1626,6 +1742,7 @@ fn parse_composer_audit_payload(payload: &Value) -> Vec<ExternalFinding> {
                 confidence: ExternalConfidence::High,
                 file_path: Some(PathBuf::from("composer.lock")),
                 line: Some(1),
+                locations: Vec::new(),
                 message: format!("{package_name}: package is abandoned"),
                 fingerprint: stable_fingerprint(&[
                     COMPOSER_AUDIT_TOOL,
@@ -1684,6 +1801,7 @@ fn parse_npm_audit_payload(payload: &Value) -> Vec<ExternalFinding> {
             confidence: ExternalConfidence::High,
             file_path: Some(PathBuf::from("package-lock.json")),
             line: Some(1),
+            locations: Vec::new(),
             message: format!("{package_name}: {title}"),
             fingerprint: stable_fingerprint(&[NPM_AUDIT_TOOL, package_name, severity]),
             extras: map_from_pairs([
@@ -1784,6 +1902,7 @@ fn parse_cargo_deny_output(payload: &str) -> Vec<ExternalFinding> {
             confidence: ExternalConfidence::High,
             file_path,
             line: line_no,
+            locations: Vec::new(),
             message,
             fingerprint: stable_fingerprint(&[
                 CARGO_DENY_TOOL,
@@ -1892,6 +2011,7 @@ fn parse_cargo_clippy_output(project_path: &Path, payload: &str) -> Vec<External
             confidence: ExternalConfidence::High,
             file_path,
             line: line_no,
+            locations: Vec::new(),
             message: message_text.clone(),
             fingerprint: stable_fingerprint(&[
                 CARGO_CLIPPY_TOOL,
@@ -2079,6 +2199,60 @@ mod tests {
                         "artifactLocation": { "uri": "app/views.py" },
                         "region": { "startLine": 18 }
                       }
+                    },
+                    {
+                      "physicalLocation": {
+                        "artifactLocation": { "uri": "app/helpers.py" },
+                        "region": { "startLine": 9 }
+                      }
+                    }
+                  ],
+                  "relatedLocations": [
+                    {
+                      "physicalLocation": {
+                        "artifactLocation": { "uri": "app/urls.py" },
+                        "region": { "startLine": 3 }
+                      }
+                    }
+                  ],
+                  "codeFlows": [
+                    {
+                      "threadFlows": [
+                        {
+                          "locations": [
+                            {
+                              "location": {
+                                "physicalLocation": {
+                                  "artifactLocation": { "uri": "app/urls.py" },
+                                  "region": { "startLine": 3 }
+                                }
+                              }
+                            },
+                            {
+                              "location": {
+                                "physicalLocation": {
+                                  "artifactLocation": { "uri": "app/views.py" },
+                                  "region": { "startLine": 18 }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "stacks": [
+                    {
+                      "frames": [
+                        {
+                          "location": {
+                            "physicalLocation": {
+                              "artifactLocation": { "uri": "app/urls.py" },
+                              "region": { "startLine": 3 }
+                            }
+                          }
+                        }
+                      ]
                     }
                   ],
                   "fingerprints": { "primary": "sarif-fp-1" }
@@ -2109,6 +2283,31 @@ mod tests {
         );
         assert_eq!(findings[0].line, Some(18));
         assert_eq!(findings[0].fingerprint, "sarif-fp-1");
+        assert_eq!(findings[0].locations.len(), 3);
+        assert_eq!(findings[0].locations[0].label, "primary");
+        assert_eq!(
+            findings[0].locations[0].file_path,
+            Path::new("app/views.py")
+        );
+        assert_eq!(findings[0].locations[1].label, "supporting");
+        assert_eq!(
+            findings[0].locations[1].file_path,
+            Path::new("app/helpers.py")
+        );
+        assert_eq!(findings[0].locations[2].label, "supporting");
+        assert_eq!(findings[0].locations[2].file_path, Path::new("app/urls.py"));
+        assert_eq!(
+            findings[0].extras.get("related_location_count"),
+            Some(&json!(1))
+        );
+        assert_eq!(findings[0].extras.get("code_flow_count"), Some(&json!(1)));
+        assert_eq!(findings[0].extras.get("thread_flow_count"), Some(&json!(1)));
+        assert_eq!(
+            findings[0].extras.get("thread_flow_location_count"),
+            Some(&json!(2))
+        );
+        assert_eq!(findings[0].extras.get("stack_count"), Some(&json!(1)));
+        assert_eq!(findings[0].extras.get("stack_frame_count"), Some(&json!(1)));
     }
 
     #[test]

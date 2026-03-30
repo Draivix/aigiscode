@@ -686,6 +686,7 @@ mod tests {
                 confidence: ExternalConfidence::High,
                 file_path: None,
                 line: None,
+                locations: Vec::new(),
                 message: String::from("tool suppressed"),
                 fingerprint: String::from("fp-1"),
                 extras: external_extras("serde"),
@@ -702,6 +703,7 @@ mod tests {
                 confidence: ExternalConfidence::High,
                 file_path: None,
                 line: None,
+                locations: Vec::new(),
                 message: String::from("rule suppressed"),
                 fingerprint: String::from("fp-2"),
                 extras: external_extras("serde"),
@@ -718,6 +720,7 @@ mod tests {
                 confidence: ExternalConfidence::High,
                 file_path: None,
                 line: None,
+                locations: Vec::new(),
                 message: String::from("rule id suppressed"),
                 fingerprint: String::from("fp-3"),
                 extras: Map::new(),
@@ -736,6 +739,10 @@ mod tests {
                 fingerprint: String::from("sec-1"),
                 supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
+                reachability_path: Vec::new(),
+                boundary_input_sources: Vec::new(),
+                boundary_input_path: Vec::new(),
+                boundary_to_sink_flow: Vec::new(),
             }),
             Some(SuppressionReason::Policy)
         );
@@ -751,6 +758,10 @@ mod tests {
                 fingerprint: String::from("sec-2"),
                 supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
+                reachability_path: Vec::new(),
+                boundary_input_sources: Vec::new(),
+                boundary_input_path: Vec::new(),
+                boundary_to_sink_flow: Vec::new(),
             }),
             Some(SuppressionReason::Policy)
         );
@@ -783,6 +794,10 @@ mod tests {
                 fingerprint: String::from("sec-fp-1"),
                 supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
+                reachability_path: Vec::new(),
+                boundary_input_sources: Vec::new(),
+                boundary_input_path: Vec::new(),
+                boundary_to_sink_flow: Vec::new(),
             }),
             Some(SuppressionReason::Rule)
         );
@@ -798,6 +813,10 @@ mod tests {
                 fingerprint: String::from("sec-fp-2"),
                 supporting_scanners: Vec::new(),
                 contexts: Vec::new(),
+                reachability_path: Vec::new(),
+                boundary_input_sources: Vec::new(),
+                boundary_input_path: Vec::new(),
+                boundary_to_sink_flow: Vec::new(),
             }),
             Some(SuppressionReason::Rule)
         );
