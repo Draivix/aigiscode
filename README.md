@@ -11,6 +11,33 @@ machine-readable artifacts for structural triage. The current product surface is
 the Rust CLI. The legacy Python implementation has been removed from this
 repository.
 
+## What AigisCode Is For
+
+AigisCode is not only for huge monoliths.
+
+It is useful on:
+
+- small repositories when you want a structured machine contract instead of a
+  shallow lint pass
+- medium repositories when architectural drift, hidden runtime wiring, or AI
+  review handoff starts becoming painful
+- large polyglot repositories when you need graph-backed evidence, policy, and
+  bounded agent context instead of loading the whole codebase into a prompt
+
+Use it when you want answers like:
+
+- what are the real runtime entrypoints?
+- which files are structurally central or suspiciously isolated?
+- where does a dangerous API live, and is it reachable from entry code?
+- which loop-local expensive operations are on a real caller chain?
+- what should an AI reviewer inspect first without reading the whole repo?
+
+Do not think of AigisCode as “only a big-codebase platform”.
+Think of it as a layered analyzer:
+
+- on a small repo, it gives you a precise artifact family and review contract
+- on a large repo, it becomes a graph-backed reduction layer for human and AI review
+
 ## Quick Start
 
 ```bash
@@ -24,6 +51,102 @@ For local development from this repository:
 ```bash
 cargo run --bin aigiscode -- analyze .
 ```
+
+For a quick human-readable summary after analysis:
+
+```bash
+aigiscode report .
+cat .aigiscode/aigiscode-report.md
+```
+
+For a graph-backed AI handoff without executing any agent:
+
+```bash
+aigiscode agent .
+```
+
+## Recommended Usage By Repo Size
+
+### Small repositories
+
+Use:
+
+- `aigiscode analyze .`
+- `aigiscode report .`
+- `aigiscode info .`
+
+Why:
+
+- you usually want the summary, findings, surface, and guard decision
+- full graph artifacts are still useful, but you may not need `agent-run` or `cypher`
+
+### Medium repositories
+
+Use:
+
+- `aigiscode analyze .`
+- `aigiscode surface .`
+- `aigiscode agent .`
+- optionally `aigiscode tune .`
+
+Why:
+
+- this is where architecture surface, topology, packets, and AI handoff start
+  paying off
+- policy tuning starts to matter
+
+### Large or framework-heavy repositories
+
+Use:
+
+- `aigiscode analyze . --output-dir <dir>`
+- `aigiscode agent .`
+- `aigiscode agent-run . --adapter <name>`
+- `aigiscode graph . --kuzu`
+- `aigiscode cypher .`
+
+Why:
+
+- large repos need bounded graph packets, topology, and queryable graph projections
+- this is where the AI-facing surfaces become first-class, not optional
+
+## Product Layers
+
+AigisCode is easiest to use correctly if you think in layers:
+
+1. Parsing and resolution
+- mixed-language source extraction
+- symbol/reference resolution
+- framework/runtime overlays
+
+2. Graph truth
+- `semantic-graph.json`
+- `dependency-graph.json`
+- `evidence-graph.json`
+
+3. Detector and assessment truth
+- dead code
+- hardwiring
+- native security
+- architectural assessment
+- secondary scanner evidence
+
+4. Review and guard truth
+- `architecture-surface.json`
+- `review-surface.json`
+- `convergence-history.json`
+- `guard-decision.json`
+
+5. AI handoff and execution
+- `agentic-review.json`
+- `graph-packets.json`
+- `repository-topology.json`
+- `agent-run`
+- `agent-spider`
+
+This matters because not every command is for the same job. `analyze` builds
+truth. `surface` and `report` summarize it. `agent` packages it for AI. `graph`
+and `cypher` expose lower-level graph access.
 
 ## Commands
 
@@ -46,6 +169,192 @@ Use `--output-dir <path>` to write artifacts outside `.aigiscode/`.
 Use `--no-write` to print JSON without writing artifacts.
 Use `--external-tool <name>` or `--external-tools all` to run native Rust
 external adapters alongside deterministic analysis.
+
+## Which Command Should I Use?
+
+### `aigiscode analyze <path>`
+
+Use this first.
+
+It runs the full deterministic pipeline and writes the full native artifact
+family. If you are unsure what command to use, use this one.
+
+Use it when you want:
+
+- graph artifacts
+- detector output
+- review surface
+- guard decision
+- AI handoff artifacts
+
+### `aigiscode report <path>`
+
+Use this when you want the same analysis pipeline but care mainly about the
+consolidated report output.
+
+It is a compatibility alias for `analyze` that still writes the full artifacts.
+
+### `aigiscode info <path>`
+
+Use this when artifacts already exist and you want a quick structured view of
+their current state without reasoning from scratch.
+
+Good for:
+
+- shell scripts
+- CI inspection
+- checking whether a previous run already produced the artifacts you need
+
+### `aigiscode surface <path>`
+
+Use this when you mainly want the architecture-facing summary and not the raw
+low-level graph files.
+
+Good for:
+
+- UI layers
+- dashboards
+- quick triage workflows
+
+### `aigiscode agent <path>`
+
+Use this when the consumer is another AI agent, not just a human.
+
+It runs the same analysis pipeline, then prints the graph-backed AI review
+contract built around:
+
+- bounded packets
+- traces
+- code flows
+- source/sink paths
+- semantic state-flow evidence
+- topology summaries
+
+### `aigiscode agent-run <path>`
+
+Use this when you want AigisCode to execute the review through a concrete AI
+adapter, not only prepare the contract.
+
+Current adapters:
+
+- `codex-exec`
+- `responses-http`
+- `codex-sdk`
+
+### `aigiscode agent-spider <path>`
+
+Use this when you want multiple top task packets executed, not just a single
+whole-repo AI review.
+
+This is for crawling the highest-priority bounded investigations.
+
+### `aigiscode graph <path>`
+
+Use this when you want graph artifacts without the full detector/report stack.
+
+Good for:
+
+- graph debugging
+- graph export
+- code-understanding workflows
+
+Add `--kuzu` when you also want the optional Kuzu materialization.
+
+### `aigiscode cypher <path>`
+
+Use this when you want to query the optional Kuzu graph index for code
+understanding.
+
+This is lower-level than `surface` or `agent`.
+
+### `aigiscode tune <path>`
+
+Use this after analysis when you want a conservative starter patch for
+`.aigiscode/policy.json`.
+
+### `aigiscode plugins`
+
+Use this when you want to know which built-in semantic model packs and runtime
+plugins are active in the current binary.
+
+### `aigiscode mcp <path>`
+
+Use this when another tool or agent wants to consume AigisCode through MCP over
+stdio instead of reading JSON files directly.
+
+## Common CLI Options
+
+### `--output-dir <dir>`
+
+Write artifacts outside `.aigiscode/`.
+
+Use this when:
+
+- you do not want to dirty the target repo
+- you are comparing repeated runs
+- you want to keep multiple artifact baselines
+
+### `--no-write`
+
+Print JSON to stdout without writing artifacts.
+
+Use this for:
+
+- shell pipelines
+- smoke checks
+- quick experiments
+
+Do not use it if you want the full reusable artifact family on disk.
+
+### `--external-tool <name>` / `--external-tools <csv>`
+
+Run external analyzers and normalize them into the same report/review surface.
+
+Use this when you want:
+
+- OpenGrep / Trivy / Grype / Gitleaks / audit-tool enrichment
+- unified review and policy handling across native and imported findings
+
+## Example Workflows
+
+### Fast local repo check
+
+```bash
+aigiscode analyze .
+cat .aigiscode/aigiscode-report.md
+```
+
+### Analyze without writing into the repo
+
+```bash
+aigiscode analyze . --output-dir /tmp/my-repo-aigis
+cat /tmp/my-repo-aigis/aigiscode-report.md
+```
+
+### Prepare AI review context
+
+```bash
+aigiscode agent . --output-dir /tmp/my-repo-aigis
+cat /tmp/my-repo-aigis/agentic-review.json
+```
+
+### Execute the AI review
+
+```bash
+aigiscode agent-run . --adapter codex-exec --output-dir /tmp/my-repo-aigis
+```
+
+### Build graph-only artifacts
+
+```bash
+aigiscode graph . --kuzu --output-dir /tmp/my-repo-graph
+```
+
+### Query the Kuzu graph
+
+```bash
+aigiscode cypher . --output-dir /tmp/my-repo-graph
+```
 
 ## Artifacts
 
@@ -87,6 +396,34 @@ When external tools are enabled, raw scanner artifacts are archived under:
 
 `aigiscode mcp` serves tools, resources, and prompts over stdio from the same
 native artifact family.
+
+## How To Read The Main Artifacts
+
+If you only read a few files, start here:
+
+- `aigiscode-report.json`
+  - consolidated machine summary
+- `aigiscode-report.md`
+  - readable human summary
+- `architecture-surface.json`
+  - architecture-facing triage view
+- `review-surface.json`
+  - visibility/policy-adjusted review contract
+- `guard-decision.json`
+  - current allow/warn/block posture
+- `agentic-review.json`
+  - graph-backed AI review contract
+
+Read the lower-level graph artifacts when you need deeper explanation:
+
+- `semantic-graph.json`
+  - canonical resolved graph
+- `dependency-graph.json`
+  - low-noise dependency projection
+- `evidence-graph.json`
+  - richer evidence-oriented projection
+- `deterministic-findings.json`
+  - raw detector truth before summarization
 
 `aigiscode agent` runs the normal analysis pipeline, writes the same artifact
 family, and prints `agentic-review.json` as the primary machine contract for an
@@ -183,8 +520,19 @@ Planned adapter:
 - Boundary-truncated files on scoped analyses
 - Dead code candidates
 - Hardwired values
+- Native dangerous-API security findings
+- Graph-backed boundary/input-to-sink security evidence
+- Algorithmic complexity hotspots with caller/callee pressure and operation provenance
 - Declared routes, hooks, env keys, config keys, and symbolic runtime contracts
 - Architecture-surface summaries for UI and agent workflows
+
+Some of those are stronger than others today. The product is designed to emit:
+
+- hard graph truth where it has it
+- structured heuristic evidence where exact proof is not yet available
+
+That is why some contracts carry explicit provenance, scanner support, flow
+paths, or boundary-truncated markers.
 
 ## Policy And Rules
 
@@ -229,6 +577,27 @@ Current native adapters:
 
 Language support here means parsing and graph extraction in the Rust engine. Parity
 is still in progress for some higher-level detectors.
+
+## Current Plugins And Model Packs
+
+Use `aigiscode plugins` to inspect the live binary, but the current built-in
+families include:
+
+- semantic model packs for:
+  - Django routes
+  - Django signals
+  - Django settings
+  - PHP hook maps
+  - WordPress REST routes
+- runtime plugins for:
+  - queue dispatch
+  - Laravel container resolution
+  - generic signal callbacks
+  - WordPress hooks
+
+These are overlays on top of the generic core. They add framework/runtime
+meaning without turning the core parser and graph layers into framework-specific
+code paths.
 
 ## Development
 
