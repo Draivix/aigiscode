@@ -220,9 +220,7 @@ pub fn analyze_dead_code(
         // name outside import-like lines suppresses the finding.
         if sources_by_path
             .get(reference.file_path.as_path())
-            .is_some_and(|source| {
-                import_name_used_lexically(source, reference.line, &binding_name)
-            })
+            .is_some_and(|source| import_name_used_lexically(source, reference.line, &binding_name))
         {
             continue;
         }

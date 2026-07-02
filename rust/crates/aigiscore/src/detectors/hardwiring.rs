@@ -202,10 +202,12 @@ fn is_constant_shaped_literal(value: &str) -> bool {
     if value.trim().len() != value.len() {
         return false;
     }
-    if value
-        .chars()
-        .any(|c| matches!(c, '\'' | '"' | '$' | '(' | ')' | '%' | '<' | '>' | '=' | '{' | '}'))
-    {
+    if value.chars().any(|c| {
+        matches!(
+            c,
+            '\'' | '"' | '$' | '(' | ')' | '%' | '<' | '>' | '=' | '{' | '}'
+        )
+    }) {
         return false;
     }
     value
@@ -522,8 +524,7 @@ $local2 = "only.here";
             .findings
             .iter()
             .filter(|finding| {
-                finding.category == HardwiringCategory::RepeatedLiteral
-                    && finding.value == "UTF-8"
+                finding.category == HardwiringCategory::RepeatedLiteral && finding.value == "UTF-8"
             })
             .collect::<Vec<_>>();
         // Three code occurrences across two files; the comment mention in
@@ -531,8 +532,7 @@ $local2 = "only.here";
         assert_eq!(utf8.len(), 3);
         // Repetition confined to one file is not cross-file drift.
         assert!(!result.findings.iter().any(|finding| {
-            finding.category == HardwiringCategory::RepeatedLiteral
-                && finding.value == "only.here"
+            finding.category == HardwiringCategory::RepeatedLiteral && finding.value == "only.here"
         }));
     }
 }
