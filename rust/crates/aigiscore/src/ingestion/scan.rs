@@ -6,6 +6,10 @@ use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use thiserror::Error;
 use walkdir::{DirEntry, WalkDir};
+use xxhash_rust::xxh3::Xxh3;
+
+use crate::ingestion::hash::hash_file_xxh3;
+use crate::revision::{ContentHash, FileContentKey, FileMtime, SemanticEnvFingerprint};
 
 const SCAN_FILE: &str = ".aigiscode/scan.json";
 
@@ -68,10 +72,47 @@ pub struct AnalysisScope {
     pub include_path_prefixes: Vec<PathBuf>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ScannedFile {
     pub relative_path: PathBuf,
     pub size_bytes: u64,
+    /// Best-effort filesystem mtime — diagnostic / future stable-read heuristic, NOT
+    /// identity. `None` when the platform/file could not report it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub modified_at: Option<FileMtime>,
+    /// Non-cryptographic content identity (xxh3-64). `serde(default)` keeps older
+    /// `scan.json` artifacts (which lacked this field) deserializable.
+    #[serde(default)]
+    pub content_hash: ContentHash,
+}
+
+impl ScannedFile {
+    /// The `(path, content_hash)` identity every derived fact will be tagged with.
+    #[must_use]
+    pub fn file_key(&self) -> FileContentKey {
+        FileContentKey::new(self.relative_path.clone(), self.content_hash)
+    }
+}
+
+/// One config input to the semantic-environment fingerprint (a file whose change can
+/// alter code meaning without altering any source text — `Cargo.toml`, lockfiles, …).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticEnvInput {
+    pub relative_path: PathBuf,
+    pub exists: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub content_hash: Option<ContentHash>,
+}
+
+/// Fingerprint of the build/workspace configuration for a scan. Advances the semantic-env
+/// revision independently of source-content changes.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct SemanticEnvSnapshot {
+    pub fingerprint: SemanticEnvFingerprint,
+    #[serde(default)]
+    pub inputs: Vec<SemanticEnvInput>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -88,6 +129,10 @@ pub struct ScanResult {
     pub summary: ScanSummary,
     #[serde(default)]
     pub scope: AnalysisScope,
+    /// Fingerprint of build/workspace config files that can change code meaning without
+    /// changing source text. `serde(default)` keeps older artifacts deserializable.
+    #[serde(default)]
+    pub semantic_env: SemanticEnvSnapshot,
 }
 
 #[derive(Debug, Error)]
@@ -171,9 +216,20 @@ pub fn scan_repository(
             source,
         })?;
 
+        // Content identity for the change substrate. Reading every file is intentional
+        // extra I/O in Phase 1 — correctness/contract wiring matters more than speed, and
+        // the pipeline re-reads these files to parse them anyway.
+        let content_hash = hash_file_xxh3(entry.path()).map_err(|source| ScanError::Metadata {
+            path: entry.path().to_path_buf(),
+            source,
+        })?;
+        let modified_at = metadata.modified().ok().map(FileMtime::from_system_time);
+
         files.push(ScannedFile {
             relative_path,
             size_bytes: metadata.len(),
+            modified_at,
+            content_hash,
         });
     }
 
@@ -185,13 +241,80 @@ pub fn scan_repository(
         skipped_hidden_dirs: skipped_hidden_dirs.get(),
     };
     let scope = build_analysis_scope(&root, &effective_config);
+    let semantic_env = compute_semantic_env(&root);
 
     Ok(ScanResult {
         root,
         files,
         summary,
         scope,
+        semantic_env,
     })
+}
+
+/// Config files whose change can alter code meaning without altering source text. Scanned
+/// at the analysis root; conservative and language-agnostic for Phase 1.
+const SEMANTIC_ENV_CANDIDATES: &[&str] = &[
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+    "rust-toolchain",
+    ".cargo/config.toml",
+    ".cargo/config",
+    "tsconfig.json",
+    "jsconfig.json",
+    "package.json",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "composer.json",
+    "composer.lock",
+    "pyproject.toml",
+    "poetry.lock",
+    "requirements.txt",
+    "Gemfile",
+    "Gemfile.lock",
+    "go.mod",
+    "go.sum",
+];
+
+/// Fingerprint the semantic environment: for each candidate config file, fold its path,
+/// existence, size, and content hash into one xxh3-128 digest. Deterministic and ordered;
+/// mtimes are deliberately excluded (they are not identity).
+pub fn compute_semantic_env(root: &Path) -> SemanticEnvSnapshot {
+    let mut hasher = Xxh3::new();
+    let mut inputs = Vec::with_capacity(SEMANTIC_ENV_CANDIDATES.len());
+    for rel in SEMANTIC_ENV_CANDIDATES {
+        let abs = root.join(rel);
+        hasher.update(rel.as_bytes());
+        match fs::metadata(&abs) {
+            Ok(meta) if meta.is_file() => {
+                let hash = hash_file_xxh3(&abs).unwrap_or(ContentHash(0));
+                hasher.update(&[1]);
+                hasher.update(&meta.len().to_le_bytes());
+                hasher.update(&hash.0.to_le_bytes());
+                inputs.push(SemanticEnvInput {
+                    relative_path: PathBuf::from(rel),
+                    exists: true,
+                    size_bytes: Some(meta.len()),
+                    content_hash: Some(hash),
+                });
+            }
+            _ => {
+                hasher.update(&[0]);
+                inputs.push(SemanticEnvInput {
+                    relative_path: PathBuf::from(rel),
+                    exists: false,
+                    size_bytes: None,
+                    content_hash: None,
+                });
+            }
+        }
+    }
+    SemanticEnvSnapshot {
+        fingerprint: SemanticEnvFingerprint(hasher.digest128()),
+        inputs,
+    }
 }
 
 fn build_analysis_scope(root: &Path, config: &ScanConfig) -> AnalysisScope {
@@ -356,7 +479,8 @@ fn overlaps_include_prefixes(path: &Path, include_path_prefixes: &[PathBuf]) -> 
 
 #[cfg(test)]
 mod tests {
-    use super::{scan_repository, AnalysisBoundaryTruth, ScanConfig};
+    use super::{compute_semantic_env, scan_repository, AnalysisBoundaryTruth, ScanConfig};
+    use crate::revision::ContentHash;
     use std::collections::HashSet;
     use std::fs;
     use std::path::PathBuf;
@@ -364,7 +488,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
-    fn scans_files_without_reading_contents() {
+    fn scans_files_and_captures_content_identity() {
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src/nested")).unwrap();
         fs::write(fixture.join("src/main.py"), b"print('hello')").unwrap();
@@ -374,8 +498,8 @@ mod tests {
 
         let paths: Vec<PathBuf> = result
             .files
-            .into_iter()
-            .map(|file| file.relative_path)
+            .iter()
+            .map(|file| file.relative_path.clone())
             .collect();
         assert_eq!(
             paths,
@@ -384,6 +508,51 @@ mod tests {
                 PathBuf::from("src/nested/lib.rs")
             ]
         );
+        // Every scanned file gets a non-zero content identity and a file_key mirroring it.
+        for file in &result.files {
+            assert_ne!(file.content_hash, ContentHash(0));
+            assert_eq!(file.file_key().content_hash, file.content_hash);
+            assert_eq!(file.file_key().relative_path, file.relative_path);
+        }
+    }
+
+    #[test]
+    fn content_hash_is_stable_and_content_sensitive() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/main.py"), b"print('hello')").unwrap();
+
+        let first = scan_repository(&fixture, &ScanConfig::default()).unwrap();
+        let hash_first = first.files[0].content_hash;
+
+        // Re-scan without changes: same hash.
+        let again = scan_repository(&fixture, &ScanConfig::default()).unwrap();
+        assert_eq!(again.files[0].content_hash, hash_first);
+
+        // Change the content: hash changes, path stays.
+        fs::write(fixture.join("src/main.py"), b"print('world')").unwrap();
+        let changed = scan_repository(&fixture, &ScanConfig::default()).unwrap();
+        assert_eq!(changed.files[0].relative_path, PathBuf::from("src/main.py"));
+        assert_ne!(changed.files[0].content_hash, hash_first);
+    }
+
+    #[test]
+    fn semantic_env_fingerprint_tracks_config_not_source() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("Cargo.toml"), b"[package]\nname = \"x\"\n").unwrap();
+        fs::write(fixture.join("src/main.rs"), b"fn main() {}").unwrap();
+
+        let base = compute_semantic_env(&fixture);
+        assert_ne!(base.fingerprint, Default::default());
+
+        // Changing a source file must NOT move the semantic-env fingerprint.
+        fs::write(fixture.join("src/main.rs"), b"fn main() { let _ = 1; }").unwrap();
+        assert_eq!(compute_semantic_env(&fixture).fingerprint, base.fingerprint);
+
+        // Changing Cargo.toml MUST move it.
+        fs::write(fixture.join("Cargo.toml"), b"[package]\nname = \"y\"\n").unwrap();
+        assert_ne!(compute_semantic_env(&fixture).fingerprint, base.fingerprint);
     }
 
     #[test]

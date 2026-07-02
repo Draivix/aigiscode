@@ -18,6 +18,7 @@ pub mod plugins;
 pub mod policy;
 pub mod resolve;
 pub mod review;
+pub mod revision;
 pub mod scanners;
 pub mod security;
 pub mod semantic_models;

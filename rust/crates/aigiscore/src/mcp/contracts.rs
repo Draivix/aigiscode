@@ -141,6 +141,65 @@ pub struct RepoOverviewOutput {
     pub guardian_packets: Vec<GuardianPacketOutput>,
     pub languages: Vec<LanguageCoverageOutput>,
     pub top_findings: Vec<FindingSummaryOutput>,
+    /// Freshness of the answer relative to the live repository. `None` on a plain
+    /// batch run; populated by the daemon (`mcp --watch`) so an agent can tell whether
+    /// the graph reflects its latest edits or is honestly stale. See [`Freshness`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+/// Freshness contract attached to graph-sensitive responses. The load-bearing invariant
+/// of the online daemon: a query always reads the latest published snapshot immediately,
+/// but is told when the daemon has observed newer changes than that snapshot represents.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct Freshness {
+    /// Alias for `indexed_revision` — the revision this answer's snapshot represents.
+    pub revision: u64,
+    /// Highest repository revision represented by the published snapshot.
+    pub indexed_revision: u64,
+    /// Highest repository revision the daemon has observed on disk at answer time.
+    pub observed_revision: u64,
+    /// True when `observed_revision > indexed_revision`, or a requested `min_revision`
+    /// was not satisfied within the wait budget.
+    pub is_stale: bool,
+    /// True when a rebuild is in flight right now.
+    pub rebuilding: bool,
+    /// True if this response satisfied the requested `min_revision`/consistency (always
+    /// true for `latest_available`/`allow_stale` with no `min_revision`).
+    pub consistency_satisfied: bool,
+    /// Total number of paths observed changed since the snapshot (even if the list below
+    /// is capped).
+    pub dirty_path_count: usize,
+    /// Capped sample of dirty paths, for response-size safety.
+    pub dirty_paths: Vec<String>,
+    /// Milliseconds since the Unix epoch when the snapshot was generated.
+    pub generated_at_unix_ms: u64,
+}
+
+/// Requested read consistency for a graph-sensitive tool call.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ConsistencyMode {
+    /// Return the latest published snapshot immediately (may be stale, reported honestly).
+    #[default]
+    LatestAvailable,
+    /// Wait (up to `wait_ms`) until `indexed_revision >= target`, where target is
+    /// `min_revision` if given else the revision observed at request start.
+    WaitUntilIndexed,
+    /// Return immediately; only flag `consistency_satisfied=false` if a given
+    /// `min_revision` is not met.
+    AllowStale,
+}
+
+/// Optional consistency parameters accepted by `repo_overview` (and future graph tools).
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct RepoOverviewParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_revision: Option<u64>,
+    #[serde(default)]
+    pub consistency: ConsistencyMode,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_ms: Option<u64>,
 }
 
 impl RepoOverviewOutput {
@@ -178,6 +237,7 @@ impl RepoOverviewOutput {
                 .map(LanguageCoverageOutput::from_language)
                 .collect(),
             top_findings,
+            freshness: None,
         }
     }
 }

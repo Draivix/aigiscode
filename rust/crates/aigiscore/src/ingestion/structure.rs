@@ -91,10 +91,12 @@ mod tests {
             ScannedFile {
                 relative_path: PathBuf::from("src/main.py"),
                 size_bytes: 10,
+                ..Default::default()
             },
             ScannedFile {
                 relative_path: PathBuf::from("src/core/utils.rs"),
                 size_bytes: 20,
+                ..Default::default()
             },
         ]);
 
@@ -131,6 +133,7 @@ mod tests {
         let graph = build_structure_graph(&[ScannedFile {
             relative_path: PathBuf::from("src/core/utils.rs"),
             size_bytes: 20,
+            ..Default::default()
         }]);
 
         assert!(graph

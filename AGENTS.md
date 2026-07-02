@@ -33,8 +33,17 @@ aigiscode info /path/to/project
 aigiscode plugins
 aigiscode tune /path/to/project
 aigiscode surface /path/to/project
+aigiscode mcp /path/to/project           # native Rust stdio MCP server (one-shot snapshot)
+aigiscode mcp /path/to/project --watch   # live daemon: re-analyze on file changes, serve a freshness contract
 aigiscode --version
 ```
+
+The `mcp --watch` daemon keeps the graph live: a filesystem watcher re-analyzes
+on change and atomically republishes the snapshot, and the `repo_overview` tool
+returns a `Freshness` contract (`revision`/`indexed_revision`/`observed_revision`/
+`is_stale`/`dirty_paths`/`generated_at_unix_ms`) plus optional
+`min_revision`/`consistency`/`wait_ms` params, so an agent editing files is never
+silently served a stale graph. See `docs/ONLINE_CODE_GRAPH_ARCHITECTURE.md`.
 
 `analyze` writes:
 

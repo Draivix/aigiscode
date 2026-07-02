@@ -1,13 +1,17 @@
 mod contracts;
+mod live;
+mod watch;
 
 use self::contracts::{
     build_finding_details, display_path, family_matches, language_matches, path_matches,
-    severity_matches, AtlasOutput, BottleneckOutput, ContractInventoryOutput, ConvergenceOutput,
-    CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams,
-    DoctrineRegistryOutput, ExplainFindingParams, FindingDetailOutput, FindingSummaryOutput,
-    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
-    QualityEvaluationOutput, RepoOverviewOutput, ShowCyclesParams, ShowHotspotsParams,
+    severity_matches, AtlasOutput, BottleneckOutput, ConsistencyMode, ContractInventoryOutput,
+    ConvergenceOutput, CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput,
+    CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams, FindingDetailOutput,
+    FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput,
+    ListFindingsParams, QualityEvaluationOutput, RepoOverviewOutput, RepoOverviewParams,
+    ShowCyclesParams, ShowHotspotsParams,
 };
+use self::live::LiveState;
 use crate::agentic::{
     build_graph_packet_artifact, graph_neighbors_for_file, graph_trace_between_files,
     GraphNeighborsOutput, GraphNeighborsParams, GraphPacketArtifact, GraphTraceOutput,
@@ -46,6 +50,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use thiserror::Error;
 
 const OVERVIEW_URI: &str = "aigiscode://repo/current/overview";
@@ -99,14 +104,21 @@ pub fn run_stdio_server(
     output_dir: Option<PathBuf>,
     write_artifacts: bool,
     write_kuzu: bool,
+    watch: bool,
 ) -> Result<(), McpServerError> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .map_err(McpServerError::Runtime)?;
     runtime.block_on(async move {
+        let watch_root = root.clone();
         let server =
             AigiscodeMcpServer::load(root, output_dir.as_deref(), write_artifacts, write_kuzu)?;
+        // Live mode: a background watcher re-analyzes on change and atomically republishes
+        // the snapshot the (still one-shot-built) server reads through its live handle.
+        if watch {
+            watch::spawn_watch(Arc::clone(&server.live), watch_root);
+        }
         server
             .serve(rmcp::transport::stdio())
             .await?
@@ -170,9 +182,61 @@ impl ServerHandler for AigiscodeMcpServer {
 }
 
 pub struct AigiscodeMcpServer {
-    state: McpState,
+    live: Arc<LiveState<McpState>>,
     tool_router: ToolRouter<Self>,
     prompt_router: PromptRouter<Self>,
+}
+
+/// Run the full batch pipeline once and assemble an [`McpState`] snapshot. Shared by the
+/// initial server load and the watcher's per-change rebuilds so the two never drift.
+fn build_mcp_state(
+    root: &Path,
+    output_dir: Option<&Path>,
+    write_artifacts: bool,
+    write_kuzu: bool,
+) -> Result<McpState, McpServerError> {
+    let analysis = analyze_project(root.to_path_buf(), &ScanConfig::default())?;
+    let artifact_paths = if write_artifacts {
+        write_project_analysis_artifacts(&analysis, output_dir)
+            .map_err(McpServerError::WriteArtifacts)?
+    } else {
+        let output_dir = output_dir
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| analysis.root.join(".aigiscode"));
+        ArtifactPaths {
+            deterministic_analysis: output_dir.join("deterministic-analysis.json"),
+            semantic_graph: output_dir.join("semantic-graph.json"),
+            dependency_graph: output_dir.join("dependency-graph.json"),
+            evidence_graph: output_dir.join("evidence-graph.json"),
+            contract_inventory: output_dir.join("contract-inventory.json"),
+            doctrine_registry: output_dir.join("doctrine-registry.json"),
+            deterministic_findings: output_dir.join("deterministic-findings.json"),
+            ast_grep_scan: output_dir.join("ast-grep-scan.json"),
+            external_analysis: output_dir.join("external-analysis.json"),
+            architecture_surface: output_dir.join("architecture-surface.json"),
+            review_surface: output_dir.join("review-surface.json"),
+            convergence_history: output_dir.join("convergence-history.json"),
+            guard_decision: output_dir.join("guard-decision.json"),
+            agent_handoff: output_dir.join("aigiscode-handoff.json"),
+            agentic_review: output_dir.join("agentic-review.json"),
+            graph_packets: output_dir.join("graph-packets.json"),
+            repository_topology: output_dir.join("repository-topology.json"),
+            aigiscode_report: output_dir.join("aigiscode-report.json"),
+            aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
+            output_dir,
+        }
+    };
+    let kuzu_path = if write_kuzu {
+        Some(write_semantic_graph_kuzu_artifact(
+            &analysis.root,
+            &analysis.semantic_graph,
+            output_dir,
+        )?)
+    } else {
+        let candidate = default_kuzu_path(&analysis.root, output_dir);
+        candidate.exists().then_some(candidate)
+    };
+    McpState::new(analysis, artifact_paths, kuzu_path)
 }
 
 impl AigiscodeMcpServer {
@@ -182,61 +246,31 @@ impl AigiscodeMcpServer {
         write_artifacts: bool,
         write_kuzu: bool,
     ) -> Result<Self, McpServerError> {
-        let analysis = analyze_project(root, &ScanConfig::default())?;
-        let artifact_paths = if write_artifacts {
-            write_project_analysis_artifacts(&analysis, output_dir)
-                .map_err(McpServerError::WriteArtifacts)?
-        } else {
-            let output_dir = output_dir
-                .map(Path::to_path_buf)
-                .unwrap_or_else(|| analysis.root.join(".aigiscode"));
-            ArtifactPaths {
-                deterministic_analysis: output_dir.join("deterministic-analysis.json"),
-                semantic_graph: output_dir.join("semantic-graph.json"),
-                dependency_graph: output_dir.join("dependency-graph.json"),
-                evidence_graph: output_dir.join("evidence-graph.json"),
-                contract_inventory: output_dir.join("contract-inventory.json"),
-                doctrine_registry: output_dir.join("doctrine-registry.json"),
-                deterministic_findings: output_dir.join("deterministic-findings.json"),
-                ast_grep_scan: output_dir.join("ast-grep-scan.json"),
-                external_analysis: output_dir.join("external-analysis.json"),
-                architecture_surface: output_dir.join("architecture-surface.json"),
-                review_surface: output_dir.join("review-surface.json"),
-                convergence_history: output_dir.join("convergence-history.json"),
-                guard_decision: output_dir.join("guard-decision.json"),
-                agent_handoff: output_dir.join("aigiscode-handoff.json"),
-                agentic_review: output_dir.join("agentic-review.json"),
-                graph_packets: output_dir.join("graph-packets.json"),
-                repository_topology: output_dir.join("repository-topology.json"),
-                aigiscode_report: output_dir.join("aigiscode-report.json"),
-                aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
-                output_dir,
-            }
-        };
-        let kuzu_path = if write_kuzu {
-            Some(write_semantic_graph_kuzu_artifact(
-                &analysis.root,
-                &analysis.semantic_graph,
-                output_dir,
-            )?)
-        } else {
-            let candidate = default_kuzu_path(&analysis.root, output_dir);
-            candidate.exists().then_some(candidate)
-        };
-        Self::new(analysis, artifact_paths, kuzu_path)
+        let state = build_mcp_state(&root, output_dir, write_artifacts, write_kuzu)?;
+        Ok(Self::from_state(state))
     }
 
-    fn new(
-        analysis: ProjectAnalysis,
-        artifact_paths: ArtifactPaths,
-        kuzu_path: Option<PathBuf>,
-    ) -> Result<Self, McpServerError> {
-        let state = McpState::new(analysis, artifact_paths, kuzu_path)?;
-        Ok(Self {
-            state,
+    fn from_state(state: McpState) -> Self {
+        Self {
+            live: LiveState::new(state),
             tool_router: Self::tool_router(),
             prompt_router: Self::prompt_router(),
-        })
+        }
+    }
+
+    /// Latest published snapshot + the revision it represents (single atomic load).
+    fn state(&self) -> Arc<live::Published<McpState>> {
+        self.live.load()
+    }
+
+    /// Test-only: mutate the published snapshot in place (clone → mutate → republish),
+    /// so tests can inject synthetic state without a full analysis.
+    #[cfg(test)]
+    fn mutate_state_for_test(&self, mutate: impl FnOnce(&mut McpState)) {
+        let current = self.live.load();
+        let mut state = current.snapshot.clone();
+        mutate(&mut state);
+        self.live.publish(state, current.revision);
     }
 }
 
@@ -245,10 +279,31 @@ impl AigiscodeMcpServer {
 impl AigiscodeMcpServer {
     #[tool(
         name = "repo_overview",
-        description = "Return repository architecture overview, top findings, and artifact locations."
+        description = "Return repository architecture overview, top findings, artifact locations, \
+                       and (under `mcp --watch`) a freshness contract. Accepts optional \
+                       min_revision/consistency/wait_ms to wait for the graph to catch up."
     )]
-    async fn repo_overview(&self) -> Json<RepoOverviewOutput> {
-        Json(self.state.repo_overview.clone())
+    async fn repo_overview(
+        &self,
+        Parameters(params): Parameters<RepoOverviewParams>,
+    ) -> Json<RepoOverviewOutput> {
+        let observed_at_start = self.live.observed();
+        let target = match params.consistency {
+            ConsistencyMode::WaitUntilIndexed => params.min_revision.unwrap_or(observed_at_start),
+            _ => params.min_revision.unwrap_or(0),
+        };
+        let satisfied = if matches!(params.consistency, ConsistencyMode::WaitUntilIndexed) {
+            self.live
+                .wait_for_revision(target, params.wait_ms.unwrap_or(0))
+                .await
+        } else {
+            // latest_available / allow_stale: satisfied unless an unmet min_revision was set.
+            self.live.load().revision >= target
+        };
+        let published = self.live.load();
+        let mut overview = published.snapshot.repo_overview.clone();
+        overview.freshness = Some(self.live.freshness(satisfied));
+        Json(overview)
     }
 
     #[tool(
@@ -261,7 +316,8 @@ impl AigiscodeMcpServer {
     ) -> Json<ListFindingsOutput> {
         let max_items = params.max_items.unwrap_or(100).clamp(1, 500);
         let findings = self
-            .state
+            .state()
+            .snapshot
             .finding_summaries
             .iter()
             .filter(|finding| {
@@ -287,7 +343,8 @@ impl AigiscodeMcpServer {
         &self,
         Parameters(params): Parameters<ExplainFindingParams>,
     ) -> Result<Json<FindingDetailOutput>, String> {
-        self.state
+        self.state()
+            .snapshot
             .finding_details
             .get(&params.finding_id)
             .cloned()
@@ -306,35 +363,40 @@ impl AigiscodeMcpServer {
         let max_items = params.max_items.unwrap_or(20).clamp(1, 100);
         Json(HotspotsOutput {
             hotspots: self
-                .state
+                .state()
+                .snapshot
                 .hotspots
                 .iter()
                 .take(max_items)
                 .cloned()
                 .collect(),
             bottlenecks: self
-                .state
+                .state()
+                .snapshot
                 .bottlenecks
                 .iter()
                 .take(max_items)
                 .cloned()
                 .collect(),
             orphan_files: self
-                .state
+                .state()
+                .snapshot
                 .orphan_files
                 .iter()
                 .take(max_items)
                 .cloned()
                 .collect(),
             boundary_truncated_files: self
-                .state
+                .state()
+                .snapshot
                 .boundary_truncated_files
                 .iter()
                 .take(max_items)
                 .cloned()
                 .collect(),
             runtime_entry_candidates: self
-                .state
+                .state()
+                .snapshot
                 .runtime_entry_candidates
                 .iter()
                 .take(max_items)
@@ -354,7 +416,8 @@ impl AigiscodeMcpServer {
         let max_items = params.max_items.unwrap_or(25).clamp(1, 100);
         Json(CyclesOutput {
             strong_cycles: self
-                .state
+                .state()
+                .snapshot
                 .strong_cycles
                 .iter()
                 .take(max_items)
@@ -363,7 +426,8 @@ impl AigiscodeMcpServer {
             total_cycles: if params.strong_only.unwrap_or(false) {
                 Vec::new()
             } else {
-                self.state
+                self.state()
+                    .snapshot
                     .total_cycles
                     .iter()
                     .take(max_items)
@@ -378,7 +442,7 @@ impl AigiscodeMcpServer {
         description = "Return language coverage, unresolved-reference pressure, and current parity notes."
     )]
     async fn coverage_report(&self) -> Json<CoverageReportOutput> {
-        Json(self.state.coverage.clone())
+        Json(self.state().snapshot.coverage.clone())
     }
 
     #[tool(
@@ -386,7 +450,7 @@ impl AigiscodeMcpServer {
         description = "Return a structured code-quality audit covering architecture, dead code, hardwiring, logic concentration, overengineering suspects, and security pressure."
     )]
     async fn quality_evaluation(&self) -> Json<QualityEvaluationOutput> {
-        Json(self.state.quality.clone())
+        Json(self.state().snapshot.quality.clone())
     }
 
     #[tool(
@@ -394,7 +458,7 @@ impl AigiscodeMcpServer {
         description = "Return graph-connected diff state across runs, including new/worsened/resolved findings, contract deltas, and current attention items."
     )]
     async fn convergence_report(&self) -> Json<ConvergenceOutput> {
-        Json(self.state.convergence.clone())
+        Json(self.state().snapshot.convergence.clone())
     }
 
     #[tool(
@@ -402,7 +466,7 @@ impl AigiscodeMcpServer {
         description = "Return the current doctrine-aware allow/warn/block guard decision derived from diff-local convergence pressure."
     )]
     async fn guard_decision(&self) -> Json<GuardDecisionOutput> {
-        Json(self.state.guard_decision.clone())
+        Json(self.state().snapshot.guard_decision.clone())
     }
 
     #[tool(
@@ -415,7 +479,8 @@ impl AigiscodeMcpServer {
     ) -> Json<GraphPacketArtifact> {
         let max_items = params.max_items.unwrap_or(25).clamp(1, 200);
         let mut packets =
-            self.state
+            self.state()
+                .snapshot
                 .graph_packets
                 .packets
                 .iter()
@@ -487,8 +552,8 @@ impl AigiscodeMcpServer {
                 .collect(),
         };
         Json(GraphPacketArtifact {
-            root: self.state.graph_packets.root.clone(),
-            contract_version: self.state.graph_packets.contract_version.clone(),
+            root: self.state().snapshot.graph_packets.root.clone(),
+            contract_version: self.state().snapshot.graph_packets.contract_version.clone(),
             summary,
             packets: std::mem::take(&mut packets),
         })
@@ -506,7 +571,7 @@ impl AigiscodeMcpServer {
         Json(GraphNeighborsOutput {
             file_path: params.file_path.clone(),
             neighbors: graph_neighbors_for_file(
-                &self.state.semantic_graph,
+                &self.state().snapshot.semantic_graph,
                 &params.file_path,
                 max_items,
             ),
@@ -525,7 +590,7 @@ impl AigiscodeMcpServer {
             start_file_path: params.start_file_path.clone(),
             goal_file_path: params.goal_file_path.clone(),
             paths: graph_trace_between_files(
-                &self.state.semantic_graph,
+                &self.state().snapshot.semantic_graph,
                 &params.start_file_path,
                 &params.goal_file_path,
                 params.max_hops.unwrap_or(5).clamp(1, 12),
@@ -539,7 +604,7 @@ impl AigiscodeMcpServer {
         description = "Return a flatter repository topology over zones, manifests, runtime entries, and cross-zone links."
     )]
     async fn repository_topology(&self) -> Json<RepositoryTopologyArtifact> {
-        Json(self.state.repository_topology.clone())
+        Json(self.state().snapshot.repository_topology.clone())
     }
 
     #[tool(
@@ -550,7 +615,8 @@ impl AigiscodeMcpServer {
         &self,
         Parameters(params): Parameters<CypherQueryParams>,
     ) -> Result<Json<CypherQueryOutput>, String> {
-        let Some(kuzu_path) = self.state.kuzu_path.as_deref() else {
+        let state = self.state();
+        let Some(kuzu_path) = state.snapshot.kuzu_path.as_deref() else {
             return Err(String::from(
                 "Kuzu graph index is not available for this MCP session.",
             ));
@@ -572,7 +638,7 @@ impl AigiscodeMcpServer {
                 format!(
                     "Triage repository {}. Start with the overview, then inspect high-severity \
                      findings and the busiest hotspots first.",
-                    self.state.root
+                    self.state().snapshot.root
                 ),
             ),
             PromptMessage::new_resource_link(
@@ -602,7 +668,7 @@ impl AigiscodeMcpServer {
                 format!(
                     "Write an architecture brief for {}. Summarize the dominant structural risks, \
                      the most coupled files, the cycle pressure, and where coverage is still partial.",
-                    self.state.root
+                    self.state().snapshot.root
                 ),
             ),
             PromptMessage::new_resource_link(
@@ -635,7 +701,7 @@ impl AigiscodeMcpServer {
                 PromptMessageRole::User,
                 format!(
                     "Audit code quality for {}. Focus on architectural flaws, dead code pressure, hardwiring, logic concentration, overengineering suspects, and security pressure. Use the structured quality report and then drill into supporting findings and hotspots.",
-                    self.state.root
+                    self.state().snapshot.root
                 ),
             ),
             PromptMessage::new_resource_link(
@@ -741,71 +807,102 @@ impl AigiscodeMcpServer {
         match uri {
             OVERVIEW_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.repo_overview)?,
+                to_json_pretty(&self.state().snapshot.repo_overview)?,
             )),
             FINDINGS_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&ListFindingsOutput {
-                    total: self.state.finding_summaries.len(),
-                    findings: self.state.finding_summaries.clone(),
+                    total: self.state().snapshot.finding_summaries.len(),
+                    findings: self.state().snapshot.finding_summaries.clone(),
                 })?,
             )),
-            ATLAS_URI => Ok((String::from(uri), to_json_pretty(&self.state.atlas)?)),
+            ATLAS_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state().snapshot.atlas)?,
+            )),
             HOTSPOTS_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&HotspotsOutput {
-                    hotspots: self.state.hotspots.clone(),
-                    bottlenecks: self.state.bottlenecks.clone(),
-                    orphan_files: self.state.orphan_files.clone(),
-                    boundary_truncated_files: self.state.boundary_truncated_files.clone(),
-                    runtime_entry_candidates: self.state.runtime_entry_candidates.clone(),
+                    hotspots: self.state().snapshot.hotspots.clone(),
+                    bottlenecks: self.state().snapshot.bottlenecks.clone(),
+                    orphan_files: self.state().snapshot.orphan_files.clone(),
+                    boundary_truncated_files: self
+                        .state()
+                        .snapshot
+                        .boundary_truncated_files
+                        .clone(),
+                    runtime_entry_candidates: self
+                        .state()
+                        .snapshot
+                        .runtime_entry_candidates
+                        .clone(),
                 })?,
             )),
-            COVERAGE_URI => Ok((String::from(uri), to_json_pretty(&self.state.coverage)?)),
+            COVERAGE_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state().snapshot.coverage)?,
+            )),
             GRAPH_SCHEMA_URI => Ok((String::from(uri), schema_reference_markdown())),
             DEPENDENCY_GRAPH_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.dependency_graph)?,
+                to_json_pretty(&self.state().snapshot.dependency_graph)?,
             )),
             EVIDENCE_GRAPH_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.evidence_graph)?,
+                to_json_pretty(&self.state().snapshot.evidence_graph)?,
             )),
             CONTRACTS_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.contract_inventory)?,
+                to_json_pretty(&self.state().snapshot.contract_inventory)?,
             )),
             DOCTRINE_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.doctrine_registry)?,
+                to_json_pretty(&self.state().snapshot.doctrine_registry)?,
             )),
-            HANDOFF_URI => Ok((String::from(uri), to_json_pretty(&self.state.handoff)?)),
-            CONVERGENCE_URI => Ok((String::from(uri), to_json_pretty(&self.state.convergence)?)),
+            HANDOFF_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state().snapshot.handoff)?,
+            )),
+            CONVERGENCE_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state().snapshot.convergence)?,
+            )),
             GUARD_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.guard_decision)?,
+                to_json_pretty(&self.state().snapshot.guard_decision)?,
             )),
             REPOSITORY_TOPOLOGY_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.repository_topology)?,
+                to_json_pretty(&self.state().snapshot.repository_topology)?,
             )),
             GRAPH_PACKETS_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state.graph_packets)?,
+                to_json_pretty(&self.state().snapshot.graph_packets)?,
             )),
-            QUALITY_URI => Ok((String::from(uri), to_json_pretty(&self.state.quality)?)),
+            QUALITY_URI => Ok((
+                String::from(uri),
+                to_json_pretty(&self.state().snapshot.quality)?,
+            )),
             CYCLES_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&CyclesOutput {
-                    strong_cycles: self.state.strong_cycles.clone(),
-                    total_cycles: self.state.total_cycles.clone(),
+                    strong_cycles: self.state().snapshot.strong_cycles.clone(),
+                    total_cycles: self.state().snapshot.total_cycles.clone(),
                 })?,
             )),
             _ if uri.starts_with(FINDING_URI_PREFIX) => {
                 let finding_id = uri.trim_start_matches(FINDING_URI_PREFIX);
-                let detail = self.state.finding_details.get(finding_id).ok_or_else(|| {
-                    McpError::resource_not_found(format!("unknown finding resource: {uri}"), None)
-                })?;
+                let state = self.state();
+                let detail = state
+                    .snapshot
+                    .finding_details
+                    .get(finding_id)
+                    .ok_or_else(|| {
+                        McpError::resource_not_found(
+                            format!("unknown finding resource: {uri}"),
+                            None,
+                        )
+                    })?;
                 Ok((String::from(uri), to_json_pretty(detail)?))
             }
             _ => Err(McpError::resource_not_found(
@@ -816,7 +913,7 @@ impl AigiscodeMcpServer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct McpState {
     root: String,
     semantic_graph: crate::graph::SemanticGraph,
@@ -1055,10 +1152,11 @@ fn read_json_artifact<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> 
 #[cfg(test)]
 mod tests {
     use super::{
-        AigiscodeMcpServer, CypherQueryParams, ListFindingsParams, ShowHotspotsParams,
-        CONTRACTS_URI, CONVERGENCE_URI, COVERAGE_URI, DEPENDENCY_GRAPH_URI, DOCTRINE_URI,
-        EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_PACKETS_URI, GRAPH_SCHEMA_URI,
-        GUARD_URI, HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI, REPOSITORY_TOPOLOGY_URI,
+        AigiscodeMcpServer, CypherQueryParams, ListFindingsParams, RepoOverviewParams,
+        ShowHotspotsParams, CONTRACTS_URI, CONVERGENCE_URI, COVERAGE_URI, DEPENDENCY_GRAPH_URI,
+        DOCTRINE_URI, EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_PACKETS_URI,
+        GRAPH_SCHEMA_URI, GUARD_URI, HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI,
+        REPOSITORY_TOPOLOGY_URI,
     };
     use crate::agentic::{
         AgenticPrimaryEvidenceRefs, GraphNeighbor, GraphNeighborDirection, GraphNeighborsParams,
@@ -1113,8 +1211,19 @@ fn main() {
         let server =
             AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
 
-        let overview = server.repo_overview().await.0;
+        let overview = server
+            .repo_overview(Parameters(RepoOverviewParams::default()))
+            .await
+            .0;
         assert_eq!(overview.root, fixture.display().to_string());
+        // The MCP server always carries a live handle; without --watch it is simply the
+        // seeded revision 1, not stale, with no dirty paths.
+        let freshness = overview.freshness.expect("mcp overview carries freshness");
+        assert_eq!(freshness.revision, 1);
+        assert_eq!(freshness.indexed_revision, 1);
+        assert_eq!(freshness.observed_revision, 1);
+        assert!(!freshness.is_stale);
+        assert_eq!(freshness.dirty_path_count, 0);
         assert!(overview.overview.dead_code_count >= 1);
         assert!(overview
             .artifact_files
@@ -1459,47 +1568,49 @@ fn helper() {}"#,
         fs::create_dir_all(fixture.join("src")).unwrap();
         fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
 
-        let mut server = AigiscodeMcpServer::load(fixture, None, true, false).unwrap();
-        server.state.graph_packets = GraphPacketArtifact {
-            root: String::from("/tmp/example"),
-            contract_version: String::from("1"),
-            summary: GraphPacketSummary {
-                total_packets: 1,
-                guardian_task_packets: 0,
-                fallback_file_packets: 1,
-                top_anchor_files: vec![String::from("src/primary.rs")],
-            },
-            packets: vec![GraphPacket {
-                id: String::from("packet-1"),
-                kind: GraphPacketKind::FocusFile,
-                title: String::from("Packet"),
-                summary: String::from("Summary"),
-                primary_file_path: String::from("src/primary.rs"),
-                primary_anchor: Some(EvidenceAnchor {
-                    file_path: PathBuf::from("src/anchored.rs"),
-                    line: Some(7),
-                    label: String::from("anchored"),
-                }),
-                evidence_anchors: Vec::new(),
-                locations: Vec::new(),
-                evidence_refs: AgenticPrimaryEvidenceRefs::default(),
-                doctrine_refs: Vec::new(),
-                preferred_mechanism: None,
-                obligations: Vec::new(),
-                relation_histogram: Vec::new(),
-                neighbors: vec![GraphNeighbor {
-                    file_path: String::from("src/neighbor.rs"),
-                    direction: GraphNeighborDirection::Outbound,
-                    edge_count: 1,
-                    aggregate_confidence_millis: 700,
+        let server = AigiscodeMcpServer::load(fixture, None, true, false).unwrap();
+        server.mutate_state_for_test(|state| {
+            state.graph_packets = GraphPacketArtifact {
+                root: String::from("/tmp/example"),
+                contract_version: String::from("1"),
+                summary: GraphPacketSummary {
+                    total_packets: 1,
+                    guardian_task_packets: 0,
+                    fallback_file_packets: 1,
+                    top_anchor_files: vec![String::from("src/primary.rs")],
+                },
+                packets: vec![GraphPacket {
+                    id: String::from("packet-1"),
+                    kind: GraphPacketKind::FocusFile,
+                    title: String::from("Packet"),
+                    summary: String::from("Summary"),
+                    primary_file_path: String::from("src/primary.rs"),
+                    primary_anchor: Some(EvidenceAnchor {
+                        file_path: PathBuf::from("src/anchored.rs"),
+                        line: Some(7),
+                        label: String::from("anchored"),
+                    }),
+                    evidence_anchors: Vec::new(),
+                    locations: Vec::new(),
+                    evidence_refs: AgenticPrimaryEvidenceRefs::default(),
+                    doctrine_refs: Vec::new(),
+                    preferred_mechanism: None,
+                    obligations: Vec::new(),
                     relation_histogram: Vec::new(),
+                    neighbors: vec![GraphNeighbor {
+                        file_path: String::from("src/neighbor.rs"),
+                        direction: GraphNeighborDirection::Outbound,
+                        edge_count: 1,
+                        aggregate_confidence_millis: 700,
+                        relation_histogram: Vec::new(),
+                    }],
+                    graph_traces: Vec::new(),
+                    code_flows: Vec::new(),
+                    source_sink_paths: Vec::new(),
+                    semantic_state_flows: Vec::new(),
                 }],
-                graph_traces: Vec::new(),
-                code_flows: Vec::new(),
-                source_sink_paths: Vec::new(),
-                semantic_state_flows: Vec::new(),
-            }],
-        };
+            };
+        });
 
         let packets = server
             .list_graph_packets(Parameters(ListGraphPacketsParams {
@@ -1512,5 +1623,69 @@ fn helper() {}"#,
 
         assert_eq!(packets.summary.total_packets, 1);
         assert_eq!(packets.packets[0].id, "packet-1");
+    }
+
+    #[tokio::test]
+    async fn daemon_freshness_goes_stale_then_fresh_across_a_rebuild() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, false, false).unwrap();
+        let params = || Parameters(RepoOverviewParams::default());
+
+        // Seeded: revision 1, fresh.
+        let f = server.repo_overview(params()).await.0.freshness.unwrap();
+        assert_eq!(f.indexed_revision, 1);
+        assert!(!f.is_stale);
+
+        // Observe a change exactly as the watcher would: now honestly stale.
+        server.live.mark_dirty([(
+            fixture.join("src/main.rs"),
+            super::live::DirtyKind::Modified,
+        )]);
+        let f = server.repo_overview(params()).await.0.freshness.unwrap();
+        assert_eq!(f.observed_revision, 2);
+        assert_eq!(f.indexed_revision, 1);
+        assert!(f.is_stale);
+        assert_eq!(f.dirty_path_count, 1);
+
+        // Rebuild + publish exactly as the watcher's loop does.
+        let target = server.live.begin_rebuild();
+        let state = super::build_mcp_state(&fixture, None, false, false).unwrap();
+        server.live.publish(state, target);
+
+        let f = server.repo_overview(params()).await.0.freshness.unwrap();
+        assert_eq!(f.indexed_revision, 2);
+        assert_eq!(f.observed_revision, 2);
+        assert!(!f.is_stale);
+        assert_eq!(f.dirty_path_count, 0);
+    }
+
+    #[tokio::test]
+    async fn watcher_observes_a_real_file_change_and_republishes() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, false, false).unwrap();
+
+        super::watch::spawn_watch(std::sync::Arc::clone(&server.live), fixture.clone());
+        // Let the native watcher arm before mutating the tree.
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        fs::write(fixture.join("src/main.rs"), b"fn main() { let _x = 1; }\n").unwrap();
+
+        // Poll for the change to be observed (debounce ~300ms) and a rebuilt snapshot to
+        // be published (rev >= 2). Generous budget to stay non-flaky under load.
+        let mut indexed = 1;
+        for _ in 0..120 {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            indexed = server.live.load().revision;
+            if indexed >= 2 {
+                break;
+            }
+        }
+        assert!(
+            indexed >= 2,
+            "watcher should observe the edit and publish a rebuilt snapshot (indexed={indexed})"
+        );
     }
 }

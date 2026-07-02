@@ -169,6 +169,7 @@ where
                 options.output_dir,
                 options.write_artifacts,
                 options.write_kuzu,
+                options.watch,
             ) {
                 Ok(()) => 0,
                 Err(error) => {
@@ -216,6 +217,8 @@ struct ArtifactOptions {
     write_artifacts: bool,
     write_kuzu: bool,
     external_tools: Vec<String>,
+    /// `mcp --watch`: run as a live daemon that re-analyzes on file changes.
+    watch: bool,
 }
 
 #[derive(Debug)]
@@ -417,6 +420,7 @@ where
     let mut write_artifacts = true;
     let mut write_kuzu = false;
     let mut external_tools = Vec::new();
+    let mut watch = false;
     let mut args = args.into_iter();
 
     while let Some(argument) = args.next() {
@@ -433,6 +437,9 @@ where
             }
             "--kuzu" => {
                 write_kuzu = true;
+            }
+            "--watch" => {
+                watch = true;
             }
             "--external-tool" => {
                 let Some(tool) = args.next() else {
@@ -475,6 +482,7 @@ where
             write_artifacts,
             write_kuzu,
             external_tools,
+            watch,
         },
     )
 }
@@ -734,6 +742,9 @@ fn print_usage_and_exit() -> ! {
           surface       emit architecture surface JSON and write architecture-surface.json\n\
           mcp           start the native Rust stdio MCP server for one repository\n\
           version       print CLI version\n\
+         mcp options:\n\
+         --watch                   run as a live daemon: re-analyze on file changes and\n\
+                                   serve a freshness contract (revision/is_stale/dirty_paths)\n\
          graph options:\n\
          --kuzu                    materialize the optional Kuzu graph artifact beside JSON output\n\
          agent-run options:\n\
@@ -1675,6 +1686,7 @@ const s = "kappa"; const t = "kappa";"#,
                     write_artifacts: true,
                     write_kuzu: false,
                     external_tools: Vec::new(),
+                    watch: false,
                 },
             ),
             0

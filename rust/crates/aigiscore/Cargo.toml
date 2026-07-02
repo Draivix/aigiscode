@@ -6,8 +6,12 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+arc-swap.workspace = true
+ast-grep-core.workspace = true
 ast-grep-language.workspace = true
 globset.workspace = true
+notify.workspace = true
+notify-debouncer-full.workspace = true
 petgraph.workspace = true
 reqwest.workspace = true
 regex.workspace = true
@@ -26,3 +30,4 @@ tree-sitter-ruby.workspace = true
 tree-sitter-rust.workspace = true
 tree-sitter-typescript.workspace = true
 walkdir.workspace = true
+xxhash-rust.workspace = true

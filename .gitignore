@@ -1,5 +1,7 @@
 .aigiscode/
 .aigiscode-self/
+.tmp/
+.omx/
 .plan/
 dist/
 node_modules/
