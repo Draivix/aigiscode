@@ -268,16 +268,30 @@ if (!ready) { throw new Error("boot failed"); }"#,
         .unwrap();
         fs::write(
             fixture.join("src/main.ts"),
-            br#"const a = "alpha"; const b = "alpha";
-const c = "beta"; const d = "beta";
-const e = "gamma"; const f = "gamma";
-const g = "delta"; const h = "delta";
-const i = "epsilon"; const j = "epsilon";
-const k = "zeta"; const l = "zeta";
-const m = "lambda"; const n = "lambda";
-const o = "theta"; const p = "theta";
-const q = "iota"; const r = "iota";
-const s = "kappa"; const t = "kappa";"#,
+            br#"const a = "alpha.v1";
+const c = "beta.v1";
+const e = "gamma.v1";
+const g = "delta.v1";
+const i = "epsilon.v1";
+const k = "zeta.v1";
+const m = "lambda.v1";
+const o = "theta.v1";
+const q = "iota.v1";
+const s = "kappa.v1";"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/other.ts"),
+            br#"const b = "alpha.v1";
+const d = "beta.v1";
+const f = "gamma.v1";
+const h = "delta.v1";
+const j = "epsilon.v1";
+const l = "zeta.v1";
+const n = "lambda.v1";
+const p = "theta.v1";
+const r = "iota.v1";
+const t = "kappa.v1";"#,
         )
         .unwrap();
         let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();

@@ -7366,6 +7366,7 @@ mod tests {
         fs::write(
             fixture.join("src/main.rs"),
             br#"mod models;
+use crate::models::Repo;
 use crate::models::User;
 fn main() {
     let status = "draft";
@@ -7376,7 +7377,11 @@ fn main() {
 "#,
         )
         .unwrap();
-        fs::write(fixture.join("src/models.rs"), b"pub struct User;\n").unwrap();
+        fs::write(
+            fixture.join("src/models.rs"),
+            b"pub struct User;\npub struct Repo;\n",
+        )
+        .unwrap();
 
         let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
         let output_dir = fixture.join("artifacts");

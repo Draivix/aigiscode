@@ -38,7 +38,10 @@ pub struct DeadCodeResult {
     pub findings: Vec<DeadCodeFinding>,
 }
 
-pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
+pub fn analyze_dead_code(
+    graph: &SemanticGraph,
+    parsed_sources: &[(PathBuf, String)],
+) -> DeadCodeResult {
     let called_symbols = graph
         .resolved_edges
         .iter()
@@ -72,6 +75,10 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
         })
         .collect::<Vec<_>>();
 
+    let sources_by_path = parsed_sources
+        .iter()
+        .map(|(path, source)| (path.as_path(), source.as_str()))
+        .collect::<HashMap<_, _>>();
     let used_import_targets = graph
         .resolved_edges
         .iter()
@@ -207,6 +214,18 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
         {
             continue;
         }
+        // Framework facades, attributes, `instanceof` checks, and type
+        // positions often never resolve to graph edges, so a missing resolved
+        // edge is not proof an import is unused. Any mention of the binding
+        // name outside import-like lines suppresses the finding.
+        if sources_by_path
+            .get(reference.file_path.as_path())
+            .is_some_and(|source| {
+                import_name_used_lexically(source, reference.line, &binding_name)
+            })
+        {
+            continue;
+        }
         findings.push(DeadCodeFinding {
             category: DeadCodeCategory::UnusedImport,
             symbol_id: resolved_import.target_symbol_id.clone(),
@@ -233,6 +252,46 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
     });
 
     DeadCodeResult { findings }
+}
+
+fn import_name_used_lexically(source: &str, import_line: usize, name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    source.lines().enumerate().any(|(index, line)| {
+        index + 1 != import_line && !is_import_like_line(line) && line_mentions_word(line, name)
+    })
+}
+
+fn is_import_like_line(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    // PHP `use` doubles as a trait-use statement, which is a real usage of an
+    // imported trait; only namespaced/aliased `use` lines count as imports.
+    if let Some(rest) = trimmed.strip_prefix("use ") {
+        return rest.contains('\\') || rest.contains(" as ");
+    }
+    trimmed.starts_with("import ") || trimmed.starts_with("from ")
+}
+
+fn line_mentions_word(line: &str, name: &str) -> bool {
+    let bytes = line.as_bytes();
+    let mut start = 0;
+    while let Some(position) = line[start..].find(name) {
+        let begin = start + position;
+        let end = begin + name.len();
+        let boundary_before = begin == 0 || !is_word_byte(bytes[begin - 1]);
+        let boundary_after = end >= bytes.len() || !is_word_byte(bytes[end]);
+        if boundary_before && boundary_after {
+            return true;
+        }
+        let step = name.chars().next().map(char::len_utf8).unwrap_or(1);
+        start = begin + step;
+    }
+    false
+}
+
+fn is_word_byte(byte: u8) -> bool {
+    byte == b'_' || byte.is_ascii_alphanumeric()
 }
 
 fn dead_code_fingerprint(category: DeadCodeCategory, file_path: &Path, name: &str) -> String {
@@ -346,7 +405,7 @@ pub fn entry() {
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert_eq!(result.findings.len(), 1);
         assert_eq!(
@@ -355,6 +414,67 @@ pub fn entry() {
         );
         assert_eq!(result.findings[0].name, "unused");
         assert_eq!(result.findings[0].proof_tier, DeadCodeProofTier::Strong);
+    }
+
+    #[test]
+    fn lexical_usage_suppresses_unused_import_but_truly_unused_still_reported() {
+        let importer_path = PathBuf::from("app/Actions/ImpersonateUserAction.php");
+        let importer_source = r#"<?php
+namespace App\Actions;
+
+use App\Models\User;
+use App\Models\Account;
+
+final class ImpersonateUserAction
+{
+    public function handle(object $actor): bool
+    {
+        return $actor instanceof User;
+    }
+}
+"#;
+        let mut graph = parse_php_to_graph(importer_path.clone(), importer_source).unwrap();
+        let mut imported = parse_php_to_graph(
+            PathBuf::from("app/Models/User.php"),
+            r#"<?php
+namespace App\Models;
+
+final class User {}
+"#,
+        )
+        .unwrap();
+        let mut imported_account = parse_php_to_graph(
+            PathBuf::from("app/Models/Account.php"),
+            r#"<?php
+namespace App\Models;
+
+final class Account {}
+"#,
+        )
+        .unwrap();
+        graph.files.append(&mut imported.files);
+        graph.symbols.append(&mut imported.symbols);
+        graph.references.append(&mut imported.references);
+        graph.files.append(&mut imported_account.files);
+        graph.symbols.append(&mut imported_account.symbols);
+        graph.references.append(&mut imported_account.references);
+
+        resolve_graph(&mut graph);
+        let parsed_sources = vec![(importer_path, String::from(importer_source))];
+        let result = analyze_dead_code(&graph, &parsed_sources);
+
+        // `User` only appears via `instanceof`, which never resolves to an
+        // edge; the lexical guard must keep it out of the findings.
+        assert!(!result
+            .findings
+            .iter()
+            .any(|finding| finding.category == DeadCodeCategory::UnusedImport
+                && finding.name == "User"));
+        assert!(result
+            .findings
+            .iter()
+            .any(|finding| finding.category == DeadCodeCategory::UnusedImport
+                && finding.name == "Account"));
     }
 
     #[test]
@@ -385,7 +505,7 @@ pub struct Repo {}
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(result
             .findings
@@ -427,7 +547,7 @@ export class Service {
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(!result
             .findings
@@ -484,7 +604,7 @@ final class FieldLoader
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(!result
             .findings
@@ -529,7 +649,7 @@ final class EntityRegistry
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(!result
             .findings
@@ -557,7 +677,7 @@ class Settings:
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(result
             .findings
@@ -601,7 +721,7 @@ apps = {}
         graph.references.append(&mut registry.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(!result
             .findings
@@ -625,7 +745,7 @@ def outer():
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(result
             .findings
@@ -650,7 +770,7 @@ class Token:
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(result
             .findings
@@ -684,7 +804,7 @@ class Settings:
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph);
+        let result = analyze_dead_code(&graph, &[]);
 
         assert!(!result
             .findings

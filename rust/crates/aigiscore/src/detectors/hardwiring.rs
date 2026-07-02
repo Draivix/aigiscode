@@ -2,7 +2,7 @@ use crate::contracts::ContractLookup;
 use crate::identity::{normalized_path, stable_fingerprint};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -53,6 +53,9 @@ pub fn analyze_hardwiring_with_contracts(
         for (idx, line) in content.lines().enumerate() {
             let line_no = idx + 1;
             let trimmed = line.trim();
+            if is_comment_line(trimmed) {
+                continue;
+            }
 
             for caps in magic_re.captures_iter(line) {
                 let value = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
@@ -107,6 +110,9 @@ pub fn analyze_hardwiring_with_contracts(
                 {
                     continue;
                 }
+                if !is_constant_shaped_literal(value) {
+                    continue;
+                }
                 if should_ignore_repeated_literal(path, trimmed, value, contract_lookup) {
                     continue;
                 }
@@ -120,7 +126,13 @@ pub fn analyze_hardwiring_with_contracts(
     }
 
     for (value, occurrences) in repeated {
-        if occurrences.len() < 2 {
+        // Repetition inside one file is a local style choice; hardwiring drift
+        // is the same literal re-entered across files.
+        let distinct_files = occurrences
+            .iter()
+            .map(|(path, _, _)| path)
+            .collect::<HashSet<_>>();
+        if distinct_files.len() < 2 {
             continue;
         }
         for (file_path, line, context) in occurrences {
@@ -172,6 +184,33 @@ fn hardwiring_category_label(category: HardwiringCategory) -> &'static str {
 fn is_config_like_path(path: &Path) -> bool {
     let normalized = path.to_string_lossy().to_lowercase();
     normalized.contains("config") || normalized.ends_with("build.rs")
+}
+
+fn is_comment_line(trimmed: &str) -> bool {
+    trimmed.starts_with("//")
+        || trimmed.starts_with('*')
+        || trimmed.starts_with("/*")
+        || trimmed.starts_with('#')
+}
+
+// A repeated string only signals hardwired configuration when it has constant
+// DNA: mixed case, digits, or namespace/path/host separators. Bare words and
+// dash-joined tokens are dominated by array keys, metadata field names, and
+// CSS classes, and quote/interpolation characters mean the regex captured a
+// concatenation fragment rather than a literal.
+fn is_constant_shaped_literal(value: &str) -> bool {
+    if value.trim().len() != value.len() {
+        return false;
+    }
+    if value
+        .chars()
+        .any(|c| matches!(c, '\'' | '"' | '$' | '(' | ')' | '%' | '<' | '>' | '=' | '{' | '}'))
+    {
+        return false;
+    }
+    value
+        .chars()
+        .any(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || matches!(c, '.' | '/' | ':' | '@'))
 }
 
 fn should_ignore_repeated_literal(
@@ -288,8 +327,7 @@ fn main() {
     if status == "draft" {}
     let url = "https://api.example.com/v1";
     let mode = std::env::var("APP_MODE").unwrap();
-    let first = "shared-value";
-    let second = "shared-value";
+    let first = "shared.value";
     let _ = mode;
 }
 "#,
@@ -297,7 +335,9 @@ fn main() {
             ),
             (
                 PathBuf::from("src/config.rs"),
-                String::from(r#"fn config() { let _ = std::env::var("APP_MODE"); }"#),
+                String::from(
+                    r#"fn config() { let _ = std::env::var("APP_MODE"); let second = "shared.value"; }"#,
+                ),
             ),
         ]);
 
@@ -322,7 +362,7 @@ fn main() {
                 .iter()
                 .filter(|finding| {
                     finding.category == HardwiringCategory::RepeatedLiteral
-                        && finding.value == "shared-value"
+                        && finding.value == "shared.value"
                 })
                 .count(),
             2
@@ -422,7 +462,7 @@ $screen2 = "<label class=\"screen-reader-text\"></label>";
     }
 
     #[test]
-    fn keeps_plain_code_literals_when_less_than_is_only_a_comparison() {
+    fn bare_word_literals_stay_magic_strings_but_not_repeated_literals() {
         let result = analyze_rust_hardwiring(&[
             (
                 PathBuf::from("src/a.ts"),
@@ -446,8 +486,53 @@ if (kind === "text" && count < limit) {
             ),
         ]);
 
+        // The behavior-gating comparison stays visible as a magic string; the
+        // bare word itself has no constant DNA, so it is not repeated-literal
+        // hardwiring.
         assert!(result.findings.iter().any(|finding| {
+            finding.category == HardwiringCategory::MagicString && finding.value == "text"
+        }));
+        assert!(!result.findings.iter().any(|finding| {
             finding.category == HardwiringCategory::RepeatedLiteral && finding.value == "text"
+        }));
+    }
+
+    #[test]
+    fn skips_comment_lines_and_same_file_repetition_for_repeated_literals() {
+        let result = analyze_rust_hardwiring(&[
+            (
+                PathBuf::from("src/a.php"),
+                String::from(
+                    r#"
+// The "UTF-8" default lives here and in b.php.
+$encoding = "UTF-8";
+$fallback = "UTF-8";
+$local = "only.here";
+$local2 = "only.here";
+"#,
+                ),
+            ),
+            (
+                PathBuf::from("src/b.php"),
+                String::from(r#"$encoding = "UTF-8";"#),
+            ),
+        ]);
+
+        let utf8 = result
+            .findings
+            .iter()
+            .filter(|finding| {
+                finding.category == HardwiringCategory::RepeatedLiteral
+                    && finding.value == "UTF-8"
+            })
+            .collect::<Vec<_>>();
+        // Three code occurrences across two files; the comment mention in
+        // a.php must not add a fourth.
+        assert_eq!(utf8.len(), 3);
+        // Repetition confined to one file is not cross-file drift.
+        assert!(!result.findings.iter().any(|finding| {
+            finding.category == HardwiringCategory::RepeatedLiteral
+                && finding.value == "only.here"
         }));
     }
 }
