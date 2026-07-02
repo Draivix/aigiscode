@@ -444,6 +444,29 @@ fn record_call(
     let Some(function_node) = node.child_by_field_name("function") else {
         return;
     };
+    // Dynamic `import('./x')` (lazy routes, `defineAsyncComponent`, widget
+    // manifests) and CommonJS `require('./x')` load a module without a static
+    // import statement. Record them as imports so lazily-loaded modules are
+    // reachable in the graph.
+    if function_node.kind() == "import"
+        || (function_node.kind() == "identifier" && context.text(function_node) == "require")
+    {
+        if let Some(specifier) = first_string_argument(node, context) {
+            graph.add_reference(SemanticReference {
+                file_path: context.file_path.clone(),
+                enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                kind: ReferenceKind::Import,
+                target_name: specifier,
+                binding_name: None,
+                line: context.line(node),
+                arity: None,
+                receiver_name: None,
+                receiver_type_name: None,
+                call_form: None,
+            });
+        }
+        return;
+    }
     match function_node.kind() {
         "identifier" => {
             graph.add_reference(SemanticReference {
@@ -490,6 +513,31 @@ fn record_call(
         }
         _ => {}
     }
+}
+
+/// Return the value of the first string-literal argument of a call expression,
+/// e.g. the specifier in `import('./x')` / `require('./x')`. Non-literal
+/// arguments (template strings with interpolation, variables) yield `None`.
+fn first_string_argument(node: Node<'_>, context: &JavaScriptContext<'_>) -> Option<String> {
+    let arguments = node.child_by_field_name("arguments")?;
+    for idx in 0..arguments.child_count() {
+        let child = arguments.child(idx as u32)?;
+        match child.kind() {
+            "string" => return Some(context.string_value(child)),
+            "template_string" => {
+                // Only accept templates with no `${...}` substitutions.
+                if !child
+                    .children(&mut child.walk())
+                    .any(|c| c.kind() == "template_substitution")
+                {
+                    return Some(context.string_value(child));
+                }
+                return None;
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn record_constructor_call(
@@ -787,5 +835,39 @@ function helper() {}"#,
                 && reference.target_name == "save"
                 && reference.call_form == Some(CallForm::Member)
         }));
+    }
+
+    #[test]
+    fn records_dynamic_import_and_require_as_imports() {
+        let graph = parse_javascript_to_graph(
+            PathBuf::from("src/manifest.ts"),
+            r#"const widget = () => import('@/widgets/EntityWidget.vue')
+const legacy = require('./legacy/thing')
+const dyn = import(`./${name}.vue`)"#,
+            true,
+        )
+        .unwrap();
+
+        assert!(
+            graph.references.iter().any(|reference| {
+                reference.kind == ReferenceKind::Import
+                    && reference.target_name == "@/widgets/EntityWidget.vue"
+            }),
+            "dynamic import specifier should be an Import reference"
+        );
+        assert!(
+            graph.references.iter().any(|reference| {
+                reference.kind == ReferenceKind::Import && reference.target_name == "./legacy/thing"
+            }),
+            "require specifier should be an Import reference"
+        );
+        // A template string with a `${...}` substitution has no static
+        // specifier and must not produce an import reference.
+        assert!(
+            !graph.references.iter().any(|reference| {
+                reference.kind == ReferenceKind::Import && reference.target_name.contains("${")
+            }),
+            "interpolated dynamic import must not be recorded"
+        );
     }
 }
