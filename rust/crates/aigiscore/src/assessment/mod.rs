@@ -1205,6 +1205,42 @@ struct IdentityVariantAccumulator {
     identity_occurrences: usize,
     variant_counts: HashMap<String, usize>,
     file_counts: HashMap<PathBuf, usize>,
+    code_styles_by_file: HashMap<PathBuf, HashSet<IdentifierStyle>>,
+}
+
+// Identifiers inside string literals are data contracts (array keys, column
+// names, payload fields), not code naming choices; scanning them makes every
+// ORM property / column-name pair look like naming drift.
+fn mask_string_literals(content: &str) -> String {
+    let mut masked = String::with_capacity(content.len());
+    let mut in_quote: Option<char> = None;
+    let mut escaped = false;
+    for ch in content.chars() {
+        match in_quote {
+            Some(quote) => {
+                if ch == '\n' {
+                    in_quote = None;
+                    escaped = false;
+                    masked.push('\n');
+                    continue;
+                }
+                if !escaped && ch == quote {
+                    in_quote = None;
+                }
+                escaped = !escaped && ch == '\\';
+                masked.push(' ');
+            }
+            None => {
+                if matches!(ch, '"' | '\'' | '`') {
+                    in_quote = Some(ch);
+                    masked.push(' ');
+                } else {
+                    masked.push(ch);
+                }
+            }
+        }
+    }
+    masked
 }
 
 fn detect_split_identity_models(
@@ -1216,7 +1252,8 @@ fn detect_split_identity_models(
         if is_low_signal_identity_path(path) {
             continue;
         }
-        for identifier in identifier_pattern().find_iter(content).map(|m| m.as_str()) {
+        let masked = mask_string_literals(content);
+        for identifier in identifier_pattern().find_iter(&masked).map(|m| m.as_str()) {
             let Some((stem, variant_kind)) = classify_identity_variant(identifier) else {
                 continue;
             };
@@ -1230,6 +1267,16 @@ fn detect_split_identity_models(
                 .entry(String::from(identifier))
                 .or_default() += 1;
             *group.file_counts.entry(path.clone()).or_default() += 1;
+            // Pascal is excluded: type names are conventionally Pascal while
+            // members are camel/snake, so that mix is not drift.
+            let style = identifier_style(identifier);
+            if matches!(style, IdentifierStyle::Snake | IdentifierStyle::Camel) {
+                group
+                    .code_styles_by_file
+                    .entry(path.clone())
+                    .or_default()
+                    .insert(style);
+            }
         }
     }
 
@@ -1250,6 +1297,16 @@ fn detect_split_identity_models(
                 .variant_counts
                 .keys()
                 .all(|variant| has_accessor_prefix(variant))
+            {
+                return None;
+            }
+            // Object-form and id-form of one concept coexisting across layers
+            // is how relational code normally looks. The drift signal is a
+            // single file mixing snake and camel spellings in code positions.
+            if !group
+                .code_styles_by_file
+                .values()
+                .any(|styles| styles.len() >= 2)
             {
                 return None;
             }
@@ -3643,7 +3700,8 @@ mod tests {
                     PathBuf::from("app/Support/Assignments.php"),
                     String::from(
                         r#"
-                        $payload['assigned_user_id'] = $assignedUserId;
+                        $assigned_user_id = $assignedUserId;
+                        $payload['assigned_user_id'] = $assigned_user_id;
                     "#,
                     ),
                 ),
