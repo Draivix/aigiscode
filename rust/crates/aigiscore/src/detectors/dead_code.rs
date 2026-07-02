@@ -1,4 +1,6 @@
-use crate::graph::{ReferenceKind, SemanticGraph, SymbolKind, SymbolNode, Visibility};
+use crate::graph::{
+    ReferenceKind, ResolvedEdge, SemanticGraph, SymbolKind, SymbolNode, Visibility,
+};
 use crate::identity::{normalized_path, stable_fingerprint};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -90,6 +92,16 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
             )
         })
         .collect::<HashMap<_, _>>();
+    // (source file, line) -> resolved edges at that location, in edge order.
+    // Linear scans of `resolved_edges` per reference are O(references x edges)
+    // and dominate analysis time on large repositories.
+    let mut edges_by_location = HashMap::<(&Path, usize), Vec<&ResolvedEdge>>::new();
+    for edge in &graph.resolved_edges {
+        edges_by_location
+            .entry((edge.source_file_path.as_path(), edge.line))
+            .or_default()
+            .push(edge);
+    }
     let mut receiver_targets_by_binding = HashMap::<(PathBuf, String), HashSet<String>>::new();
     for reference in graph
         .references
@@ -100,14 +112,11 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
             continue;
         };
         let binding_name = leaf_symbol_name(receiver_name);
-        let matching_targets = graph
-            .resolved_edges
-            .iter()
-            .filter(|edge| {
-                edge.kind == reference.kind
-                    && edge.source_file_path == reference.file_path
-                    && edge.line == reference.line
-            })
+        let matching_targets = edges_by_location
+            .get(&(reference.file_path.as_path(), reference.line))
+            .into_iter()
+            .flatten()
+            .filter(|edge| edge.kind == reference.kind)
             .filter_map(|edge| symbols_by_id.get(&edge.target_symbol_id))
             .flat_map(|(name, _, owner_type_name)| {
                 owner_type_name
@@ -129,15 +138,16 @@ pub fn analyze_dead_code(graph: &SemanticGraph) -> DeadCodeResult {
         if is_package_export_surface(reference.file_path.as_path()) {
             continue;
         }
-        let candidate_edges = graph
-            .resolved_edges
-            .iter()
-            .filter(|edge| {
-                edge.kind == ReferenceKind::Import
-                    && edge.source_file_path == reference.file_path
-                    && edge.line == reference.line
+        let candidate_edges = edges_by_location
+            .get(&(reference.file_path.as_path(), reference.line))
+            .map(|edges| {
+                edges
+                    .iter()
+                    .filter(|edge| edge.kind == ReferenceKind::Import)
+                    .copied()
+                    .collect::<Vec<_>>()
             })
-            .collect::<Vec<_>>();
+            .unwrap_or_default();
         let resolved_import = candidate_edges
             .iter()
             .find(|edge| {

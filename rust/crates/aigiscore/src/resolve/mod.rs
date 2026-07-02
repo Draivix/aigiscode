@@ -118,13 +118,21 @@ impl ResolutionContext {
                 .push(definition);
         }
 
+        // Built once: per-reference reconstruction is O(imports x files) and
+        // dominated resolve time on large repositories.
+        let known_files = graph
+            .files
+            .iter()
+            .map(|file| file.path.clone())
+            .collect::<HashSet<_>>();
+
         for reference in &graph.references {
             if reference.kind != ReferenceKind::Import {
                 continue;
             }
 
             let import_targets =
-                resolve_import_paths(reference, graph, &context.language_map, config);
+                resolve_import_paths(reference, &known_files, &context.language_map, config);
             if import_targets.is_empty() {
                 continue;
             }
@@ -971,15 +979,10 @@ fn leaf_symbol_name(name: &str) -> String {
 
 fn resolve_import_paths(
     reference: &SemanticReference,
-    graph: &SemanticGraph,
+    known_files: &HashSet<PathBuf>,
     language_map: &HashMap<PathBuf, Language>,
     config: &ResolveConfig,
 ) -> HashSet<PathBuf> {
-    let known_files = graph
-        .files
-        .iter()
-        .map(|file| file.path.clone())
-        .collect::<HashSet<_>>();
     let Some(language) = language_map
         .get(&reference.file_path)
         .copied()

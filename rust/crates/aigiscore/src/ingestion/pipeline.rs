@@ -325,10 +325,12 @@ pub fn build_semantic_graph_project(
         "resolve complete resolved_edges={} elapsed_ms={resolve_elapsed}",
         semantic_graph.resolved_edges.len()
     ));
+    let plugins_started = Instant::now();
     apply_runtime_plugins(&RepoContext::new(root.clone()), &mut semantic_graph);
     trace(&format!(
-        "runtime plugins complete resolved_edges={}",
-        semantic_graph.resolved_edges.len()
+        "runtime plugins complete resolved_edges={} elapsed_ms={}",
+        semantic_graph.resolved_edges.len(),
+        plugins_started.elapsed().as_millis()
     ));
 
     Ok(SemanticGraphProject {

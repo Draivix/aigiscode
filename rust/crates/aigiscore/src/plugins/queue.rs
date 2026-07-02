@@ -2,7 +2,7 @@ use crate::graph::{
     EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, RelationKind, ResolutionTier,
     ResolvedEdge, SemanticGraph, SymbolKind,
 };
-use crate::plugins::{RepoContext, RuntimePlugin};
+use crate::plugins::{import_targets_by_binding, leaf_symbol_name, RepoContext, RuntimePlugin};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -19,7 +19,9 @@ impl RuntimePlugin for QueueDispatchPlugin {
             .iter()
             .map(|symbol| (symbol.id.clone(), symbol))
             .collect::<HashMap<_, _>>();
-        let import_targets = import_targets_by_binding(graph, &symbols_by_id);
+        let import_targets = import_targets_by_binding(graph, &symbols_by_id, |symbol| {
+            matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct)
+        });
         let same_file_symbols = same_file_symbol_targets(graph);
         let mut emitted = HashSet::<(PathBuf, String, usize)>::new();
         let mut edges = Vec::new();
@@ -99,44 +101,6 @@ fn resolve_dispatch_target(
         })
 }
 
-fn import_targets_by_binding(
-    graph: &SemanticGraph,
-    symbols_by_id: &HashMap<String, &crate::graph::SymbolNode>,
-) -> HashMap<(PathBuf, String), (String, PathBuf)> {
-    let mut targets = HashMap::new();
-
-    for reference in graph
-        .references
-        .iter()
-        .filter(|reference| reference.kind == ReferenceKind::Import)
-    {
-        let binding_name = reference
-            .binding_name
-            .clone()
-            .unwrap_or_else(|| leaf_symbol_name(&reference.target_name));
-        let resolved_import = graph.resolved_edges.iter().find(|edge| {
-            edge.kind == ReferenceKind::Import
-                && edge.source_file_path == reference.file_path
-                && edge.line == reference.line
-        });
-        let Some(resolved_import) = resolved_import else {
-            continue;
-        };
-        let Some(symbol) = symbols_by_id.get(&resolved_import.target_symbol_id) else {
-            continue;
-        };
-        if !matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct) {
-            continue;
-        }
-        targets.insert(
-            (reference.file_path.clone(), binding_name),
-            (symbol.id.clone(), symbol.file_path.clone()),
-        );
-    }
-
-    targets
-}
-
 fn same_file_symbol_targets(
     graph: &SemanticGraph,
 ) -> HashMap<(PathBuf, String), (String, PathBuf)> {
@@ -151,23 +115,6 @@ fn same_file_symbol_targets(
             )
         })
         .collect()
-}
-
-fn leaf_symbol_name(name: &str) -> String {
-    name.trim_matches(&['{', '}'][..])
-        .rsplit("::")
-        .next()
-        .unwrap_or(name)
-        .rsplit('\\')
-        .next()
-        .unwrap_or(name)
-        .rsplit('.')
-        .next()
-        .unwrap_or(name)
-        .rsplit('/')
-        .next()
-        .unwrap_or(name)
-        .to_owned()
 }
 
 #[cfg(test)]

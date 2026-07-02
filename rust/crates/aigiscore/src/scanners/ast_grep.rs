@@ -1,12 +1,14 @@
 use crate::scanners::framework_catalogs::{
     framework_complexity_catalogs_for_file, framework_misuse_catalogs_for_file,
 };
+use ast_grep_core::Pattern;
 use ast_grep_language::{LanguageExt, SupportLang};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -662,6 +664,44 @@ const RUST_FRAMEWORK_MISUSE_RULE_SET: AstGrepFrameworkMisuseRuleSet =
 
 const AST_GREP_MAX_FILE_BYTES: usize = 150_000;
 
+// `find_all(&str)` recompiles the pattern for every node visited, which makes
+// scan cost proportional to pattern-count x node-count. Compile each static
+// rule pattern once per language and reuse it across all files.
+fn compiled_pattern(language: SupportLang, source: &'static str) -> &'static Pattern {
+    static CACHE: OnceLock<Mutex<HashMap<(SupportLang, &'static str), &'static Pattern>>> =
+        OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut cache = cache
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    cache
+        .entry((language, source))
+        .or_insert_with(|| Box::leak(Box::new(Pattern::new(source, language))))
+}
+
+// ast-grep reads `$` + uppercase/underscore as a metavariable, so a PHP
+// superglobal pattern like `$_ENV[...]` compiles to "any subscript expression"
+// and over-matches every array access. Anchor those patterns back to their
+// literal superglobal prefix at match time.
+fn pattern_literal_anchor(pattern: &str) -> Option<&str> {
+    if !pattern.starts_with("$_") {
+        return None;
+    }
+    pattern.find('[').map(|end| &pattern[..end])
+}
+
+fn trace_slow_pattern(path: &Path, rule_id: &str, pattern: &str, matches: usize, started: Instant) {
+    let elapsed = started.elapsed().as_millis();
+    if elapsed >= 100 {
+        trace(&format!(
+            "ast_grep.pattern_slow path={} rule={} pattern={:?} matches={matches} elapsed_ms={elapsed}",
+            path.display(),
+            rule_id,
+            pattern,
+        ));
+    }
+}
+
 pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanResult {
     let scan_started = Instant::now();
     trace(&format!(
@@ -724,11 +764,24 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
 
         if prefilter.complexity {
             if let Some(rule_set) = complexity_rule_set_for_path(path) {
+                let loop_patterns = rule_set
+                    .loop_patterns
+                    .iter()
+                    .map(|loop_pattern| compiled_pattern(language, loop_pattern))
+                    .collect::<Vec<_>>();
                 for rule in rule_set.rules {
                     for pattern in rule.patterns {
-                        for matched in root.find_all(pattern) {
-                            if !rule_set
-                                .loop_patterns
+                        let pattern_started = Instant::now();
+                        let mut pattern_matches = 0usize;
+                        let literal_anchor = pattern_literal_anchor(pattern);
+                        for matched in root.find_all(compiled_pattern(language, pattern)) {
+                            pattern_matches += 1;
+                            if literal_anchor
+                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
+                            {
+                                continue;
+                            }
+                            if !loop_patterns
                                 .iter()
                                 .any(|loop_pattern| matched.inside(*loop_pattern))
                             {
@@ -764,14 +817,34 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                                 },
                             });
                         }
+                        trace_slow_pattern(
+                            path,
+                            rule.rule_id,
+                            pattern,
+                            pattern_matches,
+                            pattern_started,
+                        );
                     }
                 }
             }
             for catalog in framework_complexity_catalogs_for_file(path, source) {
+                let loop_patterns = rule_set_loop_patterns_for_catalog(catalog)
+                    .iter()
+                    .map(|loop_pattern| compiled_pattern(language, loop_pattern))
+                    .collect::<Vec<_>>();
                 for rule in catalog.rules {
                     for pattern in rule.patterns {
-                        for matched in root.find_all(pattern) {
-                            if !rule_set_loop_patterns_for_catalog(catalog)
+                        let pattern_started = Instant::now();
+                        let mut pattern_matches = 0usize;
+                        let literal_anchor = pattern_literal_anchor(pattern);
+                        for matched in root.find_all(compiled_pattern(language, pattern)) {
+                            pattern_matches += 1;
+                            if literal_anchor
+                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
+                            {
+                                continue;
+                            }
+                            if !loop_patterns
                                 .iter()
                                 .any(|loop_pattern| matched.inside(*loop_pattern))
                             {
@@ -807,6 +880,13 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                                 },
                             });
                         }
+                        trace_slow_pattern(
+                            path,
+                            rule.rule_id,
+                            pattern,
+                            pattern_matches,
+                            pattern_started,
+                        );
                     }
                 }
             }
@@ -816,7 +896,16 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
             if let Some(security_rule_set) = security_rule_set_for_path(path) {
                 for rule in security_rule_set.rules {
                     for pattern in rule.patterns {
-                        for matched in root.find_all(pattern) {
+                        let pattern_started = Instant::now();
+                        let mut pattern_matches = 0usize;
+                        let literal_anchor = pattern_literal_anchor(pattern);
+                        for matched in root.find_all(compiled_pattern(language, pattern)) {
+                            pattern_matches += 1;
+                            if literal_anchor
+                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
+                            {
+                                continue;
+                            }
                             let line = matched.start_pos().line() + 1;
                             let token = compact_snippet(&matched.text());
                             let key = format!(
@@ -847,6 +936,13 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                                 },
                             });
                         }
+                        trace_slow_pattern(
+                            path,
+                            rule.rule_id,
+                            pattern,
+                            pattern_matches,
+                            pattern_started,
+                        );
                     }
                 }
             }
@@ -858,7 +954,16 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                 if let Some(framework_rule_set) = framework_misuse_rule_set_for_path(path) {
                     for rule in framework_rule_set.rules {
                         for pattern in rule.patterns {
-                            for matched in root.find_all(pattern) {
+                            let pattern_started = Instant::now();
+                            let mut pattern_matches = 0usize;
+                            let literal_anchor = pattern_literal_anchor(pattern);
+                            for matched in root.find_all(compiled_pattern(language, pattern)) {
+                                pattern_matches += 1;
+                                if literal_anchor
+                                    .is_some_and(|anchor| !matched.text().starts_with(anchor))
+                                {
+                                    continue;
+                                }
                                 let line = matched.start_pos().line() + 1;
                                 let token = compact_snippet(&matched.text());
                                 let key = format!(
@@ -888,6 +993,13 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                                     },
                                 });
                             }
+                            trace_slow_pattern(
+                                path,
+                                rule.rule_id,
+                                pattern,
+                                pattern_matches,
+                                pattern_started,
+                            );
                         }
                     }
                 }
@@ -896,7 +1008,16 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
             for catalog in framework_catalogs {
                 for rule in catalog.rules {
                     for pattern in rule.patterns {
-                        for matched in root.find_all(pattern) {
+                        let pattern_started = Instant::now();
+                        let mut pattern_matches = 0usize;
+                        let literal_anchor = pattern_literal_anchor(pattern);
+                        for matched in root.find_all(compiled_pattern(language, pattern)) {
+                            pattern_matches += 1;
+                            if literal_anchor
+                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
+                            {
+                                continue;
+                            }
                             let line = matched.start_pos().line() + 1;
                             let token = compact_snippet(&matched.text());
                             let key = format!(
@@ -926,6 +1047,13 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                                 },
                             });
                         }
+                        trace_slow_pattern(
+                            path,
+                            rule.rule_id,
+                            pattern,
+                            pattern_matches,
+                            pattern_started,
+                        );
                     }
                 }
             }
@@ -1487,6 +1615,42 @@ def build():
                 panic!("expected framework misuse finding")
             }
         }
+    }
+
+    #[test]
+    fn php_superglobal_pattern_matches_only_literal_superglobal_access() {
+        let result = run_ast_grep_scan(&[(
+            PathBuf::from("app/Services/ReportService.phtml"),
+            String::from(
+                r#"
+<?php
+
+final class ReportService
+{
+    public function build(array $row): array
+    {
+        $mode = $_ENV['APP_MODE'];
+        return [$row['id'], $row['name'], $mode];
+    }
+}
+"#,
+            ),
+        )]);
+
+        let env_findings = result
+            .findings
+            .iter()
+            .filter(|finding| {
+                matches!(
+                    finding.kind,
+                    AstGrepFindingKind::FrameworkMisuse {
+                        subtype: AstGrepFrameworkMisuseSubtype::RawEnvOutsideConfig,
+                    }
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(env_findings.len(), 1);
+        assert!(env_findings[0].token.starts_with("$_ENV["));
     }
 
     #[test]

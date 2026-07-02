@@ -2,7 +2,7 @@ use crate::graph::{
     CallForm, EdgeOrigin, EdgeStrength, GraphLayer, Language, ReferenceKind, RelationKind,
     ResolutionTier, ResolvedEdge, SemanticGraph, SymbolKind,
 };
-use crate::plugins::{RepoContext, RuntimePlugin};
+use crate::plugins::{import_targets_by_binding, leaf_symbol_name, RepoContext, RuntimePlugin};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -22,7 +22,20 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             .iter()
             .map(|symbol| (symbol.id.clone(), symbol))
             .collect::<HashMap<_, _>>();
-        let import_targets = import_targets_by_binding(graph, &symbols_by_id);
+        let import_targets = import_targets_by_binding(graph, &symbols_by_id, |symbol| {
+            matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+        })
+        .into_iter()
+        .map(|(binding, (symbol_id, file_path))| {
+            (
+                binding,
+                SignalCallbackTarget {
+                    symbol_id,
+                    file_path,
+                },
+            )
+        })
+        .collect::<HashMap<_, _>>();
         let same_file_functions = same_file_function_targets(graph);
         let global_unique_functions = global_unique_function_targets(graph);
         let methods_by_owner_and_name = methods_by_owner_and_name(graph);
@@ -57,11 +70,7 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             let Some(callback_name) = captures.name("callback").map(|value| value.as_str()) else {
                 continue;
             };
-            let Some(signal_name) = reference
-                .receiver_name
-                .as_deref()
-                .map(normalize_symbol_name)
-            else {
+            let Some(signal_name) = reference.receiver_name.as_deref().map(leaf_symbol_name) else {
                 continue;
             };
             let Some(target) = resolve_callback_target(
@@ -93,11 +102,7 @@ impl RuntimePlugin for SignalCallbacksPlugin {
         }
 
         for reference in graph.references.iter().filter(is_signal_send_reference) {
-            let Some(signal_name) = reference
-                .receiver_name
-                .as_deref()
-                .map(normalize_symbol_name)
-            else {
+            let Some(signal_name) = reference.receiver_name.as_deref().map(leaf_symbol_name) else {
                 continue;
             };
             let Some(callbacks) = registrations.get(&signal_name) else {
@@ -153,7 +158,7 @@ fn scan_receiver_decorators(
             };
             let Some(signal_name) = captures
                 .name("signal")
-                .map(|value| normalize_symbol_name(value.as_str()))
+                .map(|value| leaf_symbol_name(value.as_str()))
             else {
                 index += 1;
                 continue;
@@ -280,7 +285,7 @@ fn resolve_callback_target(
                 .and_then(|symbol| symbol.owner_type_name.as_ref().or(Some(&symbol.name)))
                 .cloned()
         } else {
-            Some(normalize_symbol_name(owner))
+            Some(leaf_symbol_name(owner))
         }?;
         if let Some(target) = methods_by_owner_and_name
             .get(&(owner_name, method.to_owned()))
@@ -290,7 +295,7 @@ fn resolve_callback_target(
         }
     }
 
-    let binding_name = normalize_symbol_name(callback_name);
+    let binding_name = leaf_symbol_name(callback_name);
     import_targets
         .get(&(reference.file_path.clone(), binding_name.clone()))
         .cloned()
@@ -300,47 +305,6 @@ fn resolve_callback_target(
                 .cloned()
         })
         .or_else(|| global_unique_functions.get(&binding_name).cloned())
-}
-
-fn import_targets_by_binding(
-    graph: &SemanticGraph,
-    symbols_by_id: &HashMap<String, &crate::graph::SymbolNode>,
-) -> HashMap<(PathBuf, String), SignalCallbackTarget> {
-    let mut targets = HashMap::new();
-
-    for reference in graph
-        .references
-        .iter()
-        .filter(|reference| reference.kind == ReferenceKind::Import)
-    {
-        let binding_name = reference
-            .binding_name
-            .clone()
-            .unwrap_or_else(|| normalize_symbol_name(&reference.target_name));
-        let resolved_import = graph.resolved_edges.iter().find(|edge| {
-            edge.kind == ReferenceKind::Import
-                && edge.source_file_path == reference.file_path
-                && edge.line == reference.line
-        });
-        let Some(resolved_import) = resolved_import else {
-            continue;
-        };
-        let Some(symbol) = symbols_by_id.get(&resolved_import.target_symbol_id) else {
-            continue;
-        };
-        if !matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method) {
-            continue;
-        }
-        targets.insert(
-            (reference.file_path.clone(), binding_name),
-            SignalCallbackTarget {
-                symbol_id: symbol.id.clone(),
-                file_path: symbol.file_path.clone(),
-            },
-        );
-    }
-
-    targets
 }
 
 fn same_file_function_targets(
@@ -440,24 +404,6 @@ fn source_snippet(
     let start = line.saturating_sub(1);
     let end = (start + context_after + 1).min(lines.len());
     Some(lines[start..end].join(" "))
-}
-
-fn normalize_symbol_name(name: &str) -> String {
-    name.trim()
-        .trim_matches(&['{', '}'][..])
-        .rsplit("::")
-        .next()
-        .unwrap_or(name)
-        .rsplit('\\')
-        .next()
-        .unwrap_or(name)
-        .rsplit('.')
-        .next()
-        .unwrap_or(name)
-        .rsplit('/')
-        .next()
-        .unwrap_or(name)
-        .to_owned()
 }
 
 fn connect_call_regex() -> &'static Regex {
