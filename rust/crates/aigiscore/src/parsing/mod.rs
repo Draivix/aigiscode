@@ -3,6 +3,7 @@ pub mod php;
 pub mod python;
 pub mod ruby;
 pub mod rust;
+pub mod vue;
 
 use crate::graph::{Language, SemanticGraph, SymbolKind, SymbolNode, Visibility};
 use std::path::{Path, PathBuf};
@@ -37,6 +38,7 @@ pub fn parse_source_file(
         Some("ts") | Some("tsx") => Ok(javascript::parse_javascript_to_graph(
             file_path, source, true,
         )?),
+        Some("vue") => Ok(vue::parse_vue_to_graph(file_path, source)?),
         Some("php") | Some("phtml") | Some("php3") | Some("php4") | Some("php5") | Some("php8") => {
             Ok(php::parse_php_to_graph(file_path, source)?)
         }
@@ -54,6 +56,7 @@ pub fn is_supported_source_file(path: &Path) -> bool {
                 | "jsx"
                 | "ts"
                 | "tsx"
+                | "vue"
                 | "php"
                 | "phtml"
                 | "php3"

@@ -1095,7 +1095,7 @@ fn javascript_candidate_paths(base: &Path) -> Vec<PathBuf> {
     }
 
     let mut candidates = Vec::new();
-    for extension in ["js", "jsx", "ts", "tsx"] {
+    for extension in ["js", "jsx", "ts", "tsx", "vue"] {
         candidates.push(normalize_relative_path(&base.with_extension(extension)));
         candidates.push(normalize_relative_path(
             &base.join(format!("index.{extension}")),
@@ -1521,7 +1521,7 @@ fn discover_ruby_load_paths(root: &Path) -> Vec<PathBuf> {
 fn infer_language(path: &Path) -> Option<Language> {
     match path.extension().and_then(|extension| extension.to_str()) {
         Some("js" | "jsx") => Some(Language::JavaScript),
-        Some("ts" | "tsx") => Some(Language::TypeScript),
+        Some("ts" | "tsx" | "vue") => Some(Language::TypeScript),
         Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => Some(Language::Php),
         Some("py") => Some(Language::Python),
         Some("rb" | "rake") => Some(Language::Ruby),
