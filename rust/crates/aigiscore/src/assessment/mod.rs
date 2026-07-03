@@ -8,6 +8,7 @@ use crate::scanners::ast_grep::{
     run_ast_grep_scan, AstGrepComplexitySubtype, AstGrepFindingKind, AstGrepFrameworkMisuseSubtype,
     AstGrepScanResult,
 };
+use crate::scanners::framework_catalogs::{dispatch_mechanism_catalogs_for_file, MechanismMarkerKind};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
@@ -2922,50 +2923,38 @@ fn is_dependency_boundary_path(path: &Path) -> bool {
         || normalized.ends_with("/container.rs")
 }
 
+/// Generic dispatch-mechanism classifier. The vocabulary of what counts as a
+/// lifecycle hook / event bus / queue job / notification is framework-specific
+/// data owned by `scanners::framework_catalogs`, gated by language so a framework's
+/// idioms never match a foreign-language file. This keeps the `DuplicateMechanism`
+/// engine (grouping by concept, family-set thresholds, scoring) framework-agnostic.
 fn detect_mechanism_families(path: &Path, content: &str) -> BTreeSet<String> {
     let mut families = BTreeSet::new();
+    let catalogs = dispatch_mechanism_catalogs_for_file(path, content);
+    if catalogs.is_empty() {
+        return families;
+    }
     let normalized_path = path
         .to_string_lossy()
         .replace('\\', "/")
         .to_ascii_lowercase();
     let normalized_content = content.to_ascii_lowercase();
 
-    if normalized_path.contains("/hooks/")
-        || normalized_path.ends_with(".hook.php")
-        || normalized_path.ends_with(".hooks.php")
-        || normalized_content.contains("add_action(")
-        || normalized_content.contains("add_filter(")
-        || normalized_content.contains("beforesave")
-        || normalized_content.contains("aftersave")
-    {
-        families.insert(String::from("lifecycle_hooks"));
-    }
-
-    if normalized_path.contains("/listeners/")
-        || normalized_content.contains("event")
-            && (normalized_content.contains("listener")
-                || normalized_content.contains("subscribe")
-                || normalized_content.contains("dispatchesevents")
-                || normalized_content.contains("signal")
-                || normalized_content.contains("emit")
-                || normalized_content.contains("publish"))
-    {
-        families.insert(String::from("event_bus"));
-    }
-
-    if normalized_path.contains("/jobs/")
-        || normalized_content.contains("shouldqueue")
-        || normalized_content.contains("->onqueue(")
-        || normalized_content.contains("::dispatch(")
-        || normalized_content.contains(" dispatch(")
-        || normalized_content.contains(" queue")
-        || normalized_content.contains(" job")
-    {
-        families.insert(String::from("queue_jobs"));
-    }
-
-    if direct_notification_pattern().is_match(&normalized_content) {
-        families.insert(String::from("direct_notifications"));
+    for catalog in catalogs {
+        for marker in catalog.markers {
+            let haystack = match marker.kind {
+                MechanismMarkerKind::PathContains => &normalized_path,
+                MechanismMarkerKind::ContentContains => &normalized_content,
+            };
+            if haystack.contains(marker.needle) {
+                families.insert(marker.family.to_string());
+            }
+        }
+        if let Some(pattern) = catalog.notification_pattern {
+            if pattern().is_match(&normalized_content) {
+                families.insert(String::from("direct_notifications"));
+            }
+        }
     }
 
     families
@@ -3595,16 +3584,6 @@ fn compatibility_keyword_pattern() -> &'static Regex {
     })
 }
 
-fn direct_notification_pattern() -> &'static Regex {
-    static DIRECT_NOTIFICATION_PATTERN: OnceLock<Regex> = OnceLock::new();
-    DIRECT_NOTIFICATION_PATTERN.get_or_init(|| {
-        Regex::new(
-            r"(?i)(\bwp_mail\s*\(|\bmail\s*\(|\bmail::send\s*\(|\bsendmail\b|\bmailer\b|\bnotify\s*\(|->notify\s*\(|::notify\s*\(|\bphpmailer\b)",
-        )
-        .unwrap()
-    })
-}
-
 fn parsing_primitive_pattern() -> &'static Regex {
     static PARSING_PRIMITIVE_PATTERN: OnceLock<Regex> = OnceLock::new();
     PARSING_PRIMITIVE_PATTERN.get_or_init(|| {
@@ -3732,7 +3711,7 @@ fn is_low_signal_identity_path(path: &Path) -> bool {
 mod tests {
     use super::{
         build_architectural_assessment, build_architectural_assessment_with_ast_grep_and_graph,
-        ArchitecturalAssessmentKind,
+        detect_mechanism_families, ArchitecturalAssessmentKind,
     };
     use crate::detectors::dead_code::{
         DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier, DeadCodeResult,
@@ -4182,6 +4161,54 @@ class BusinessUnitReportService {
                 || path == &PathBuf::from("app/Hooks/assignment_notifications.hook.php")
                 || path == &PathBuf::from("app/Jobs/AssignmentNotificationJob.php")
         }));
+    }
+
+    #[test]
+    fn frontend_component_files_do_not_contribute_backend_mechanism_families() {
+        // A Vue component with `defineEmits`/`emit`, a variable named `queued_files`,
+        // and `addEventListener` would previously be tagged event_bus + queue_jobs.
+        let families = detect_mechanism_families(
+            Path::new("resources/js/components/ItemsGrid.vue"),
+            r#"
+                const emit = defineEmits(['update']);
+                const queued_files = ref([]);
+                window.addEventListener('resize', onResize);
+                function onChange() { emit('update'); store.dispatch('items/refresh'); }
+            "#,
+        );
+        assert!(
+            families.is_empty(),
+            "frontend component must contribute no backend mechanism families, got: {families:?}"
+        );
+    }
+
+    #[test]
+    fn bare_queue_and_event_vocabulary_is_not_a_backend_mechanism() {
+        // Plain server-side file that merely mentions the words, with no real
+        // dispatch syntax, must not be classified into any mechanism family.
+        let families = detect_mechanism_families(
+            Path::new("app/Services/OutboxService.php"),
+            r#"
+                final class OutboxService {
+                    public function flush(): void {
+                        $this->queuedFiles = [];   // drain the queue for this job
+                        $this->emitProgress();
+                    }
+                }
+            "#,
+        );
+        assert!(
+            families.is_empty(),
+            "bare queue/job/emit vocabulary must not classify a mechanism, got: {families:?}"
+        );
+
+        // Real dispatch syntax still classifies.
+        let real = detect_mechanism_families(
+            Path::new("app/Services/DispatchService.php"),
+            "SendReport::dispatch($id); event(new ReportReady($id));",
+        );
+        assert!(real.contains("queue_jobs"), "got: {real:?}");
+        assert!(real.contains("event_bus"), "got: {real:?}");
     }
 
     #[test]

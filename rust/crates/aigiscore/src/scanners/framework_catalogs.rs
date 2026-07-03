@@ -1,5 +1,7 @@
 use crate::scanners::ast_grep::{AstGrepComplexitySubtype, AstGrepFrameworkMisuseSubtype};
+use regex::Regex;
 use std::path::Path;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FrameworkMisuseRuleSpec {
@@ -32,6 +34,35 @@ pub(crate) struct FrameworkComplexityCatalog {
     pub framework_id: &'static str,
     pub language_label: &'static str,
     pub rules: &'static [FrameworkComplexityRuleSpec],
+    pub matches_file: fn(&Path, &str) -> bool,
+}
+
+/// Where a dispatch-mechanism marker is matched: against the file path or its body.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum MechanismMarkerKind {
+    PathContains,
+    ContentContains,
+}
+
+/// One framework-specific marker that classifies a file into a dispatch-mechanism
+/// family (`lifecycle_hooks`, `event_bus`, `queue_jobs`, `direct_notifications`).
+/// The generic `DuplicateMechanism` engine in `assessment` owns the grouping and
+/// scoring; the vocabulary of what *counts* as a mechanism lives here as data so
+/// core stays framework-agnostic and markers only ever apply to their own language.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MechanismMarkerSpec {
+    pub family: &'static str,
+    pub kind: MechanismMarkerKind,
+    pub needle: &'static str,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct DispatchMechanismCatalog {
+    pub markers: &'static [MechanismMarkerSpec],
+    /// Optional word-boundary regex for the `direct_notifications` family, whose
+    /// vocabulary (`wp_mail(`, `Mail::send(`, `->notify(`, `phpmailer`, …) does not
+    /// reduce cleanly to plain substrings without matching `email(`/`gmail(`.
+    pub notification_pattern: Option<fn() -> &'static Regex>,
     pub matches_file: fn(&Path, &str) -> bool,
 }
 
@@ -254,6 +285,141 @@ const RAILS_RUBY_FRAMEWORK_COMPLEXITY_CATALOG: FrameworkComplexityCatalog =
         matches_file: is_rails_ruby_file,
     };
 
+/// PHP / Laravel / WordPress dispatch idioms. Markers require real syntax
+/// (`ShouldQueue`, `::dispatch(`, `event(new `, `add_action(`, framework dir
+/// segments) rather than bare English words, so a variable named `queued_files`
+/// or prose mentioning "event" does not classify a mechanism.
+const PHP_DISPATCH_MECHANISM_MARKERS: &[MechanismMarkerSpec] = &[
+    // lifecycle hooks — WordPress actions/filters + ORM save hooks
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::PathContains,
+        needle: "/hooks/",
+    },
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::PathContains,
+        needle: ".hook.php",
+    },
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::PathContains,
+        needle: ".hooks.php",
+    },
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "add_action(",
+    },
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "add_filter(",
+    },
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "beforesave",
+    },
+    MechanismMarkerSpec {
+        family: "lifecycle_hooks",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "aftersave",
+    },
+    // event bus — Laravel events/listeners + broadcast + generic dispatcher
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::PathContains,
+        needle: "/listeners/",
+    },
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "dispatchesevents",
+    },
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "shouldbroadcast",
+    },
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "event(new ",
+    },
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "::listen(",
+    },
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "->listen(",
+    },
+    MechanismMarkerSpec {
+        family: "event_bus",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "eventdispatcher",
+    },
+    // queue jobs — Laravel queued job markers + dispatch idioms
+    MechanismMarkerSpec {
+        family: "queue_jobs",
+        kind: MechanismMarkerKind::PathContains,
+        needle: "/jobs/",
+    },
+    MechanismMarkerSpec {
+        family: "queue_jobs",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "shouldqueue",
+    },
+    MechanismMarkerSpec {
+        family: "queue_jobs",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "->onqueue(",
+    },
+    MechanismMarkerSpec {
+        family: "queue_jobs",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "::dispatch(",
+    },
+    MechanismMarkerSpec {
+        family: "queue_jobs",
+        kind: MechanismMarkerKind::ContentContains,
+        needle: "dispatch(new ",
+    },
+];
+
+fn php_direct_notification_pattern() -> &'static Regex {
+    static PHP_DIRECT_NOTIFICATION_PATTERN: OnceLock<Regex> = OnceLock::new();
+    PHP_DIRECT_NOTIFICATION_PATTERN.get_or_init(|| {
+        Regex::new(
+            r"(?i)(\bwp_mail\s*\(|\bmail\s*\(|\bmail::send\s*\(|\bsendmail\b|\bmailer\b|\bnotify\s*\(|->notify\s*\(|::notify\s*\(|\bphpmailer\b)",
+        )
+        .unwrap()
+    })
+}
+
+const PHP_DISPATCH_MECHANISM_CATALOG: DispatchMechanismCatalog = DispatchMechanismCatalog {
+    markers: PHP_DISPATCH_MECHANISM_MARKERS,
+    notification_pattern: Some(php_direct_notification_pattern),
+    matches_file: is_php_source_file,
+};
+
+/// Dispatch-mechanism catalogs whose language gate matches this file. Language
+/// gating is what stops PHP/Laravel markers from being tested against Rust, Vue,
+/// or TypeScript files — including the analyzer's own source, which contains these
+/// marker strings as literals.
+pub(crate) fn dispatch_mechanism_catalogs_for_file(
+    path: &Path,
+    source: &str,
+) -> Vec<&'static DispatchMechanismCatalog> {
+    [&PHP_DISPATCH_MECHANISM_CATALOG]
+        .into_iter()
+        .filter(|catalog| (catalog.matches_file)(path, source))
+        .collect()
+}
+
 pub(crate) fn framework_misuse_catalogs_for_file(
     path: &Path,
     source: &str,
@@ -280,6 +446,19 @@ pub(crate) fn framework_complexity_catalogs_for_file(
     .into_iter()
     .filter(|catalog| (catalog.matches_file)(path, source))
     .collect()
+}
+
+/// Any PHP source file. Dispatch-mechanism markers are Laravel/WordPress idioms,
+/// so the language gate is the extension alone — no framework-context requirement,
+/// which preserves detection on plain `.hooks.php` / `Jobs/` / `Listeners/` files.
+fn is_php_source_file(path: &Path, _source: &str) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|extension| extension.to_str())
+            .map(|extension| extension.to_ascii_lowercase())
+            .as_deref(),
+        Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8")
+    )
 }
 
 fn is_laravel_php_file(path: &Path, source: &str) -> bool {
@@ -353,8 +532,37 @@ fn is_rails_ruby_file(path: &Path, source: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{framework_complexity_catalogs_for_file, framework_misuse_catalogs_for_file};
+    use super::{
+        dispatch_mechanism_catalogs_for_file, framework_complexity_catalogs_for_file,
+        framework_misuse_catalogs_for_file,
+    };
     use std::path::Path;
+
+    #[test]
+    fn enables_php_dispatch_catalog_only_for_php_files() {
+        let php = dispatch_mechanism_catalogs_for_file(
+            Path::new("app/Jobs/SyncAccountJob.php"),
+            "final class SyncAccountJob implements ShouldQueue {}",
+        );
+        assert_eq!(php.len(), 1);
+        assert!(php[0]
+            .markers
+            .iter()
+            .any(|marker| marker.family == "queue_jobs"));
+
+        // The analyzer's own Rust source contains these marker strings as literals;
+        // the language gate must keep them from ever matching a non-PHP file.
+        assert!(dispatch_mechanism_catalogs_for_file(
+            Path::new("rust/crates/aigiscore/src/assessment/mod.rs"),
+            r#"needle: "shouldqueue", needle: "add_action(", needle: "event(new ""#,
+        )
+        .is_empty());
+        assert!(dispatch_mechanism_catalogs_for_file(
+            Path::new("resources/js/components/ItemsGrid.vue"),
+            "const queued = ref([]); emit('update');",
+        )
+        .is_empty());
+    }
 
     #[test]
     fn enables_laravel_catalog_for_php_app_service_shapes() {
