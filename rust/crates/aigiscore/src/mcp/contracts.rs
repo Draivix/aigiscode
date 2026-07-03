@@ -179,6 +179,102 @@ pub struct BriefHotspotOutput {
     pub bottleneck_centrality_millis: u32,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct FindSymbolParams {
+    /// Symbol name to look up. Exact-name matches rank first, then
+    /// qualified-name tail matches (`Type::method`), then case-insensitive
+    /// substring matches.
+    pub name: String,
+    /// Optional kind filter: class|function|interface|method|struct|enum|trait|module.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Maximum matches to return (default 20, max 100).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<usize>,
+}
+
+/// One symbol definition, with just enough inbound-pressure context
+/// (`inbound_edges`/`inbound_files`) for an agent to judge how load-bearing it
+/// is without a second call.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct SymbolMatchOutput {
+    pub symbol_id: String,
+    pub name: String,
+    pub qualified_name: String,
+    pub kind: String,
+    pub file_path: String,
+    pub start_line: usize,
+    pub end_line: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_type_name: Option<String>,
+    pub visibility: String,
+    pub parameter_count: usize,
+    /// Resolved edge instances pointing at this symbol.
+    pub inbound_edges: usize,
+    /// Distinct files those edges come from — the number an agent should read
+    /// as "how many places depend on this".
+    pub inbound_files: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct FindSymbolOutput {
+    pub query: String,
+    /// Total definitions that matched before the cap was applied.
+    pub total_matches: usize,
+    pub truncated: bool,
+    pub matches: Vec<SymbolMatchOutput>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct SymbolUsagesParams {
+    /// Symbol ID (preferred, from `find_symbol`) or bare symbol name. A bare
+    /// name that matches multiple definitions returns candidates instead of
+    /// usages so the agent can disambiguate.
+    pub symbol: String,
+    /// Maximum caller files to return (default 25, max 100).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_files: Option<usize>,
+}
+
+/// Inbound usage of a symbol from one caller file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct UsageSiteOutput {
+    pub file_path: String,
+    pub edge_count: usize,
+    /// Reference lines in that file (sorted, capped at 20 per file).
+    pub lines: Vec<usize>,
+    /// Distinct reference kinds seen (call/import/type/extends/implements/overrides).
+    pub kinds: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SymbolUsagesOutput {
+    /// Resolved symbol ID the usages belong to; `None` when the query was
+    /// ambiguous or matched nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol_id: Option<String>,
+    pub query: String,
+    pub total_edges: usize,
+    pub distinct_files: usize,
+    pub truncated: bool,
+    pub usages: Vec<UsageSiteOutput>,
+    /// Populated instead of `usages` when a bare name matched several
+    /// definitions — pick one and re-query by `symbol_id`. Capped at 20;
+    /// `total_candidates` carries the real count.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ambiguous_candidates: Vec<SymbolMatchOutput>,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub total_candidates: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
 /// Freshness contract attached to graph-sensitive responses. The load-bearing invariant
 /// of the online daemon: a query always reads the latest published snapshot immediately,
 /// but is told when the daemon has observed newer changes than that snapshot represents.

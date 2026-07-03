@@ -7,9 +7,11 @@ use self::contracts::{
     severity_matches, AtlasOutput, BottleneckOutput, BriefHotspotOutput, ConsistencyMode,
     ContractInventoryOutput, ConvergenceOutput, CoverageReportOutput, CycleOutput, CyclesOutput,
     CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams,
-    FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput,
-    ListFindingsOutput, ListFindingsParams, QualityEvaluationOutput, RepoBriefOutput,
-    RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
+    FindSymbolOutput, FindSymbolParams, FindingDetailOutput, FindingSummaryOutput,
+    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
+    QualityEvaluationOutput, RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
+    ShowCyclesParams, ShowHotspotsParams, SymbolMatchOutput, SymbolUsagesOutput,
+    SymbolUsagesParams, UsageSiteOutput,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -389,6 +391,198 @@ impl AigiscodeMcpServer {
             guard_summary: guard.summary.clone(),
             doctrine_headline,
             freshness: Some(self.live.freshness(true)),
+        })
+    }
+
+    #[tool(
+        name = "find_symbol",
+        description = "Locate symbol definitions by name: kind, owner, file:line, plus inbound \
+                       edge/file counts so the agent can judge how load-bearing each definition \
+                       is. Exact-name matches rank first, then qualified-name tails, then \
+                       case-insensitive substrings."
+    )]
+    async fn find_symbol(
+        &self,
+        Parameters(params): Parameters<FindSymbolParams>,
+    ) -> Json<FindSymbolOutput> {
+        let max_items = params.max_items.unwrap_or(20).clamp(1, 100);
+        let query = params.name.trim().to_string();
+        let query_lower = query.to_ascii_lowercase();
+        let kind_filter = params
+            .kind
+            .as_deref()
+            .map(|kind| kind.trim().to_ascii_lowercase());
+        let state = self.state();
+        let graph = &state.snapshot.semantic_graph;
+
+        let tier_for = |symbol: &crate::graph::SymbolNode| -> Option<u8> {
+            if let Some(kind) = kind_filter.as_deref() {
+                if symbol_kind_label(symbol.kind) != kind {
+                    return None;
+                }
+            }
+            if symbol.name == query || symbol.qualified_name == query {
+                return Some(0);
+            }
+            if symbol.qualified_name.ends_with(&format!("::{query}")) {
+                return Some(1);
+            }
+            if !query_lower.is_empty()
+                && (symbol.name.to_ascii_lowercase().contains(&query_lower)
+                    || symbol
+                        .qualified_name
+                        .to_ascii_lowercase()
+                        .contains(&query_lower))
+            {
+                return Some(2);
+            }
+            None
+        };
+
+        let mut ranked = graph
+            .symbols
+            .iter()
+            .filter_map(|symbol| tier_for(symbol).map(|tier| (tier, symbol)))
+            .collect::<Vec<_>>();
+        ranked.sort_by(|(tier_a, a), (tier_b, b)| {
+            tier_a
+                .cmp(tier_b)
+                .then_with(|| a.file_path.cmp(&b.file_path))
+                .then_with(|| a.start_line.cmp(&b.start_line))
+                .then_with(|| a.id.cmp(&b.id))
+        });
+        let total_matches = ranked.len();
+        ranked.truncate(max_items);
+
+        let matches = build_symbol_matches(
+            graph,
+            &ranked.iter().map(|(_, symbol)| *symbol).collect::<Vec<_>>(),
+        );
+
+        Json(FindSymbolOutput {
+            query,
+            total_matches,
+            truncated: total_matches > max_items,
+            matches,
+            freshness: Some(self.live.freshness(true)),
+        })
+    }
+
+    #[tool(
+        name = "symbol_usages",
+        description = "Who uses this symbol: inbound resolved references grouped by caller file \
+                       with line anchors, heaviest caller first. Accepts a symbol ID from \
+                       find_symbol or a bare name; an ambiguous bare name returns the candidate \
+                       definitions instead of guessing."
+    )]
+    async fn symbol_usages(
+        &self,
+        Parameters(params): Parameters<SymbolUsagesParams>,
+    ) -> Json<SymbolUsagesOutput> {
+        let max_files = params.max_files.unwrap_or(25).clamp(1, 100);
+        let query = params.symbol.trim().to_string();
+        let state = self.state();
+        let graph = &state.snapshot.semantic_graph;
+        let freshness = Some(self.live.freshness(true));
+
+        let target = if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == query) {
+            Some(symbol)
+        } else {
+            let mut named = graph
+                .symbols
+                .iter()
+                .filter(|symbol| symbol.name == query || symbol.qualified_name == query)
+                .collect::<Vec<_>>();
+            named.sort_by(|a, b| {
+                a.file_path
+                    .cmp(&b.file_path)
+                    .then_with(|| a.start_line.cmp(&b.start_line))
+            });
+            match named.len() {
+                0 => None,
+                1 => Some(named[0]),
+                _ => {
+                    let total_candidates = named.len();
+                    named.truncate(20);
+                    return Json(SymbolUsagesOutput {
+                        symbol_id: None,
+                        query,
+                        total_edges: 0,
+                        distinct_files: 0,
+                        truncated: total_candidates > named.len(),
+                        usages: Vec::new(),
+                        ambiguous_candidates: build_symbol_matches(graph, &named),
+                        total_candidates,
+                        freshness,
+                    });
+                }
+            }
+        };
+        let Some(target) = target else {
+            return Json(SymbolUsagesOutput {
+                symbol_id: None,
+                query,
+                total_edges: 0,
+                distinct_files: 0,
+                truncated: false,
+                usages: Vec::new(),
+                ambiguous_candidates: Vec::new(),
+                total_candidates: 0,
+                freshness,
+            });
+        };
+
+        // Group inbound edges by caller file; self-file references are still
+        // real usages, so they stay in.
+        let mut by_file: std::collections::BTreeMap<String, (usize, Vec<usize>, HashSet<String>)> =
+            std::collections::BTreeMap::new();
+        let mut total_edges = 0usize;
+        for edge in &graph.resolved_edges {
+            if edge.target_symbol_id != target.id {
+                continue;
+            }
+            total_edges += 1;
+            let entry = by_file
+                .entry(display_path(&edge.source_file_path))
+                .or_default();
+            entry.0 += 1;
+            entry.1.push(edge.line);
+            entry.2.insert(reference_kind_label(edge.kind));
+        }
+        let distinct_files = by_file.len();
+        let mut usages = by_file
+            .into_iter()
+            .map(|(file_path, (edge_count, mut lines, kinds))| {
+                lines.sort_unstable();
+                lines.dedup();
+                lines.truncate(20);
+                let mut kinds = kinds.into_iter().collect::<Vec<_>>();
+                kinds.sort();
+                UsageSiteOutput {
+                    file_path,
+                    edge_count,
+                    lines,
+                    kinds,
+                }
+            })
+            .collect::<Vec<_>>();
+        usages.sort_by(|a, b| {
+            b.edge_count
+                .cmp(&a.edge_count)
+                .then_with(|| a.file_path.cmp(&b.file_path))
+        });
+        usages.truncate(max_files);
+
+        Json(SymbolUsagesOutput {
+            symbol_id: Some(target.id.clone()),
+            query,
+            total_edges,
+            distinct_files,
+            truncated: distinct_files > max_files,
+            usages,
+            ambiguous_candidates: Vec::new(),
+            total_candidates: 0,
+            freshness,
         })
     }
 
@@ -1235,6 +1429,59 @@ fn read_json_artifact<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> 
     serde_json::from_slice(&payload).ok()
 }
 
+fn symbol_kind_label(kind: crate::graph::SymbolKind) -> String {
+    format!("{kind:?}").to_ascii_lowercase()
+}
+
+fn reference_kind_label(kind: crate::graph::ReferenceKind) -> String {
+    format!("{kind:?}").to_ascii_lowercase()
+}
+
+/// Build symbol-match rows with inbound edge/file counts computed in one pass
+/// over the resolved edges, so a lookup never costs more than one graph scan.
+fn build_symbol_matches(
+    graph: &crate::graph::SemanticGraph,
+    symbols: &[&crate::graph::SymbolNode],
+) -> Vec<SymbolMatchOutput> {
+    let wanted = symbols
+        .iter()
+        .map(|symbol| symbol.id.as_str())
+        .collect::<HashSet<_>>();
+    let mut edge_counts: HashMap<&str, usize> = HashMap::new();
+    let mut file_sets: HashMap<&str, HashSet<&Path>> = HashMap::new();
+    for edge in &graph.resolved_edges {
+        let target = edge.target_symbol_id.as_str();
+        if !wanted.contains(target) {
+            continue;
+        }
+        *edge_counts.entry(target).or_default() += 1;
+        file_sets
+            .entry(target)
+            .or_default()
+            .insert(edge.source_file_path.as_path());
+    }
+    symbols
+        .iter()
+        .map(|symbol| SymbolMatchOutput {
+            symbol_id: symbol.id.clone(),
+            name: symbol.name.clone(),
+            qualified_name: symbol.qualified_name.clone(),
+            kind: symbol_kind_label(symbol.kind),
+            file_path: display_path(&symbol.file_path),
+            start_line: symbol.start_line,
+            end_line: symbol.end_line,
+            owner_type_name: symbol.owner_type_name.clone(),
+            visibility: format!("{:?}", symbol.visibility).to_ascii_lowercase(),
+            parameter_count: symbol.parameter_count,
+            inbound_edges: edge_counts.get(symbol.id.as_str()).copied().unwrap_or(0),
+            inbound_files: file_sets
+                .get(symbol.id.as_str())
+                .map(|files| files.len())
+                .unwrap_or(0),
+        })
+        .collect()
+}
+
 /// Pick up to `cap` entries while preferring directory diversity: first one
 /// entry per parent directory (in input order), then fill remaining slots in
 /// input order. Keeps an orientation brief from being flooded by one
@@ -1267,11 +1514,11 @@ fn diversify_by_parent_dir(entries: &[String], cap: usize) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        AigiscodeMcpServer, CypherQueryParams, ListFindingsParams, RepoOverviewParams,
-        ShowHotspotsParams, CONTRACTS_URI, CONVERGENCE_URI, COVERAGE_URI, DEPENDENCY_GRAPH_URI,
-        DOCTRINE_URI, EVIDENCE_GRAPH_URI, FINDINGS_URI, FINDING_URI_PREFIX, GRAPH_PACKETS_URI,
-        GRAPH_SCHEMA_URI, GUARD_URI, HANDOFF_URI, HOTSPOTS_URI, OVERVIEW_URI,
-        REPOSITORY_TOPOLOGY_URI,
+        AigiscodeMcpServer, CypherQueryParams, FindSymbolParams, ListFindingsParams,
+        RepoOverviewParams, ShowHotspotsParams, SymbolUsagesParams, CONTRACTS_URI, CONVERGENCE_URI,
+        COVERAGE_URI, DEPENDENCY_GRAPH_URI, DOCTRINE_URI, EVIDENCE_GRAPH_URI, FINDINGS_URI,
+        FINDING_URI_PREFIX, GRAPH_PACKETS_URI, GRAPH_SCHEMA_URI, GUARD_URI, HANDOFF_URI,
+        HOTSPOTS_URI, OVERVIEW_URI, REPOSITORY_TOPOLOGY_URI,
     };
     use crate::agentic::{
         AgenticPrimaryEvidenceRefs, GraphNeighbor, GraphNeighborDirection, GraphNeighborsParams,
@@ -1647,6 +1894,98 @@ fn main() {
                 "app/routes/api.php".to_string(),
             ]
         );
+    }
+
+    #[tokio::test]
+    async fn find_symbol_and_symbol_usages_locate_definitions_and_callers() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            b"mod b;\nmod c;\nfn main() { b::helper(); c::caller(); }\n",
+        )
+        .unwrap();
+        fs::write(fixture.join("src/b.rs"), b"pub fn helper() {}\n").unwrap();
+        fs::write(
+            fixture.join("src/c.rs"),
+            b"use crate::b::helper;\npub fn caller() { helper(); helper(); }\n",
+        )
+        .unwrap();
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+
+        let found = server
+            .find_symbol(Parameters(FindSymbolParams {
+                name: "helper".to_string(),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert_eq!(found.total_matches, 1);
+        let definition = &found.matches[0];
+        assert_eq!(definition.kind, "function");
+        assert!(definition.file_path.ends_with("src/b.rs"));
+        assert!(definition.inbound_files >= 2);
+        assert!(definition.inbound_edges >= definition.inbound_files);
+
+        let usages = server
+            .symbol_usages(Parameters(SymbolUsagesParams {
+                symbol: definition.symbol_id.clone(),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert_eq!(
+            usages.symbol_id.as_deref(),
+            Some(definition.symbol_id.as_str())
+        );
+        assert_eq!(usages.distinct_files, definition.inbound_files);
+        assert_eq!(usages.total_edges, definition.inbound_edges);
+        let caller = usages
+            .usages
+            .iter()
+            .find(|site| site.file_path.ends_with("src/c.rs"))
+            .expect("c.rs is a caller");
+        assert!(caller.edge_count >= 2);
+        assert!(!caller.lines.is_empty());
+
+        // Kind filter that matches nothing stays honest.
+        let none = server
+            .find_symbol(Parameters(FindSymbolParams {
+                name: "helper".to_string(),
+                kind: Some("class".to_string()),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert_eq!(none.total_matches, 0);
+        assert!(none.matches.is_empty());
+    }
+
+    #[tokio::test]
+    async fn ambiguous_symbol_usages_return_capped_candidates_not_guesses() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            b"mod a;\nmod b;\nfn main() { a::run(); b::run(); }\n",
+        )
+        .unwrap();
+        fs::write(fixture.join("src/a.rs"), b"pub fn run() {}\n").unwrap();
+        fs::write(fixture.join("src/b.rs"), b"pub fn run() {}\n").unwrap();
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let usages = server
+            .symbol_usages(Parameters(SymbolUsagesParams {
+                symbol: "run".to_string(),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert!(usages.symbol_id.is_none());
+        assert!(usages.usages.is_empty());
+        assert_eq!(usages.total_candidates, 2);
+        assert_eq!(usages.ambiguous_candidates.len(), 2);
     }
 
     #[tokio::test]
