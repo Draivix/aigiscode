@@ -338,8 +338,24 @@ fn make_symbol(
         Some(container) => format!("{container}::{name}"),
         None => name.to_owned(),
     };
+    // Impl-block methods have no parent symbol node, so a bare `file:name` ID
+    // collides across impls in the same file (`impl A { fn new }` and
+    // `impl B { fn new }` would share one ID). Anchor the ID to the owning type.
+    let id = if kind == SymbolKind::Method && parent_symbol_id.is_none() {
+        match container_type_name {
+            Some(container) => {
+                context.symbol_id(kind, parent_symbol_id, &format!("{container}::{name}"))
+            }
+            None => format!(
+                "{}:L{start_line}",
+                context.symbol_id(kind, parent_symbol_id, name)
+            ),
+        }
+    } else {
+        context.symbol_id(kind, parent_symbol_id, name)
+    };
     SymbolNode {
-        id: context.symbol_id(kind, parent_symbol_id, name),
+        id,
         file_path: context.file_path.clone(),
         kind,
         name: name.to_owned(),
@@ -786,6 +802,38 @@ mod tests {
     use super::parse_rust_to_graph;
     use crate::graph::{CallForm, ReferenceKind, SymbolKind, Visibility};
     use std::path::PathBuf;
+
+    #[test]
+    fn same_named_methods_across_impl_blocks_get_distinct_symbol_ids() {
+        let graph = parse_rust_to_graph(
+            PathBuf::from("src/revision.rs"),
+            r#"
+pub struct RepoRevision(u64);
+pub struct EnvRevision(u64);
+
+impl RepoRevision {
+    pub fn next(&self) -> u64 { self.0 + 1 }
+}
+
+impl EnvRevision {
+    pub fn next(&self) -> u64 { self.0 + 1 }
+}
+"#,
+        )
+        .unwrap();
+
+        let next_ids: Vec<&str> = graph
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Method && symbol.name == "next")
+            .map(|symbol| symbol.id.as_str())
+            .collect();
+        assert_eq!(next_ids.len(), 2, "both methods extracted: {next_ids:?}");
+        assert_ne!(
+            next_ids[0], next_ids[1],
+            "methods of different impl blocks must not share an ID"
+        );
+    }
 
     #[test]
     fn extracts_rust_symbols_and_references() {

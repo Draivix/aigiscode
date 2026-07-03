@@ -244,8 +244,21 @@ fn make_symbol(
         Some(container) => format!("{container}::{name}"),
         None => name.to_owned(),
     };
+    // A method not anchored to a class (an object-literal method such as a
+    // column-definition `render(row)` — at top level or nested in a function)
+    // has no unique name scope: six sibling `render`s would collide onto one ID,
+    // conflating distinct functions in every downstream graph view. Qualify
+    // such IDs with the definition line; class methods keep stable IDs.
+    let id = if kind == SymbolKind::Method && container_type_name.is_none() {
+        format!(
+            "{}:L{start_line}",
+            context.symbol_id(kind, parent_symbol_id, name)
+        )
+    } else {
+        context.symbol_id(kind, parent_symbol_id, name)
+    };
     SymbolNode {
-        id: context.symbol_id(kind, parent_symbol_id, name),
+        id,
         file_path: context.file_path.clone(),
         kind,
         name: name.to_owned(),
@@ -787,6 +800,43 @@ mod tests {
     use super::parse_javascript_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn sibling_object_literal_methods_get_distinct_symbol_ids() {
+        let graph = parse_javascript_to_graph(
+            PathBuf::from("src/columns.ts"),
+            r#"const columns = [
+    { key: "a", render(row) { return row.a; } },
+    { key: "b", render(row) { return row.b; } },
+    { key: "c", render(row) { return row.c; } },
+];
+class Widget { render() {} }"#,
+            true,
+        )
+        .unwrap();
+
+        let render_ids: Vec<&str> = graph
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Method && symbol.name == "render")
+            .map(|symbol| symbol.id.as_str())
+            .collect();
+        let unique: std::collections::HashSet<&&str> = render_ids.iter().collect();
+        assert_eq!(
+            render_ids.len(),
+            unique.len(),
+            "every render method must have a unique id: {render_ids:?}"
+        );
+        // The class-anchored method keeps its stable parent-qualified id.
+        assert!(
+            graph.symbols.iter().any(|symbol| {
+                symbol.kind == SymbolKind::Method
+                    && symbol.qualified_name == "Widget::render"
+                    && !symbol.id.ends_with(&format!(":L{}", symbol.start_line))
+            }),
+            "class methods keep parent-qualified ids"
+        );
+    }
 
     #[test]
     fn parses_typescript_symbols_and_imports() {
