@@ -49,6 +49,11 @@ pub fn analyze_dead_code(
         .map(|edge| edge.target_symbol_id.clone())
         .collect::<HashSet<_>>();
 
+    let sources_by_path = parsed_sources
+        .iter()
+        .map(|(path, source)| (path.as_path(), source.as_str()))
+        .collect::<HashMap<_, _>>();
+
     let mut findings = graph
         .symbols
         .iter()
@@ -58,7 +63,9 @@ pub fn analyze_dead_code(
                 && symbol.name != "main"
                 && !is_runtime_magic_method(symbol.file_path.as_path(), &symbol.name)
                 && !has_decorator_binding(symbol, graph)
+                && !is_test_or_framework_entry_symbol(symbol, &sources_by_path)
                 && !called_symbols.contains(&symbol.id)
+                && !private_function_used_lexically_in_file(symbol, &sources_by_path)
         })
         .map(|symbol| DeadCodeFinding {
             category: DeadCodeCategory::UnusedPrivateFunction,
@@ -75,10 +82,6 @@ pub fn analyze_dead_code(
         })
         .collect::<Vec<_>>();
 
-    let sources_by_path = parsed_sources
-        .iter()
-        .map(|(path, source)| (path.as_path(), source.as_str()))
-        .collect::<HashMap<_, _>>();
     let used_import_targets = graph
         .resolved_edges
         .iter()
@@ -143,6 +146,18 @@ pub fn analyze_dead_code(
         .filter(|reference| reference.kind == ReferenceKind::Import)
     {
         if is_package_export_surface(reference.file_path.as_path()) {
+            continue;
+        }
+        // Imports that bind no local name cannot be "unused" — there is no
+        // binding to leave unread. In JavaScript/TypeScript these are the
+        // side-effect form (`import './x'`) and the dynamic form
+        // (`import('./x')` / `require('./x')`), whose target is a module
+        // specifier, not a symbol. Falling back to `leaf_symbol_name` here
+        // would fabricate a binding from the path (e.g. `./X.vue` -> `vue`,
+        // `zone.js` -> `js`) and flag a phantom import. Python and PHP always
+        // record an explicit binding name, so this only skips the JS
+        // bindingless forms.
+        if reference.binding_name.is_none() {
             continue;
         }
         let candidate_edges = edges_by_location
@@ -271,6 +286,43 @@ fn is_import_like_line(line: &str) -> bool {
     trimmed.starts_with("import ") || trimmed.starts_with("from ")
 }
 
+/// A private function is only reachable from its own file (Rust module, PHP
+/// class, Python module), so if its name appears as a bare word anywhere else
+/// in that same file — outside its own signature line and comments — the graph
+/// simply missed the usage (a higher-order reference like `.map(func)`, a
+/// macro expansion, or an unresolved same-file call), and it is not dead.
+/// This mirrors the import lexical guard: a missing call edge is not proof.
+fn private_function_used_lexically_in_file(
+    symbol: &SymbolNode,
+    sources_by_path: &HashMap<&Path, &str>,
+) -> bool {
+    if symbol.name.is_empty() {
+        return false;
+    }
+    let Some(source) = sources_by_path.get(symbol.file_path.as_path()) else {
+        return false;
+    };
+    source.lines().enumerate().any(|(index, line)| {
+        index + 1 != symbol.start_line
+            && !is_pure_comment_line(line)
+            && line_mentions_word(line, &symbol.name)
+    })
+}
+
+fn is_pure_comment_line(line: &str) -> bool {
+    let trimmed = line.trim_start();
+    // Rust attributes (`#[...]`, `#![...]`) start with `#` but are code, not
+    // comments, and frequently reference functions by name in string form
+    // (e.g. serde `skip_serializing_if = "is_zero"`, `serialize_with = "..."`).
+    // Only a bare `#` line (Python/shell/Ruby comment) counts.
+    let is_rust_attribute = trimmed.starts_with("#[") || trimmed.starts_with("#![");
+    trimmed.starts_with("//")
+        || trimmed.starts_with('*')
+        || trimmed.starts_with("/*")
+        || (trimmed.starts_with('#') && !is_rust_attribute)
+        || trimmed.starts_with("--")
+}
+
 fn line_mentions_word(line: &str, name: &str) -> bool {
     let bytes = line.as_bytes();
     let mut start = 0;
@@ -360,6 +412,102 @@ fn has_decorator_binding(symbol: &SymbolNode, graph: &SemanticGraph) -> bool {
         })
 }
 
+/// A test / framework entry function is invoked by a test harness or the
+/// runtime (via an attribute), never by another symbol in the graph, so a
+/// missing call edge is not proof it is dead. Rust `#[cfg(test)]` modules keep
+/// tests inline in a source file (they cannot be excluded by directory the way
+/// separate test folders can), so without this guard `#[test]` functions are
+/// the dominant dead-code false positive on any Rust codebase.
+///
+/// Detects attribute-annotated entry points by scanning the attribute/comment
+/// block immediately above the function: `#[test]`, `#[tokio::test]` and other
+/// `::test` async runners, `#[bench]`, common test-macro attributes, and the
+/// externally-linked Rust attributes (`no_mangle`, `export_name`, proc-macros).
+fn is_test_or_framework_entry_symbol(
+    symbol: &SymbolNode,
+    sources_by_path: &HashMap<&Path, &str>,
+) -> bool {
+    let Some(source) = sources_by_path.get(symbol.file_path.as_path()) else {
+        return false;
+    };
+    preceding_attributes_mark_entry_point(source, symbol.start_line)
+}
+
+fn preceding_attributes_mark_entry_point(source: &str, start_line: usize) -> bool {
+    if start_line == 0 {
+        return false;
+    }
+    let lines: Vec<&str> = source.lines().collect();
+    // start_line is 1-indexed; scan upward from the line above the signature.
+    let mut index = start_line.saturating_sub(1);
+    while index > 0 {
+        index -= 1;
+        let trimmed = lines[index].trim();
+        if trimmed.is_empty()
+            || trimmed.starts_with("///")
+            || trimmed.starts_with("//!")
+            || trimmed.starts_with("//")
+        {
+            continue;
+        }
+        if let Some(attribute) = trimmed
+            .strip_prefix("#[")
+            .and_then(|rest| rest.strip_suffix(']'))
+            .or_else(|| {
+                trimmed
+                    .strip_prefix("#![")
+                    .and_then(|r| r.strip_suffix(']'))
+            })
+        {
+            if attribute_is_entry_point(attribute) {
+                return true;
+            }
+            // Another (non-entry) attribute or doc line; keep scanning upward.
+            continue;
+        }
+        // Reached real code (or a modifier like `pub`/`async`/`unsafe`) that is
+        // not an attribute or comment — the attribute block has ended.
+        if matches!(
+            trimmed.split_whitespace().next(),
+            Some("pub" | "async" | "unsafe" | "const" | "extern" | "fn")
+        ) {
+            continue;
+        }
+        break;
+    }
+    false
+}
+
+/// True when a single attribute's head names a test/bench/entry attribute.
+/// `attribute` is the inside of `#[...]`, e.g. `test`, `tokio::test`,
+/// `test_case(1, 2)`, `cfg_attr(feature = "x", test)`.
+fn attribute_is_entry_point(attribute: &str) -> bool {
+    // Head token before any `(` argument list, trimmed.
+    let head = attribute.split('(').next().unwrap_or(attribute).trim();
+    let last_segment = head.rsplit("::").next().unwrap_or(head).trim();
+    if matches!(
+        last_segment,
+        "test"
+            | "bench"
+            | "rstest"
+            | "test_case"
+            | "proptest"
+            | "quickcheck"
+            | "no_mangle"
+            | "export_name"
+            | "proc_macro"
+            | "proc_macro_derive"
+            | "proc_macro_attribute"
+    ) {
+        return true;
+    }
+    // `#[cfg_attr(..., test)]` and similar wrappers that inject a test attr.
+    if head.starts_with("cfg_attr") && attribute.contains("test") {
+        return true;
+    }
+    false
+}
+
 fn leaf_symbol_name(name: &str) -> String {
     name.trim_matches(&['{', '}'][..])
         .rsplit("::")
@@ -384,6 +532,7 @@ mod tests {
     use crate::parsing::php::parse_php_to_graph;
     use crate::parsing::python::parse_python_to_graph;
     use crate::parsing::rust::parse_rust_to_graph;
+    use crate::parsing::vue::parse_vue_to_graph;
     use crate::resolve::resolve_graph;
     use std::path::PathBuf;
 
@@ -412,6 +561,44 @@ pub fn entry() {
         );
         assert_eq!(result.findings[0].name, "unused");
         assert_eq!(result.findings[0].proof_tier, DeadCodeProofTier::Strong);
+    }
+
+    #[test]
+    fn rust_test_functions_are_not_flagged_but_real_dead_code_still_is() {
+        let path = PathBuf::from("src/lib.rs");
+        let source = r#"
+fn dead_helper() {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn parses_supported_agent_adapters() {
+        assert_eq!(1 + 1, 2);
+    }
+
+    #[tokio::test]
+    async fn redacts_sensitive_api_keys_from_error_text() {
+        assert!(true);
+    }
+}
+"#;
+        let mut graph = parse_rust_to_graph(path.clone(), source).unwrap();
+        resolve_graph(&mut graph);
+        let result = analyze_dead_code(&graph, &[(path, source.to_string())]);
+
+        let names: Vec<&str> = result.findings.iter().map(|f| f.name.as_str()).collect();
+        assert!(
+            names.contains(&"dead_helper"),
+            "genuinely unused private fn must still be flagged: {names:?}"
+        );
+        assert!(
+            !names.contains(&"parses_supported_agent_adapters"),
+            "#[test] fn must not be flagged as dead: {names:?}"
+        );
+        assert!(
+            !names.contains(&"redacts_sensitive_api_keys_from_error_text"),
+            "#[tokio::test] fn must not be flagged as dead: {names:?}"
+        );
     }
 
     #[test]
@@ -516,6 +703,108 @@ pub struct Repo {}
             .iter()
             .any(|finding| finding.category == DeadCodeCategory::UnusedImport
                 && finding.name == "User"));
+    }
+
+    #[test]
+    fn trait_impl_methods_and_attribute_string_refs_are_not_dead() {
+        let source = r#"
+struct Config {
+    value: usize,
+}
+
+trait Serialize {
+    fn serialize(&self);
+}
+
+impl Serialize for Config {
+    fn serialize(&self) {}
+}
+
+fn is_zero(value: &usize) -> bool {
+    *value == 0
+}
+
+struct Field {
+    #[serde(skip_serializing_if = "is_zero")]
+    occurrence_index: usize,
+}
+
+fn truly_dead_helper() {}
+"#;
+        let path = PathBuf::from("src/config.rs");
+        let mut graph = parse_rust_to_graph(path.clone(), source).unwrap();
+        resolve_graph(&mut graph);
+        let parsed_sources = vec![(path, String::from(source))];
+        let result = analyze_dead_code(&graph, &parsed_sources);
+
+        // Trait-impl method is public contract surface, not dead.
+        assert!(
+            !result
+                .findings
+                .iter()
+                .any(|finding| finding.name == "serialize"),
+            "trait-impl method must not be flagged dead, got: {:?}",
+            result.findings
+        );
+        // `is_zero` is referenced only inside a `#[serde(...)]` attribute
+        // string; the lexical backstop must not treat the attribute as a
+        // comment.
+        assert!(
+            !result
+                .findings
+                .iter()
+                .any(|finding| finding.name == "is_zero"),
+            "attribute-string function reference must not be flagged dead, got: {:?}",
+            result.findings
+        );
+        // The genuinely unused private function is still reported.
+        assert!(
+            result.findings.iter().any(|finding| finding.category
+                == DeadCodeCategory::UnusedPrivateFunction
+                && finding.name == "truly_dead_helper"),
+            "real dead code must still be reported, got: {:?}",
+            result.findings
+        );
+    }
+
+    #[test]
+    fn dynamic_import_of_module_specifier_is_not_flagged_as_unused_import() {
+        // A lazy dynamic import (`() => import('./Widget.vue')`) resolves to a
+        // module symbol now that `.vue` files parse, but it binds no local
+        // name. Fabricating a binding from the specifier path used to flag a
+        // phantom `vue` import; it must not appear in the findings.
+        let importer_source = r#"export const registry = {
+  widget: () => import('./Widget.vue'),
+};
+"#;
+        let importer_path = PathBuf::from("src/app.ts");
+        let mut graph =
+            parse_javascript_to_graph(importer_path.clone(), importer_source, true).unwrap();
+        let mut widget = parse_vue_to_graph(
+            PathBuf::from("src/Widget.vue"),
+            r#"<script setup lang="ts">
+const label = "widget";
+</script>
+<template><div>{{ label }}</div></template>
+"#,
+        )
+        .unwrap();
+        graph.files.append(&mut widget.files);
+        graph.symbols.append(&mut widget.symbols);
+        graph.references.append(&mut widget.references);
+
+        resolve_graph(&mut graph);
+        let parsed_sources = vec![(importer_path, String::from(importer_source))];
+        let result = analyze_dead_code(&graph, &parsed_sources);
+
+        assert!(
+            !result
+                .findings
+                .iter()
+                .any(|finding| finding.category == DeadCodeCategory::UnusedImport),
+            "dynamic import bound no name and must not be flagged unused, got: {:?}",
+            result.findings
+        );
     }
 
     #[test]

@@ -38,7 +38,7 @@ pub fn parse_rust_to_graph(
     add_file_module_symbol(&mut graph, &file_path, Language::Rust, source);
 
     let mut context = RustExtractionContext::new(file_path, source);
-    walk_node(root, &mut context, &mut graph, None, None);
+    walk_node(root, &mut context, &mut graph, None, None, false);
 
     Ok(graph)
 }
@@ -93,6 +93,7 @@ fn walk_node(
     graph: &mut SemanticGraph,
     container_symbol_id: Option<&str>,
     container_type_name: Option<&str>,
+    in_trait_impl: bool,
 ) {
     match node.kind() {
         "use_declaration" => {
@@ -122,6 +123,7 @@ fn walk_node(
                     graph,
                     Some(symbol_id.as_str()),
                     Some(name.as_str()),
+                    false,
                 );
             }
             return;
@@ -150,6 +152,7 @@ fn walk_node(
                     graph,
                     Some(symbol_id.as_str()),
                     Some(name.as_str()),
+                    false,
                 );
             }
             return;
@@ -178,6 +181,7 @@ fn walk_node(
                     graph,
                     Some(symbol_id.as_str()),
                     Some(name.as_str()),
+                    false,
                 );
             }
             return;
@@ -190,6 +194,16 @@ fn walk_node(
                 } else {
                     SymbolKind::Function
                 };
+                // A method implementing a trait (`impl Trait for Type`) cannot
+                // carry a `pub` modifier, yet it is reachable via trait dispatch
+                // and is part of the type's public contract. Treating it as
+                // Private would flag it as dead. Inherent-impl methods without
+                // `pub` remain genuinely private.
+                let visibility = if in_trait_impl {
+                    Visibility::Public
+                } else {
+                    visibility_for(node)
+                };
                 let symbol = make_symbol(
                     context,
                     kind,
@@ -197,7 +211,7 @@ fn walk_node(
                     container_symbol_id,
                     container_type_name,
                     function_return_type(node, context),
-                    visibility_for(node),
+                    visibility,
                     context.parameter_count(node),
                     context.parameter_count(node),
                     name_node.start_position().row + 1,
@@ -206,12 +220,15 @@ fn walk_node(
                 let symbol_id = symbol.id.clone();
                 graph.add_symbol(symbol);
                 record_parameter_type_references(node, context, graph, Some(symbol_id.as_str()));
+                // Items nested inside a method body (closures, local fns) are
+                // not trait members, so the trait-impl context stops here.
                 walk_children(
                     node,
                     context,
                     graph,
                     Some(symbol_id.as_str()),
                     container_type_name,
+                    false,
                 );
             }
             return;
@@ -247,12 +264,16 @@ fn walk_node(
                 .child_by_field_name("type")
                 .map(|name_node| context.text(name_node))
                 .unwrap_or_default();
+            // `impl Trait for Type` carries a `trait` field; `impl Type` does
+            // not. Methods of a trait impl are public contract surface.
+            let is_trait_impl = node.child_by_field_name("trait").is_some();
             walk_children(
                 node,
                 context,
                 graph,
                 container_symbol_id,
                 (!impl_type_name.is_empty()).then_some(impl_type_name.as_str()),
+                is_trait_impl,
             );
             return;
         }
@@ -265,12 +286,15 @@ fn walk_node(
         _ => {}
     }
 
+    // Propagate the trait-impl context so it reaches the `function_item`
+    // children through the intervening `declaration_list` node.
     walk_children(
         node,
         context,
         graph,
         container_symbol_id,
         container_type_name,
+        in_trait_impl,
     );
 }
 
@@ -280,6 +304,7 @@ fn walk_children(
     graph: &mut SemanticGraph,
     container_symbol_id: Option<&str>,
     container_type_name: Option<&str>,
+    in_trait_impl: bool,
 ) {
     for idx in 0..node.child_count() {
         if let Some(child) = node.child(idx as u32) {
@@ -289,6 +314,7 @@ fn walk_children(
                 graph,
                 container_symbol_id,
                 container_type_name,
+                in_trait_impl,
             );
         }
     }
@@ -830,6 +856,55 @@ fn helper() {}
             reference.kind == ReferenceKind::Call
                 && reference.target_name == "Account"
                 && reference.call_form == Some(CallForm::Associated)
+        }));
+    }
+
+    #[test]
+    fn trait_impl_methods_are_public_but_inherent_private_methods_are_not() {
+        let graph = parse_rust_to_graph(
+            PathBuf::from("src/lib.rs"),
+            r#"
+struct Server;
+
+trait Handler {
+    fn handle(&self);
+}
+
+impl Handler for Server {
+    fn handle(&self) {}
+}
+
+impl Server {
+    fn inherent_private(&self) {}
+    pub fn inherent_public(&self) {}
+}
+"#,
+        )
+        .unwrap();
+
+        // Trait-impl method: no `pub` keyword is possible, yet it is public
+        // contract surface reachable via dispatch.
+        assert!(
+            graph.symbols.iter().any(|symbol| {
+                symbol.kind == SymbolKind::Method
+                    && symbol.name == "handle"
+                    && symbol.visibility == Visibility::Public
+            }),
+            "trait-impl method must be Public"
+        );
+        // Inherent method without `pub` is genuinely private.
+        assert!(
+            graph.symbols.iter().any(|symbol| {
+                symbol.kind == SymbolKind::Method
+                    && symbol.name == "inherent_private"
+                    && symbol.visibility == Visibility::Private
+            }),
+            "inherent non-pub method must stay Private"
+        );
+        assert!(graph.symbols.iter().any(|symbol| {
+            symbol.kind == SymbolKind::Method
+                && symbol.name == "inherent_public"
+                && symbol.visibility == Visibility::Public
         }));
     }
 
