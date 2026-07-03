@@ -4424,6 +4424,12 @@ fn convergence_focus(finding: &crate::review::ReviewFinding) -> &'static str {
     let title = finding.title.to_ascii_lowercase();
     if finding.family == crate::review::ReviewFindingFamily::Security {
         "security_hotspot"
+    } else if title.contains("algorithmic complexity") {
+        // Without this branch a complexity finding falls into the generic
+        // hotspot template while its doctrine clause supplies a complexity
+        // mechanism — producing obligations like "collapse competing concerns
+        // into `precomputed_index_or_single_pass_flow`".
+        "algorithmic_complexity_hotspot"
     } else if title.contains("hand-rolled parsing") {
         "hand_rolled_parsing"
     } else if title.contains("abstraction sprawl") {
@@ -7002,7 +7008,7 @@ mod tests {
     use super::{
         build_agent_handoff_artifact, build_guard_decision_artifact,
         build_topology_state_flow_lookup, build_topology_support_bridges,
-        build_topology_targeted_support_bridges, default_output_dir,
+        build_topology_targeted_support_bridges, convergence_focus, default_output_dir,
         select_diverse_guardian_packet_budget, write_architecture_surface_artifact,
         write_contract_inventory_artifact, write_dependency_graph_artifact,
         write_evidence_graph_artifact, write_project_analysis_artifacts,
@@ -7035,6 +7041,47 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn convergence_focus_routes_complexity_findings_to_the_complexity_template() {
+        let finding = |title: &str, family: crate::review::ReviewFindingFamily| {
+            crate::review::ReviewFinding {
+                id: String::from("finding-1"),
+                fingerprint: String::from("fp-1"),
+                family,
+                severity: crate::review::ReviewFindingSeverity::Medium,
+                precision: String::from("modeled"),
+                confidence_millis: 800,
+                title: String::from(title),
+                summary: String::new(),
+                file_paths: vec![String::from("app/Service.php")],
+                line: None,
+                primary_anchor: None,
+                evidence_anchors: Vec::new(),
+                locations: Vec::new(),
+                supporting_context: Vec::new(),
+                provenance: Vec::new(),
+                doctrine_refs: Vec::new(),
+                review_status: crate::review::ReviewStatus::Unreviewed,
+                policy_status: crate::review::PolicyStatus::None,
+                is_visible: true,
+            }
+        };
+        assert_eq!(
+            convergence_focus(&finding(
+                "Algorithmic complexity hotspot",
+                crate::review::ReviewFindingFamily::Graph,
+            )),
+            "algorithmic_complexity_hotspot"
+        );
+        assert_eq!(
+            convergence_focus(&finding(
+                "Repeated literal",
+                crate::review::ReviewFindingFamily::Hardwiring,
+            )),
+            "warning_heavy_hotspot"
+        );
+    }
 
     #[test]
     fn topology_support_bridges_prefer_causal_paths_over_import_only_paths() {
