@@ -188,6 +188,15 @@ impl SemanticGraph {
     }
 
     pub fn add_reference(&mut self, reference: SemanticReference) {
+        // A reference target must be a name, not a code block. Parsers sometimes
+        // capture raw node text for anonymous constructs — an IIFE callee
+        // (`(function (): string { ... })()`) or a TS inline object type
+        // (`{ channelId: string; ... }`) — which can never resolve to a symbol
+        // and only pollutes the graph. Drop structurally-anonymous targets.
+        let target = reference.target_name.trim_start();
+        if target.starts_with('{') || target.starts_with('(') || target.contains('\n') {
+            return;
+        }
         self.references.push(reference);
     }
 
@@ -372,6 +381,38 @@ mod tests {
     };
     use serde_json::json;
     use std::path::PathBuf;
+
+    #[test]
+    fn drops_anonymous_code_block_reference_targets() {
+        use super::SemanticReference;
+        let mut graph = SemanticGraph::default();
+        let reference = |target: &str| SemanticReference {
+            file_path: PathBuf::from("src/app.ts"),
+            enclosing_symbol_id: None,
+            kind: ReferenceKind::Type,
+            target_name: target.to_owned(),
+            binding_name: None,
+            line: 1,
+            arity: None,
+            receiver_name: None,
+            receiver_type_name: None,
+            call_form: None,
+        };
+        graph.add_reference(reference("{\n  channelId: string;\n}"));
+        graph.add_reference(reference("(function (): string {"));
+        graph.add_reference(reference("User"));
+
+        let targets: Vec<&str> = graph
+            .references
+            .iter()
+            .map(|r| r.target_name.as_str())
+            .collect();
+        assert_eq!(
+            targets,
+            vec!["User"],
+            "anonymous code-block targets must be dropped: {targets:?}"
+        );
+    }
 
     #[test]
     fn drops_self_referential_inheritance_edges_but_keeps_recursion() {
