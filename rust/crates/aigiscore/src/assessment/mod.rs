@@ -5,8 +5,8 @@ use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
 use crate::graph::{RelationKind, SemanticGraph};
 use crate::identity::{normalized_path, stable_fingerprint};
 use crate::scanners::ast_grep::{
-    run_ast_grep_scan, AstGrepComplexitySubtype, AstGrepFindingKind, AstGrepFrameworkMisuseSubtype,
-    AstGrepScanResult,
+    is_configuration_boundary_path, is_dependency_boundary_path, run_ast_grep_scan,
+    AstGrepComplexitySubtype, AstGrepFindingKind, AstGrepFrameworkMisuseSubtype, AstGrepScanResult,
 };
 use crate::scanners::framework_catalogs::{
     dispatch_mechanism_catalogs_for_file, MechanismMarkerKind,
@@ -2927,34 +2927,9 @@ fn sanctioned_dependency_markers(content: &str) -> Vec<String> {
     markers
 }
 
-fn is_configuration_boundary_path(path: &Path) -> bool {
-    let normalized = path
-        .to_string_lossy()
-        .replace('\\', "/")
-        .to_ascii_lowercase();
-    normalized.contains("/config/")
-        || normalized.contains("/settings/")
-        || normalized.ends_with("/settings.py")
-        || normalized.ends_with("/wp-config.php")
-        || normalized.ends_with("/config.php")
-}
-
-fn is_dependency_boundary_path(path: &Path) -> bool {
-    let normalized = path
-        .to_string_lossy()
-        .replace('\\', "/")
-        .to_ascii_lowercase();
-    normalized.contains("/providers/")
-        || normalized.contains("/bootstrap/")
-        || normalized.contains("/config/")
-        || normalized.contains("/settings/")
-        || normalized.contains("/initializers/")
-        || normalized.contains("/dependencyinjection/")
-        || normalized.contains("/container/")
-        || normalized.ends_with("serviceprovider.php")
-        || normalized.ends_with("/container.php")
-        || normalized.ends_with("/container.rs")
-}
+// `is_configuration_boundary_path` / `is_dependency_boundary_path` moved to
+// `scanners::ast_grep` so the raw scanner artifact and this assessment layer
+// share one boundary definition.
 
 /// Generic dispatch-mechanism classifier. The vocabulary of what counts as a
 /// lifecycle hook / event bus / queue job / notification is framework-specific

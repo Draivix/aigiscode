@@ -953,6 +953,9 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
             if framework_catalogs.is_empty() {
                 if let Some(framework_rule_set) = framework_misuse_rule_set_for_path(path) {
                     for rule in framework_rule_set.rules {
+                        if is_within_sanctioned_boundary(rule.subtype, path) {
+                            continue;
+                        }
                         for pattern in rule.patterns {
                             let pattern_started = Instant::now();
                             let mut pattern_matches = 0usize;
@@ -1007,6 +1010,9 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
 
             for catalog in framework_catalogs {
                 for rule in catalog.rules {
+                    if is_within_sanctioned_boundary(rule.subtype, path) {
+                        continue;
+                    }
                     for pattern in rule.patterns {
                         let pattern_started = Instant::now();
                         let mut pattern_matches = 0usize;
@@ -1344,6 +1350,55 @@ fn security_rule_set_for_path(path: &Path) -> Option<&'static AstGrepSecurityRul
     }
 }
 
+/// Whether `path` already sits inside the sanctioned boundary a misuse subtype
+/// polices, so a clue there would contradict the rule's own semantics — a
+/// `raw_env_outside_config` hit inside `config/` is not a clue, it is the
+/// sanctioned place for env access. Shared with the assessment layer so the
+/// raw scanner artifact and the downstream findings agree on the boundary.
+pub fn is_within_sanctioned_boundary(subtype: AstGrepFrameworkMisuseSubtype, path: &Path) -> bool {
+    match subtype {
+        AstGrepFrameworkMisuseSubtype::RawEnvOutsideConfig => is_configuration_boundary_path(path),
+        AstGrepFrameworkMisuseSubtype::RawContainerLookupOutsideBoundary => {
+            is_dependency_boundary_path(path)
+        }
+    }
+}
+
+pub fn is_configuration_boundary_path(path: &Path) -> bool {
+    // Leading slash so a repo-root-relative path (`config/app.php`) matches the
+    // same `/config/` segment test as a nested one.
+    let normalized = format!(
+        "/{}",
+        path.to_string_lossy()
+            .replace('\\', "/")
+            .to_ascii_lowercase()
+    );
+    normalized.contains("/config/")
+        || normalized.contains("/settings/")
+        || normalized.ends_with("/settings.py")
+        || normalized.ends_with("/wp-config.php")
+        || normalized.ends_with("/config.php")
+}
+
+pub fn is_dependency_boundary_path(path: &Path) -> bool {
+    let normalized = format!(
+        "/{}",
+        path.to_string_lossy()
+            .replace('\\', "/")
+            .to_ascii_lowercase()
+    );
+    normalized.contains("/providers/")
+        || normalized.contains("/bootstrap/")
+        || normalized.contains("/config/")
+        || normalized.contains("/settings/")
+        || normalized.contains("/initializers/")
+        || normalized.contains("/dependencyinjection/")
+        || normalized.contains("/container/")
+        || normalized.ends_with("serviceprovider.php")
+        || normalized.ends_with("/container.php")
+        || normalized.ends_with("/container.rs")
+}
+
 fn framework_misuse_rule_set_for_path(
     path: &Path,
 ) -> Option<&'static AstGrepFrameworkMisuseRuleSet> {
@@ -1376,6 +1431,37 @@ mod tests {
         AstGrepFrameworkMisuseSubtype, AstGrepSecurityCategory,
     };
     use std::path::PathBuf;
+
+    #[test]
+    fn env_clues_are_not_emitted_inside_config_boundaries() {
+        let result = run_ast_grep_scan(&[
+            (
+                PathBuf::from("app/Modules/Accounting/config/accounting.php"),
+                String::from("<?php return ['key' => env('ACCOUNTING_KEY')];\n"),
+            ),
+            (
+                PathBuf::from("app/Services/PricingService.php"),
+                String::from(
+                    "<?php class PricingService { public function rate() { return env('RATE'); } }\n",
+                ),
+            ),
+        ]);
+
+        let env_paths: Vec<String> = result
+            .findings
+            .iter()
+            .filter(|finding| finding.rule_id.contains("raw_env_outside_config"))
+            .map(|finding| finding.file_path.display().to_string())
+            .collect();
+        // The rule polices env access *outside* config: a hit inside `config/`
+        // contradicts the rule's own semantics and must not appear in the raw
+        // artifact.
+        assert_eq!(
+            env_paths,
+            vec![String::from("app/Services/PricingService.php")],
+            "only the out-of-boundary env access is a clue: {env_paths:?}"
+        );
+    }
 
     #[test]
     fn detects_python_json_decode_inside_loop() {
