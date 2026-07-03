@@ -137,17 +137,23 @@ impl ResolutionContext {
                 continue;
             }
 
-            let import_targets_vec = import_targets.iter().cloned().collect::<Vec<_>>();
+            // `resolve_import_paths` returns a HashSet whose iteration order is
+            // random per process. Everything ordering-sensitive downstream —
+            // `pick_edge` taking the first module candidate, the named-import
+            // map's last-insert-wins — must see a deterministic order, or the
+            // same input resolves `../types` to `types.ts` on one run and
+            // `types/index.ts` on the next.
+            let mut import_targets_vec = import_targets.iter().cloned().collect::<Vec<_>>();
+            import_targets_vec.sort();
             context.reference_import_map.insert(
                 (
                     reference.file_path.clone(),
                     reference.line,
                     reference.target_name.clone(),
                 ),
-                import_targets_vec,
+                import_targets_vec.clone(),
             );
 
-            let import_targets_for_bindings = import_targets.clone();
             context
                 .import_map
                 .entry(reference.file_path.clone())
@@ -156,7 +162,7 @@ impl ResolutionContext {
 
             if let Some(binding_name) = &reference.binding_name {
                 let exported_name = leaf_symbol_name(&reference.target_name);
-                for target_file in import_targets_for_bindings {
+                for target_file in import_targets_vec {
                     context.named_import_map.insert(
                         (reference.file_path.clone(), binding_name.clone()),
                         (target_file, exported_name.clone()),
@@ -3271,6 +3277,51 @@ class Factory {
         assert!(service.resolved_edges.iter().any(|edge| {
             edge.kind == ReferenceKind::Call && edge.target_symbol_id.ends_with(":float")
         }));
+    }
+
+    #[test]
+    fn ambiguous_module_imports_resolve_deterministically() {
+        // `./types` matches both `types.ts` and `types/index.ts`. The winner
+        // must be stable across runs (lexicographically first target), not
+        // whichever a HashSet happens to yield first.
+        let build = || {
+            let mut app = parse_javascript_to_graph(
+                PathBuf::from("src/app.ts"),
+                "import { Message } from './types';\n",
+                true,
+            )
+            .unwrap();
+            let mut flat = parse_javascript_to_graph(
+                PathBuf::from("src/types.ts"),
+                "export type Message = string;\n",
+                true,
+            )
+            .unwrap();
+            let mut dir = parse_javascript_to_graph(
+                PathBuf::from("src/types/index.ts"),
+                "export type Message = string;\n",
+                true,
+            )
+            .unwrap();
+            app.files.append(&mut flat.files);
+            app.files.append(&mut dir.files);
+            app.symbols.append(&mut flat.symbols);
+            app.symbols.append(&mut dir.symbols);
+            app.references.append(&mut flat.references);
+            app.references.append(&mut dir.references);
+            resolve_graph(&mut app);
+            app.resolved_edges
+                .iter()
+                .filter(|edge| edge.kind == ReferenceKind::Import)
+                .map(|edge| edge.target_file_path.clone())
+                .collect::<Vec<_>>()
+        };
+
+        let first = build();
+        assert!(!first.is_empty(), "import should resolve");
+        for _ in 0..5 {
+            assert_eq!(build(), first, "import resolution must be deterministic");
+        }
     }
 
     #[test]
