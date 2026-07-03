@@ -132,15 +132,27 @@ enum Carry {
 
 /// Blank string-literal and comment interiors of `source` line by line.
 pub fn mask_non_code_spans(language: MaskLanguage, source: &str) -> Vec<String> {
+    mask(language, source, true)
+}
+
+/// Blank only comment interiors, leaving string literals intact. For detectors
+/// that match a code construct whose payload is itself a string argument
+/// (`config('key')`, `Route::get('/path')`) and so must keep string contents,
+/// but must not fire on the construct being *mentioned* inside a comment.
+pub fn mask_comments_only(language: MaskLanguage, source: &str) -> Vec<String> {
+    mask(language, source, false)
+}
+
+fn mask(language: MaskLanguage, source: &str, blank_strings: bool) -> Vec<String> {
     let rules = MaskRules::for_language(language);
     let mut carry = Carry::None;
     source
         .lines()
-        .map(|line| mask_line(line, &rules, &mut carry))
+        .map(|line| mask_line(line, &rules, &mut carry, blank_strings))
         .collect()
 }
 
-fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
+fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bool) -> String {
     let chars: Vec<char> = line.chars().collect();
     let n = chars.len();
 
@@ -154,7 +166,12 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
         if terminates {
             *carry = Carry::None;
         }
-        return " ".repeat(n);
+        // Heredoc body is string content: blanked only in full-mask mode.
+        return if blank_strings {
+            " ".repeat(n)
+        } else {
+            line.to_owned()
+        };
     }
 
     let mut out: Vec<char> = Vec::with_capacity(n);
@@ -175,11 +192,11 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
             Carry::TripleSingle | Carry::TripleDouble => {
                 let q = if *carry == Carry::TripleSingle { '\'' } else { '"' };
                 if chars[i] == q && chars.get(i + 1) == Some(&q) && chars.get(i + 2) == Some(&q) {
-                    out.extend([' ', ' ', ' ']);
+                    out.extend([q, q, q]);
                     i += 3;
                     *carry = Carry::None;
                 } else {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { chars[i] });
                     i += 1;
                 }
                 continue;
@@ -197,7 +214,7 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
                     i += 1 + hashes;
                     *carry = Carry::None;
                 } else {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { chars[i] });
                     i += 1;
                 }
                 continue;
@@ -205,9 +222,9 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
             Carry::Template => {
                 let c = chars[i];
                 if c == '\\' {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { c });
                     if i + 1 < n {
-                        out.push(' ');
+                        out.push(if blank_strings { ' ' } else { chars[i + 1] });
                     }
                     i += 2;
                 } else if c == '`' {
@@ -228,7 +245,7 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
                         i += 1;
                     }
                 } else {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { c });
                     i += 1;
                 }
                 continue;
@@ -237,9 +254,9 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
                 let q = if *carry == Carry::StrSingle { '\'' } else { '"' };
                 let c = chars[i];
                 if c == '\\' {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { c });
                     if i + 1 < n {
-                        out.push(' ');
+                        out.push(if blank_strings { ' ' } else { chars[i + 1] });
                     }
                     i += 2;
                 } else if c == q {
@@ -247,7 +264,7 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
                     i += 1;
                     *carry = Carry::None;
                 } else {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { c });
                     i += 1;
                 }
                 continue;
@@ -260,7 +277,9 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
             out.extend(std::iter::repeat_n(' ', n - i));
             break;
         }
-        if rules.line_hash && c == '#' {
+        // PHP 8 attributes (`#[Route('/path')]`) are code, not comments — only a
+        // `#` not followed by `[` opens a line comment.
+        if rules.line_hash && c == '#' && chars.get(i + 1) != Some(&'[') {
             out.extend(std::iter::repeat_n(' ', n - i));
             break;
         }
@@ -333,9 +352,9 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
             while i < n {
                 let cc = chars[i];
                 if cc == '\\' {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { cc });
                     if i + 1 < n {
-                        out.push(' ');
+                        out.push(if blank_strings { ' ' } else { chars[i + 1] });
                     }
                     i += 2;
                 } else if cc == c {
@@ -344,7 +363,7 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry) -> String {
                     closed = true;
                     break;
                 } else {
-                    out.push(' ');
+                    out.push(if blank_strings { ' ' } else { cc });
                     i += 1;
                 }
             }
@@ -439,6 +458,19 @@ mod tests {
         let out = mask_non_code_spans(MaskLanguage::Python, src);
         assert!(!out[1].contains("for each"), "triple-quote body masked: {:?}", out[1]);
         assert!(out[3].contains("for i"), "real loop kept: {:?}", out[3]);
+    }
+
+    #[test]
+    fn comments_only_mode_keeps_strings_but_blanks_comments() {
+        let src = "// falls back to config('mailbox_provisioning')\n/* config('block') */\n$v = config('real_key');\n";
+        let out = mask_non_code_spans_comments(src);
+        assert!(!out[0].contains("config("), "line comment blanked: {:?}", out[0]);
+        assert!(!out[1].contains("config("), "block comment blanked: {:?}", out[1]);
+        assert!(out[2].contains("config('real_key')"), "real call + key kept: {:?}", out[2]);
+    }
+
+    fn mask_non_code_spans_comments(src: &str) -> Vec<String> {
+        mask_comments_only(MaskLanguage::Php, src)
     }
 
     #[test]

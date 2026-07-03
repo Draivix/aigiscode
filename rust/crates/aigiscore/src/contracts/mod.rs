@@ -163,6 +163,18 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
             continue;
         }
 
+        // Contract patterns carry their payload inside string arguments
+        // (`config('key')`, `Route::get('/path')`), so strings must stay intact
+        // — but a call merely *mentioned* in a comment ("falls back to
+        // config('mailbox_provisioning')") is documentation, not a declared
+        // contract. Blank comment interiors only; Vue SFCs are left raw (their
+        // masking happens at the parser layer).
+        let comment_masked = crate::lexmask::MaskLanguage::from_path(path)
+            .map(|mask_language| {
+                crate::lexmask::mask_comments_only(mask_language, content).join("\n")
+            });
+        let content: &str = comment_masked.as_deref().unwrap_or(content);
+
         scan_pattern_bucket(&mut buckets.routes, route_patterns(language), path, content);
         scan_pattern_bucket(&mut buckets.hooks, hook_patterns(), path, content);
         // Registered keys are PHP service-container / Artisan / WordPress idioms
@@ -856,6 +868,40 @@ const event = new CustomEvent('panel.opened');
             .symbolic_literals
             .iter()
             .any(|item| item.value == "search-panel"));
+    }
+
+    #[test]
+    fn contract_calls_inside_comments_are_not_declared_contracts() {
+        let inventory = build_contract_inventory(&[(
+            PathBuf::from("app/Policies/MailPolicy.php"),
+            String::from(
+                r#"<?php
+/**
+ * Falls back to config('mailbox_provisioning') when no row exists.
+ */
+class MailPolicy {
+    public function limit(): int {
+        // reads config('commented_key') — prose, not a call
+        return (int) config('mail.provision_limit');
+    }
+}
+"#,
+            ),
+        )]);
+
+        let keys: Vec<&str> = inventory
+            .config_keys
+            .iter()
+            .map(|item| item.value.as_str())
+            .collect();
+        assert!(
+            keys.contains(&"mail.provision_limit"),
+            "real config call captured: {keys:?}"
+        );
+        assert!(
+            !keys.contains(&"mailbox_provisioning") && !keys.contains(&"commented_key"),
+            "config keys mentioned only in comments must not be contracts: {keys:?}"
+        );
     }
 
     #[test]
