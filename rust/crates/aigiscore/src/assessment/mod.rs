@@ -1333,32 +1333,159 @@ struct IdentityVariantAccumulator {
 // Identifiers inside string literals are data contracts (array keys, column
 // names, payload fields), not code naming choices; scanning them makes every
 // ORM property / column-name pair look like naming drift.
+// Whether the identifier at `start` (a byte offset into `masked`) is read
+// through a member-access or scope-resolution operator: `$obj->field` /
+// `Class::field` (PHP), `obj.field` / `obj?.field` (JS/TS/Python/Ruby). Such a
+// position is an object field or external column, not a bare same-layer
+// identifier, so it does not evidence naming drift on its own.
+fn is_member_access_position(masked: &str, start: usize) -> bool {
+    let prefix = masked[..start].trim_end();
+    prefix.ends_with("->")
+        || prefix.ends_with("::")
+        // A single `.` preceding the identifier is member access; guard against
+        // `..`/`...` (ranges, spreads) which are not field reads.
+        || (prefix.ends_with('.') && !prefix.ends_with(".."))
+}
+
+// Blank every non-code region — string literals (including multi-line and
+// heredoc/nowdoc bodies) and comments — to spaces while preserving newlines so
+// line numbers stay aligned. Identifiers are only extracted from the code that
+// survives. This matters for naming-drift detection: without it, snake_case
+// database column names embedded in SQL heredocs and multi-line query strings
+// leak out as if they were code identifiers sitting next to their camelCase
+// entity properties, which is the normal ORM boundary, not drift. Comments are
+// masked too so an apostrophe in a comment cannot open a phantom string.
 fn mask_string_literals(content: &str) -> String {
+    enum State {
+        Normal,
+        LineComment,
+        BlockComment,
+        Quote(char),
+        Heredoc,
+    }
+    let chars: Vec<char> = content.chars().collect();
     let mut masked = String::with_capacity(content.len());
-    let mut in_quote: Option<char> = None;
+    let mut state = State::Normal;
     let mut escaped = false;
-    for ch in content.chars() {
-        match in_quote {
-            Some(quote) => {
-                if ch == '\n' {
-                    in_quote = None;
-                    escaped = false;
-                    masked.push('\n');
-                    continue;
-                }
-                if !escaped && ch == quote {
-                    in_quote = None;
-                }
-                escaped = !escaped && ch == '\\';
-                masked.push(' ');
-            }
-            None => {
-                if matches!(ch, '"' | '\'' | '`') {
-                    in_quote = Some(ch);
+    let mut heredoc_label = String::new();
+    let mut i = 0usize;
+    let blank = |ch: char| if ch == '\n' { '\n' } else { ' ' };
+    while i < chars.len() {
+        let ch = chars[i];
+        match state {
+            State::Normal => {
+                if ch == '/' && chars.get(i + 1) == Some(&'/') {
+                    state = State::LineComment;
+                    masked.push_str("  ");
+                    i += 2;
+                } else if ch == '/' && chars.get(i + 1) == Some(&'*') {
+                    state = State::BlockComment;
+                    masked.push_str("  ");
+                    i += 2;
+                } else if ch == '#' && !matches!(chars.get(i + 1), Some('[') | Some('!')) {
+                    // PHP/Python/Ruby/shell line comment (but not Rust `#[`/`#!`).
+                    state = State::LineComment;
                     masked.push(' ');
+                    i += 1;
+                } else if ch == '<'
+                    && chars.get(i + 1) == Some(&'<')
+                    && chars.get(i + 2) == Some(&'<')
+                {
+                    // Heredoc / nowdoc: `<<<LABEL`, `<<<'LABEL'`, `<<<"LABEL"`.
+                    let mut j = i + 3;
+                    while matches!(chars.get(j), Some(' ') | Some('\t')) {
+                        j += 1;
+                    }
+                    let opened_quote = matches!(chars.get(j), Some('\'') | Some('"'));
+                    if opened_quote {
+                        j += 1;
+                    }
+                    let label_start = j;
+                    while chars
+                        .get(j)
+                        .is_some_and(|c| c.is_alphanumeric() || *c == '_')
+                    {
+                        j += 1;
+                    }
+                    if j > label_start {
+                        heredoc_label = chars[label_start..j].iter().collect();
+                        if opened_quote && matches!(chars.get(j), Some('\'') | Some('"')) {
+                            j += 1;
+                        }
+                        for &c in &chars[i..j] {
+                            masked.push(blank(c));
+                        }
+                        i = j;
+                        state = State::Heredoc;
+                    } else {
+                        masked.push(ch);
+                        i += 1;
+                    }
+                } else if matches!(ch, '"' | '\'' | '`') {
+                    state = State::Quote(ch);
+                    escaped = false;
+                    masked.push(' ');
+                    i += 1;
                 } else {
                     masked.push(ch);
+                    i += 1;
                 }
+            }
+            State::LineComment => {
+                if ch == '\n' {
+                    state = State::Normal;
+                    masked.push('\n');
+                } else {
+                    masked.push(' ');
+                }
+                i += 1;
+            }
+            State::BlockComment => {
+                if ch == '*' && chars.get(i + 1) == Some(&'/') {
+                    state = State::Normal;
+                    masked.push_str("  ");
+                    i += 2;
+                } else {
+                    masked.push(blank(ch));
+                    i += 1;
+                }
+            }
+            State::Quote(quote) => {
+                // Strings span newlines (masked across them); comment masking
+                // above prevents a stray apostrophe from opening a phantom one.
+                if !escaped && ch == quote {
+                    state = State::Normal;
+                }
+                escaped = !escaped && ch == '\\';
+                masked.push(blank(ch));
+                i += 1;
+            }
+            State::Heredoc => {
+                let at_line_start = i == 0 || chars[i - 1] == '\n';
+                if at_line_start {
+                    let mut j = i;
+                    while matches!(chars.get(j), Some(' ') | Some('\t')) {
+                        j += 1;
+                    }
+                    let token_start = j;
+                    while chars
+                        .get(j)
+                        .is_some_and(|c| c.is_alphanumeric() || *c == '_')
+                    {
+                        j += 1;
+                    }
+                    let candidate: String = chars[token_start..j].iter().collect();
+                    if candidate == heredoc_label {
+                        for &c in &chars[i..j] {
+                            masked.push(blank(c));
+                        }
+                        i = j;
+                        state = State::Normal;
+                        continue;
+                    }
+                }
+                masked.push(blank(ch));
+                i += 1;
             }
         }
     }
@@ -1393,7 +1520,8 @@ fn detect_split_identity_models(
             continue;
         }
         let masked = mask_string_literals(content);
-        for identifier in identifier_pattern().find_iter(&masked).map(|m| m.as_str()) {
+        for occurrence in identifier_pattern().find_iter(&masked) {
+            let identifier = occurrence.as_str();
             let Some((stem, variant_kind)) = classify_identity_variant(identifier) else {
                 continue;
             };
@@ -1410,7 +1538,14 @@ fn detect_split_identity_models(
             // Pascal is excluded: type names are conventionally Pascal while
             // members are camel/snake, so that mix is not drift.
             let style = identifier_style(identifier);
-            if matches!(style, IdentifierStyle::Snake | IdentifierStyle::Camel) {
+            // The drift signal is a file mixing snake and camel spellings of one
+            // concept as bare, same-layer identifiers. A token in a member-access
+            // or scope position (`$row->source_entity_id`, `Table::status_code`)
+            // is a database column / external field read across a boundary, not a
+            // code identity worth unifying, so it must not count toward the mix.
+            if matches!(style, IdentifierStyle::Snake | IdentifierStyle::Camel)
+                && !is_member_access_position(&masked, occurrence.start())
+            {
                 group
                     .code_styles_by_file
                     .entry(path.clone())
@@ -3863,6 +3998,67 @@ mod tests {
         assert!(split
             .related_identifiers
             .contains(&String::from("assignedUserId")));
+    }
+
+    #[test]
+    fn snake_case_only_in_sql_strings_is_not_split_identity() {
+        // The snake_case spelling appears only as a database column inside a SQL
+        // heredoc and a quoted query-builder argument, while the camelCase is the
+        // PHP entity property. This is the normal ORM boundary and must not be
+        // reported as a split-identity model.
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Services/BusinessUnitBudgetManager.php"),
+                    String::from(
+                        r#"<?php
+class BusinessUnitBudgetManager {
+    public function load(array $options): array {
+        $businessUnitId = (int) $options['businessUnitId'];
+        $rows = $this->db
+            ->where('business_unit_id', $businessUnitId)
+            ->columns(['business_unit_id', 'amount'])
+            ->all();
+        $sql = <<<SQL
+            SELECT amount FROM budgets
+            WHERE business_unit_id = ?
+        SQL;
+        return $this->run($sql, [$businessUnitId]);
+    }
+}
+"#,
+                    ),
+                ),
+                (
+                    PathBuf::from("app/Services/BusinessUnitReportService.php"),
+                    String::from(
+                        r#"<?php
+class BusinessUnitReportService {
+    public function report(int $businessUnitId): array {
+        return $this->finder->forBusinessUnitId($businessUnitId);
+    }
+}
+"#,
+                    ),
+                ),
+            ],
+        );
+
+        assert!(
+            !assessment.findings.iter().any(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::SplitIdentityModel
+                    && finding
+                        .warning_families
+                        .iter()
+                        .any(|family| family.contains("business_unit"))
+            }),
+            "snake DB column in SQL strings must not trigger split identity, got: {:?}",
+            assessment.findings
+        );
     }
 
     #[test]
