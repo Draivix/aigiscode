@@ -689,6 +689,12 @@ fn detect_algorithmic_complexity_hotspots(
     let mut findings = Vec::new();
     let ast_grep_by_path = build_ast_grep_complexity_lookup(ast_grep_scan);
     for (path, source) in parsed_sources {
+        // Migrations, seeders, and test code run once (offline, during deploy
+        // or CI), not on the hot request path, so their loops are not runtime
+        // algorithmic hotspots.
+        if is_non_runtime_source_path(path) {
+            continue;
+        }
         let Some(language) = complexity_language(path) else {
             continue;
         };
@@ -699,6 +705,20 @@ fn detect_algorithmic_complexity_hotspots(
         if let Some(scanner_observations) = ast_grep_by_path.get(path) {
             observations.extend(scanner_observations.iter().cloned());
         }
+        // The secondary scanner matches `in_array($$$ARGS)` structurally and
+        // cannot see that the haystack is an inline literal set. Apply the same
+        // fixed-set discrimination here so both planes agree: a membership test
+        // against a small literal array is O(1), not a collection scan.
+        let source_lines: Vec<&str> = source.lines().collect();
+        observations.retain(|observation| {
+            if observation.subtype != ComplexitySubtype::CollectionScanInLoop {
+                return true;
+            }
+            match source_lines.get(observation.line.saturating_sub(1)) {
+                Some(line) => !line_is_fixed_set_membership_scan(line.trim()),
+                None => true,
+            }
+        });
         if observations.is_empty() {
             continue;
         }
@@ -771,6 +791,33 @@ fn detect_algorithmic_complexity_hotspots(
     findings
 }
 
+// Files that never execute on the hot runtime path: schema migrations,
+// database seeders, and test/spec code. Their loops carry no request-time
+// algorithmic pressure.
+fn is_non_runtime_source_path(path: &Path) -> bool {
+    let normalized = path.to_string_lossy().replace('\\', "/").to_lowercase();
+    if normalized.split('/').any(|segment| {
+        matches!(
+            segment,
+            "migrations" | "seeders" | "tests" | "test" | "spec" | "__tests__"
+        )
+    }) {
+        return true;
+    }
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    file_name.ends_with("seeder.php")
+        || file_name.ends_with("_test.rs")
+        || file_name.ends_with("_test.go")
+        || file_name.ends_with("_test.py")
+        || file_name.starts_with("test_")
+        || file_name.contains(".test.")
+        || file_name.contains(".spec.")
+}
+
 fn complexity_language(path: &Path) -> Option<ComplexityLanguage> {
     match path.extension().and_then(|extension| extension.to_str()) {
         Some("rs" | "js" | "jsx" | "ts" | "tsx" | "php") => Some(ComplexityLanguage::Brace),
@@ -815,13 +862,20 @@ fn detect_brace_language_complexity(source: &str) -> Vec<ComplexityObservation> 
             });
         }
         if in_loop {
-            if let Some(token) = first_regex_token(collection_scan_pattern(), line) {
-                findings.push(ComplexityObservation {
-                    subtype: ComplexitySubtype::CollectionScanInLoop,
-                    line: line_number,
-                    token,
-                    source: ComplexityObservationSource::Native,
-                });
+            if let Some(matched) = collection_scan_pattern().find(line) {
+                let token = matched.as_str().trim().to_owned();
+                // `in_array($x, ['a', 'b'], true)` / `array_search($x, [..])`
+                // against an inline literal array is a fixed-set membership test
+                // (small constant size), not an O(n) scan of an unbounded
+                // collection. Only a variable haystack is worth flagging.
+                if !is_fixed_set_membership_scan(&token, line, matched.end()) {
+                    findings.push(ComplexityObservation {
+                        subtype: ComplexitySubtype::CollectionScanInLoop,
+                        line: line_number,
+                        token,
+                        source: ComplexityObservationSource::Native,
+                    });
+                }
             }
             if let Some(token) = first_regex_token(sort_in_loop_pattern(), line) {
                 findings.push(ComplexityObservation {
@@ -1105,6 +1159,74 @@ fn complexity_subtype_label(subtype: ComplexitySubtype) -> &'static str {
         ComplexitySubtype::HttpCallInLoop => "http_call_in_loop",
         ComplexitySubtype::CacheLookupInLoop => "cache_lookup_in_loop",
     }
+}
+
+// Whether a source line's collection-scan call is a fixed-set membership test
+// (`in_array($x, [literal], ...)`). Shared by the native line scanner and the
+// secondary-scanner merge so both planes discriminate identically.
+fn line_is_fixed_set_membership_scan(line: &str) -> bool {
+    match collection_scan_pattern().find(line) {
+        Some(matched) => is_fixed_set_membership_scan(matched.as_str().trim(), line, matched.end()),
+        None => false,
+    }
+}
+
+// True when a PHP `in_array`/`array_search` call scans an inline literal array
+// (`[...]` or `array(...)`) rather than a variable collection. The haystack is
+// then a fixed, small set — a constant-time membership check, not an algorithmic
+// hotspot. `args_start` is the byte offset just past the opening paren.
+fn is_fixed_set_membership_scan(token: &str, line: &str, args_start: usize) -> bool {
+    if !(token.starts_with("in_array") || token.starts_with("array_search")) {
+        return false;
+    }
+    let bytes = line.as_bytes();
+    let mut depth: i32 = 1;
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut i = args_start;
+    let mut haystack_start = None;
+    while i < bytes.len() {
+        let c = bytes[i];
+        if in_single {
+            if c == b'\'' {
+                in_single = false;
+            }
+            i += 1;
+            continue;
+        }
+        if in_double {
+            if c == b'"' {
+                in_double = false;
+            }
+            i += 1;
+            continue;
+        }
+        match c {
+            b'\'' => in_single = true,
+            b'"' => in_double = true,
+            b'(' | b'[' | b'{' => depth += 1,
+            b')' | b']' | b'}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return false;
+                }
+            }
+            b',' if depth == 1 => {
+                haystack_start = Some(i + 1);
+                break;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    let Some(mut j) = haystack_start else {
+        return false;
+    };
+    while j < bytes.len() && (bytes[j] as char).is_whitespace() {
+        j += 1;
+    }
+    let rest = &line[j..];
+    rest.starts_with('[') || rest.starts_with("array(")
 }
 
 fn first_regex_token(pattern: &Regex, line: &str) -> Option<String> {
@@ -4842,6 +4964,132 @@ final class AppServiceProvider extends ServiceProvider
             .related_identifiers
             .iter()
             .any(|identifier| identifier.contains(".includes(")));
+    }
+
+    #[test]
+    fn in_array_against_literal_set_is_not_a_collection_scan_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Services/Router.php"),
+                String::from(
+                    r#"<?php
+function route($rows) {
+    foreach ($rows as $row) {
+        if (in_array($row->status, ['delivered', 'returned'], true)) {
+            handle($row);
+        }
+    }
+}
+"#,
+                ),
+            )],
+        );
+
+        // The only in-loop operation is a fixed-set membership check; no
+        // collection-scan hotspot should be raised.
+        assert!(
+            !assessment.findings.iter().any(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+                    && finding
+                        .warning_families
+                        .iter()
+                        .any(|family| family == "complexity:collection_scan_in_loop")
+            }),
+            "literal-array in_array must not be a collection scan, got: {:?}",
+            assessment.findings
+        );
+    }
+
+    #[test]
+    fn in_array_against_variable_collection_is_still_a_hotspot() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Services/Router.php"),
+                String::from(
+                    r#"<?php
+function route($rows, $allowed) {
+    foreach ($rows as $row) {
+        if (in_array($row->status, $allowed, true)) {
+            handle($row);
+        }
+    }
+}
+"#,
+                ),
+            )],
+        );
+
+        assert!(
+            assessment.findings.iter().any(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+                    && finding
+                        .warning_families
+                        .iter()
+                        .any(|family| family == "complexity:collection_scan_in_loop")
+            }),
+            "variable-haystack in_array must remain a hotspot, got: {:?}",
+            assessment.findings
+        );
+    }
+
+    #[test]
+    fn migrations_and_seeders_are_not_complexity_hotspots() {
+        let nested_loop = r#"<?php
+foreach ($tables as $table) {
+    foreach ($table->columns as $column) {
+        migrate($column);
+    }
+}
+"#;
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from(
+                        "app/Modules/HR/migrations/2026_02_21_120000_add_parallel_work.php",
+                    ),
+                    String::from(nested_loop),
+                ),
+                (
+                    PathBuf::from("database/seeders/AccountingSeeder.php"),
+                    String::from(nested_loop),
+                ),
+                (
+                    PathBuf::from("app/Services/RuntimeLoader.php"),
+                    String::from(nested_loop),
+                ),
+            ],
+        );
+
+        let hotspot_files: Vec<_> = assessment
+            .findings
+            .iter()
+            .filter(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            })
+            .map(|finding| finding.file_path.to_string_lossy().to_string())
+            .collect();
+        assert!(
+            hotspot_files.iter().any(|p| p.contains("RuntimeLoader")),
+            "runtime file must still be a hotspot, got: {hotspot_files:?}"
+        );
+        assert!(
+            !hotspot_files
+                .iter()
+                .any(|p| p.contains("migrations") || p.contains("seeders")),
+            "migration/seeder files must not be hotspots, got: {hotspot_files:?}"
+        );
     }
 
     #[test]
