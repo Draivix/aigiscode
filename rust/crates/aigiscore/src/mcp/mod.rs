@@ -3,15 +3,15 @@ mod live;
 mod watch;
 
 use self::contracts::{
-    build_finding_details, display_path, family_matches, language_matches, path_matches,
-    severity_matches, AtlasOutput, BottleneckOutput, BriefHotspotOutput, ConsistencyMode,
-    ContractInventoryOutput, ConvergenceOutput, CoverageReportOutput, CycleOutput, CyclesOutput,
-    CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams,
-    FindSymbolOutput, FindSymbolParams, FindingDetailOutput, FindingSummaryOutput,
-    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
-    QualityEvaluationOutput, RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
-    ShowCyclesParams, ShowHotspotsParams, SymbolMatchOutput, SymbolUsagesOutput,
-    SymbolUsagesParams, UsageSiteOutput,
+    build_finding_details, display_path, family_matches, is_corpus_scale_cycle, language_matches,
+    path_matches, severity_matches, AtlasOutput, BottleneckOutput, BriefHotspotOutput,
+    ConsistencyMode, ContractInventoryOutput, ConvergenceOutput, CorpusScaleUnitOutput,
+    CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams,
+    DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput, FindSymbolParams,
+    FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput,
+    ListFindingsOutput, ListFindingsParams, QualityEvaluationOutput, RepoBriefOutput,
+    RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
+    SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -714,6 +714,7 @@ impl AigiscodeMcpServer {
                     .cloned()
                     .collect()
             },
+            corpus_scale_units: self.state().snapshot.corpus_scale_units.clone(),
         })
     }
 
@@ -1168,6 +1169,7 @@ impl AigiscodeMcpServer {
                 to_json_pretty(&CyclesOutput {
                     strong_cycles: self.state().snapshot.strong_cycles.clone(),
                     total_cycles: self.state().snapshot.total_cycles.clone(),
+                    corpus_scale_units: self.state().snapshot.corpus_scale_units.clone(),
                 })?,
             )),
             _ if uri.starts_with(FINDING_URI_PREFIX) => {
@@ -1217,6 +1219,7 @@ struct McpState {
     runtime_entry_candidates: Vec<String>,
     strong_cycles: Vec<CycleOutput>,
     total_cycles: Vec<CycleOutput>,
+    corpus_scale_units: Vec<CorpusScaleUnitOutput>,
     atlas: AtlasOutput,
     coverage: CoverageReportOutput,
     quality: QualityEvaluationOutput,
@@ -1266,16 +1269,28 @@ impl McpState {
             .iter()
             .map(|path| display_path(path))
             .collect::<Vec<_>>();
+        // Corpus-scale SCCs are topology, not actionable cycles: split them out
+        // of both cycle lists once, here, so every consumer sees one truth.
+        let analyzed_files = surface.overview.analyzed_files;
+        let corpus_scale_units = analysis
+            .graph_analysis
+            .cycle_findings
+            .iter()
+            .filter(|cycle| is_corpus_scale_cycle(cycle, analyzed_files))
+            .map(|cycle| CorpusScaleUnitOutput::from_cycle_finding(cycle, analyzed_files))
+            .collect::<Vec<_>>();
         let strong_cycles = analysis
             .graph_analysis
             .strong_cycle_findings
             .iter()
+            .filter(|cycle| !is_corpus_scale_cycle(cycle, analyzed_files))
             .map(CycleOutput::from_cycle_finding)
             .collect::<Vec<_>>();
         let total_cycles = analysis
             .graph_analysis
             .cycle_findings
             .iter()
+            .filter(|cycle| !is_corpus_scale_cycle(cycle, analyzed_files))
             .map(CycleOutput::from_cycle_finding)
             .collect::<Vec<_>>();
         let atlas = AtlasOutput::from_surface(&surface);
@@ -1366,6 +1381,7 @@ impl McpState {
             runtime_entry_candidates,
             strong_cycles,
             total_cycles,
+            corpus_scale_units,
             atlas,
             coverage,
             quality,
@@ -1987,6 +2003,39 @@ fn main() {
         assert!(usages.usages.is_empty());
         assert_eq!(usages.total_candidates, 2);
         assert_eq!(usages.ambiguous_candidates.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn corpus_scale_scc_reports_as_topology_not_cycle_finding() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        // A 10-file import ring covering the whole corpus: one SCC spanning
+        // 100% of analyzed files must be reported as topology, not a cycle.
+        for index in 0..10 {
+            let next = (index + 1) % 10;
+            fs::write(
+                fixture.join(format!("src/m{index}.ts")),
+                format!("import {{ f{next} }} from './m{next}';\nexport function f{index}() {{ f{next}(); }}\n"),
+            )
+            .unwrap();
+        }
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let cycles = server
+            .show_cycles(Parameters(super::ShowCyclesParams::default()))
+            .await
+            .0;
+
+        assert_eq!(cycles.corpus_scale_units.len(), 1);
+        let unit = &cycles.corpus_scale_units[0];
+        assert_eq!(unit.size, 10);
+        assert!(unit.sample_files.len() <= 10);
+        assert!(unit.note.contains("topology"));
+        assert!(cycles
+            .strong_cycles
+            .iter()
+            .chain(cycles.total_cycles.iter())
+            .all(|cycle| cycle.size < 10));
     }
 
     #[tokio::test]

@@ -1362,11 +1362,71 @@ impl BottleneckOutput {
 pub struct CyclesOutput {
     pub strong_cycles: Vec<CycleOutput>,
     pub total_cycles: Vec<CycleOutput>,
+    /// Strongly-connected units spanning a large share of the analyzed corpus.
+    /// For an intra-crate/module graph this is the normal condition — topology,
+    /// not an actionable cycle — so they are reported here instead of being
+    /// dressed up as cycle findings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub corpus_scale_units: Vec<CorpusScaleUnitOutput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct CorpusScaleUnitOutput {
+    pub size: usize,
+    pub analyzed_files: usize,
+    pub edge_count: usize,
+    pub dominant_relations: Vec<String>,
+    /// First few member files for orientation; the full membership is in the
+    /// dependency-graph artifact.
+    pub sample_files: Vec<String>,
+    pub note: String,
+}
+
+/// A "cycle" whose membership covers a large share of the analyzed files is
+/// the corpus's normal mutual-reference topology, not a finding an agent can
+/// act on. Threshold: at least 10 files and at least a quarter of the corpus.
+pub fn is_corpus_scale_cycle(cycle: &CycleFinding, analyzed_files: usize) -> bool {
+    cycle.files.len() >= 10 && cycle.files.len() * 4 >= analyzed_files
+}
+
+impl CorpusScaleUnitOutput {
+    pub fn from_cycle_finding(cycle: &CycleFinding, analyzed_files: usize) -> Self {
+        let percent = if analyzed_files == 0 {
+            0
+        } else {
+            cycle.files.len() * 100 / analyzed_files
+        };
+        Self {
+            size: cycle.files.len(),
+            analyzed_files,
+            edge_count: cycle.edge_count,
+            dominant_relations: cycle
+                .dominant_relations
+                .iter()
+                .map(relation_kind_label)
+                .map(str::to_owned)
+                .collect(),
+            sample_files: cycle
+                .files
+                .iter()
+                .take(10)
+                .map(|path| display_path(path))
+                .collect(),
+            note: format!(
+                "This strongly-connected unit spans {} of {} analyzed files ({}%). Corpus-scale mutual reference is topology, not an actionable cycle; use repository_topology and graph_neighbors to navigate it.",
+                cycle.files.len(),
+                analyzed_files,
+                percent
+            ),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CycleOutput {
     pub size: usize,
+    /// Member files, capped at 20; `size` carries the real membership count
+    /// and the dependency-graph artifact carries full membership.
     pub files: Vec<String>,
     pub cycle_class: String,
     pub layers: Vec<String>,
@@ -1378,7 +1438,12 @@ impl CycleOutput {
     pub fn from_cycle_finding(cycle: &CycleFinding) -> Self {
         Self {
             size: cycle.files.len(),
-            files: cycle.files.iter().map(|path| display_path(path)).collect(),
+            files: cycle
+                .files
+                .iter()
+                .take(20)
+                .map(|path| display_path(path))
+                .collect(),
             cycle_class: cycle_class_label(cycle.cycle_class).to_owned(),
             layers: cycle
                 .layers
