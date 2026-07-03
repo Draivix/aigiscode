@@ -192,7 +192,20 @@ impl SemanticGraph {
     }
 
     pub fn add_resolved_edge(&mut self, edge: ResolvedEdge) {
-        self.resolved_edges.push(edge.normalized());
+        let edge = edge.normalized();
+        // A symbol can never inherit from, implement, or override *itself*. Such a
+        // self-referential structural edge is always a resolver mis-resolution
+        // (typically an unresolved parent type or interface falling back to the
+        // same-file symbol), so drop it. Recursion — a Call self-edge — is a real
+        // relationship and is preserved.
+        if matches!(
+            edge.relation_kind,
+            RelationKind::Extends | RelationKind::Implements | RelationKind::Overrides
+        ) && edge.source_symbol_id.as_deref() == Some(edge.target_symbol_id.as_str())
+        {
+            return;
+        }
+        self.resolved_edges.push(edge);
     }
 
     pub fn structural_view(&self) -> Vec<&ResolvedEdge> {
@@ -359,6 +372,38 @@ mod tests {
     };
     use serde_json::json;
     use std::path::PathBuf;
+
+    #[test]
+    fn drops_self_referential_inheritance_edges_but_keeps_recursion() {
+        let mut graph = SemanticGraph::default();
+        // A class "extending itself" — resolver mis-resolution — must be dropped.
+        graph.add_resolved_edge(ResolvedEdge::new(
+            PathBuf::from("app/Models/User.php"),
+            Some(String::from("class:app/Models/User.php:User")),
+            PathBuf::from("app/Models/User.php"),
+            String::from("class:app/Models/User.php:User"),
+            ReferenceKind::Extends,
+            ResolutionTier::ImportScoped,
+            900,
+            String::from("extends:self"),
+            10,
+        ));
+        // A method calling itself — real recursion — must be kept.
+        graph.add_resolved_edge(ResolvedEdge::new(
+            PathBuf::from("app/Models/User.php"),
+            Some(String::from("method:app/Models/User.php:User:walk")),
+            PathBuf::from("app/Models/User.php"),
+            String::from("method:app/Models/User.php:User:walk"),
+            ReferenceKind::Call,
+            ResolutionTier::SameFile,
+            900,
+            String::from("recursion"),
+            20,
+        ));
+
+        assert_eq!(graph.resolved_edges.len(), 1);
+        assert_eq!(graph.resolved_edges[0].relation_kind, RelationKind::Call);
+    }
 
     #[test]
     fn exposes_structural_runtime_and_mixed_edge_views() {
