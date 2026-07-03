@@ -4,12 +4,12 @@ mod watch;
 
 use self::contracts::{
     build_finding_details, display_path, family_matches, language_matches, path_matches,
-    severity_matches, AtlasOutput, BottleneckOutput, ConsistencyMode, ContractInventoryOutput,
-    ConvergenceOutput, CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput,
-    CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams, FindingDetailOutput,
-    FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput,
-    ListFindingsParams, QualityEvaluationOutput, RepoOverviewOutput, RepoOverviewParams,
-    ShowCyclesParams, ShowHotspotsParams,
+    severity_matches, AtlasOutput, BottleneckOutput, BriefHotspotOutput, ConsistencyMode,
+    ContractInventoryOutput, ConvergenceOutput, CoverageReportOutput, CycleOutput, CyclesOutput,
+    CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams,
+    FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput,
+    ListFindingsOutput, ListFindingsParams, QualityEvaluationOutput, RepoBriefOutput,
+    RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -47,7 +47,7 @@ use rmcp::{
     ServerHandler, ServiceExt,
 };
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -304,6 +304,92 @@ impl AigiscodeMcpServer {
         let mut overview = published.snapshot.repo_overview.clone();
         overview.freshness = Some(self.live.freshness(satisfied));
         Json(overview)
+    }
+
+    #[tool(
+        name = "repo_brief",
+        description = "Budgeted orientation brief (target <=3 KB): what this repository is, its \
+                       language mix, runtime entries, top hotspots, high-severity pressures, the \
+                       current guard verdict, and the doctrine headline. Start here; use \
+                       repo_overview only when the full artifact dump is genuinely needed."
+    )]
+    async fn repo_brief(&self) -> Json<RepoBriefOutput> {
+        let state = self.state();
+        let snapshot = &state.snapshot;
+        let overview = &snapshot.repo_overview.overview;
+        let quality = &snapshot.quality;
+        let guard = &snapshot.guard_decision;
+
+        let language_mix = snapshot
+            .repo_overview
+            .languages
+            .iter()
+            .filter(|language| language.language != "Unsupported")
+            .map(|language| format!("{} {} files", language.language, language.file_count))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let headline = format!(
+            "{} analyzed files ({}); {} symbols, {} resolved edges; {} visible findings; guard: {}.",
+            overview.analyzed_files,
+            language_mix,
+            overview.symbols,
+            overview.resolved_edges,
+            snapshot.finding_summaries.len(),
+            guard.verdict,
+        );
+
+        let top_pressures = quality
+            .dimensions
+            .iter()
+            .filter(|dimension| dimension.severity == "high")
+            .take(3)
+            .map(|dimension| format!("{}: {}", dimension.label, dimension.summary))
+            .collect::<Vec<_>>();
+
+        let top_hotspots = snapshot
+            .hotspots
+            .iter()
+            .take(3)
+            .map(|hotspot| BriefHotspotOutput {
+                file_path: hotspot.file_path.clone(),
+                finding_count: hotspot.finding_count,
+                bottleneck_centrality_millis: hotspot.bottleneck_centrality_millis,
+            })
+            .collect::<Vec<_>>();
+
+        let block_titles = snapshot
+            .doctrine_registry
+            .clauses
+            .iter()
+            .filter(|clause| clause.default_disposition.eq_ignore_ascii_case("block"))
+            .map(|clause| clause.title.clone())
+            .take(5)
+            .collect::<Vec<_>>();
+        let doctrine_headline = if block_titles.is_empty() {
+            format!(
+                "{} doctrine clauses; none block by default.",
+                snapshot.doctrine_registry.clauses.len()
+            )
+        } else {
+            format!(
+                "{} doctrine clauses; blocking: {}.",
+                snapshot.doctrine_registry.clauses.len(),
+                block_titles.join("; ")
+            )
+        };
+
+        Json(RepoBriefOutput {
+            root: snapshot.root.clone(),
+            headline,
+            languages: snapshot.repo_overview.languages.clone(),
+            runtime_entries: diversify_by_parent_dir(&snapshot.runtime_entry_candidates, 8),
+            top_hotspots,
+            top_pressures,
+            guard_verdict: guard.verdict.clone(),
+            guard_summary: guard.summary.clone(),
+            doctrine_headline,
+            freshness: Some(self.live.freshness(true)),
+        })
     }
 
     #[tool(
@@ -1149,6 +1235,35 @@ fn read_json_artifact<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> 
     serde_json::from_slice(&payload).ok()
 }
 
+/// Pick up to `cap` entries while preferring directory diversity: first one
+/// entry per parent directory (in input order), then fill remaining slots in
+/// input order. Keeps an orientation brief from being flooded by one
+/// convention-heavy directory (e.g. a migrations folder).
+fn diversify_by_parent_dir(entries: &[String], cap: usize) -> Vec<String> {
+    let parent_of = |entry: &str| entry.rsplit_once('/').map(|(dir, _)| dir.to_string());
+    let mut seen_dirs = HashSet::new();
+    let mut picked = Vec::new();
+    let mut picked_set = HashSet::new();
+    for entry in entries {
+        if picked.len() >= cap {
+            break;
+        }
+        if seen_dirs.insert(parent_of(entry)) {
+            picked.push(entry.clone());
+            picked_set.insert(entry.clone());
+        }
+    }
+    for entry in entries {
+        if picked.len() >= cap {
+            break;
+        }
+        if picked_set.insert(entry.clone()) {
+            picked.push(entry.clone());
+        }
+    }
+    picked
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -1502,6 +1617,63 @@ fn main() {
         let path = std::env::temp_dir().join(format!("aigiscore-mcp-{nonce}"));
         fs::create_dir_all(&path).unwrap();
         path
+    }
+
+    #[test]
+    fn diversify_by_parent_dir_prefers_one_entry_per_directory_before_filling() {
+        let entries = vec![
+            "app/migrations/001.php".to_string(),
+            "app/migrations/002.php".to_string(),
+            "app/migrations/003.php".to_string(),
+            "app/routes/api.php".to_string(),
+            "app/console/kernel.php".to_string(),
+        ];
+        let picked = super::diversify_by_parent_dir(&entries, 4);
+        assert_eq!(
+            picked,
+            vec![
+                "app/migrations/001.php".to_string(),
+                "app/routes/api.php".to_string(),
+                "app/console/kernel.php".to_string(),
+                "app/migrations/002.php".to_string(),
+            ]
+        );
+        // Cap below the distinct-directory count still respects input order.
+        let capped = super::diversify_by_parent_dir(&entries, 2);
+        assert_eq!(
+            capped,
+            vec![
+                "app/migrations/001.php".to_string(),
+                "app/routes/api.php".to_string(),
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn repo_brief_stays_within_orientation_budget() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            b"mod b; fn main() { b::helper(); }\n",
+        )
+        .unwrap();
+        fs::write(fixture.join("src/b.rs"), b"pub fn helper() {}\n").unwrap();
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let brief = server.repo_brief().await.0;
+
+        assert!(brief.headline.contains("analyzed files"));
+        assert!(!brief.guard_verdict.is_empty());
+        assert!(!brief.doctrine_headline.is_empty());
+        let freshness = brief.freshness.as_ref().expect("brief carries freshness");
+        assert!(!freshness.is_stale);
+        let payload = serde_json::to_string(&brief).unwrap();
+        assert!(
+            payload.len() <= 3 * 1024,
+            "repo_brief must stay within the 3 KB orientation budget (got {} bytes)",
+            payload.len()
+        );
     }
 
     #[tokio::test]

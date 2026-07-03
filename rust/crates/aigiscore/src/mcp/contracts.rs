@@ -148,6 +148,37 @@ pub struct RepoOverviewOutput {
     pub freshness: Option<Freshness>,
 }
 
+/// Budgeted orientation brief — the answer to "what is this repo and where do
+/// I start?" at the size a colleague would give it (target ≤ 3 KB). The full
+/// dump behind it stays available via `repo_overview`; this exists so an agent
+/// can orient without spending its context window. See docs/MCP_FOR_AGENTS.md.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct RepoBriefOutput {
+    pub root: String,
+    /// One-paragraph orientation: size, language mix, guard verdict, pressure.
+    pub headline: String,
+    pub languages: Vec<LanguageCoverageOutput>,
+    /// Files a request/process actually enters through (capped).
+    pub runtime_entries: Vec<String>,
+    /// The handful of files carrying the most findings + coupling pressure.
+    pub top_hotspots: Vec<BriefHotspotOutput>,
+    /// High-severity quality dimensions, one line each.
+    pub top_pressures: Vec<String>,
+    pub guard_verdict: String,
+    pub guard_summary: String,
+    /// Doctrine size + the block-level clause titles an agent must not violate.
+    pub doctrine_headline: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct BriefHotspotOutput {
+    pub file_path: String,
+    pub finding_count: usize,
+    pub bottleneck_centrality_millis: u32,
+}
+
 /// Freshness contract attached to graph-sensitive responses. The load-bearing invariant
 /// of the online daemon: a query always reads the latest published snapshot immediately,
 /// but is told when the daemon has observed newer changes than that snapshot represents.
