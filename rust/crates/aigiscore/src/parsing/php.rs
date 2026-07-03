@@ -99,7 +99,7 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
             "class_declaration" => {
                 if let Some(name_node) = current.child_by_field_name("name") {
                     let name = context.text(name_node);
-                    let symbol = make_symbol(
+                    let mut symbol = make_symbol(
                         context,
                         SymbolKind::Class,
                         &name,
@@ -112,6 +112,13 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
                         context.line(name_node),
                         current.end_position().row + 1,
                     );
+                    // `if (class_exists(X)) { class Y } else { class Y }` declares
+                    // the same class name twice in one file; without line
+                    // qualification both bodies (and their methods, which embed
+                    // the parent ID) collapse onto one symbol ID.
+                    if is_conditionally_declared(current) {
+                        symbol.id = format!("{}:L{}", symbol.id, symbol.start_line);
+                    }
                     let symbol_id = symbol.id.clone();
                     graph.add_symbol(symbol);
                     record_php_heritage(current, context, graph, Some(symbol_id.as_str()));
@@ -280,6 +287,22 @@ fn push_children<'a>(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Whether a declaration sits inside a conditional (`if`/`else`) rather than at
+/// program or namespace level. PHP allows the same class name to be declared in
+/// mutually-exclusive branches (`if (class_exists(...)) { class X } else
+/// { class X }`), so a conditional declaration cannot rely on name uniqueness.
+fn is_conditionally_declared(node: Node<'_>) -> bool {
+    let mut current = node.parent();
+    while let Some(ancestor) = current {
+        match ancestor.kind() {
+            "if_statement" | "else_clause" => return true,
+            "program" | "namespace_definition" => return false,
+            _ => current = ancestor.parent(),
+        }
+    }
+    false
+}
+
 fn make_symbol(
     context: &PhpContext<'_>,
     kind: SymbolKind,
@@ -828,6 +851,53 @@ mod tests {
     use super::parse_php_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn conditionally_declared_duplicate_classes_get_distinct_symbol_ids() {
+        let graph = parse_php_to_graph(
+            PathBuf::from("app/Providers/TelescopeServiceProvider.php"),
+            r#"<?php
+if (class_exists(Base::class)) {
+    class TelescopeServiceProvider extends Base
+    {
+        public function register(): void {}
+    }
+} else {
+    class TelescopeServiceProvider extends Fallback
+    {
+        public function register(): void {}
+    }
+}
+"#,
+        )
+        .unwrap();
+
+        let class_ids: Vec<&str> = graph
+            .symbols
+            .iter()
+            .filter(|symbol| {
+                symbol.kind == SymbolKind::Class && symbol.name == "TelescopeServiceProvider"
+            })
+            .map(|symbol| symbol.id.as_str())
+            .collect();
+        assert_eq!(class_ids.len(), 2, "both branch classes extracted");
+        assert_ne!(
+            class_ids[0], class_ids[1],
+            "branch classes must not share an ID"
+        );
+
+        let method_ids: Vec<&str> = graph
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Method && symbol.name == "register")
+            .map(|symbol| symbol.id.as_str())
+            .collect();
+        assert_eq!(method_ids.len(), 2);
+        assert_ne!(
+            method_ids[0], method_ids[1],
+            "methods embed the parent class ID, so they must diverge too"
+        );
+    }
 
     #[test]
     fn parses_php_symbols_and_imports() {
