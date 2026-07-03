@@ -172,6 +172,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
             content,
         );
         scan_pattern_bucket(&mut buckets.env_keys, env_patterns(), path, content);
+        scan_import_meta_env(&mut buckets.env_keys, path, content);
         scan_pattern_bucket(&mut buckets.config_keys, config_patterns(), path, content);
         scan_symbolic_literals(&mut buckets.symbolic_literals, path, content, language);
         scan_semantic_model_contracts(&mut buckets, path, content);
@@ -627,11 +628,43 @@ fn env_patterns() -> Vec<&'static Regex> {
                 Regex::new(r#"\bprocess\.env\.(?P<value>[A-Z][A-Z0-9_]*)"#).unwrap(),
                 Regex::new(r#"\bprocess\.env\s*\[\s*['"](?P<value>[A-Z][A-Z0-9_]*)['"]\s*\]"#)
                     .unwrap(),
-                Regex::new(r#"\bimport\.meta\.env\.(?P<value>[A-Z][A-Z0-9_]*)"#).unwrap(),
             ]
         })
         .iter()
         .collect()
+}
+
+fn import_meta_env_pattern() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN
+        .get_or_init(|| Regex::new(r#"\bimport\.meta\.env\.(?P<value>[A-Z][A-Z0-9_]*)"#).unwrap())
+}
+
+/// Vite exposes a fixed set of built-in compile-time constants on
+/// `import.meta.env` (`MODE`/`DEV`/`PROD`/`SSR`/`BASE_URL`). These are build-tool
+/// internals, not application environment contracts — real app env vars are
+/// prefixed (default `VITE_`). Excluding them keeps the env-key inventory from
+/// being dominated by framework noise (`DEV` alone appeared 75x on draivix).
+fn is_vite_builtin_env(value: &str) -> bool {
+    matches!(value, "MODE" | "DEV" | "PROD" | "SSR" | "BASE_URL")
+}
+
+fn scan_import_meta_env(
+    bucket: &mut HashMap<String, ContractEntryAccumulator>,
+    path: &Path,
+    content: &str,
+) {
+    for captures in import_meta_env_pattern().captures_iter(content) {
+        let Some(value_match) = captures.name("value") else {
+            continue;
+        };
+        let value = value_match.as_str().trim();
+        if value.is_empty() || is_vite_builtin_env(value) {
+            continue;
+        }
+        let line = line_for_offset(content, value_match.start());
+        add_bucket_entry(bucket, value, path, line);
+    }
 }
 
 fn config_patterns() -> Vec<&'static Regex> {
@@ -789,6 +822,37 @@ const event = new CustomEvent('panel.opened');
             .symbolic_literals
             .iter()
             .any(|item| item.value == "search-panel"));
+    }
+
+    #[test]
+    fn excludes_vite_builtin_env_but_keeps_real_frontend_env_keys() {
+        let inventory = build_contract_inventory(&[(
+            PathBuf::from("resources/js/config.ts"),
+            String::from(
+                r#"
+export const cfg = {
+    apiBase: import.meta.env.VITE_API_URL,
+    debug: import.meta.env.DEV,
+    mode: import.meta.env.MODE,
+    prod: import.meta.env.PROD,
+};
+"#,
+            ),
+        )]);
+
+        assert!(
+            inventory
+                .env_keys
+                .iter()
+                .any(|item| item.value == "VITE_API_URL"),
+            "real prefixed frontend env key must be captured"
+        );
+        for builtin in ["DEV", "MODE", "PROD", "SSR", "BASE_URL"] {
+            assert!(
+                inventory.env_keys.iter().all(|item| item.value != builtin),
+                "Vite built-in `{builtin}` must not be an env-key contract"
+            );
+        }
     }
 
     #[test]
