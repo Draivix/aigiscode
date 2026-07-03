@@ -522,8 +522,10 @@ fn is_css_class_value(value: &str) -> bool {
     if tokens.is_empty() {
         return false;
     }
-    // Every token must be lowercase and use only CSS-class characters (Tailwind
-    // uses `-`, `:`, `/`, `.`, `[]`, `%`, `!`). Uppercase letters mean it is not
+    // Every token must be lowercase and use only CSS-class characters. Tailwind
+    // uses `-`, `:`, `/`, `.`, `!`, and arbitrary-value brackets `[...]` whose
+    // contents may include `#` (hex colors, `text-[#94a3b8]`), `,` (rgb/hsl),
+    // `%`, and `@` (container-query variants). Uppercase letters mean it is not
     // a utility-class string. At least one token must carry a `-` or `:` so a
     // bare word is not misread as a class list.
     let mut has_utility_marker = false;
@@ -534,7 +536,7 @@ fn is_css_class_value(value: &str) -> bool {
         if !token.chars().all(|c| {
             c.is_ascii_lowercase()
                 || c.is_ascii_digit()
-                || matches!(c, '-' | ':' | '/' | '.' | '[' | ']' | '%' | '!' | '_')
+                || matches!(c, '-' | ':' | '/' | '.' | '[' | ']' | '%' | '!' | '_' | '#' | ',' | '@')
         }) {
             return false;
         }
@@ -554,6 +556,37 @@ mod tests {
     use super::{analyze_hardwiring_with_contracts, analyze_rust_hardwiring, HardwiringCategory};
     use crate::contracts::ContractLookup;
     use std::path::PathBuf;
+
+    #[test]
+    fn tailwind_arbitrary_value_classname_is_not_a_repeated_literal() {
+        let contracts = ContractLookup::default();
+        let sources: Vec<(PathBuf, String)> = (0..2)
+            .map(|i| {
+                (
+                    PathBuf::from(format!("website/src/pages/Panel{i}.tsx")),
+                    String::from(
+                        "export const P = () => (\n  <p className=\"text-[0.68rem] uppercase tracking-[0.28em] text-[#94a3b8]\">x</p>\n);\n",
+                    ),
+                )
+            })
+            .collect();
+
+        let result = analyze_hardwiring_with_contracts(&sources, &contracts);
+
+        assert!(
+            !result.findings.iter().any(|f| {
+                f.category == HardwiringCategory::RepeatedLiteral
+                    && f.value.contains("text-[")
+            }),
+            "a Tailwind className with an arbitrary hex value must not be a repeated literal: {:?}",
+            result
+                .findings
+                .iter()
+                .filter(|f| f.category == HardwiringCategory::RepeatedLiteral)
+                .map(|f| f.value.clone())
+                .collect::<Vec<_>>()
+        );
+    }
 
     #[test]
     fn env_outside_config_ignores_compile_time_macros_and_rule_strings() {
