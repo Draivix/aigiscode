@@ -144,9 +144,16 @@ stay; they get budgets and cursors.
 
 ## Sequencing
 
-1. `repo_brief` + budgets on existing tools (pure win, no new analysis).
-2. `find_symbol` / `symbol_usages` (index already exists in the semantic graph;
-   this is exposure, not new computation).
-3. Unresolved-reference discrimination in `coverage_report`.
-4. Whole-corpus SCC reclassification in `show_cycles`.
+1. ✅ `repo_brief` + budgets on existing tools (shipped 2026-07-03; runtime
+   entries are directory-diversified so one migrations folder cannot flood
+   the brief).
+2. ✅ `find_symbol` / `symbol_usages` (shipped 2026-07-03; ambiguous bare
+   names return capped candidates instead of guessing).
+3. ✅ Unresolved-reference discrimination in `coverage_report` (shipped
+   2026-07-03; primitives classed external even when colliding with repo
+   file stems).
+4. ✅ Whole-corpus SCC reclassification in `show_cycles` (shipped 2026-07-03;
+   `corpus_scale_units`, cycle file lists capped at 20). Also shipped from the
+   dogfooding list: hotspot `inbound_files`/`outbound_files`, quality-suspect
+   dedupe, complexity findings routed to the matching obligation template.
 5. `blast_radius`, `convention_for`, `verify_paths`.
