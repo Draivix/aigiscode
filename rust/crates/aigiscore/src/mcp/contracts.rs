@@ -1965,6 +1965,10 @@ fn dead_code_explanation(finding: &DeadCodeFinding) -> String {
             "Import `{}` resolves structurally but is not referenced by any non-import edge.",
             finding.name
         ),
+        DeadCodeCategory::OrphanModule => format!(
+            "Frontend module `{}` has no inbound edge, no matching import specifier, and no glob/framework auto-load coverage in the analyzed corpus.",
+            finding.name
+        ),
     };
     format!(
         "{explanation} Proof tier: {}.",
@@ -1976,6 +1980,7 @@ fn dead_code_kind(category: DeadCodeCategory) -> String {
     match category {
         DeadCodeCategory::UnusedPrivateFunction => String::from("unused_private_function"),
         DeadCodeCategory::UnusedImport => String::from("unused_import"),
+        DeadCodeCategory::OrphanModule => String::from("orphan_module"),
     }
 }
 

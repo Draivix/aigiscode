@@ -10,6 +10,13 @@ use std::path::{Path, PathBuf};
 pub enum DeadCodeCategory {
     UnusedPrivateFunction,
     UnusedImport,
+    /// A frontend module (component, composable, utility) that nothing in the
+    /// analyzed corpus references: no inbound resolved edge, no import
+    /// specifier whose tail matches its name, and not covered by any
+    /// `import.meta.glob` prefix or framework auto-loading convention. If the
+    /// repository's tests are excluded from the scan, a test-only module also
+    /// lands here — dead from production's point of view either way.
+    OrphanModule,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -257,6 +264,8 @@ pub fn analyze_dead_code(
         });
     }
 
+    findings.extend(detect_orphan_modules(graph, parsed_sources));
+
     findings.sort_by(|left, right| {
         left.file_path
             .cmp(&right.file_path)
@@ -265,6 +274,269 @@ pub fn analyze_dead_code(
     });
 
     DeadCodeResult { findings }
+}
+
+const FRONTEND_MODULE_EXTENSIONS: &[&str] = &["vue", "ts", "tsx", "js", "jsx", "mjs", "cjs"];
+
+/// Frontend modules that nothing references. Backend files are exempt because
+/// server frameworks autoload by convention (PSR-4, Rails constants), so a
+/// missing inbound edge proves nothing there; the frontend import graph is
+/// explicit, which makes "no importer anywhere" meaningful evidence.
+fn detect_orphan_modules(
+    graph: &SemanticGraph,
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<DeadCodeFinding> {
+    // Any cross-file resolved edge into a file proves it is alive.
+    let inbound_files = graph
+        .resolved_edges
+        .iter()
+        .filter(|edge| edge.source_file_path != edge.target_file_path)
+        .map(|edge| edge.target_file_path.as_path())
+        .collect::<HashSet<_>>();
+
+    // Import specifier tails — including imports that never resolved. If any
+    // import anywhere ends in the candidate's stem, the module is considered
+    // referenced even when resolution failed (aliases, unusual roots).
+    let mut import_tails = HashSet::new();
+    for reference in graph
+        .references
+        .iter()
+        .filter(|reference| reference.kind == ReferenceKind::Import)
+    {
+        let module_specifier = reference
+            .target_name
+            .split("::")
+            .next()
+            .unwrap_or_default()
+            .trim_end_matches('/');
+        let tail = module_specifier
+            .rsplit('/')
+            .next()
+            .unwrap_or_default()
+            .trim();
+        if !tail.is_empty() {
+            import_tails.insert(strip_frontend_extension(tail).to_ascii_lowercase());
+        }
+    }
+
+    // Modules are also loaded through plain string paths that never surface as
+    // import references: `new Worker(new URL('./renderWorker.ts', ...))`,
+    // `audioWorklet.addModule('../worklets/processor.js')`, re-export
+    // specifiers the parser misses. Any quoted relative/alias path literal in
+    // frontend source contributes its tail. Suppression-only, so the looseness
+    // of a lexical scan cannot fabricate a finding.
+    for (path, source) in parsed_sources {
+        let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if !FRONTEND_MODULE_EXTENSIONS.contains(&extension) {
+            continue;
+        }
+        for captures in path_literal_pattern().captures_iter(source) {
+            let Some(literal) = captures.get(1).map(|m| m.as_str()) else {
+                continue;
+            };
+            let tail = literal
+                .trim_end_matches('/')
+                .rsplit('/')
+                .next()
+                .unwrap_or_default()
+                .trim();
+            if !tail.is_empty() {
+                import_tails.insert(strip_frontend_extension(tail).to_ascii_lowercase());
+            }
+        }
+    }
+
+    // Files under a static `import.meta.glob('...')` prefix are lazily loaded
+    // by the bundler even though no explicit import names them.
+    let glob_prefixes = collect_import_meta_glob_prefixes(parsed_sources);
+
+    let mut findings = Vec::new();
+    for (path, _) in parsed_sources {
+        let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if !FRONTEND_MODULE_EXTENSIONS.contains(&extension) {
+            continue;
+        }
+        if is_orphan_exempt_path(path) {
+            continue;
+        }
+        if inbound_files.contains(path.as_path()) {
+            continue;
+        }
+        let file_name = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default();
+        let stem = strip_frontend_extension(file_name);
+        if stem.is_empty() || import_tails.contains(&stem.to_ascii_lowercase()) {
+            continue;
+        }
+        let normalized = normalized_path(path);
+        if glob_prefixes
+            .iter()
+            .any(|prefix| normalized.contains(prefix.as_str()))
+        {
+            continue;
+        }
+        findings.push(DeadCodeFinding {
+            category: DeadCodeCategory::OrphanModule,
+            symbol_id: format!("module:{normalized}"),
+            file_path: path.clone(),
+            name: stem.to_owned(),
+            line: 1,
+            proof_tier: dead_code_proof_tier(DeadCodeCategory::OrphanModule),
+            fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, path, stem),
+        });
+    }
+    findings
+}
+
+/// Paths a frontend framework or build system reaches without an import:
+/// route-mapped page components (Inertia/Nuxt/Next), route/config/type
+/// declaration directories, entry stems, and test/generated artifacts.
+fn is_orphan_exempt_path(path: &Path) -> bool {
+    let normalized = normalized_path(path).to_ascii_lowercase();
+    let has_segment = |segment: &str| normalized.split('/').any(|part| part == segment);
+    if has_segment("pages")
+        || has_segment("routes")
+        || has_segment("config")
+        || has_segment("types")
+        || has_segment("__tests__")
+        || has_segment("tests")
+        || has_segment("node_modules")
+    {
+        return true;
+    }
+    let file_name = normalized.rsplit('/').next().unwrap_or_default();
+    if file_name.ends_with(".d.ts")
+        || file_name.contains(".min.")
+        || file_name.contains(".generated.")
+        || file_name.contains(".spec.")
+        || file_name.contains(".test.")
+        || file_name.contains(".stories.")
+        || file_name.contains(".config.")
+    {
+        return true;
+    }
+    let stem = strip_frontend_extension(file_name);
+    matches!(
+        stem,
+        "index" | "main" | "app" | "bootstrap" | "setup" | "entry"
+    )
+}
+
+fn strip_frontend_extension(name: &str) -> &str {
+    for extension in FRONTEND_MODULE_EXTENSIONS {
+        if let Some(stripped) = name.strip_suffix(extension) {
+            if let Some(stem) = stripped.strip_suffix('.') {
+                return stem;
+            }
+        }
+    }
+    name
+}
+
+/// Static prefixes of `import.meta.glob('...')` specifiers, resolved against
+/// the declaring file's directory, normalized with forward slashes. Matching
+/// is by substring containment, which is deliberately loose: glob coverage
+/// only ever suppresses findings, so looseness cannot create a false positive.
+fn collect_import_meta_glob_prefixes(parsed_sources: &[(PathBuf, String)]) -> Vec<String> {
+    let mut prefixes = Vec::new();
+    for (path, source) in parsed_sources {
+        if !source.contains("import.meta.glob") {
+            continue;
+        }
+        for segment in source.split("import.meta.glob").skip(1) {
+            // Accept every call shape: `glob('a')`, `glob<T>(['a', 'b'])`,
+            // `glob('a', { eager: true })`. Take the argument span up to the
+            // closing paren and pull every quoted specifier out of it — extra
+            // strings from an options object can only add suppression, never a
+            // false positive.
+            let Some(open) = segment.find('(') else {
+                continue;
+            };
+            let arguments = &segment[open + 1
+                ..segment[open..]
+                    .find(')')
+                    .map(|close| open + close)
+                    .unwrap_or(segment.len())];
+            for spec in extract_quoted_strings(arguments) {
+                let static_prefix = spec
+                    .split(['*', '{'])
+                    .next()
+                    .unwrap_or_default()
+                    .trim_end_matches('/');
+                if static_prefix.is_empty() {
+                    continue;
+                }
+                let resolved =
+                    if static_prefix.starts_with("./") || static_prefix.starts_with("../") {
+                        let base = path.parent().unwrap_or_else(|| Path::new(""));
+                        normalized_path(&normalize_relative_segments(&base.join(static_prefix)))
+                    } else {
+                        // Alias (`@/...`) or root-absolute specifier: keep the
+                        // path part after the alias marker for containment
+                        // matching.
+                        static_prefix
+                            .trim_start_matches('@')
+                            .trim_start_matches('/')
+                            .to_owned()
+                    };
+                if !resolved.is_empty() {
+                    prefixes.push(resolved);
+                }
+            }
+        }
+    }
+    prefixes
+}
+
+/// A quoted relative or alias module path (`'./x'`, `'../y/z.ts'`, `'@/a/b'`).
+/// Matched per occurrence with a path-safe charset, so prose apostrophes in
+/// surrounding markup cannot desync the scan.
+fn path_literal_pattern() -> &'static regex::Regex {
+    static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    PATTERN.get_or_init(|| {
+        regex::Regex::new(r#"['"`]((?:\.{1,2}|@)/[A-Za-z0-9_@$./\-]+)['"`]"#)
+            .expect("valid path literal pattern")
+    })
+}
+
+fn extract_quoted_strings(text: &str) -> Vec<String> {
+    let mut strings = Vec::new();
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        if matches!(c, '\'' | '"' | '`') {
+            let mut value = String::new();
+            for inner in chars.by_ref() {
+                if inner == c {
+                    break;
+                }
+                value.push(inner);
+            }
+            if !value.is_empty() {
+                strings.push(value);
+            }
+        }
+    }
+    strings
+}
+
+fn normalize_relative_segments(path: &Path) -> PathBuf {
+    let mut parts: Vec<std::ffi::OsString> = Vec::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::ParentDir => {
+                parts.pop();
+            }
+            std::path::Component::CurDir => {}
+            other => parts.push(other.as_os_str().to_owned()),
+        }
+    }
+    parts.iter().collect()
 }
 
 fn import_name_used_lexically(source: &str, import_line: usize, name: &str) -> bool {
@@ -357,6 +629,7 @@ fn dead_code_category_label(category: DeadCodeCategory) -> &'static str {
     match category {
         DeadCodeCategory::UnusedPrivateFunction => "unused-private-function",
         DeadCodeCategory::UnusedImport => "unused-import",
+        DeadCodeCategory::OrphanModule => "orphan-module",
     }
 }
 
@@ -364,6 +637,10 @@ pub fn dead_code_proof_tier(category: DeadCodeCategory) -> DeadCodeProofTier {
     match category {
         DeadCodeCategory::UnusedImport => DeadCodeProofTier::Certain,
         DeadCodeCategory::UnusedPrivateFunction => DeadCodeProofTier::Strong,
+        // Aliases, string-based component resolution, and out-of-scan consumers
+        // (tests, sibling packages) are invisible to the import graph, so an
+        // orphan verdict is evidence, not proof.
+        DeadCodeCategory::OrphanModule => DeadCodeProofTier::Heuristic,
     }
 }
 
@@ -535,6 +812,77 @@ mod tests {
     use crate::parsing::vue::parse_vue_to_graph;
     use crate::resolve::resolve_graph;
     use std::path::PathBuf;
+
+    #[test]
+    fn detects_orphan_frontend_modules_with_all_suppression_channels() {
+        let consumer_path = PathBuf::from("resources/js/Pages/Home.vue");
+        let consumer_source = String::from(
+            r#"<script setup lang="ts">
+import Imported from '../components/Imported.vue'
+const widgets = import.meta.glob<{ default: unknown }>([
+    '../widgets/*.manifest.ts',
+])
+const worker = new Worker(new URL('../workers/renderWorker.ts', import.meta.url))
+export { helper } from '@/utils/reExported'
+</script>
+<template><Imported /></template>
+"#,
+        );
+        let sources = vec![
+            (consumer_path.clone(), consumer_source),
+            (
+                PathBuf::from("resources/js/components/Imported.vue"),
+                String::from("<script setup>const a = 1</script>"),
+            ),
+            (
+                PathBuf::from("resources/js/components/Orphan.vue"),
+                String::from("<script setup>const b = 2</script>"),
+            ),
+            (
+                PathBuf::from("resources/js/widgets/core.manifest.ts"),
+                String::from("export default { id: 'core' }\n"),
+            ),
+            (
+                PathBuf::from("resources/js/workers/renderWorker.ts"),
+                String::from("self.onmessage = () => {}\n"),
+            ),
+            (
+                PathBuf::from("resources/js/utils/reExported.ts"),
+                String::from("export const helper = 1\n"),
+            ),
+            (
+                PathBuf::from("resources/js/utils/index.ts"),
+                String::from("export const entry = 1\n"),
+            ),
+        ];
+        let mut graph = parse_vue_to_graph(consumer_path, sources[0].1.as_str()).unwrap();
+        for (path, source) in &sources[1..] {
+            let parsed = if path.extension().is_some_and(|e| e == "vue") {
+                parse_vue_to_graph(path.clone(), source).unwrap()
+            } else {
+                parse_javascript_to_graph(path.clone(), source, true).unwrap()
+            };
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+
+        let result = analyze_dead_code(&graph, &sources);
+        let orphans: Vec<&str> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == DeadCodeCategory::OrphanModule)
+            .map(|f| f.name.as_str())
+            .collect();
+
+        assert_eq!(
+            orphans,
+            vec!["Orphan"],
+            "only the truly unreferenced module is an orphan; import, glob, \
+             worker-URL, re-export, and index-stem channels all suppress: {orphans:?}"
+        );
+    }
 
     #[test]
     fn flags_private_rust_functions_without_incoming_calls() {

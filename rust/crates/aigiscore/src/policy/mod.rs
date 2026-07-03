@@ -389,6 +389,7 @@ impl CompiledExclusionRule {
         let expected = match finding.category {
             DeadCodeCategory::UnusedPrivateFunction => RuleFindingType::UnusedPrivateFunction,
             DeadCodeCategory::UnusedImport => RuleFindingType::UnusedImport,
+            DeadCodeCategory::OrphanModule => RuleFindingType::OrphanFile,
         };
         finding_type == expected
             && self.file_matcher.is_match(path)
