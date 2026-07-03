@@ -99,6 +99,10 @@ pub fn analyze_hardwiring_with_contracts(
 
             for caps in url_re.captures_iter(line) {
                 let value = caps.get(1).map(|m| m.as_str()).unwrap_or_default();
+                let match_start = caps.get(0).map(|m| m.start()).unwrap_or(0);
+                if is_non_endpoint_url(value, line, match_start) {
+                    continue;
+                }
                 findings.push(HardwiringFinding {
                     category: HardwiringCategory::HardcodedNetwork,
                     file_path: path.clone(),
@@ -292,6 +296,56 @@ fn is_comment_line(trimmed: &str) -> bool {
         || trimmed.starts_with('*')
         || trimmed.starts_with("/*")
         || trimmed.starts_with('#')
+}
+
+// A URL literal is only a hardcoded *network endpoint* when the program actually
+// connects to it. Two large classes of URL literals are constant identifiers or
+// display targets, never externalizable configuration, so flagging them is noise:
+//
+//   * XML namespace URIs, schema (`.xsd`) and DTD (`.dtd`) locations, and W3C /
+//     `schemas.*` standards URLs. `xmlns="http://www.w3.org/2000/svg"` is a
+//     spec-mandated constant; you cannot move it to config.
+//   * Hyperlink / attribution targets in markup — a URL that is the value of an
+//     HTML `href`/`src` attribute is something a user clicks (a footer social
+//     link, a map attribution), not an endpoint the code calls.
+//
+// `match_start` is the byte offset of the opening quote of the URL literal on
+// `line`, so the immediately-preceding attribute name can be inspected without
+// re-scanning the whole line.
+fn is_non_endpoint_url(value: &str, line: &str, match_start: usize) -> bool {
+    let value_l = value.to_ascii_lowercase();
+    let host_and_path = value_l
+        .trim_start_matches("http://")
+        .trim_start_matches("https://");
+
+    // XML namespace / schema / DTD identifiers.
+    if value_l.ends_with(".xsd")
+        || value_l.ends_with(".dtd")
+        || value_l.contains("/xmlschema")
+        || host_and_path.starts_with("www.w3.org/")
+        || host_and_path.starts_with("w3.org/")
+        || host_and_path.starts_with("schemas.")
+    {
+        return true;
+    }
+    let line_l = line.to_ascii_lowercase();
+    if line_l.contains("xmlns") || line_l.contains("<!doctype") || line_l.contains("schemalocation")
+    {
+        return true;
+    }
+
+    // Markup URL-valued attribute: the attribute name directly preceding the
+    // quoted URL references a resource for display or metadata (`href`/`src`
+    // links, a `canonical` SEO URL), not an endpoint the code connects to.
+    let prefix = line[..match_start.min(line.len())]
+        .trim_end()
+        .to_ascii_lowercase();
+    let attribute = prefix.trim_end_matches(['"', '\'', '=']).trim_end();
+    let last_token = attribute
+        .rsplit(|c: char| !c.is_ascii_alphanumeric())
+        .next()
+        .unwrap_or_default();
+    matches!(last_token, "href" | "src" | "canonical")
 }
 
 // A repeated string only signals hardwired configuration when it has constant
@@ -512,6 +566,45 @@ fn main() {
                 })
                 .count(),
             2
+        );
+    }
+
+    #[test]
+    fn xml_namespace_and_markup_link_urls_are_not_hardcoded_network() {
+        let contracts = ContractLookup::default();
+        let result = analyze_hardwiring_with_contracts(
+            &[(
+                PathBuf::from("app/Export/DocxWriter.php"),
+                String::from(
+                    r#"<?php
+class DocxWriter {
+    public function body(): string {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10"></svg>';
+        $doc = '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
+        $schema = "http://www.fio.cz/schema/importIB.xsd";
+        $footer = '<a href="https://github.com/Draivix/aigiscode">GitHub</a>';
+        $endpoint = "https://api.telegram.org/bot123/getUpdates";
+        return $svg . $doc . $schema . $footer . $endpoint;
+    }
+}
+"#,
+                ),
+            )],
+            &contracts,
+        );
+
+        let network = result
+            .findings
+            .iter()
+            .filter(|f| f.category == HardwiringCategory::HardcodedNetwork)
+            .map(|f| f.value.as_str())
+            .collect::<Vec<_>>();
+        // Only the real callable endpoint survives; namespace/schema/hyperlink
+        // URLs are suppressed as non-endpoints.
+        assert_eq!(
+            network,
+            vec!["https://api.telegram.org/bot123/getUpdates"],
+            "expected only the real endpoint, got {network:?}"
         );
     }
 
