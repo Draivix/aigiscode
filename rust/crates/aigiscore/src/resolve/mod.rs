@@ -299,6 +299,17 @@ fn resolve_reference(
         return resolve_import_reference(reference, context);
     }
 
+    // A type reference whose leaf is a language primitive / pseudo type (`float`,
+    // `int`, `string`, `void`, `self`, ...) can never denote a user-defined
+    // symbol, even when a method or function happens to share that name. Without
+    // this guard `private function float(...)` absorbs every `: float` type-use
+    // in its own file and fabricates a self-loop edge.
+    if reference.kind == ReferenceKind::Type
+        && is_primitive_type_name(&leaf_symbol_name(&reference.target_name))
+    {
+        return None;
+    }
+
     let target_name = leaf_symbol_name(&reference.target_name);
     let mut candidates = context.resolve(&target_name, &reference.file_path)?;
     candidates = filter_candidates(reference, candidates, context);
@@ -671,6 +682,23 @@ fn normalize_qualified_receiver_name(
     format!("{normalized_owner}::{member}")
 }
 
+/// Language primitive / pseudo type names, across every language AigisCode
+/// parses, that can never denote a user-defined symbol. These are reserved or
+/// built-in type words: a class cannot be named `float`/`int`/`string`, and a
+/// type token `self`/`static`/`void` is always the language builtin. Compared
+/// case-insensitively so boxed spellings (`String`, `Object`) collapse too.
+const PRIMITIVE_TYPE_NAMES: &[&str] = &[
+    "null", "undefined", "none", "void", "never", "mixed", "any", "unknown",
+    "string", "number", "boolean", "bool", "int", "integer", "float", "double",
+    "str", "array", "object", "callable", "iterable", "resource", "true", "false",
+    "self", "static", "parent", "this",
+];
+
+fn is_primitive_type_name(leaf: &str) -> bool {
+    let normalized = leaf.trim().to_ascii_lowercase();
+    PRIMITIVE_TYPE_NAMES.contains(&normalized.as_str())
+}
+
 fn extract_candidate_type_names(type_expression: &str) -> Vec<String> {
     let qualified = type_expression.trim();
     if qualified.is_empty() {
@@ -684,6 +712,9 @@ fn extract_candidate_type_names(type_expression: &str) -> Vec<String> {
     let matcher = TYPE_TOKEN_REGEX.get_or_init(|| {
         Regex::new(r"[A-Za-z_\\][A-Za-z0-9_:\\\\]*").expect("valid type token regex")
     });
+    // Container / generic wrapper names whose leaf token is a stdlib construct,
+    // not a user domain type. Language primitives are handled separately by
+    // `is_primitive_type_name` so the two lists have a single source of truth.
     let ignored = [
         "Promise",
         "Option",
@@ -703,27 +734,6 @@ fn extract_candidate_type_names(type_expression: &str) -> Vec<String> {
         "Union",
         "Literal",
         "Awaitable",
-        "null",
-        "undefined",
-        "None",
-        "void",
-        "never",
-        "mixed",
-        "any",
-        "unknown",
-        "string",
-        "number",
-        "boolean",
-        "bool",
-        "int",
-        "float",
-        "str",
-        "array",
-        "object",
-        "callable",
-        "resource",
-        "true",
-        "false",
     ]
     .into_iter()
     .collect::<HashSet<_>>();
@@ -738,7 +748,7 @@ fn extract_candidate_type_names(type_expression: &str) -> Vec<String> {
             continue;
         }
         let leaf = leaf_symbol_name(token);
-        if ignored.contains(leaf.as_str()) {
+        if ignored.contains(leaf.as_str()) || is_primitive_type_name(&leaf) {
             continue;
         }
         if !seen.insert(token.to_owned()) {
@@ -1030,7 +1040,7 @@ fn resolve_import_paths(
         return HashSet::new();
     };
 
-    match language {
+    let mut targets = match language {
         Language::JavaScript | Language::TypeScript => resolve_javascript_import_paths(
             &reference.file_path,
             &reference.target_name,
@@ -1053,7 +1063,14 @@ fn resolve_import_paths(
         Language::Rust => {
             resolve_rust_import_paths(&reference.file_path, &reference.target_name, &known_files)
         }
-    }
+    };
+
+    // A file never imports itself. Fuzzy basename fallbacks (e.g. a vendor
+    // `Laravel\Octane\Octane` use-statement whose tail segment `Octane.php`
+    // suffix-matches the local `config/octane.php` that declares it) can
+    // otherwise fabricate a self-import edge the codebase never contains.
+    targets.remove(&reference.file_path);
+    targets
 }
 
 fn resolve_rust_import_paths(
@@ -3196,6 +3213,62 @@ use Acme\Models\User;
             edge.kind == ReferenceKind::Import
                 && edge.target_file_path == Path::new("app/Models/User.php")
         }));
+    }
+
+    #[test]
+    fn type_reference_to_language_primitive_does_not_resolve_to_same_named_method() {
+        let mut service = parse_php_to_graph(
+            PathBuf::from("app/Factory.php"),
+            r#"<?php
+class Factory {
+    private function float(mixed $value, float $default): float {
+        return is_numeric($value) ? (float) $value : $default;
+    }
+    private function scale(float $value): float {
+        return $this->float($value, 1.0);
+    }
+}
+"#,
+        )
+        .unwrap();
+        resolve_graph(&mut service);
+
+        assert!(
+            !service.resolved_edges.iter().any(|edge| {
+                edge.kind == ReferenceKind::Type && edge.target_symbol_id.ends_with(":float")
+            }),
+            "primitive type `float` must not resolve to the same-named method: {:?}",
+            service.resolved_edges
+        );
+        // The genuine recursive call still resolves as a Call edge.
+        assert!(service.resolved_edges.iter().any(|edge| {
+            edge.kind == ReferenceKind::Call && edge.target_symbol_id.ends_with(":float")
+        }));
+    }
+
+    #[test]
+    fn import_never_resolves_to_the_importing_file() {
+        // A vendor use-statement whose tail basename collides with the declaring
+        // config file must not fabricate a self-import edge.
+        let mut service = parse_php_to_graph(
+            PathBuf::from("config/octane.php"),
+            r#"<?php
+use Laravel\Octane\Octane;
+return [];
+"#,
+        )
+        .unwrap();
+        resolve_graph(&mut service);
+
+        assert!(
+            !service.resolved_edges.iter().any(|edge| {
+                edge.kind == ReferenceKind::Import
+                    && edge.source_file_path == Path::new("config/octane.php")
+                    && edge.target_file_path == Path::new("config/octane.php")
+            }),
+            "a file must never import itself: {:?}",
+            service.resolved_edges
+        );
     }
 
     #[test]
