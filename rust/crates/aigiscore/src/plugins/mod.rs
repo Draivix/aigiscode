@@ -81,6 +81,30 @@ pub(crate) fn leaf_symbol_name(name: &str) -> String {
 
 /// Map `(file, imported binding name)` to the `(symbol id, defining file)` of
 /// the import target, keeping only symbols accepted by `accepts_symbol`.
+/// Class/struct symbols addressable by bare name from their own file — the
+/// same-file tier of plugin target resolution, shared by the queue and
+/// container plugins.
+pub(crate) fn same_file_symbol_targets(
+    graph: &SemanticGraph,
+) -> HashMap<(PathBuf, String), (String, PathBuf)> {
+    graph
+        .symbols
+        .iter()
+        .filter(|symbol| {
+            matches!(
+                symbol.kind,
+                crate::graph::SymbolKind::Class | crate::graph::SymbolKind::Struct
+            )
+        })
+        .map(|symbol| {
+            (
+                (symbol.file_path.clone(), symbol.name.clone()),
+                (symbol.id.clone(), symbol.file_path.clone()),
+            )
+        })
+        .collect()
+}
+
 pub(crate) fn import_targets_by_binding(
     graph: &SemanticGraph,
     symbols_by_id: &HashMap<String, &SymbolNode>,

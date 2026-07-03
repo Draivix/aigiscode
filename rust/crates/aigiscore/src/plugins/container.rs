@@ -2,7 +2,10 @@ use crate::graph::{
     CallForm, EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, RelationKind, ResolutionTier,
     ResolvedEdge, SemanticGraph, SymbolKind,
 };
-use crate::plugins::{import_targets_by_binding, leaf_symbol_name, RepoContext, RuntimePlugin};
+use crate::plugins::{
+    import_targets_by_binding, leaf_symbol_name, same_file_symbol_targets, RepoContext,
+    RuntimePlugin,
+};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -188,22 +191,6 @@ fn resolve_container_target(
                 .cloned()
         })
         .or_else(|| global_unique_symbols.get(&leaf).cloned())
-}
-
-fn same_file_symbol_targets(
-    graph: &SemanticGraph,
-) -> HashMap<(PathBuf, String), (String, PathBuf)> {
-    graph
-        .symbols
-        .iter()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct))
-        .map(|symbol| {
-            (
-                (symbol.file_path.clone(), symbol.name.clone()),
-                (symbol.id.clone(), symbol.file_path.clone()),
-            )
-        })
-        .collect()
 }
 
 fn global_unique_class_targets(graph: &SemanticGraph) -> HashMap<String, (String, PathBuf)> {

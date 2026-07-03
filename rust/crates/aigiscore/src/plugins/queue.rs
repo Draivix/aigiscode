@@ -2,7 +2,10 @@ use crate::graph::{
     EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, RelationKind, ResolutionTier,
     ResolvedEdge, SemanticGraph, SymbolKind,
 };
-use crate::plugins::{import_targets_by_binding, leaf_symbol_name, RepoContext, RuntimePlugin};
+use crate::plugins::{
+    import_targets_by_binding, leaf_symbol_name, same_file_symbol_targets, RepoContext,
+    RuntimePlugin,
+};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -99,22 +102,6 @@ fn resolve_dispatch_target(
                 .get(&(file_path.to_path_buf(), binding_name))
                 .cloned()
         })
-}
-
-fn same_file_symbol_targets(
-    graph: &SemanticGraph,
-) -> HashMap<(PathBuf, String), (String, PathBuf)> {
-    graph
-        .symbols
-        .iter()
-        .filter(|symbol| matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct))
-        .map(|symbol| {
-            (
-                (symbol.file_path.clone(), symbol.name.clone()),
-                (symbol.id.clone(), symbol.file_path.clone()),
-            )
-        })
-        .collect()
 }
 
 #[cfg(test)]
