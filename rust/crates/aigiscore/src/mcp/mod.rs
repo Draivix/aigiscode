@@ -1284,7 +1284,8 @@ impl McpState {
         let contract_inventory =
             ContractInventoryOutput::from_inventory(&analysis.contract_inventory);
         let doctrine_registry = DoctrineRegistryOutput::load(&analysis.root)?;
-        let coverage = CoverageReportOutput::new(&root, &surface, &review_surface);
+        let coverage =
+            CoverageReportOutput::new(&root, &surface, &review_surface, &analysis.semantic_graph);
         let quality = QualityEvaluationOutput::new(&root, &analysis, &surface, &review_surface);
         let doctrine_registry_native =
             load_doctrine_registry(&analysis.root).map_err(McpServerError::Doctrine)?;

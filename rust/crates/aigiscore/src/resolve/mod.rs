@@ -724,7 +724,7 @@ const PRIMITIVE_TYPE_NAMES: &[&str] = &[
     "this",
 ];
 
-fn is_primitive_type_name(leaf: &str) -> bool {
+pub(crate) fn is_primitive_type_name(leaf: &str) -> bool {
     let normalized = leaf.trim().to_ascii_lowercase();
     PRIMITIVE_TYPE_NAMES.contains(&normalized.as_str())
 }

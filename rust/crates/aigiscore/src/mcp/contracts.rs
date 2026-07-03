@@ -25,7 +25,7 @@ use crate::security::{SecurityCategory, SecurityFinding};
 use crate::surface::{ArchitectureSurface, HotspotFile, LanguageCoverage};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ops::Not;
 use std::path::{Path, PathBuf};
 
@@ -1707,6 +1707,11 @@ pub struct CoverageReportOutput {
     pub scanned_files: usize,
     pub analyzed_files: usize,
     pub unresolved_reference_sites: usize,
+    /// Discrimination of the unresolved-site total: one undifferentiated
+    /// number teaches an agent to ignore it; the split says what is expected
+    /// (external targets) versus actionable (same-repo name matches).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unresolved_breakdown: Option<UnresolvedBreakdownOutput>,
     pub supported_languages: Vec<LanguageCoverageOutput>,
     pub visible_findings: usize,
     pub accepted_by_policy: usize,
@@ -1716,8 +1721,141 @@ pub struct CoverageReportOutput {
     pub notes: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct UnresolvedBreakdownOutput {
+    pub total: usize,
+    /// Unresolved sites whose leaf target name matches a symbol or file
+    /// defined in this repository — likely resolver/parser gaps (actionable).
+    pub same_repo_name_matches: usize,
+    /// Leaf target name defined nowhere in the repository — external,
+    /// stdlib, or vendor targets (expected, not a defect).
+    pub external_targets: usize,
+    /// Per-reference-kind split of the same totals.
+    pub by_kind: Vec<UnresolvedKindCountOutput>,
+    /// Most frequent unresolved same-repo names — where resolver work pays
+    /// off first (capped at 10).
+    pub top_same_repo_names: Vec<UnresolvedNameCountOutput>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct UnresolvedKindCountOutput {
+    pub kind: String,
+    pub total: usize,
+    pub same_repo_name_matches: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct UnresolvedNameCountOutput {
+    pub name: String,
+    pub sites: usize,
+}
+
+/// Leaf name of a reference target: the last segment across the namespace
+/// separators used by supported languages (`::`, `.`, `\`, `/`).
+fn reference_leaf_name(target: &str) -> &str {
+    target
+        .rsplit(|separator| matches!(separator, ':' | '.' | '\\' | '/'))
+        .next()
+        .unwrap_or(target)
+}
+
+fn build_unresolved_breakdown(
+    graph: &crate::graph::SemanticGraph,
+) -> Option<UnresolvedBreakdownOutput> {
+    let resolved_sites = graph
+        .resolved_edges
+        .iter()
+        .map(|edge| {
+            (
+                edge.source_file_path.as_path(),
+                edge.kind,
+                edge.line,
+                edge.source_symbol_id.as_deref(),
+            )
+        })
+        .collect::<HashSet<_>>();
+    let mut known_names: HashSet<&str> = graph
+        .symbols
+        .iter()
+        .map(|symbol| symbol.name.as_str())
+        .collect();
+    for file in &graph.files {
+        if let Some(stem) = file.path.file_stem().and_then(|stem| stem.to_str()) {
+            known_names.insert(stem);
+        }
+    }
+
+    let mut total = 0usize;
+    let mut same_repo = 0usize;
+    let mut by_kind: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+    let mut name_counts: HashMap<&str, usize> = HashMap::new();
+    for reference in &graph.references {
+        if resolved_sites.contains(&(
+            reference.file_path.as_path(),
+            reference.kind,
+            reference.line,
+            reference.enclosing_symbol_id.as_deref(),
+        )) {
+            continue;
+        }
+        total += 1;
+        let leaf = reference_leaf_name(&reference.target_name);
+        // A primitive/builtin type word can collide with a repo file stem
+        // (`string.ts`) or symbol; it is never an actionable resolver gap.
+        let matches_repo =
+            !crate::resolve::is_primitive_type_name(leaf) && known_names.contains(leaf);
+        let kind_entry = by_kind
+            .entry(format!("{:?}", reference.kind).to_ascii_lowercase())
+            .or_default();
+        kind_entry.0 += 1;
+        if matches_repo {
+            same_repo += 1;
+            kind_entry.1 += 1;
+            *name_counts.entry(leaf).or_default() += 1;
+        }
+    }
+    if total == 0 {
+        return None;
+    }
+
+    let mut top_names = name_counts.into_iter().collect::<Vec<_>>();
+    top_names.sort_by(|(name_a, count_a), (name_b, count_b)| {
+        count_b.cmp(count_a).then_with(|| name_a.cmp(name_b))
+    });
+    top_names.truncate(10);
+
+    Some(UnresolvedBreakdownOutput {
+        total,
+        same_repo_name_matches: same_repo,
+        external_targets: total - same_repo,
+        by_kind: by_kind
+            .into_iter()
+            .map(
+                |(kind, (kind_total, kind_same_repo))| UnresolvedKindCountOutput {
+                    kind,
+                    total: kind_total,
+                    same_repo_name_matches: kind_same_repo,
+                },
+            )
+            .collect(),
+        top_same_repo_names: top_names
+            .into_iter()
+            .map(|(name, sites)| UnresolvedNameCountOutput {
+                name: name.to_string(),
+                sites,
+            })
+            .collect(),
+    })
+}
+
 impl CoverageReportOutput {
-    pub fn new(root: &str, surface: &ArchitectureSurface, review_surface: &ReviewSurface) -> Self {
+    pub fn new(
+        root: &str,
+        surface: &ArchitectureSurface,
+        review_surface: &ReviewSurface,
+        graph: &crate::graph::SemanticGraph,
+    ) -> Self {
+        let unresolved_breakdown = build_unresolved_breakdown(graph);
         let mut notes = Vec::new();
         if surface
             .languages
@@ -1728,10 +1866,10 @@ impl CoverageReportOutput {
                 "Unsupported files are present in the repository and are reported explicitly.",
             ));
         }
-        if surface.overview.unresolved_reference_sites > 0 {
+        if let Some(breakdown) = &unresolved_breakdown {
             notes.push(format!(
-                "{} unresolved reference sites remain after deterministic resolution.",
-                surface.overview.unresolved_reference_sites
+                "{} unresolved reference sites remain after deterministic resolution: {} match a same-repo symbol/file name (possible resolver gaps), {} point at external or stdlib targets (expected).",
+                breakdown.total, breakdown.same_repo_name_matches, breakdown.external_targets
             ));
         }
         notes.push(String::from(
@@ -1742,6 +1880,7 @@ impl CoverageReportOutput {
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
             unresolved_reference_sites: surface.overview.unresolved_reference_sites,
+            unresolved_breakdown,
             supported_languages: surface
                 .languages
                 .iter()
@@ -2645,7 +2784,7 @@ pub fn display_path(path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_finding_details, security_explanation};
+    use super::{build_finding_details, build_unresolved_breakdown, security_explanation};
     use crate::assessment::{
         ArchitecturalAssessment, ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind,
     };
@@ -2660,6 +2799,98 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn unresolved_breakdown_discriminates_same_repo_external_and_primitive_targets() {
+        use crate::graph::{
+            EdgeOrigin, EdgeStrength, FileNode, GraphLayer, Language, ReferenceKind, RelationKind,
+            ResolutionTier, ResolvedEdge, SemanticGraph, SemanticReference, SymbolKind, SymbolNode,
+            Visibility,
+        };
+        let mut graph = SemanticGraph::default();
+        graph.add_file(FileNode {
+            path: PathBuf::from("src/known.rs"),
+            language: Language::Rust,
+        });
+        // A repo file stem named after a primitive must not turn primitive
+        // type words into "same-repo" resolver gaps.
+        graph.add_file(FileNode {
+            path: PathBuf::from("src/string.ts"),
+            language: Language::TypeScript,
+        });
+        graph.add_symbol(SymbolNode {
+            id: String::from("function:src/known.rs:known_helper"),
+            file_path: PathBuf::from("src/known.rs"),
+            kind: SymbolKind::Function,
+            name: String::from("known_helper"),
+            qualified_name: String::from("known_helper"),
+            parent_symbol_id: None,
+            owner_type_name: None,
+            return_type_name: None,
+            visibility: Visibility::Public,
+            parameter_count: 0,
+            required_parameter_count: 0,
+            start_line: 1,
+            end_line: 2,
+        });
+        let reference = |target: &str, kind: ReferenceKind, line: usize| SemanticReference {
+            file_path: PathBuf::from("src/main.rs"),
+            enclosing_symbol_id: None,
+            kind,
+            target_name: String::from(target),
+            binding_name: None,
+            line,
+            arity: None,
+            receiver_name: None,
+            receiver_type_name: None,
+            call_form: None,
+        };
+        // Resolved site: excluded from the breakdown entirely.
+        graph.add_reference(reference("known_helper", ReferenceKind::Call, 1));
+        graph.resolved_edges.push(ResolvedEdge {
+            source_file_path: PathBuf::from("src/main.rs"),
+            source_symbol_id: None,
+            target_file_path: PathBuf::from("src/known.rs"),
+            target_symbol_id: String::from("function:src/known.rs:known_helper"),
+            reference_target_name: Some(String::from("known_helper")),
+            kind: ReferenceKind::Call,
+            relation_kind: RelationKind::Call,
+            layer: GraphLayer::Structural,
+            strength: EdgeStrength::Hard,
+            origin: EdgeOrigin::Resolver,
+            resolution_tier: ResolutionTier::Global,
+            confidence_millis: 900,
+            reason: String::from("test"),
+            line: 1,
+            occurrence_index: 0,
+        });
+        // Unresolved same-repo gap: leaf matches a defined symbol name.
+        graph.add_reference(reference("Owner::known_helper", ReferenceKind::Call, 2));
+        // Unresolved external target: leaf defined nowhere in the repo.
+        graph.add_reference(reference("vendor::external_fn", ReferenceKind::Call, 3));
+        // Primitive type word colliding with the string.ts file stem.
+        graph.add_reference(reference("string", ReferenceKind::Type, 4));
+
+        let breakdown = build_unresolved_breakdown(&graph).expect("unresolved sites exist");
+        assert_eq!(breakdown.total, 3);
+        assert_eq!(breakdown.same_repo_name_matches, 1);
+        assert_eq!(breakdown.external_targets, 2);
+        let call_kind = breakdown
+            .by_kind
+            .iter()
+            .find(|kind| kind.kind == "call")
+            .expect("call kind present");
+        assert_eq!(call_kind.total, 2);
+        assert_eq!(call_kind.same_repo_name_matches, 1);
+        let type_kind = breakdown
+            .by_kind
+            .iter()
+            .find(|kind| kind.kind == "type")
+            .expect("type kind present");
+        assert_eq!(type_kind.same_repo_name_matches, 0);
+        assert_eq!(breakdown.top_same_repo_names.len(), 1);
+        assert_eq!(breakdown.top_same_repo_names[0].name, "known_helper");
+    }
 
     #[test]
     fn build_finding_details_covers_architectural_assessment_ids() {
