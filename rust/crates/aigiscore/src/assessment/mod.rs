@@ -3444,27 +3444,93 @@ fn is_abstraction_role(word: &str) -> bool {
 }
 
 fn is_abstraction_concept_word(word: &str) -> bool {
-    word.len() >= 4
-        && !matches!(
-            word,
-            "abstract"
-                | "default"
-                | "global"
-                | "common"
-                | "system"
-                | "value"
-                | "field"
-                | "fields"
-                | "types"
-                | "type"
-                | "data"
-                | "core"
-                | "base"
-                | "module"
-                | "modules"
-                | "view"
-                | "views"
-        )
+    word.len() >= 4 && !is_generic_concept_stopword(word) && !is_structural_layer_word(word)
+}
+
+/// Non-domain filler words that are never a meaningful sprawl concept.
+fn is_generic_concept_stopword(word: &str) -> bool {
+    matches!(
+        word,
+        "abstract"
+            | "default"
+            | "global"
+            | "common"
+            | "system"
+            | "value"
+            | "field"
+            | "fields"
+            | "types"
+            | "type"
+            | "data"
+            | "core"
+            | "base"
+            | "module"
+            | "modules"
+            | "view"
+            | "views"
+    )
+}
+
+/// Structural/layer directory words (universal OOP/web-app layering vocabulary,
+/// not framework-specific) and role plurals. A concept is extracted from file
+/// stems *and parent directory names*, so a layer directory like `Services/`,
+/// `Support/`, or `components/` would otherwise become a fake "concept" that
+/// groups architecturally-unrelated files sharing only that layer, guaranteeing
+/// a 4+ role spread in any large codebase. Role singulars are already filtered
+/// upstream via `is_abstraction_role`; this covers the plural/directory forms.
+fn is_structural_layer_word(word: &str) -> bool {
+    matches!(
+        word,
+        "support"
+            | "supports"
+            | "http"
+            | "console"
+            | "middleware"
+            | "resources"
+            | "resource"
+            | "foundation"
+            | "shared"
+            | "components"
+            | "component"
+            | "integrations"
+            | "integration"
+            | "actions"
+            | "action"
+            | "requests"
+            | "responses"
+            | "contracts"
+            | "concerns"
+            | "interfaces"
+            | "interface"
+            // role plurals (singulars handled by is_abstraction_role)
+            | "services"
+            | "managers"
+            | "helpers"
+            | "providers"
+            | "factories"
+            | "adapters"
+            | "resolvers"
+            | "registries"
+            | "builders"
+            | "gateways"
+            | "normalizers"
+            | "mappers"
+            | "wrappers"
+            | "orchestrators"
+            | "dispatchers"
+            | "compilers"
+            | "validators"
+            | "loaders"
+            | "handlers"
+            | "clients"
+            | "planners"
+            | "routers"
+            | "broadcasters"
+            | "executors"
+            | "stores"
+            | "repositories"
+            | "policies"
+    )
 }
 
 fn duplicate_mechanism_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
@@ -4494,6 +4560,46 @@ final class AppServiceProvider extends ServiceProvider
         assert!(finding
             .warning_families
             .contains(&String::from("abstraction_role:resolver")));
+    }
+
+    #[test]
+    fn layer_directory_words_do_not_form_abstraction_sprawl_concepts() {
+        // Files across unrelated modules that share only the `Services/` layer
+        // directory must not be grouped into a "services" sprawl concept.
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[
+                (
+                    PathBuf::from("app/Modules/Billing/Services/InvoiceRegistry.php"),
+                    String::from("final class InvoiceRegistry {}"),
+                ),
+                (
+                    PathBuf::from("app/Modules/Chat/Services/MessageDispatcher.php"),
+                    String::from("final class MessageDispatcher {}"),
+                ),
+                (
+                    PathBuf::from("app/Modules/Crm/Services/LeadResolver.php"),
+                    String::from("final class LeadResolver {}"),
+                ),
+                (
+                    PathBuf::from("app/Modules/Hr/Services/PayrollFactory.php"),
+                    String::from("final class PayrollFactory {}"),
+                ),
+            ],
+        );
+
+        assert!(
+            assessment.findings.iter().all(|finding| {
+                finding.kind != ArchitecturalAssessmentKind::AbstractionSprawl
+                    || !finding
+                        .related_identifiers
+                        .contains(&String::from("concept:services"))
+            }),
+            "layer directory `services` must not become a sprawl concept"
+        );
     }
 
     #[test]
