@@ -214,9 +214,7 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bo
                     && (hashes == 0 || chars.get(i + hashes) == Some(&'#'))
                 {
                     out.push('"');
-                    for _ in 0..hashes {
-                        out.push('#');
-                    }
+                    out.extend(std::iter::repeat_n('#', hashes));
                     i += 1 + hashes;
                     *carry = Carry::None;
                 } else {
