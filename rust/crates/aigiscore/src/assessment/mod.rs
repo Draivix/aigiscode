@@ -1142,19 +1142,26 @@ fn complexity_weight(subtype: ComplexitySubtype) -> usize {
     }
 }
 
+// Severity ordering: an IO operation repeated inside a loop (HTTP, database,
+// filesystem, cache) dominates purely-structural nesting — an N+1 query hurts
+// far more than an in-memory nested scan. Bases are kept low enough that the
+// occurrence and reachability boosts (+30/occurrence capped at +150, +80 graph
+// reachability, +40 caller path, +60 direct entry) differentiate findings
+// instead of saturating everything at the 1000 ceiling.
 fn complexity_severity_millis(subtype: ComplexitySubtype, occurrences: usize) -> u16 {
     let base = match subtype {
-        ComplexitySubtype::NestedIteration => 860u16,
-        ComplexitySubtype::CollectionScanInLoop => 740u16,
-        ComplexitySubtype::SortInLoop => 820u16,
-        ComplexitySubtype::RegexCompileInLoop => 760u16,
-        ComplexitySubtype::JsonDecodeInLoop => 780u16,
-        ComplexitySubtype::FilesystemReadInLoop => 800u16,
-        ComplexitySubtype::DatabaseQueryInLoop => 900u16,
-        ComplexitySubtype::HttpCallInLoop => 920u16,
-        ComplexitySubtype::CacheLookupInLoop => 840u16,
+        ComplexitySubtype::HttpCallInLoop => 760u16,
+        ComplexitySubtype::DatabaseQueryInLoop => 740u16,
+        ComplexitySubtype::FilesystemReadInLoop => 660u16,
+        ComplexitySubtype::CacheLookupInLoop => 620u16,
+        ComplexitySubtype::JsonDecodeInLoop => 600u16,
+        ComplexitySubtype::SortInLoop => 580u16,
+        ComplexitySubtype::RegexCompileInLoop => 560u16,
+        ComplexitySubtype::NestedIteration => 540u16,
+        ComplexitySubtype::CollectionScanInLoop => 520u16,
     };
-    (base + (occurrences.saturating_sub(1) as u16 * 40)).min(980)
+    let occurrence_boost = (occurrences.saturating_sub(1) as u16 * 30).min(150);
+    base + occurrence_boost
 }
 
 fn complexity_subtype_label(subtype: ComplexitySubtype) -> &'static str {
@@ -5260,6 +5267,29 @@ final class AppServiceProvider extends ServiceProvider
             .warning_families
             .iter()
             .any(|family| family == "complexity:nested_iteration"));
+    }
+
+    #[test]
+    fn io_in_loop_outranks_structural_nesting_and_severity_discriminates() {
+        use super::{complexity_severity_millis, ComplexitySubtype};
+        // IO repeated in a loop dominates purely-structural nesting.
+        assert!(
+            complexity_severity_millis(ComplexitySubtype::HttpCallInLoop, 1)
+                > complexity_severity_millis(ComplexitySubtype::NestedIteration, 1)
+        );
+        assert!(
+            complexity_severity_millis(ComplexitySubtype::DatabaseQueryInLoop, 1)
+                > complexity_severity_millis(ComplexitySubtype::NestedIteration, 1)
+        );
+        // Occurrence count raises severity but is capped, and even the worst
+        // subtype leaves headroom below the ceiling for reachability boosts.
+        let one = complexity_severity_millis(ComplexitySubtype::NestedIteration, 1);
+        let many = complexity_severity_millis(ComplexitySubtype::NestedIteration, 50);
+        assert!(many > one);
+        assert!(
+            complexity_severity_millis(ComplexitySubtype::HttpCallInLoop, 50) < 1000,
+            "base + occurrence boost must not saturate the ceiling on its own"
+        );
     }
 
     #[test]
