@@ -728,7 +728,7 @@ fn start() {
             .collect::<Vec<_>>();
         // Only the two production occurrences count; the `#[cfg(test)]` module
         // and the `tests/` file must not contribute.
-        assert_eq!(hits.len(), 2, "got: {:?}", hits);
+        assert_eq!(hits.len(), 2, "got: {hits:?}");
         assert!(hits.iter().all(|finding| {
             let p = finding.file_path.to_string_lossy();
             !p.contains("tests/") && finding.line < 6
