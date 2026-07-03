@@ -491,12 +491,51 @@ fn filter_candidates(
             candidates.candidates.clear();
         }
 
+        // A call made through an explicit receiver/scope that is *not* a self
+        // reference can never resolve to its own enclosing method. Recursion is
+        // always written against a self receiver (`$this->m()`, `self::m()`,
+        // `static::m()`, Rust `self.m()`), so any other receiver — a collaborator
+        // (`$this->schemaCompiler->getSchemaHash()`), a call-chain result
+        // (`$this->handler()->findAvailability()`), another variable
+        // (`$registry->register()`), or `parent::__construct()` — denotes a
+        // different object/class. Same-file name matching would otherwise bind such
+        // a call to a same-named enclosing method, fabricating a recursion
+        // self-loop. Remove only that self-candidate; genuine recursion (self
+        // receiver) and every real cross-method edge are untouched.
+        let receiver_is_self = reference
+            .receiver_name
+            .as_deref()
+            .is_some_and(is_self_receiver_name);
+        let has_explicit_receiver = reference.receiver_name.is_some()
+            && matches!(
+                reference.call_form,
+                Some(CallForm::Member | CallForm::Associated)
+            );
+        if has_explicit_receiver && !receiver_is_self {
+            if let Some(enclosing) = reference.enclosing_symbol_id.as_deref() {
+                candidates
+                    .candidates
+                    .retain(|candidate| candidate.symbol_id != enclosing);
+            }
+        }
+
         if receiver_narrowed && candidates.tier == ResolutionTier::Global {
             candidates.tier = ResolutionTier::ImportScoped;
         }
     }
 
     candidates
+}
+
+/// Whether a member-call receiver expression is a bare self reference, across the
+/// languages the resolver serves (`$this` PHP, `this` JS/TS, `self`/`Self` Rust &
+/// Python-ish, `static` PHP late static binding). A chained/property receiver such
+/// as `$this->collaborator` is deliberately not self — only the exact keyword is.
+fn is_self_receiver_name(receiver_name: &str) -> bool {
+    matches!(
+        receiver_name.trim(),
+        "$this" | "this" | "self" | "Self" | "static"
+    )
 }
 
 fn prefer_same_language_call_candidates(
@@ -1617,6 +1656,71 @@ mod tests {
             .resolved_edges
             .iter()
             .any(|edge| edge.target_symbol_id == "function:src/other.rs:helper"));
+    }
+
+    #[test]
+    fn drops_non_self_receiver_call_self_loops_but_keeps_recursion() {
+        let mut graph = SemanticGraph::default();
+        graph.symbols.push(SymbolNode {
+            id: String::from("method:app/Provider.php:Provider:getHash"),
+            file_path: PathBuf::from("app/Provider.php"),
+            kind: SymbolKind::Method,
+            name: String::from("getHash"),
+            qualified_name: String::from("Provider::getHash"),
+            parent_symbol_id: Some(String::from("class:app/Provider.php:Provider")),
+            owner_type_name: Some(String::from("Provider")),
+            return_type_name: None,
+            visibility: Visibility::Private,
+            parameter_count: 0,
+            required_parameter_count: 0,
+            start_line: 1,
+            end_line: 8,
+        });
+        let self_id = "method:app/Provider.php:Provider:getHash";
+        // False self-loop: `$this->compiler->getHash()` inside getHash() — the
+        // receiver is a collaborator whose type is unknown, not the enclosing class.
+        graph.references.push(SemanticReference {
+            file_path: PathBuf::from("app/Provider.php"),
+            enclosing_symbol_id: Some(String::from(self_id)),
+            kind: ReferenceKind::Call,
+            target_name: String::from("getHash"),
+            binding_name: None,
+            line: 3,
+            arity: Some(0),
+            receiver_name: Some(String::from("$this->compiler")),
+            receiver_type_name: None,
+            call_form: Some(CallForm::Member),
+        });
+        // Real recursion: `$this->getHash()` inside getHash().
+        graph.references.push(SemanticReference {
+            file_path: PathBuf::from("app/Provider.php"),
+            enclosing_symbol_id: Some(String::from(self_id)),
+            kind: ReferenceKind::Call,
+            target_name: String::from("getHash"),
+            binding_name: None,
+            line: 5,
+            arity: Some(0),
+            receiver_name: Some(String::from("$this")),
+            receiver_type_name: None,
+            call_form: Some(CallForm::Member),
+        });
+
+        resolve_graph(&mut graph);
+
+        let self_loops = graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                edge.source_symbol_id.as_deref() == Some(self_id)
+                    && edge.target_symbol_id == self_id
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            self_loops.len(),
+            1,
+            "only the $this recursion should survive as a self-loop, got {self_loops:?}"
+        );
+        assert_eq!(self_loops[0].line, 5, "the surviving self-loop is the recursion");
     }
 
     #[test]
