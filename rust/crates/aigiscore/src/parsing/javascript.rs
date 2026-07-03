@@ -101,6 +101,9 @@ fn walk_node(
         "import_statement" => {
             record_import_statement(node, context, graph, container_symbol_id);
         }
+        "export_statement" => {
+            record_export_from_statement(node, context, graph, container_symbol_id);
+        }
         "class_declaration" => {
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = context.text(name_node);
@@ -295,6 +298,72 @@ fn record_import_statement(
         .children(&mut node.walk())
         .any(|child| child.kind() == "import_clause")
     {
+        graph.add_reference(SemanticReference {
+            file_path: context.file_path.clone(),
+            enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+            kind: ReferenceKind::Import,
+            target_name: import_source,
+            binding_name: None,
+            line: context.line(node),
+            arity: None,
+            receiver_name: None,
+            receiver_type_name: None,
+            call_form: None,
+        });
+    }
+}
+
+/// `export { X } from './y'` / `export * from './y'` re-exports load the source
+/// module exactly like an import, but tree-sitter models them as
+/// `export_statement`, so without this the graph has no edge to the re-exported
+/// module and it looks orphaned. The references are bindingless: a re-export
+/// binds no local name, so there is nothing for unused-import analysis to track.
+fn record_export_from_statement(
+    node: Node<'_>,
+    context: &JavaScriptContext<'_>,
+    graph: &mut SemanticGraph,
+    enclosing_symbol_id: Option<&str>,
+) {
+    let Some(source_node) = node.child_by_field_name("source") else {
+        return;
+    };
+    let import_source = context.string_value(source_node);
+    let mut recorded_named = false;
+    for idx in 0..node.child_count() {
+        let Some(child) = node.child(idx as u32) else {
+            continue;
+        };
+        if child.kind() != "export_clause" {
+            continue;
+        }
+        for item_index in 0..child.child_count() {
+            let Some(specifier) = child.child(item_index as u32) else {
+                continue;
+            };
+            if specifier.kind() != "export_specifier" {
+                continue;
+            }
+            let exported_name = specifier
+                .child_by_field_name("name")
+                .map(|name_node| context.text(name_node))
+                .unwrap_or_default();
+            graph.add_reference(SemanticReference {
+                file_path: context.file_path.clone(),
+                enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                kind: ReferenceKind::Import,
+                target_name: format!("{import_source}::{exported_name}"),
+                binding_name: None,
+                line: context.line(specifier),
+                arity: None,
+                receiver_name: None,
+                receiver_type_name: None,
+                call_form: None,
+            });
+            recorded_named = true;
+        }
+    }
+    if !recorded_named {
+        // `export * from './y'` or `export * as ns from './y'`.
         graph.add_reference(SemanticReference {
             file_path: context.file_path.clone(),
             enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
@@ -800,6 +869,43 @@ mod tests {
     use super::parse_javascript_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn records_reexport_statements_as_import_references() {
+        let graph = parse_javascript_to_graph(
+            PathBuf::from("src/contracts.ts"),
+            r#"export { useStore } from '@/stores/appStore';
+export * from './helpers';
+export const local = 1;
+"#,
+            true,
+        )
+        .unwrap();
+
+        assert!(
+            graph.references.iter().any(|reference| {
+                reference.kind == ReferenceKind::Import
+                    && reference.target_name == "@/stores/appStore::useStore"
+                    && reference.binding_name.is_none()
+            }),
+            "named re-export records a bindingless import reference"
+        );
+        assert!(
+            graph.references.iter().any(|reference| {
+                reference.kind == ReferenceKind::Import && reference.target_name == "./helpers"
+            }),
+            "star re-export records a module-level import reference"
+        );
+        // A plain `export const` must not fabricate an import.
+        assert_eq!(
+            graph
+                .references
+                .iter()
+                .filter(|reference| reference.kind == ReferenceKind::Import)
+                .count(),
+            2
+        );
+    }
 
     #[test]
     fn sibling_object_literal_methods_get_distinct_symbol_ids() {
