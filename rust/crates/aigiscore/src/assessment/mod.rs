@@ -1142,6 +1142,15 @@ fn complexity_weight(subtype: ComplexitySubtype) -> usize {
     }
 }
 
+/// Rescale a raw additive severity score onto the 0..=980 band. The additive
+/// formulas below have theoretical maxima well above 1000, so a bare
+/// `.min(1000)` clamp saturated whole families at the ceiling and erased all
+/// triage signal. Dividing by the formula's own maximum preserves the exact
+/// within-family ordering while guaranteeing headroom below the ceiling.
+fn scaled_severity_millis(raw: usize, max_raw: usize) -> u16 {
+    ((raw * 980 / max_raw.max(1)) as u16).min(980)
+}
+
 // Severity ordering: an IO operation repeated inside a loop (HTTP, database,
 // filesystem, cache) dominates purely-structural nesting — an N+1 query hurts
 // far more than an in-memory nested scan. Bases are kept low enough that the
@@ -1633,11 +1642,12 @@ fn detect_split_identity_models(
                 .map(|(path, _count)| path.clone())
                 .collect::<Vec<_>>();
             let distinct_files = file_counts.len();
-            let severity = (300
-                + (distinct_files.min(4) * 125)
-                + (related_identifiers.len().min(4) * 100)
-                + (total_occurrences.min(12) * 25))
-                .min(1000) as u16;
+            let severity = scaled_severity_millis(
+                300 + (distinct_files.min(4) * 125)
+                    + (related_identifiers.len().min(4) * 100)
+                    + (total_occurrences.min(12) * 25),
+                1500,
+            );
 
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::SplitIdentityModel,
@@ -1729,12 +1739,13 @@ fn detect_compatibility_scars(
                 .get(&file_path)
                 .copied()
                 .unwrap_or_default();
-            let severity = (350
-                + (split_findings.len().min(4) * 140)
-                + (keyword_hits.min(5) * 50)
-                + (related_file_paths.len().min(4) * 45)
-                + ((centrality / 250).min(180) as usize))
-                .min(1000) as u16;
+            let severity = scaled_severity_millis(
+                350 + (split_findings.len().min(4) * 140)
+                    + (keyword_hits.min(5) * 50)
+                    + (related_file_paths.len().min(4) * 45)
+                    + ((centrality / 250).min(180) as usize),
+                1520,
+            );
 
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::CompatibilityScar,
@@ -1881,11 +1892,12 @@ fn detect_duplicate_mechanisms(
                 .iter()
                 .map(|family| format!("mechanism:{family}"))
                 .collect::<Vec<_>>();
-            let severity = (320
-                + (family_set.len().min(4) * 140)
-                + (ranked_files.len().min(4) * 90)
-                + ((*primary_centrality / 250).min(180) as usize))
-                .min(1000) as u16;
+            let severity = scaled_severity_millis(
+                320 + (family_set.len().min(4) * 140)
+                    + (ranked_files.len().min(4) * 90)
+                    + ((*primary_centrality / 250).min(180) as usize),
+                1420,
+            );
 
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::DuplicateMechanism,
@@ -2211,11 +2223,12 @@ fn detect_abstraction_sprawl(
                 .iter()
                 .map(|role| format!("abstraction_role:{role}"))
                 .collect::<Vec<_>>();
-            let severity = (360
-                + (role_set.len().min(6) * 90)
-                + (ranked_files.len().min(5) * 80)
-                + ((*primary_centrality / 250).min(180) as usize))
-                .min(1000) as u16;
+            let severity = scaled_severity_millis(
+                360 + (role_set.len().min(6) * 90)
+                    + (ranked_files.len().min(5) * 80)
+                    + ((*primary_centrality / 250).min(180) as usize),
+                1480,
+            );
 
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::AbstractionSprawl,
@@ -2431,12 +2444,13 @@ fn detect_hand_rolled_parsing(
                 "concern:custom_parsing"
             }));
 
-            let severity = (360
-                + (role_set.len().min(5) * 80)
-                + (ranked_files.len().min(4) * 90)
-                + (total_score.min(12) * 20)
-                + ((*primary_centrality / 250).min(140) as usize))
-                .min(1000) as u16;
+            let severity = scaled_severity_millis(
+                360 + (role_set.len().min(5) * 80)
+                    + (ranked_files.len().min(4) * 90)
+                    + (total_score.min(12) * 20)
+                    + ((*primary_centrality / 250).min(140) as usize),
+                1500,
+            );
 
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::HandRolledParsing,
@@ -2570,12 +2584,13 @@ fn detect_scheduler_dsl_stacks(
         .collect::<Vec<_>>();
     warning_families.push(String::from("concern:custom_scheduler_dsl"));
 
-    let severity = (420
-        + (role_set.len().min(5) * 80)
-        + (ranked_files.len().min(4) * 100)
-        + (total_score.min(12) * 18)
-        + ((*primary_centrality / 250).min(140) as usize))
-        .min(1000) as u16;
+    let severity = scaled_severity_millis(
+        420 + (role_set.len().min(5) * 80)
+            + (ranked_files.len().min(4) * 100)
+            + (total_score.min(12) * 18)
+            + ((*primary_centrality / 250).min(140) as usize),
+        1576,
+    );
 
     vec![ArchitecturalAssessmentFinding {
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
@@ -2714,12 +2729,13 @@ fn detect_filesystem_page_resolution_stacks(
         .collect::<Vec<_>>();
     warning_families.push(String::from("concern:filesystem_page_resolution"));
 
-    let severity = (440
-        + (role_set.len().min(6) * 70)
-        + (ranked_files.len().min(4) * 90)
-        + (total_score.min(14) * 18)
-        + ((*primary_centrality / 250).min(140) as usize))
-        .min(1000) as u16;
+    let severity = scaled_severity_millis(
+        440 + (role_set.len().min(6) * 70)
+            + (ranked_files.len().min(4) * 90)
+            + (total_score.min(14) * 18)
+            + ((*primary_centrality / 250).min(140) as usize),
+        1612,
+    );
 
     vec![ArchitecturalAssessmentFinding {
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
@@ -2847,12 +2863,13 @@ fn detect_manifest_backed_policy_engine_stacks(
         .collect::<Vec<_>>();
     warning_families.push(String::from("concern:manifest_backed_policy_engine"));
 
-    let severity = (460
-        + (role_set.len().min(6) * 70)
-        + (ranked_files.len().min(4) * 90)
-        + (total_score.min(16) * 16)
-        + ((*primary_centrality / 250).min(140) as usize))
-        .min(1000) as u16;
+    let severity = scaled_severity_millis(
+        460 + (role_set.len().min(6) * 70)
+            + (ranked_files.len().min(4) * 90)
+            + (total_score.min(16) * 16)
+            + ((*primary_centrality / 250).min(140) as usize),
+        1636,
+    );
 
     vec![ArchitecturalAssessmentFinding {
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
