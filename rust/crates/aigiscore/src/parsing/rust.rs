@@ -99,6 +99,33 @@ fn walk_node(
         "use_declaration" => {
             record_import(node, context, graph, container_symbol_id);
         }
+        "mod_item" => {
+            // `mod child;` (no body) wires a child module file into the crate —
+            // it is the *only* edge from a parent module to files that nothing
+            // `use`s by name (binary entrypoints, plugin registries), so without
+            // it those files look orphaned. `self::child` anchors resolution to
+            // the declaring module's directory. Inline `mod child { ... }`
+            // carries its body and needs no file edge.
+            if node.child_by_field_name("body").is_none() {
+                if let Some(name_node) = node.child_by_field_name("name") {
+                    let name = context.text(name_node);
+                    // Bindingless: a `mod` declaration is module wiring, not a
+                    // local binding for unused-import analysis to track.
+                    graph.add_reference(SemanticReference {
+                        file_path: context.file_path.clone(),
+                        enclosing_symbol_id: container_symbol_id.map(str::to_owned),
+                        kind: ReferenceKind::Import,
+                        target_name: format!("self::{name}"),
+                        binding_name: None,
+                        line: context.line(node),
+                        arity: None,
+                        receiver_name: None,
+                        receiver_type_name: None,
+                        call_form: None,
+                    });
+                }
+            }
+        }
         "struct_item" => {
             if let Some(type_node) = node.child_by_field_name("name") {
                 let name = context.text(type_node);
@@ -802,6 +829,38 @@ mod tests {
     use super::parse_rust_to_graph;
     use crate::graph::{CallForm, ReferenceKind, SymbolKind, Visibility};
     use std::path::PathBuf;
+
+    #[test]
+    fn mod_declarations_record_module_import_references() {
+        let graph = parse_rust_to_graph(
+            PathBuf::from("src/plugins/mod.rs"),
+            r#"
+mod container;
+pub mod queue;
+mod tests_inline {
+    fn helper() {}
+}
+"#,
+        )
+        .unwrap();
+
+        let import_targets: Vec<&str> = graph
+            .references
+            .iter()
+            .filter(|reference| reference.kind == ReferenceKind::Import)
+            .map(|reference| reference.target_name.as_str())
+            .collect();
+        assert!(
+            import_targets.contains(&"self::container"),
+            "{import_targets:?}"
+        );
+        assert!(
+            import_targets.contains(&"self::queue"),
+            "{import_targets:?}"
+        );
+        // Inline module bodies stay local — no file edge.
+        assert!(!import_targets.iter().any(|t| t.contains("tests_inline")));
+    }
 
     #[test]
     fn same_named_methods_across_impl_blocks_get_distinct_symbol_ids() {
