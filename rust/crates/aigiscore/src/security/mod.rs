@@ -346,7 +346,7 @@ fn classify_line(
 ) -> Option<SecurityFinding> {
     let (category, api_name) =
         match language {
-            SourceLanguage::Php => classify_php_dangerous_api(code)?,
+            SourceLanguage::Php => classify_php_dangerous_api(code, raw)?,
             SourceLanguage::Python => classify_python_dangerous_api(code)?,
             SourceLanguage::JavaScript | SourceLanguage::TypeScript => {
                 classify_javascript_dangerous_api(code)?
@@ -791,7 +791,7 @@ fn escalate_for_boundary_input(
     }
 }
 
-fn classify_php_dangerous_api(line: &str) -> Option<(SecurityCategory, &'static str)> {
+fn classify_php_dangerous_api(line: &str, raw: &str) -> Option<(SecurityCategory, &'static str)> {
     if contains_php_free_function_call(
         line,
         &[
@@ -810,11 +810,28 @@ fn classify_php_dangerous_api(line: &str) -> Option<(SecurityCategory, &'static 
         return Some((SecurityCategory::CodeInjection, "php-eval"));
     }
 
-    if contains_php_free_function_call(line, &["unserialize"]) {
+    // The hardened-form check runs on the raw line: the option key
+    // `'allowed_classes'` lives inside a string literal, which the masked
+    // code line has blanked.
+    if contains_php_free_function_call(line, &["unserialize"]) && !php_unserialize_is_hardened(raw)
+    {
         return Some((SecurityCategory::UnsafeDeserialization, "php-unserialize"));
     }
 
     None
+}
+
+/// `unserialize($x, ['allowed_classes' => false])` is PHP's sanctioned safe
+/// form: with class instantiation disabled there is no object-injection
+/// surface, only scalar/array data. Flagging it teaches reviewers to ignore
+/// the real, unhardened `unserialize` findings.
+fn php_unserialize_is_hardened(line: &str) -> bool {
+    static HARDENED: OnceLock<Regex> = OnceLock::new();
+    HARDENED
+        .get_or_init(|| {
+            Regex::new(r#"['"]allowed_classes['"]\s*=>\s*false\b"#).expect("valid regex")
+        })
+        .is_match(line)
 }
 
 fn classify_python_dangerous_api(line: &str) -> Option<(SecurityCategory, &'static str)> {
@@ -1613,6 +1630,33 @@ class MenuSyncExternalCommand {
             vec![7],
             "expected only the real exec() call, got {command_lines:?}"
         );
+    }
+
+    #[test]
+    fn hardened_php_unserialize_is_not_flagged() {
+        let parsed_sources = vec![(
+            Path::new("app/FieldEncryption.php").to_path_buf(),
+            String::from(
+                r#"$safe = @unserialize($plain, ['allowed_classes' => false]);
+$restricted = unserialize($data, ["allowed_classes" => [Carbon::class]]);
+$raw = unserialize($payload);
+"#,
+            ),
+        )];
+        let inventory = build_contract_inventory(&parsed_sources);
+
+        let result = analyze_security_findings(&parsed_sources, &inventory, &[]);
+
+        let unserialize_lines: Vec<usize> = result
+            .findings
+            .iter()
+            .filter(|finding| finding.category == SecurityCategory::UnsafeDeserialization)
+            .map(|finding| finding.line)
+            .collect();
+        // Line 1 (`allowed_classes => false`) is the sanctioned safe form.
+        // Line 2 restricts to listed classes but keeps a POP surface — flag.
+        // Line 3 is the raw dangerous form — flag.
+        assert_eq!(unserialize_lines, vec![2, 3]);
     }
 
     #[test]
