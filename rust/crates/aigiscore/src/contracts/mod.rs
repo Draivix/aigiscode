@@ -169,10 +169,9 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
         // config('mailbox_provisioning')") is documentation, not a declared
         // contract. Blank comment interiors only; Vue SFCs are left raw (their
         // masking happens at the parser layer).
-        let comment_masked = crate::lexmask::MaskLanguage::from_path(path)
-            .map(|mask_language| {
-                crate::lexmask::mask_comments_only(mask_language, content).join("\n")
-            });
+        let comment_masked = crate::lexmask::MaskLanguage::from_path(path).map(|mask_language| {
+            crate::lexmask::mask_comments_only(mask_language, content).join("\n")
+        });
         let content: &str = comment_masked.as_deref().unwrap_or(content);
 
         scan_pattern_bucket(&mut buckets.routes, route_patterns(language), path, content);

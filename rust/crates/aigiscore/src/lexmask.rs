@@ -41,14 +41,14 @@ impl MaskLanguage {
 }
 
 struct MaskRules {
-    line_slash: bool,      // `//` line comment
-    line_hash: bool,       // `#` line comment
-    block: bool,           // `/* ... */`
-    backtick: bool,        // JS/TS template literal
-    triple: bool,          // Python `'''`/`"""`
-    heredoc: bool,         // PHP heredoc/nowdoc
-    rust_raw: bool,        // Rust `r#"..."#`
-    single_quote: bool,    // treat `'` as a string delimiter
+    line_slash: bool,       // `//` line comment
+    line_hash: bool,        // `#` line comment
+    block: bool,            // `/* ... */`
+    backtick: bool,         // JS/TS template literal
+    triple: bool,           // Python `'''`/`"""`
+    heredoc: bool,          // PHP heredoc/nowdoc
+    rust_raw: bool,         // Rust `r#"..."#`
+    single_quote: bool,     // treat `'` as a string delimiter
     multiline_quotes: bool, // `'`/`"` strings may span physical lines
 }
 
@@ -120,13 +120,13 @@ impl MaskRules {
 #[derive(Clone, PartialEq)]
 enum Carry {
     None,
-    Template,        // JS/TS `...`
-    BlockComment,    // `/* ... */`
-    TripleSingle,    // Python `'''...'''`
-    TripleDouble,    // Python `"""..."""`
-    Heredoc(String), // PHP heredoc/nowdoc, terminated by its label
-    StrSingle,       // multi-line `'...'`
-    StrDouble,       // multi-line `"..."`
+    Template,         // JS/TS `...`
+    BlockComment,     // `/* ... */`
+    TripleSingle,     // Python `'''...'''`
+    TripleDouble,     // Python `"""..."""`
+    Heredoc(String),  // PHP heredoc/nowdoc, terminated by its label
+    StrSingle,        // multi-line `'...'`
+    StrDouble,        // multi-line `"..."`
     RawString(usize), // Rust raw string, closed by `"` + N `#`
 }
 
@@ -160,9 +160,11 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bo
     if let Carry::Heredoc(label) = carry.clone() {
         let trimmed = line.trim();
         let terminates = trimmed == label
-            || trimmed
-                .strip_prefix(&label)
-                .is_some_and(|rest| rest.chars().next().is_none_or(|c| matches!(c, ';' | ',' | ')')));
+            || trimmed.strip_prefix(&label).is_some_and(|rest| {
+                rest.chars()
+                    .next()
+                    .is_none_or(|c| matches!(c, ';' | ',' | ')'))
+            });
         if terminates {
             *carry = Carry::None;
         }
@@ -190,7 +192,11 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bo
                 continue;
             }
             Carry::TripleSingle | Carry::TripleDouble => {
-                let q = if *carry == Carry::TripleSingle { '\'' } else { '"' };
+                let q = if *carry == Carry::TripleSingle {
+                    '\''
+                } else {
+                    '"'
+                };
                 if chars[i] == q && chars.get(i + 1) == Some(&q) && chars.get(i + 2) == Some(&q) {
                     out.extend([q, q, q]);
                     i += 3;
@@ -251,7 +257,11 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bo
                 continue;
             }
             Carry::StrSingle | Carry::StrDouble => {
-                let q = if *carry == Carry::StrSingle { '\'' } else { '"' };
+                let q = if *carry == Carry::StrSingle {
+                    '\''
+                } else {
+                    '"'
+                };
                 let c = chars[i];
                 if c == '\\' {
                     out.push(if blank_strings { ' ' } else { c });
@@ -297,7 +307,10 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bo
                 continue;
             }
         }
-        if rules.heredoc && c == '<' && chars.get(i + 1) == Some(&'<') && chars.get(i + 2) == Some(&'<')
+        if rules.heredoc
+            && c == '<'
+            && chars.get(i + 1) == Some(&'<')
+            && chars.get(i + 2) == Some(&'<')
         {
             let mut j = i + 3;
             while chars.get(j) == Some(&' ') {
@@ -327,7 +340,9 @@ fn mask_line(line: &str, rules: &MaskRules, carry: &mut Carry, blank_strings: bo
             i += 1;
             continue;
         }
-        if rules.triple && (c == '\'' || c == '"') && chars.get(i + 1) == Some(&c)
+        if rules.triple
+            && (c == '\'' || c == '"')
+            && chars.get(i + 1) == Some(&c)
             && chars.get(i + 2) == Some(&c)
         {
             out.extend([c, c, c]);
@@ -421,8 +436,16 @@ mod tests {
     fn masks_multiline_template_literal_but_keeps_interpolation() {
         let src = "const t = `\nfor loop in prose ${forEach(x)}\n`;\nfor (const y of z) {}\n";
         let out = mask_non_code_spans(MaskLanguage::TypeScript, src);
-        assert!(!out[1].contains("for loop in prose"), "prose masked: {:?}", out[1]);
-        assert!(out[1].contains("forEach(x)"), "interpolation kept: {:?}", out[1]);
+        assert!(
+            !out[1].contains("for loop in prose"),
+            "prose masked: {:?}",
+            out[1]
+        );
+        assert!(
+            out[1].contains("forEach(x)"),
+            "interpolation kept: {:?}",
+            out[1]
+        );
         assert!(out[3].contains("for ("), "real loop kept: {:?}", out[3]);
     }
 
@@ -430,16 +453,32 @@ mod tests {
     fn masks_php_multiline_string_and_heredoc() {
         let src = "$s = 'run for each\ntenant';\n$h = <<<SQL\nselect for while\nSQL;\nforeach ($a as $b) {}\n";
         let out = mask_non_code_spans(MaskLanguage::Php, src);
-        assert!(!out[1].contains("for each"), "line-2 string interior masked: {:?}", out[1]);
-        assert!(!out[3].contains("for while"), "heredoc body masked: {:?}", out[3]);
-        assert!(out[5].contains("foreach"), "real foreach kept: {:?}", out[5]);
+        assert!(
+            !out[1].contains("for each"),
+            "line-2 string interior masked: {:?}",
+            out[1]
+        );
+        assert!(
+            !out[3].contains("for while"),
+            "heredoc body masked: {:?}",
+            out[3]
+        );
+        assert!(
+            out[5].contains("foreach"),
+            "real foreach kept: {:?}",
+            out[5]
+        );
     }
 
     #[test]
     fn masks_rust_raw_string_containing_loop_words() {
         let src = "let p = r#\"for x in y { while true {} }\"#;\nfor z in 0..3 {}\n";
         let out = mask_non_code_spans(MaskLanguage::Rust, src);
-        assert!(!out[0].contains("for x in y"), "raw-string interior masked: {:?}", out[0]);
+        assert!(
+            !out[0].contains("for x in y"),
+            "raw-string interior masked: {:?}",
+            out[0]
+        );
         assert!(out[1].contains("for z"), "real loop kept: {:?}", out[1]);
     }
 
@@ -448,15 +487,25 @@ mod tests {
         // A lone `'` (lifetime / char) must not start a masked string.
         let src = "fn f<'a>(c: char) -> bool { c == 'x' && \"for\".len() > 0 }\n";
         let out = masked(MaskLanguage::Rust, src);
-        assert!(out.contains("c == "), "code after char literal preserved: {out:?}");
-        assert!(!out.contains("\"for\""), "double-quoted string masked: {out:?}");
+        assert!(
+            out.contains("c == "),
+            "code after char literal preserved: {out:?}"
+        );
+        assert!(
+            !out.contains("\"for\""),
+            "double-quoted string masked: {out:?}"
+        );
     }
 
     #[test]
     fn masks_python_triple_quote_block() {
         let src = "x = '''\nfor each thing\n'''\nfor i in range(3):\n    pass\n";
         let out = mask_non_code_spans(MaskLanguage::Python, src);
-        assert!(!out[1].contains("for each"), "triple-quote body masked: {:?}", out[1]);
+        assert!(
+            !out[1].contains("for each"),
+            "triple-quote body masked: {:?}",
+            out[1]
+        );
         assert!(out[3].contains("for i"), "real loop kept: {:?}", out[3]);
     }
 
@@ -464,9 +513,21 @@ mod tests {
     fn comments_only_mode_keeps_strings_but_blanks_comments() {
         let src = "// falls back to config('mailbox_provisioning')\n/* config('block') */\n$v = config('real_key');\n";
         let out = mask_non_code_spans_comments(src);
-        assert!(!out[0].contains("config("), "line comment blanked: {:?}", out[0]);
-        assert!(!out[1].contains("config("), "block comment blanked: {:?}", out[1]);
-        assert!(out[2].contains("config('real_key')"), "real call + key kept: {:?}", out[2]);
+        assert!(
+            !out[0].contains("config("),
+            "line comment blanked: {:?}",
+            out[0]
+        );
+        assert!(
+            !out[1].contains("config("),
+            "block comment blanked: {:?}",
+            out[1]
+        );
+        assert!(
+            out[2].contains("config('real_key')"),
+            "real call + key kept: {:?}",
+            out[2]
+        );
     }
 
     fn mask_non_code_spans_comments(src: &str) -> Vec<String> {

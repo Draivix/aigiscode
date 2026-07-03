@@ -8,7 +8,9 @@ use crate::scanners::ast_grep::{
     run_ast_grep_scan, AstGrepComplexitySubtype, AstGrepFindingKind, AstGrepFrameworkMisuseSubtype,
     AstGrepScanResult,
 };
-use crate::scanners::framework_catalogs::{dispatch_mechanism_catalogs_for_file, MechanismMarkerKind};
+use crate::scanners::framework_catalogs::{
+    dispatch_mechanism_catalogs_for_file, MechanismMarkerKind,
+};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
@@ -5294,8 +5296,7 @@ class WarmCommand {
             assessment
                 .findings
                 .iter()
-                .filter(|f| f.kind
-                    == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot)
+                .filter(|f| f.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot)
                 .map(|f| (f.file_path.clone(), f.warning_families.clone()))
                 .collect::<Vec<_>>()
         );

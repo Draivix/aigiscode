@@ -1566,7 +1566,8 @@ const t = `value ${eval(payload)}`;
             .map(|f| f.line)
             .collect();
         assert_eq!(
-            code_injection, vec![8, 10],
+            code_injection,
+            vec![8, 10],
             "expected only real eval sites, got {code_injection:?}"
         );
         assert!(
@@ -1608,7 +1609,8 @@ class MenuSyncExternalCommand {
             .map(|f| f.line)
             .collect();
         assert_eq!(
-            command_lines, vec![7],
+            command_lines,
+            vec![7],
             "expected only the real exec() call, got {command_lines:?}"
         );
     }

@@ -44,8 +44,7 @@ pub fn analyze_hardwiring_with_contracts(
     // Compile-time `env!`/`option_env!` macros embed build metadata
     // (`CARGO_PKG_VERSION`, `CARGO_MANIFEST_DIR`) into the binary and are not
     // runtime configuration, so they are deliberately excluded.
-    let env_re =
-        Regex::new(r#"\b(?:std::)?env::(?:var|var_os)\s*\("#).expect("env regex");
+    let env_re = Regex::new(r#"\b(?:std::)?env::(?:var|var_os)\s*\("#).expect("env regex");
     let string_re = Regex::new(r#""([^"\n]{3,})""#).expect("string regex");
 
     let mut findings = Vec::new();
@@ -536,7 +535,10 @@ fn is_css_class_value(value: &str) -> bool {
         if !token.chars().all(|c| {
             c.is_ascii_lowercase()
                 || c.is_ascii_digit()
-                || matches!(c, '-' | ':' | '/' | '.' | '[' | ']' | '%' | '!' | '_' | '#' | ',' | '@')
+                || matches!(
+                    c,
+                    '-' | ':' | '/' | '.' | '[' | ']' | '%' | '!' | '_' | '#' | ',' | '@'
+                )
         }) {
             return false;
         }
@@ -575,8 +577,7 @@ mod tests {
 
         assert!(
             !result.findings.iter().any(|f| {
-                f.category == HardwiringCategory::RepeatedLiteral
-                    && f.value.contains("text-[")
+                f.category == HardwiringCategory::RepeatedLiteral && f.value.contains("text-[")
             }),
             "a Tailwind className with an arbitrary hex value must not be a repeated literal: {:?}",
             result
@@ -617,7 +618,8 @@ fn read() -> Option<String> {
         // the compile-time `env!` macro and the two rule-definition strings are
         // not runtime env access.
         assert_eq!(
-            env_findings, vec![9],
+            env_findings,
+            vec![9],
             "expected only the runtime env read, got {env_findings:?}"
         );
     }

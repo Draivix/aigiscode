@@ -688,10 +688,34 @@ fn normalize_qualified_receiver_name(
 /// type token `self`/`static`/`void` is always the language builtin. Compared
 /// case-insensitively so boxed spellings (`String`, `Object`) collapse too.
 const PRIMITIVE_TYPE_NAMES: &[&str] = &[
-    "null", "undefined", "none", "void", "never", "mixed", "any", "unknown",
-    "string", "number", "boolean", "bool", "int", "integer", "float", "double",
-    "str", "array", "object", "callable", "iterable", "resource", "true", "false",
-    "self", "static", "parent", "this",
+    "null",
+    "undefined",
+    "none",
+    "void",
+    "never",
+    "mixed",
+    "any",
+    "unknown",
+    "string",
+    "number",
+    "boolean",
+    "bool",
+    "int",
+    "integer",
+    "float",
+    "double",
+    "str",
+    "array",
+    "object",
+    "callable",
+    "iterable",
+    "resource",
+    "true",
+    "false",
+    "self",
+    "static",
+    "parent",
+    "this",
 ];
 
 fn is_primitive_type_name(leaf: &str) -> bool {
@@ -1737,7 +1761,10 @@ mod tests {
             1,
             "only the $this recursion should survive as a self-loop, got {self_loops:?}"
         );
-        assert_eq!(self_loops[0].line, 5, "the surviving self-loop is the recursion");
+        assert_eq!(
+            self_loops[0].line, 5,
+            "the surviving self-loop is the recursion"
+        );
     }
 
     #[test]
