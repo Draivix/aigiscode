@@ -187,6 +187,13 @@ pub struct HotspotFile {
     pub language: String,
     pub inbound_edges: usize,
     pub outbound_edges: usize,
+    /// Distinct files depending on this one (self-references excluded). The
+    /// number a reader should treat as "how many places depend on this";
+    /// `inbound_edges` counts edge instances and can be 10x larger.
+    #[serde(default)]
+    pub inbound_files: usize,
+    #[serde(default)]
+    pub outbound_files: usize,
     pub finding_count: usize,
     pub bottleneck_centrality_millis: u32,
     pub is_orphan: bool,
@@ -353,6 +360,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
     let file_languages = collect_file_languages(analysis);
     let inbound_started_at = Instant::now();
     let inbound_outbound = collect_inbound_outbound_edges(analysis);
+    let inbound_outbound_files = collect_inbound_outbound_file_counts(analysis);
     trace_surface_step(
         "collect_inbound_outbound_edges",
         inbound_started_at.elapsed().as_millis(),
@@ -374,11 +382,17 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
         .map(|file| {
             let (inbound_edges, outbound_edges) =
                 inbound_outbound.get(&file.path).copied().unwrap_or((0, 0));
+            let (inbound_files, outbound_files) = inbound_outbound_files
+                .get(&file.path)
+                .copied()
+                .unwrap_or((0, 0));
             HotspotFile {
                 file_path: file.path.clone(),
                 language: language_label(file.language),
                 inbound_edges,
                 outbound_edges,
+                inbound_files,
+                outbound_files,
                 finding_count: finding_counts.get(&file.path).copied().unwrap_or(0),
                 bottleneck_centrality_millis: bottlenecks.get(&file.path).copied().unwrap_or(0),
                 is_orphan: orphan_set.contains(&file.path),
@@ -636,6 +650,38 @@ fn collect_inbound_outbound_edges(analysis: &ProjectAnalysis) -> HashMap<PathBuf
             .entry(edge.target_file_path.clone())
             .or_insert((0, 0))
             .0 += 1;
+    }
+    counts
+}
+
+/// Distinct-peer-file counts per file: (inbound_files, outbound_files).
+/// Self-references are excluded — a file referencing itself is not a
+/// dependent — so this is the honest "how many places depend on this" number
+/// next to the raw edge-instance counts.
+fn collect_inbound_outbound_file_counts(
+    analysis: &ProjectAnalysis,
+) -> HashMap<PathBuf, (usize, usize)> {
+    let mut inbound: HashMap<&Path, HashSet<&Path>> = HashMap::new();
+    let mut outbound: HashMap<&Path, HashSet<&Path>> = HashMap::new();
+    for edge in &analysis.semantic_graph.resolved_edges {
+        if edge.source_file_path == edge.target_file_path {
+            continue;
+        }
+        inbound
+            .entry(edge.target_file_path.as_path())
+            .or_default()
+            .insert(edge.source_file_path.as_path());
+        outbound
+            .entry(edge.source_file_path.as_path())
+            .or_default()
+            .insert(edge.target_file_path.as_path());
+    }
+    let mut counts = HashMap::<PathBuf, (usize, usize)>::new();
+    for (path, sources) in inbound {
+        counts.entry(path.to_path_buf()).or_insert((0, 0)).0 = sources.len();
+    }
+    for (path, targets) in outbound {
+        counts.entry(path.to_path_buf()).or_insert((0, 0)).1 = targets.len();
     }
     counts
 }

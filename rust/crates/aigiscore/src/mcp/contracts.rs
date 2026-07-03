@@ -1318,6 +1318,12 @@ pub struct HotspotOutput {
     pub language: String,
     pub inbound_edges: usize,
     pub outbound_edges: usize,
+    /// Distinct dependent files (self-references excluded) — read this, not
+    /// `inbound_edges`, as "how many places depend on this file".
+    #[serde(default)]
+    pub inbound_files: usize,
+    #[serde(default)]
+    pub outbound_files: usize,
     pub finding_count: usize,
     pub bottleneck_centrality_millis: u32,
     pub is_orphan: bool,
@@ -1333,6 +1339,8 @@ impl HotspotOutput {
             language: hotspot.language,
             inbound_edges: hotspot.inbound_edges,
             outbound_edges: hotspot.outbound_edges,
+            inbound_files: hotspot.inbound_files,
+            outbound_files: hotspot.outbound_files,
             finding_count: hotspot.finding_count,
             bottleneck_centrality_millis: hotspot.bottleneck_centrality_millis,
             is_orphan: hotspot.is_orphan,
@@ -2697,6 +2705,11 @@ fn quality_suspects(
             .then(left.file_path.cmp(&right.file_path))
             .then(left.category.cmp(&right.category))
     });
+    // One row per (category, file): a file in two strong cycles or with five
+    // hardwiring hits is one suspect, not a repeated list entry. The sort
+    // above keeps the highest-evidence row.
+    let mut seen = HashSet::new();
+    suspects.retain(|suspect| seen.insert((suspect.category.clone(), suspect.file_path.clone())));
     suspects.truncate(12);
     suspects
 }
