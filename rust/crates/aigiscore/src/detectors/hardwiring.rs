@@ -50,8 +50,32 @@ pub fn analyze_hardwiring_with_contracts(
     let mut repeated: HashMap<String, Vec<(PathBuf, usize, String)>> = HashMap::new();
 
     for (path, content) in files {
+        // Literals in test code are fixtures, not architectural hardwiring.
+        // Directory-scoped scans exclude test folders, but inline Rust
+        // `#[cfg(test)]` modules and test files that slip into the scan must be
+        // skipped here so the detector does not report fixture strings.
+        if is_test_source_path(path) {
+            continue;
+        }
+        // A single-file component's `<template>` and `<style>` are markup and
+        // CSS, not logic. Their quoted attribute values are overwhelmingly Vue
+        // binding expressions (`@submit="handleSubmit"`, `:component="Document"`)
+        // and utility classes, not hardwired configuration. Scan only the
+        // `<script>` block; the mask preserves line numbers so findings still
+        // point at real `.vue` lines.
+        let masked_sfc;
+        let content: &str = if is_vue_sfc(path) {
+            masked_sfc = crate::parsing::vue::extract_script(content).masked_source;
+            &masked_sfc
+        } else {
+            content
+        };
+        let test_line_ranges = rust_cfg_test_line_ranges(path, content);
         for (idx, line) in content.lines().enumerate() {
             let line_no = idx + 1;
+            if line_in_ranges(line_no, &test_line_ranges) {
+                continue;
+            }
             let trimmed = line.trim();
             if is_comment_line(trimmed) {
                 continue;
@@ -186,6 +210,83 @@ fn is_config_like_path(path: &Path) -> bool {
     normalized.contains("config") || normalized.ends_with("build.rs")
 }
 
+fn is_vue_sfc(path: &Path) -> bool {
+    path.extension().and_then(|e| e.to_str()) == Some("vue")
+}
+
+// A file whose path marks it as test/spec code across the common ecosystems.
+// Its string literals are fixtures, not architectural configuration.
+fn is_test_source_path(path: &Path) -> bool {
+    let normalized = path.to_string_lossy().replace('\\', "/").to_lowercase();
+    if normalized
+        .split('/')
+        .any(|segment| matches!(segment, "tests" | "test" | "spec" | "__tests__"))
+    {
+        return true;
+    }
+    let file_name = match path.file_name().and_then(|n| n.to_str()) {
+        Some(name) => name.to_lowercase(),
+        None => return false,
+    };
+    file_name.ends_with("_test.rs")
+        || file_name.ends_with("_test.go")
+        || file_name.ends_with("_test.py")
+        || file_name.starts_with("test_")
+        || file_name.ends_with("test.php")
+        || file_name.ends_with("spec.php")
+        || [".test.", ".spec."]
+            .iter()
+            .any(|marker| file_name.contains(marker))
+}
+
+// Line ranges (1-based, inclusive) covered by inline Rust `#[cfg(test)]`
+// modules. Uses brace balancing over the raw text, which matches the detector's
+// text-based nature and is sufficient for the canonical `#[cfg(test)] mod tests`
+// shape. Non-Rust files return no ranges.
+fn rust_cfg_test_line_ranges(path: &Path, content: &str) -> Vec<(usize, usize)> {
+    if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+        return Vec::new();
+    }
+    let lines: Vec<&str> = content.lines().collect();
+    let mut ranges = Vec::new();
+    let mut i = 0;
+    while i < lines.len() {
+        if lines[i].trim_start().starts_with("#[cfg(test)]") {
+            let start = i + 1;
+            let mut depth: i32 = 0;
+            let mut opened = false;
+            let mut j = i;
+            while j < lines.len() {
+                for ch in lines[j].chars() {
+                    match ch {
+                        '{' => {
+                            depth += 1;
+                            opened = true;
+                        }
+                        '}' => depth -= 1,
+                        _ => {}
+                    }
+                }
+                if opened && depth <= 0 {
+                    break;
+                }
+                j += 1;
+            }
+            ranges.push((start, j.min(lines.len().saturating_sub(1)) + 1));
+            i = j + 1;
+        } else {
+            i += 1;
+        }
+    }
+    ranges
+}
+
+fn line_in_ranges(line_no: usize, ranges: &[(usize, usize)]) -> bool {
+    ranges
+        .iter()
+        .any(|(start, end)| line_no >= *start && line_no <= *end)
+}
+
 fn is_comment_line(trimmed: &str) -> bool {
     trimmed.starts_with("//")
         || trimmed.starts_with('*')
@@ -245,6 +346,7 @@ fn should_ignore_repeated_literal(
     if is_printf_placeholder_literal(value)
         || is_control_escape_literal(value)
         || is_markup_utility_literal(context, value)
+        || is_css_class_literal(context, value)
     {
         return true;
     }
@@ -303,6 +405,48 @@ fn is_markup_utility_literal(context: &str, value: &str) -> bool {
             | "number"
             | "screen-reader-text"
     )
+}
+
+// A repeated literal that is the value of a `class`/`className` attribute and is
+// shaped like a CSS/utility-class list (Tailwind and friends) is presentation,
+// not hardwired configuration. Requires the class-attribute context so a plain
+// word appearing elsewhere is never suppressed on class-shape alone.
+fn is_css_class_literal(context: &str, value: &str) -> bool {
+    let lowered_context = context.to_ascii_lowercase();
+    let in_class_attribute = lowered_context.contains("class=")
+        || lowered_context.contains("classname=")
+        || lowered_context.contains(":class=")
+        || lowered_context.contains("class:")
+        || lowered_context.contains("classname:");
+    if !in_class_attribute {
+        return false;
+    }
+    is_css_class_value(value)
+}
+
+fn is_css_class_value(value: &str) -> bool {
+    let tokens: Vec<&str> = value.split_whitespace().collect();
+    if tokens.is_empty() {
+        return false;
+    }
+    // Every token must be lowercase and use only CSS-class characters (Tailwind
+    // uses `-`, `:`, `/`, `.`, `[]`, `%`, `!`). Uppercase letters mean it is not
+    // a utility-class string. At least one token must carry a `-` or `:` so a
+    // bare word is not misread as a class list.
+    let mut has_utility_marker = false;
+    for token in &tokens {
+        if token.contains('-') || token.contains(':') {
+            has_utility_marker = true;
+        }
+        if !token.chars().all(|c| {
+            c.is_ascii_lowercase()
+                || c.is_ascii_digit()
+                || matches!(c, '-' | ':' | '/' | '.' | '[' | ']' | '%' | '!' | '_')
+        }) {
+            return false;
+        }
+    }
+    has_utility_marker || tokens.len() >= 2
 }
 
 fn contains_markup_tag(context: &str) -> bool {
@@ -534,5 +678,149 @@ $local2 = "only.here";
         assert!(!result.findings.iter().any(|finding| {
             finding.category == HardwiringCategory::RepeatedLiteral && finding.value == "only.here"
         }));
+    }
+
+    #[test]
+    fn skips_test_regions_and_test_files_for_hardwiring() {
+        let result = analyze_rust_hardwiring(&[
+            (
+                PathBuf::from("src/config.rs"),
+                String::from(
+                    r#"
+fn boot() {
+    connect("db.hostname.internal");
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_connects() {
+        let fixture = build("db.hostname.internal");
+        assert_eq!(fixture.host, "db.hostname.internal");
+    }
+}
+"#,
+                ),
+            ),
+            (
+                PathBuf::from("src/runtime.rs"),
+                String::from(
+                    r#"
+fn start() {
+    connect("db.hostname.internal");
+}
+"#,
+                ),
+            ),
+            (
+                PathBuf::from("tests/integration.rs"),
+                String::from(r#"fn setup() { connect("db.hostname.internal"); }"#),
+            ),
+        ]);
+
+        let hits = result
+            .findings
+            .iter()
+            .filter(|finding| {
+                finding.category == HardwiringCategory::RepeatedLiteral
+                    && finding.value == "db.hostname.internal"
+            })
+            .collect::<Vec<_>>();
+        // Only the two production occurrences count; the `#[cfg(test)]` module
+        // and the `tests/` file must not contribute.
+        assert_eq!(hits.len(), 2, "got: {:?}", hits);
+        assert!(hits.iter().all(|finding| {
+            let p = finding.file_path.to_string_lossy();
+            !p.contains("tests/") && finding.line < 6
+        }));
+    }
+
+    #[test]
+    fn skips_css_class_attribute_values_for_repeated_literals() {
+        let result = analyze_rust_hardwiring(&[
+            (
+                PathBuf::from("website/src/pages/A.tsx"),
+                String::from(
+                    r#"
+export function A() {
+    return <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{key}</div>;
+}
+const region = "eu-central-1";
+"#,
+                ),
+            ),
+            (
+                PathBuf::from("website/src/pages/B.tsx"),
+                String::from(
+                    r#"
+export function B() {
+    return <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" />;
+}
+const region = "eu-central-1";
+"#,
+                ),
+            ),
+        ]);
+
+        // The Tailwind class list is presentation, not hardwired config.
+        assert!(
+            !result.findings.iter().any(|finding| {
+                finding.category == HardwiringCategory::RepeatedLiteral
+                    && finding.value == "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+            }),
+            "css class list must not be flagged, got: {:?}",
+            result.findings
+        );
+        // A genuine cross-file config literal on a non-class line still flags.
+        assert!(result.findings.iter().any(|finding| {
+            finding.category == HardwiringCategory::RepeatedLiteral
+                && finding.value == "eu-central-1"
+        }));
+    }
+
+    #[test]
+    fn scans_only_the_script_block_of_vue_single_file_components() {
+        let vue_a = r#"<template>
+  <NButton @click="handleSubmit" :component="OverflowMenuVertical">
+    <span class="max-w-7xl mx-auto px-4">go</span>
+  </NButton>
+</template>
+<script setup lang="ts">
+const bucket = "acme-prod-bucket-01";
+</script>
+"#;
+        let vue_b = r#"<template>
+  <NButton @click="handleSubmit" :component="OverflowMenuVertical" />
+</template>
+<script setup lang="ts">
+const bucket = "acme-prod-bucket-01";
+</script>
+"#;
+        let result = analyze_rust_hardwiring(&[
+            (PathBuf::from("resources/js/A.vue"), String::from(vue_a)),
+            (PathBuf::from("resources/js/B.vue"), String::from(vue_b)),
+        ]);
+
+        // Template binding expressions and component references are code, not
+        // hardwired literals.
+        for phantom in ["handleSubmit", "OverflowMenuVertical"] {
+            assert!(
+                !result
+                    .findings
+                    .iter()
+                    .any(|finding| finding.value == phantom),
+                "template binding {phantom:?} must not be flagged, got: {:?}",
+                result.findings
+            );
+        }
+        // A real repeated literal inside the `<script>` block still flags.
+        assert!(
+            result.findings.iter().any(|finding| {
+                finding.category == HardwiringCategory::RepeatedLiteral
+                    && finding.value == "acme-prod-bucket-01"
+            }),
+            "script-block literal must still flag, got: {:?}",
+            result.findings
+        );
     }
 }
