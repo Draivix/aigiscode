@@ -12,6 +12,7 @@ pub mod graph;
 pub mod identity;
 pub mod ingestion;
 pub mod kuzu_index;
+pub mod lexmask;
 pub mod mcp;
 pub mod parsing;
 pub mod plugins;

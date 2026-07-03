@@ -699,9 +699,16 @@ fn detect_algorithmic_complexity_hotspots(
         let Some(language) = complexity_language(path) else {
             continue;
         };
+        // Blank string-literal and comment interiors before the line/brace scan
+        // so loop keywords in prose (`"Cleared cache for tenant"`) and braces
+        // inside strings never register as nested iteration or corrupt depth.
+        let masked_lines = match crate::lexmask::MaskLanguage::from_path(path) {
+            Some(mask_language) => crate::lexmask::mask_non_code_spans(mask_language, source),
+            None => source.lines().map(str::to_owned).collect(),
+        };
         let mut observations = match language {
-            ComplexityLanguage::Brace => detect_brace_language_complexity(source),
-            ComplexityLanguage::Python => detect_python_complexity(source),
+            ComplexityLanguage::Brace => detect_brace_language_complexity(&masked_lines),
+            ComplexityLanguage::Python => detect_python_complexity(&masked_lines),
         };
         if let Some(scanner_observations) = ast_grep_by_path.get(path) {
             observations.extend(scanner_observations.iter().cloned());
@@ -827,11 +834,11 @@ fn complexity_language(path: &Path) -> Option<ComplexityLanguage> {
     }
 }
 
-fn detect_brace_language_complexity(source: &str) -> Vec<ComplexityObservation> {
+fn detect_brace_language_complexity(masked_lines: &[String]) -> Vec<ComplexityObservation> {
     let mut findings = Vec::new();
     let mut brace_depth = 0usize;
     let mut loop_thresholds = Vec::<usize>::new();
-    for (index, raw_line) in source.lines().enumerate() {
+    for (index, raw_line) in masked_lines.iter().map(String::as_str).enumerate() {
         let line_number = index + 1;
         let line = raw_line.trim();
         if line.is_empty() || line.starts_with("//") || line.starts_with('#') {
@@ -928,10 +935,10 @@ fn detect_brace_language_complexity(source: &str) -> Vec<ComplexityObservation> 
     findings
 }
 
-fn detect_python_complexity(source: &str) -> Vec<ComplexityObservation> {
+fn detect_python_complexity(masked_lines: &[String]) -> Vec<ComplexityObservation> {
     let mut findings = Vec::new();
     let mut loop_indents = Vec::<usize>::new();
-    for (index, raw_line) in source.lines().enumerate() {
+    for (index, raw_line) in masked_lines.iter().map(String::as_str).enumerate() {
         let line_number = index + 1;
         let trimmed = raw_line.trim();
         if trimmed.is_empty() || trimmed.starts_with('#') {
@@ -5251,6 +5258,47 @@ final class AppServiceProvider extends ServiceProvider
             .warning_families
             .iter()
             .any(|family| family == "complexity:nested_iteration"));
+    }
+
+    #[test]
+    fn loop_keyword_inside_a_string_is_not_nested_iteration() {
+        let assessment = build_architectural_assessment(
+            &GraphAnalysis::default(),
+            &DeadCodeResult::default(),
+            &HardwiringResult::default(),
+            &ExternalAnalysisResult::default(),
+            &[(
+                PathBuf::from("app/Console/Commands/WarmCommand.php"),
+                String::from(
+                    r#"<?php
+class WarmCommand {
+    public function handle($tenants) {
+        foreach ($tenants as $tenant) {
+            $this->info("Warming cache for tenant: {$tenant->slug}");
+            $this->line("Cleared cache for while running");
+        }
+    }
+}
+"#,
+                ),
+            )],
+        );
+
+        // The single foreach has no nested loop; the words "for"/"while" only
+        // appear inside prose strings, so nothing should be reported.
+        assert!(
+            !assessment.findings.iter().any(|finding| {
+                finding.kind == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot
+            }),
+            "loop keywords inside string literals must not produce a hotspot: {:?}",
+            assessment
+                .findings
+                .iter()
+                .filter(|f| f.kind
+                    == ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot)
+                .map(|f| (f.file_path.clone(), f.warning_families.clone()))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
