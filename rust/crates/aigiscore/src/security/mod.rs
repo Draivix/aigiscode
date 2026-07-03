@@ -285,18 +285,27 @@ fn find_dangerous_api_findings(
         return Vec::new();
     };
 
+    // Dangerous-API patterns must match real code, not prose. Blank the interior
+    // of string literals and comments (multi-line aware) before matching so a
+    // blog post that merely *discusses* `eval()` inside a template literal, or a
+    // heredoc containing the word `system(`, is not reported as a live call.
+    let code_lines = mask_non_code_spans(language, content);
+
     content
         .lines()
+        .zip(code_lines)
         .enumerate()
-        .filter_map(|(index, line)| {
+        .filter_map(|(index, (raw_line, code_line))| {
             let line_no = index + 1;
-            let trimmed = line.trim_start();
-            if trimmed.is_empty() || is_comment_line(language, trimmed) {
+            let raw_trimmed = raw_line.trim_start();
+            let code_trimmed = code_line.trim_start();
+            if code_trimmed.is_empty() || is_comment_line(language, raw_trimmed) {
                 return None;
             }
             classify_line(
                 path,
-                trimmed,
+                code_trimmed,
+                raw_trimmed,
                 externally_reachable,
                 graph_reachable,
                 line_no,
@@ -328,7 +337,8 @@ fn detect_language(path: &Path) -> Option<SourceLanguage> {
 
 fn classify_line(
     path: &Path,
-    line: &str,
+    code: &str,
+    raw: &str,
     externally_reachable: bool,
     graph_reachable: bool,
     line_no: usize,
@@ -336,14 +346,14 @@ fn classify_line(
 ) -> Option<SecurityFinding> {
     let (category, api_name) =
         match language {
-            SourceLanguage::Php => classify_php_dangerous_api(line)?,
-            SourceLanguage::Python => classify_python_dangerous_api(line)?,
+            SourceLanguage::Php => classify_php_dangerous_api(code)?,
+            SourceLanguage::Python => classify_python_dangerous_api(code)?,
             SourceLanguage::JavaScript | SourceLanguage::TypeScript => {
-                classify_javascript_dangerous_api(line)?
+                classify_javascript_dangerous_api(code)?
             }
             _ => dangerous_api_patterns(language).iter().find_map(
                 |(category, pattern, api_name)| {
-                    pattern.is_match(line).then_some((*category, *api_name))
+                    pattern.is_match(code).then_some((*category, *api_name))
                 },
             )?,
         };
@@ -375,7 +385,7 @@ fn classify_line(
         file_path: path.to_path_buf(),
         line: line_no,
         message: dangerous_api_message(category, api_name, &contexts),
-        evidence: line.trim().to_string(),
+        evidence: raw.trim().to_string(),
         fingerprint: format!(
             "dangerous-api|{}|{}|{}|{}",
             path.display(),
@@ -422,6 +432,7 @@ fn merge_ast_grep_security_support(
         let graph_reachable = graph_reachable_files.contains(&finding.file_path);
         let Some(native_finding) = classify_line(
             &finding.file_path,
+            trimmed,
             trimmed,
             externally_reachable,
             graph_reachable,
@@ -1406,6 +1417,290 @@ fn is_comment_line(language: SourceLanguage, trimmed: &str) -> bool {
     }
 }
 
+/// Cross-line lexical state carried between source lines while masking. Only
+/// constructs that can legitimately span lines are tracked; single- and
+/// double-quoted strings are handled line-locally so a stray unbalanced quote
+/// cannot desync the mask for the rest of the file.
+#[derive(Clone, PartialEq)]
+enum MaskCarry {
+    None,
+    Template,       // JS/TS `...` template literal
+    BlockComment,   // /* ... */
+    TripleSingle,   // Python '''...'''
+    TripleDouble,   // Python """..."""
+    Heredoc(String), // PHP heredoc/nowdoc, terminated by its label
+    StrSingle,      // '...' spanning lines (PHP only)
+    StrDouble,      // "..." spanning lines (PHP only)
+}
+
+/// Blank the interior of string literals and comments (multi-line aware),
+/// preserving delimiters, code, and character positions, so downstream
+/// pattern matching only sees real code. `${...}` interpolation inside a JS/TS
+/// template literal is kept as code so a genuine `${eval(input)}` still matches.
+fn mask_non_code_spans(language: SourceLanguage, content: &str) -> Vec<String> {
+    let allow_backtick = matches!(
+        language,
+        SourceLanguage::JavaScript | SourceLanguage::TypeScript
+    );
+    let allow_block = matches!(
+        language,
+        SourceLanguage::Php | SourceLanguage::JavaScript | SourceLanguage::TypeScript
+    );
+    let allow_triple = matches!(language, SourceLanguage::Python);
+    let allow_heredoc = matches!(language, SourceLanguage::Php);
+    let allow_hash = matches!(
+        language,
+        SourceLanguage::Php | SourceLanguage::Python | SourceLanguage::Ruby
+    );
+    let allow_slash = matches!(
+        language,
+        SourceLanguage::Php | SourceLanguage::JavaScript | SourceLanguage::TypeScript
+    );
+    // Only PHP single/double-quoted strings legitimately span physical lines, and
+    // PHP has no regex literals, so carrying quote state across lines cannot be
+    // desynced by a `/.../` pattern the way it could in JS/TS.
+    let allow_multiline_quotes = matches!(language, SourceLanguage::Php);
+
+    let mut carry = MaskCarry::None;
+    content
+        .lines()
+        .map(|line| {
+            mask_line(
+                line,
+                &mut carry,
+                allow_backtick,
+                allow_block,
+                allow_triple,
+                allow_heredoc,
+                allow_hash,
+                allow_slash,
+                allow_multiline_quotes,
+            )
+        })
+        .collect()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn mask_line(
+    line: &str,
+    carry: &mut MaskCarry,
+    allow_backtick: bool,
+    allow_block: bool,
+    allow_triple: bool,
+    allow_heredoc: bool,
+    allow_hash: bool,
+    allow_slash: bool,
+    allow_multiline_quotes: bool,
+) -> String {
+    let chars: Vec<char> = line.chars().collect();
+    let n = chars.len();
+
+    // A heredoc/nowdoc body (and its terminator line) is entirely non-code.
+    if let MaskCarry::Heredoc(label) = carry.clone() {
+        let trimmed = line.trim();
+        let terminates = trimmed == label
+            || trimmed.strip_prefix(&label).is_some_and(|rest| {
+                rest.chars()
+                    .next()
+                    .is_none_or(|c| matches!(c, ';' | ',' | ')'))
+            });
+        if terminates {
+            *carry = MaskCarry::None;
+        }
+        return " ".repeat(n);
+    }
+
+    let mut out: Vec<char> = Vec::with_capacity(n);
+    let mut i = 0;
+    while i < n {
+        match carry {
+            MaskCarry::BlockComment => {
+                if chars[i] == '*' && chars.get(i + 1) == Some(&'/') {
+                    out.push(' ');
+                    out.push(' ');
+                    i += 2;
+                    *carry = MaskCarry::None;
+                } else {
+                    out.push(' ');
+                    i += 1;
+                }
+                continue;
+            }
+            MaskCarry::TripleSingle | MaskCarry::TripleDouble => {
+                let q = if *carry == MaskCarry::TripleSingle {
+                    '\''
+                } else {
+                    '"'
+                };
+                if chars[i] == q && chars.get(i + 1) == Some(&q) && chars.get(i + 2) == Some(&q) {
+                    out.extend([' ', ' ', ' ']);
+                    i += 3;
+                    *carry = MaskCarry::None;
+                } else {
+                    out.push(' ');
+                    i += 1;
+                }
+                continue;
+            }
+            MaskCarry::Template => {
+                let c = chars[i];
+                if c == '\\' {
+                    out.push(' ');
+                    if i + 1 < n {
+                        out.push(' ');
+                    }
+                    i += 2;
+                } else if c == '`' {
+                    out.push('`');
+                    i += 1;
+                    *carry = MaskCarry::None;
+                } else if c == '$' && chars.get(i + 1) == Some(&'{') {
+                    out.push('$');
+                    out.push('{');
+                    i += 2;
+                    let mut depth = 1;
+                    while i < n && depth > 0 {
+                        match chars[i] {
+                            '{' => depth += 1,
+                            '}' => depth -= 1,
+                            _ => {}
+                        }
+                        out.push(chars[i]);
+                        i += 1;
+                    }
+                } else {
+                    out.push(' ');
+                    i += 1;
+                }
+                continue;
+            }
+            MaskCarry::StrSingle | MaskCarry::StrDouble => {
+                let q = if *carry == MaskCarry::StrSingle { '\'' } else { '"' };
+                let c = chars[i];
+                if c == '\\' {
+                    out.push(' ');
+                    if i + 1 < n {
+                        out.push(' ');
+                    }
+                    i += 2;
+                } else if c == q {
+                    out.push(q);
+                    i += 1;
+                    *carry = MaskCarry::None;
+                } else {
+                    out.push(' ');
+                    i += 1;
+                }
+                continue;
+            }
+            MaskCarry::Heredoc(_) | MaskCarry::None => {}
+        }
+
+        let c = chars[i];
+        if allow_slash && c == '/' && chars.get(i + 1) == Some(&'/') {
+            out.extend(std::iter::repeat_n(' ', n - i));
+            break;
+        }
+        if allow_hash && c == '#' {
+            out.extend(std::iter::repeat_n(' ', n - i));
+            break;
+        }
+        if allow_block && c == '/' && chars.get(i + 1) == Some(&'*') {
+            out.push(' ');
+            out.push(' ');
+            i += 2;
+            *carry = MaskCarry::BlockComment;
+            continue;
+        }
+        if allow_heredoc && c == '<' && chars.get(i + 1) == Some(&'<') && chars.get(i + 2) == Some(&'<')
+        {
+            let mut j = i + 3;
+            while chars.get(j) == Some(&' ') {
+                j += 1;
+            }
+            let quote = chars.get(j).copied().filter(|q| matches!(q, '\'' | '"'));
+            if quote.is_some() {
+                j += 1;
+            }
+            let start = j;
+            while j < n && (chars[j].is_alphanumeric() || chars[j] == '_') {
+                j += 1;
+            }
+            let label: String = chars[start..j].iter().collect();
+            if let Some(q) = quote {
+                if chars.get(j) == Some(&q) {
+                    j += 1;
+                }
+            }
+            if !label.is_empty() {
+                out.extend(&chars[i..j]);
+                i = j;
+                *carry = MaskCarry::Heredoc(label);
+                continue;
+            }
+            out.push(c);
+            i += 1;
+            continue;
+        }
+        if allow_triple && (c == '\'' || c == '"') && chars.get(i + 1) == Some(&c)
+            && chars.get(i + 2) == Some(&c)
+        {
+            out.extend([c, c, c]);
+            i += 3;
+            *carry = if c == '\'' {
+                MaskCarry::TripleSingle
+            } else {
+                MaskCarry::TripleDouble
+            };
+            continue;
+        }
+        if allow_backtick && c == '`' {
+            out.push('`');
+            i += 1;
+            *carry = MaskCarry::Template;
+            continue;
+        }
+        if c == '\'' || c == '"' {
+            out.push(c);
+            i += 1;
+            let mut closed = false;
+            while i < n {
+                let cc = chars[i];
+                if cc == '\\' {
+                    out.push(' ');
+                    if i + 1 < n {
+                        out.push(' ');
+                    }
+                    i += 2;
+                } else if cc == c {
+                    out.push(c);
+                    i += 1;
+                    closed = true;
+                    break;
+                } else {
+                    out.push(' ');
+                    i += 1;
+                }
+            }
+            // An unterminated quote continues on the next line only where strings
+            // may legitimately span lines (PHP); elsewhere it is treated as
+            // line-local so a stray quote cannot desync the rest of the file.
+            if !closed && allow_multiline_quotes {
+                *carry = if c == '\'' {
+                    MaskCarry::StrSingle
+                } else {
+                    MaskCarry::StrDouble
+                };
+            }
+            continue;
+        }
+        out.push(c);
+        i += 1;
+    }
+
+    out.into_iter().collect()
+}
+
 fn security_category_label(category: SecurityCategory) -> &'static str {
     match category {
         SecurityCategory::CommandExecution => "command_execution",
@@ -1510,6 +1805,85 @@ target.innerHTML = html;
         );
         assert_eq!(result.findings[0].severity, SecuritySeverity::Low);
         assert_eq!(result.findings[0].line, 2);
+    }
+
+    #[test]
+    fn ignores_dangerous_apis_inside_multiline_string_literals() {
+        let parsed_sources = vec![(
+            Path::new("website/src/content/post.ts").to_path_buf(),
+            String::from(
+                r#"export const post = {
+  body: `
+<p>Traditional scanners flag <code>eval(expr)</code> as critical.</p>
+<p>Consider system(cmd) inside a utility class.</p>
+`,
+};
+function run(x) {
+  return eval(x);
+}
+const t = `value ${eval(payload)}`;
+"#,
+            ),
+        )];
+        let inventory = build_contract_inventory(&parsed_sources);
+
+        let result = analyze_security_findings(&parsed_sources, &inventory, &[]);
+
+        // Prose mentions of eval()/system() inside the template literal are not
+        // live calls; only the real `eval(x)` call and the `${eval(payload)}`
+        // interpolation (which is code) are reported.
+        let code_injection: Vec<usize> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == SecurityCategory::CodeInjection)
+            .map(|f| f.line)
+            .collect();
+        assert_eq!(
+            code_injection, vec![8, 10],
+            "expected only real eval sites, got {code_injection:?}"
+        );
+        assert!(
+            !result
+                .findings
+                .iter()
+                .any(|f| f.category == SecurityCategory::CommandExecution),
+            "system(cmd) inside the template literal must not be flagged"
+        );
+    }
+
+    #[test]
+    fn ignores_command_words_inside_multiline_php_string_literals() {
+        let parsed_sources = vec![(
+            Path::new("app/Console/Commands/MenuSyncExternalCommand.php").to_path_buf(),
+            String::from(
+                r#"<?php
+class MenuSyncExternalCommand {
+    protected $signature = 'menu:sync-external
+        {url : Base URL of the external system (e.g., https://crm.example.com)}';
+
+    public function handle() {
+        exec($this->argument('url'), $output, $code);
+    }
+}
+"#,
+            ),
+        )];
+        let inventory = build_contract_inventory(&parsed_sources);
+
+        let result = analyze_security_findings(&parsed_sources, &inventory, &[]);
+
+        // `system (e.g.` in the multi-line signature string is prose, not a call;
+        // only the real exec() in handle() is a command-execution finding.
+        let command_lines: Vec<usize> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == SecurityCategory::CommandExecution)
+            .map(|f| f.line)
+            .collect();
+        assert_eq!(
+            command_lines, vec![7],
+            "expected only the real exec() call, got {command_lines:?}"
+        );
     }
 
     #[test]
