@@ -165,12 +165,18 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
 
         scan_pattern_bucket(&mut buckets.routes, route_patterns(language), path, content);
         scan_pattern_bucket(&mut buckets.hooks, hook_patterns(), path, content);
-        scan_pattern_bucket(
-            &mut buckets.registered_keys,
-            registered_key_patterns(),
-            path,
-            content,
-        );
+        // Registered keys are PHP service-container / Artisan / WordPress idioms
+        // (`$app->bind`, `->singleton`, `Artisan::command`, `register_setting`).
+        // The bare `bind`/`command` verbs otherwise match unrelated frontend calls
+        // like a Pusher/Echo `connection.bind('state_change', handler)`.
+        if language == ContractLanguage::Php {
+            scan_pattern_bucket(
+                &mut buckets.registered_keys,
+                registered_key_patterns(),
+                path,
+                content,
+            );
+        }
         scan_pattern_bucket(&mut buckets.env_keys, env_patterns(), path, content);
         scan_import_meta_env(&mut buckets.env_keys, path, content);
         scan_pattern_bucket(&mut buckets.config_keys, config_patterns(), path, content);
@@ -881,6 +887,35 @@ export const cfg = {
                 "Vite built-in `{builtin}` must not be an env-key contract"
             );
         }
+    }
+
+    #[test]
+    fn registered_keys_ignore_frontend_bind_calls() {
+        let inventory = build_contract_inventory(&[
+            (
+                PathBuf::from("app/Providers/AppServiceProvider.php"),
+                String::from(r#"$this->app->bind('audit.hydrator', ActionHydrator::class);"#),
+            ),
+            (
+                PathBuf::from("resources/js/realtime/RealtimeTransportAdapter.ts"),
+                String::from(r#"connectionBinding.bind('state_change', handler);"#),
+            ),
+        ]);
+
+        assert!(
+            inventory
+                .registered_keys
+                .iter()
+                .any(|item| item.value == "audit.hydrator"),
+            "PHP container binding must be captured"
+        );
+        assert!(
+            inventory
+                .registered_keys
+                .iter()
+                .all(|item| item.value != "state_change"),
+            "frontend .bind() event listener must not be a registered key"
+        );
     }
 
     #[test]
