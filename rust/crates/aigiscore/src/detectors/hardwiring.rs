@@ -40,10 +40,12 @@ pub fn analyze_hardwiring_with_contracts(
 ) -> HardwiringResult {
     let magic_re = Regex::new(r#"(?:==|!=)\s*"([^"\n]{3,})""#).expect("magic regex");
     let url_re = Regex::new(r#""(https?://[^"\n]+)""#).expect("url regex");
-    let env_re = Regex::new(
-        r#"\b(?:(?:std::)?env::(?:var|var_os)\s*\(|(?:std::)?env!\s*\(|option_env!\s*\()"#,
-    )
-    .expect("env regex");
+    // Only *runtime* env access is configuration that should be centralized.
+    // Compile-time `env!`/`option_env!` macros embed build metadata
+    // (`CARGO_PKG_VERSION`, `CARGO_MANIFEST_DIR`) into the binary and are not
+    // runtime configuration, so they are deliberately excluded.
+    let env_re =
+        Regex::new(r#"\b(?:std::)?env::(?:var|var_os)\s*\("#).expect("env regex");
     let string_re = Regex::new(r#""([^"\n]{3,})""#).expect("string regex");
 
     let mut findings = Vec::new();
@@ -117,7 +119,13 @@ pub fn analyze_hardwiring_with_contracts(
                 });
             }
 
-            if env_re.is_match(line) && !is_config_like_path(path) {
+            // A raw env-access token inside a string literal is data, not a live
+            // call — e.g. this scanner's own ast-grep rule definitions
+            // (`"std::env::var($$$ARGS)"`) must not flag themselves.
+            let env_call = env_re
+                .find(line)
+                .filter(|m| !is_inside_string_literal(line, m.start()));
+            if env_call.is_some() && !is_config_like_path(path) {
                 findings.push(HardwiringFinding {
                     category: HardwiringCategory::EnvOutsideConfig,
                     file_path: path.clone(),
@@ -296,6 +304,37 @@ fn is_comment_line(trimmed: &str) -> bool {
         || trimmed.starts_with('*')
         || trimmed.starts_with("/*")
         || trimmed.starts_with('#')
+}
+
+// Whether the byte offset `target` on `line` falls inside a single-line string
+// literal. Used to keep code-shaped patterns (an `env::var(` call) from matching
+// when they are merely the text of a string constant. Single-line only: quote
+// state resets each line, which is correct for the code tokens this guards.
+fn is_inside_string_literal(line: &str, target: usize) -> bool {
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    for (idx, c) in line.char_indices() {
+        if idx >= target {
+            return quote.is_some();
+        }
+        match quote {
+            Some(q) => {
+                if escaped {
+                    escaped = false;
+                } else if c == '\\' {
+                    escaped = true;
+                } else if c == q {
+                    quote = None;
+                }
+            }
+            None => {
+                if matches!(c, '\'' | '"' | '`') {
+                    quote = Some(c);
+                }
+            }
+        }
+    }
+    quote.is_some()
 }
 
 // A URL literal is only a hardcoded *network endpoint* when the program actually
@@ -515,6 +554,40 @@ mod tests {
     use super::{analyze_hardwiring_with_contracts, analyze_rust_hardwiring, HardwiringCategory};
     use crate::contracts::ContractLookup;
     use std::path::PathBuf;
+
+    #[test]
+    fn env_outside_config_ignores_compile_time_macros_and_rule_strings() {
+        let result = analyze_rust_hardwiring(&[(
+            PathBuf::from("src/scanners/rules.rs").to_path_buf(),
+            String::from(
+                r#"
+fn version() -> &'static str {
+    env!("CARGO_PKG_VERSION")
+}
+fn patterns() -> Vec<&'static str> {
+    vec!["std::env::var($$$ARGS)", "env::var_os($$$ARGS)"]
+}
+fn read() -> Option<String> {
+    std::env::var("OPENAI_API_KEY").ok()
+}
+"#,
+            ),
+        )]);
+
+        let env_findings: Vec<usize> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == HardwiringCategory::EnvOutsideConfig)
+            .map(|f| f.line)
+            .collect();
+        // Only the real runtime `std::env::var(...)` call on line 9 is flagged;
+        // the compile-time `env!` macro and the two rule-definition strings are
+        // not runtime env access.
+        assert_eq!(
+            env_findings, vec![9],
+            "expected only the runtime env read, got {env_findings:?}"
+        );
+    }
 
     #[test]
     fn detects_rust_hardwiring_signals() {
