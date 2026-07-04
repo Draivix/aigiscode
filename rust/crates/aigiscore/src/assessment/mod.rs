@@ -2,7 +2,7 @@ use crate::detectors::dead_code::DeadCodeResult;
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringResult};
 use crate::external::{ExternalAnalysisResult, ExternalSeverity};
 use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
-use crate::graph::{RelationKind, SemanticGraph};
+use crate::graph::{RelationKind, SemanticGraph, SymbolKind, Visibility};
 use crate::identity::{normalized_path, stable_fingerprint};
 use crate::scanners::ast_grep::{
     is_configuration_boundary_path, is_dependency_boundary_path, run_ast_grep_scan,
@@ -29,6 +29,7 @@ pub enum ArchitecturalAssessmentKind {
     AbstractionSprawl,
     AlgorithmicComplexityHotspot,
     LayerContractViolation,
+    GodClass,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -244,6 +245,7 @@ pub fn build_architectural_assessment_full(
     ));
     if let Some(semantic_graph) = semantic_graph {
         findings.extend(detect_layer_contract_violations(semantic_graph, layers));
+        findings.extend(detect_god_classes(semantic_graph));
     }
     attach_complexity_graph_pressure(&mut findings, graph_analysis, semantic_graph);
     for finding in &mut findings {
@@ -757,6 +759,140 @@ fn detect_layer_contract_violations(
         .collect()
 }
 
+/// God-class detection from the signature graph alone — no body reads. A
+/// container is flagged only when BOTH signals hold: a wide public surface
+/// (>= 25 public non-magic methods) AND wide external consumption (>= 10
+/// distinct files depending on it). Width without consumers is a big helper;
+/// consumers without width is a healthy hub. Width with consumers is a class
+/// every change ripples through.
+fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFinding> {
+    const MIN_PUBLIC_METHODS: usize = 25;
+    const MIN_DEPENDENT_FILES: usize = 10;
+
+    let container_like = |kind: SymbolKind| {
+        matches!(
+            kind,
+            SymbolKind::Class | SymbolKind::Struct | SymbolKind::Trait
+        )
+    };
+    let mut public_counts: HashMap<&str, usize> = HashMap::new();
+    let mut containers: HashMap<&str, &crate::graph::SymbolNode> = HashMap::new();
+    for symbol in &graph.symbols {
+        if container_like(symbol.kind) {
+            containers.insert(symbol.id.as_str(), symbol);
+        }
+    }
+    for symbol in &graph.symbols {
+        let Some(parent) = symbol.parent_symbol_id.as_deref() else {
+            continue;
+        };
+        if !containers.contains_key(parent) {
+            continue;
+        }
+        // Magic/dunder methods are framework contracts, not interface width.
+        if symbol.visibility == Visibility::Public && !symbol.name.starts_with("__") {
+            *public_counts.entry(parent).or_default() += 1;
+        }
+    }
+
+    // External consumption per container: distinct caller files and which
+    // methods they actually use.
+    let symbol_parent: HashMap<&str, Option<&str>> = graph
+        .symbols
+        .iter()
+        .map(|symbol| (symbol.id.as_str(), symbol.parent_symbol_id.as_deref()))
+        .collect();
+    let symbol_names: HashMap<&str, &str> = graph
+        .symbols
+        .iter()
+        .map(|symbol| (symbol.id.as_str(), symbol.name.as_str()))
+        .collect();
+    struct Usage<'a> {
+        files: HashSet<&'a Path>,
+        used_methods: BTreeMap<&'a str, HashSet<&'a Path>>,
+    }
+    let mut usage: HashMap<&str, Usage> = HashMap::new();
+    for edge in &graph.resolved_edges {
+        let target = edge.target_symbol_id.as_str();
+        let container_id = if containers.contains_key(target) {
+            Some(target)
+        } else {
+            symbol_parent.get(target).copied().flatten()
+        };
+        let Some(container_id) = container_id else {
+            continue;
+        };
+        let Some(container) = containers.get(container_id) else {
+            continue;
+        };
+        if edge.source_file_path == container.file_path {
+            continue;
+        }
+        let entry = usage.entry(container_id).or_insert_with(|| Usage {
+            files: HashSet::new(),
+            used_methods: BTreeMap::new(),
+        });
+        entry.files.insert(edge.source_file_path.as_path());
+        if target != container_id {
+            if let Some(name) = symbol_names.get(target) {
+                entry
+                    .used_methods
+                    .entry(name)
+                    .or_default()
+                    .insert(edge.source_file_path.as_path());
+            }
+        }
+    }
+
+    let mut findings = containers
+        .iter()
+        .filter_map(|(id, container)| {
+            let public_methods = public_counts.get(id).copied().unwrap_or(0);
+            let consumption = usage.get(id)?;
+            let dependent_files = consumption.files.len();
+            if public_methods < MIN_PUBLIC_METHODS || dependent_files < MIN_DEPENDENT_FILES {
+                return None;
+            }
+            let externally_used = consumption.used_methods.len();
+            let mut top_used = consumption
+                .used_methods
+                .iter()
+                .map(|(name, files)| (files.len(), *name))
+                .collect::<Vec<_>>();
+            top_used.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(b.1)));
+            let mut related_identifiers = vec![
+                format!("public_methods:{public_methods}"),
+                format!("external_dependent_files:{dependent_files}"),
+                format!("externally_used_methods:{externally_used}"),
+            ];
+            related_identifiers.extend(
+                top_used
+                    .iter()
+                    .take(5)
+                    .map(|(files, name)| format!("used:{name}@{files}files")),
+            );
+            let raw = public_methods.min(80) * 8 + dependent_files.min(100) * 4;
+            Some(ArchitecturalAssessmentFinding {
+                kind: ArchitecturalAssessmentKind::GodClass,
+                file_path: container.file_path.clone(),
+                related_file_paths: Vec::new(),
+                related_identifiers,
+                warning_count: public_methods,
+                warning_weight: dependent_files,
+                bottleneck_centrality_millis: 0,
+                warning_families: vec![String::from("design")],
+                severity_millis: scaled_severity_millis(raw, 1040),
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
+                fingerprint: String::new(),
+            })
+        })
+        .collect::<Vec<_>>();
+    findings.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+    findings
+}
+
 fn architectural_assessment_fingerprint(finding: &ArchitecturalAssessmentFinding) -> String {
     let kind = architectural_assessment_kind_label(finding.kind);
     let primary_path = normalized_path(&finding.file_path);
@@ -783,6 +919,7 @@ fn architectural_assessment_kind_label(kind: ArchitecturalAssessmentKind) -> &'s
             "algorithmic-complexity-hotspot"
         }
         ArchitecturalAssessmentKind::LayerContractViolation => "layer-contract-violation",
+        ArchitecturalAssessmentKind::GodClass => "god-class",
     }
 }
 
@@ -6121,6 +6258,107 @@ export function run(items: string[][]) {
             .findings
             .iter()
             .all(|finding| finding.kind != ArchitecturalAssessmentKind::SplitIdentityModel));
+    }
+
+    #[test]
+    fn god_class_requires_both_wide_surface_and_wide_consumption() {
+        use crate::graph::{
+            EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, ResolutionTier, ResolvedEdge,
+            SymbolNode,
+        };
+        let mut graph = SemanticGraph::default();
+        let mut add_class = |graph: &mut SemanticGraph, file: &str, name: &str, methods: usize| {
+            let class_id = format!("class:{file}:{name}");
+            graph.symbols.push(SymbolNode {
+                id: class_id.clone(),
+                file_path: PathBuf::from(file),
+                kind: SymbolKind::Class,
+                name: String::from(name),
+                qualified_name: String::from(name),
+                parent_symbol_id: None,
+                owner_type_name: None,
+                return_type_name: None,
+                visibility: Visibility::Public,
+                parameter_count: 0,
+                required_parameter_count: 0,
+                start_line: 1,
+                end_line: 400,
+            });
+            // One magic method: must not count toward interface width.
+            for (index, method_name) in std::iter::once(String::from("__construct"))
+                .chain((0..methods).map(|index| format!("m{index}")))
+                .enumerate()
+            {
+                graph.symbols.push(SymbolNode {
+                    id: format!("method:{file}:{name}:{method_name}"),
+                    file_path: PathBuf::from(file),
+                    kind: SymbolKind::Method,
+                    name: method_name.clone(),
+                    qualified_name: format!("{name}::{method_name}"),
+                    parent_symbol_id: Some(class_id.clone()),
+                    owner_type_name: Some(String::from(name)),
+                    return_type_name: None,
+                    visibility: Visibility::Public,
+                    parameter_count: 0,
+                    required_parameter_count: 0,
+                    start_line: 2 + index,
+                    end_line: 2 + index,
+                });
+            }
+        };
+        add_class(&mut graph, "app/Wide.php", "Wide", 30);
+        // Wide surface but no external consumers: not a god class.
+        add_class(&mut graph, "app/Unused.php", "Unused", 30);
+        // Many consumers but narrow surface: healthy hub, not a god class.
+        add_class(&mut graph, "app/Hub.php", "Hub", 3);
+        let edge = |src: &str, target_symbol_id: String| ResolvedEdge {
+            source_file_path: PathBuf::from(src),
+            source_symbol_id: None,
+            target_file_path: PathBuf::from("app/Wide.php"),
+            target_symbol_id,
+            reference_target_name: None,
+            kind: ReferenceKind::Call,
+            relation_kind: RelationKind::Call,
+            layer: GraphLayer::Structural,
+            strength: EdgeStrength::Hard,
+            origin: EdgeOrigin::Resolver,
+            resolution_tier: ResolutionTier::ImportScoped,
+            confidence_millis: 900,
+            reason: String::from("test"),
+            line: 5,
+            occurrence_index: 0,
+        };
+        for caller in 0..12 {
+            graph.resolved_edges.push(edge(
+                &format!("app/callers/C{caller}.php"),
+                format!("method:app/Wide.php:Wide:m{}", caller % 30),
+            ));
+            graph.resolved_edges.push(edge(
+                &format!("app/callers/C{caller}.php"),
+                format!("method:app/Hub.php:Hub:m{}", caller % 3),
+            ));
+        }
+        // Same-file edge: must not count as external consumption.
+        graph.resolved_edges.push(edge(
+            "app/Wide.php",
+            String::from("method:app/Wide.php:Wide:m0"),
+        ));
+
+        let findings = super::detect_god_classes(&graph);
+
+        assert_eq!(findings.len(), 1);
+        let god = &findings[0];
+        assert_eq!(god.file_path, PathBuf::from("app/Wide.php"));
+        assert_eq!(god.warning_count, 30);
+        assert_eq!(god.warning_weight, 12);
+        assert!(god
+            .related_identifiers
+            .iter()
+            .any(|id| id == "public_methods:30"));
+        assert!(god
+            .related_identifiers
+            .iter()
+            .any(|id| id.starts_with("used:")));
     }
 
     #[test]

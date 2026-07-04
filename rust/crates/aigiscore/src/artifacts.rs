@@ -5203,6 +5203,64 @@ fn build_guardian_packets(
                     context_labels,
                 });
             }
+            crate::assessment::ArchitecturalAssessmentKind::GodClass => {
+                let target_files = vec![finding.file_path.display().to_string()];
+                let context_labels = finding.related_identifiers.clone();
+                let finding_id = format!("architecture:god-class:{}", finding.file_path.display());
+                let doctrine_refs = vec![
+                    String::from("structural.coherence"),
+                    String::from("guardian.architectonic-quality"),
+                ];
+                packets.push(GuardianPacket {
+                    id: format!("guardian:god-class:{}", finding.file_path.display()),
+                    priority: if finding.severity_millis >= 700 {
+                        String::from("high")
+                    } else {
+                        String::from("medium")
+                    },
+                    focus: String::from("god_class"),
+                    primary_target_file: finding.file_path.display().to_string(),
+                    precision: String::from("modeled"),
+                    confidence_millis: finding.severity_millis,
+                    summary: format!(
+                        "{} exposes {} public methods consumed from {} distinct files; split it along its usage clusters before it accretes further.",
+                        finding.file_path.display(),
+                        finding.warning_count,
+                        finding.warning_weight
+                    ),
+                    target_files,
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    locations: Vec::new(),
+                    finding_ids: vec![finding_id],
+                    provenance: vec![
+                        String::from("architectural_assessment"),
+                        String::from("semantic_graph"),
+                    ],
+                    doctrine_refs,
+                    preferred_mechanism: Some(String::from(
+                        "segregated_role_interfaces",
+                    )),
+                    obligations: vec![GuardianObligation {
+                        action: format!(
+                            "Group `{}`'s externally-used methods by consumer concern and extract each group behind its own interface or focused class.",
+                            finding.file_path.display()
+                        ),
+                        acceptance: String::from(
+                            "No single container both exposes a wide public surface and serves as the direct dependency of a wide consumer set; consumers depend on the narrow interface they actually use.",
+                        ),
+                    }],
+                    suppressibility: guardian_packet_suppressibility("god_class"),
+                    investigation_questions: Vec::new(),
+                    context_labels,
+                });
+            }
             crate::assessment::ArchitecturalAssessmentKind::LayerContractViolation => {
                 let mut target_files = vec![finding.file_path.display().to_string()];
                 target_files.extend(

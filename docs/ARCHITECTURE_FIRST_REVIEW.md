@@ -77,11 +77,18 @@ Each step is generic engine work, validated on draivix + self, gated by tests.
    binding methods; unproven `$this->` calls binding globally) — another 2,746
    fabricated edges gone.
 3. **Design finding family (G3)** — new detector family `design` computed from the
-   symbol graph only: `HighFanInWithoutInterface`, `GodClass` (with disjoint-cluster
-   evidence), `VisibilityLeak`, `LayerSkip` (needs #2), `SiblingContractDrift`.
-   Severity via `scaled_severity_millis`. These are pass-1 findings by construction
-   — no body reads anywhere in the family. *Effort: medium, incremental per
-   detector.*
+   symbol graph only. First detector shipped 2026-07-04: ✅ **GodClass** — fires only
+   when BOTH signals hold (≥25 public non-magic methods AND ≥10 distinct external
+   dependent files; width without consumers is a big helper, consumers without
+   width is a healthy hub). Evidence carries per-method consumption
+   (`used:find@338files`). Draivix: 15 findings (EntityManager 31/620,
+   EntityRegistry 38/290, PermissionChecker 30/163, Email 114 public methods);
+   self-repo: zero. Remaining in family: `VisibilityLeak` (FP-prone — must exempt
+   magic methods, runtime entries, route-declared controllers, overrides),
+   `SiblingContractDrift`, `HighFanInWithoutInterface`. `LayerSkip` dropped —
+   the explicit layer contract from #2 already encodes direction. These are
+   pass-1 findings by construction — no body reads anywhere in the family.
+   *Effort: medium, incremental per detector.*
 4. **Two-phase surface (G6)** — every finding gets `phase: architecture |
    implementation`. `aigiscode-report.md` restructured: Architecture first,
    Implementation second with priority = centrality of the enclosing symbol's

@@ -1142,6 +1142,43 @@ fn surface_finding_from_architectural_assessment(
                 ],
             }
         }
+        ArchitecturalAssessmentKind::GodClass => SurfaceFinding {
+            id: format!("architecture:god-class:{}", finding.file_path.display()),
+            fingerprint: finding.fingerprint.clone(),
+            family: SurfaceFindingFamily::Graph,
+            severity: SurfaceFindingSeverity::High,
+            precision: String::from("modeled"),
+            confidence_millis: finding.severity_millis,
+            title: String::from("God class"),
+            summary: format!(
+                "{} exposes {} public methods and is depended on by {} distinct files — every change to it ripples wide ({})",
+                finding.file_path.display(),
+                finding.warning_count,
+                finding.warning_weight,
+                finding
+                    .related_identifiers
+                    .iter()
+                    .filter(|id| id.starts_with("used:"))
+                    .take(3)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            file_paths: vec![finding.file_path.clone()],
+            line: primary_line,
+            primary_anchor,
+            evidence_anchors,
+            locations: locations.clone(),
+            supporting_context: finding.related_identifiers.clone(),
+            provenance: vec![
+                String::from("architectural_assessment"),
+                String::from("semantic_graph"),
+            ],
+            doctrine_refs: vec![
+                String::from("structural.coherence"),
+                String::from("guardian.architectonic-quality"),
+            ],
+        },
         ArchitecturalAssessmentKind::LayerContractViolation => {
             let mut file_paths = vec![finding.file_path.clone()];
             file_paths.extend(finding.related_file_paths.clone());
