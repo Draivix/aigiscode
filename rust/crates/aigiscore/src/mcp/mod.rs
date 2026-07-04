@@ -5,11 +5,12 @@ mod watch;
 use self::contracts::{
     build_finding_details, display_path, family_matches, is_corpus_scale_cycle, language_matches,
     path_matches, severity_matches, AtlasOutput, BottleneckOutput, BriefHotspotOutput,
-    ConsistencyMode, ContractInventoryOutput, ConvergenceOutput, CorpusScaleUnitOutput,
-    CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams,
-    DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput, FindSymbolParams,
-    FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput,
-    ListFindingsOutput, ListFindingsParams, QualityEvaluationOutput, RepoBriefOutput,
+    ConsistencyMode, ContainerDesignOutput, ContractInventoryOutput, ConvergenceOutput,
+    CorpusScaleUnitOutput, CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput,
+    CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput,
+    FindSymbolParams, FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput,
+    HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams, ModuleDesignOutput,
+    ModuleDesignParams, ModuleEdgeOutput, QualityEvaluationOutput, RepoBriefOutput,
     RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
     SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
 };
@@ -390,6 +391,172 @@ impl AigiscodeMcpServer {
             guard_verdict: guard.verdict.clone(),
             guard_summary: guard.summary.clone(),
             doctrine_headline,
+            freshness: Some(self.live.freshness(true)),
+        })
+    }
+
+    #[tool(
+        name = "module_design",
+        description = "The architect's read of a module: every class/interface with its public \
+                       method signatures (no bodies), plus which other modules it depends on and \
+                       which depend on it, heaviest first. Use this to judge design before \
+                       reading any implementation."
+    )]
+    async fn module_design(
+        &self,
+        Parameters(params): Parameters<ModuleDesignParams>,
+    ) -> Json<ModuleDesignOutput> {
+        let max_containers = params.max_containers.unwrap_or(30).clamp(1, 100);
+        let prefix = params.path.trim().trim_end_matches('/').to_string();
+        let state = self.state();
+        let graph = &state.snapshot.semantic_graph;
+
+        let in_module = |path: &Path| {
+            let display = display_path(path);
+            display == prefix || display.starts_with(&format!("{prefix}/"))
+        };
+        let member_files = graph
+            .files
+            .iter()
+            .filter(|file| in_module(&file.path))
+            .map(|file| file.path.clone())
+            .collect::<HashSet<_>>();
+
+        // Container shells: class-like symbols in member files.
+        let container_like = |kind: crate::graph::SymbolKind| {
+            matches!(
+                kind,
+                crate::graph::SymbolKind::Class
+                    | crate::graph::SymbolKind::Interface
+                    | crate::graph::SymbolKind::Struct
+                    | crate::graph::SymbolKind::Enum
+                    | crate::graph::SymbolKind::Trait
+            )
+        };
+        let mut containers: HashMap<
+            &str,
+            (&crate::graph::SymbolNode, Vec<&crate::graph::SymbolNode>),
+        > = HashMap::new();
+        for symbol in &graph.symbols {
+            if container_like(symbol.kind) && member_files.contains(&symbol.file_path) {
+                containers
+                    .entry(symbol.id.as_str())
+                    .or_insert((symbol, Vec::new()));
+            }
+        }
+        for symbol in &graph.symbols {
+            if !member_files.contains(&symbol.file_path) {
+                continue;
+            }
+            if let Some(parent) = symbol.parent_symbol_id.as_deref() {
+                if let Some(entry) = containers.get_mut(parent) {
+                    entry.1.push(symbol);
+                }
+            }
+        }
+
+        // Cross-module edge aggregation + per-container external dependents.
+        let mut outbound: HashMap<String, (usize, HashSet<&Path>)> = HashMap::new();
+        let mut inbound: HashMap<String, (usize, HashSet<&Path>)> = HashMap::new();
+        let mut dependents_by_container: HashMap<&str, HashSet<&Path>> = HashMap::new();
+        let symbol_parent: HashMap<&str, Option<&str>> = graph
+            .symbols
+            .iter()
+            .map(|symbol| (symbol.id.as_str(), symbol.parent_symbol_id.as_deref()))
+            .collect();
+        for edge in &graph.resolved_edges {
+            let src_in = member_files.contains(&edge.source_file_path);
+            let dst_in = member_files.contains(&edge.target_file_path);
+            if src_in && !dst_in {
+                let entry = outbound
+                    .entry(module_group_of(&edge.target_file_path))
+                    .or_default();
+                entry.0 += 1;
+                entry.1.insert(edge.target_file_path.as_path());
+            } else if !src_in && dst_in {
+                let entry = inbound
+                    .entry(module_group_of(&edge.source_file_path))
+                    .or_default();
+                entry.0 += 1;
+                entry.1.insert(edge.source_file_path.as_path());
+                let target = edge.target_symbol_id.as_str();
+                let container_id = if containers.contains_key(target) {
+                    Some(target)
+                } else {
+                    symbol_parent.get(target).copied().flatten()
+                };
+                if let Some(container_id) = container_id {
+                    dependents_by_container
+                        .entry(container_id)
+                        .or_default()
+                        .insert(edge.source_file_path.as_path());
+                }
+            }
+        }
+
+        let mut rendered = containers
+            .iter()
+            .map(|(id, (container, methods))| {
+                let public_methods = methods
+                    .iter()
+                    .filter(|method| method.visibility == crate::graph::Visibility::Public)
+                    .collect::<Vec<_>>();
+                let mut signatures = public_methods
+                    .iter()
+                    .map(|method| method_signature(method))
+                    .collect::<Vec<_>>();
+                signatures.sort();
+                let public_method_count = signatures.len();
+                signatures.truncate(40);
+                ContainerDesignOutput {
+                    name: container.name.clone(),
+                    kind: symbol_kind_label(container.kind),
+                    file_path: display_path(&container.file_path),
+                    public_signatures: signatures,
+                    method_count: methods.len(),
+                    public_method_count,
+                    external_dependent_files: dependents_by_container
+                        .get(*id)
+                        .map(|files| files.len())
+                        .unwrap_or(0),
+                }
+            })
+            .collect::<Vec<_>>();
+        rendered.sort_by(|a, b| {
+            b.external_dependent_files
+                .cmp(&a.external_dependent_files)
+                .then_with(|| b.public_method_count.cmp(&a.public_method_count))
+                .then_with(|| a.name.cmp(&b.name))
+        });
+        let container_count = rendered.len();
+        rendered.truncate(max_containers);
+
+        let to_module_edges = |map: HashMap<String, (usize, HashSet<&Path>)>| {
+            let mut edges = map
+                .into_iter()
+                .map(|(module, (edge_count, files))| ModuleEdgeOutput {
+                    module,
+                    edge_count,
+                    distinct_files: files.len(),
+                })
+                .collect::<Vec<_>>();
+            edges.sort_by(|a, b| {
+                b.edge_count
+                    .cmp(&a.edge_count)
+                    .then_with(|| a.module.cmp(&b.module))
+            });
+            edges.truncate(15);
+            edges
+        };
+
+        Json(ModuleDesignOutput {
+            path: prefix,
+            file_count: member_files.len(),
+            container_count,
+            truncated: container_count > max_containers,
+            containers: rendered,
+            outbound_modules: to_module_edges(outbound),
+            inbound_modules: to_module_edges(inbound),
             freshness: Some(self.live.freshness(true)),
         })
     }
@@ -1450,6 +1617,34 @@ fn symbol_kind_label(kind: crate::graph::SymbolKind) -> String {
     format!("{kind:?}").to_ascii_lowercase()
 }
 
+/// Compact body-free signature: `name(3)`, `name(1..3)`, with `-> Type` when known.
+fn method_signature(method: &crate::graph::SymbolNode) -> String {
+    let params = if method.required_parameter_count == method.parameter_count {
+        format!("{}", method.parameter_count)
+    } else {
+        format!(
+            "{}..{}",
+            method.required_parameter_count, method.parameter_count
+        )
+    };
+    match method.return_type_name.as_deref() {
+        Some(ret) if !ret.is_empty() => format!("{}({params}) -> {ret}", method.name),
+        _ => format!("{}({params})", method.name),
+    }
+}
+
+/// Grouping key for "which module is this file in": up to the first three
+/// directory segments (`app/Modules/Mattermost`, `app/Services/_Core`,
+/// `routes`). Purely path-shaped, no framework vocabulary.
+fn module_group_of(path: &Path) -> String {
+    let display = display_path(path);
+    let dirs = display.rsplit_once('/').map(|(dir, _)| dir).unwrap_or("");
+    if dirs.is_empty() {
+        return String::from("<root>");
+    }
+    dirs.split('/').take(3).collect::<Vec<_>>().join("/")
+}
+
 fn reference_kind_label(kind: crate::graph::ReferenceKind) -> String {
     format!("{kind:?}").to_ascii_lowercase()
 }
@@ -2036,6 +2231,66 @@ fn main() {
             .iter()
             .chain(cycles.total_cycles.iter())
             .all(|cycle| cycle.size < 10));
+    }
+
+    #[tokio::test]
+    async fn module_design_renders_signatures_and_cross_module_edges() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("app/Core")).unwrap();
+        fs::create_dir_all(fixture.join("app/Feature")).unwrap();
+        fs::write(
+            fixture.join("app/Core/Registry.php"),
+            br#"<?php
+class Registry {
+    public function all(): array { return []; }
+    public function find(string $key, int $mode = 0): ?string { return null; }
+    private function internal(): void {}
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Feature/Consumer.php"),
+            br#"<?php
+use Core\Registry;
+class Consumer {
+    public function run(Registry $registry): void { $registry->all(); }
+}
+"#,
+        )
+        .unwrap();
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let design = server
+            .module_design(Parameters(super::ModuleDesignParams {
+                path: String::from("app/Core"),
+                max_containers: None,
+            }))
+            .await
+            .0;
+
+        assert_eq!(design.container_count, 1);
+        let registry = &design.containers[0];
+        assert_eq!(registry.name, "Registry");
+        assert_eq!(registry.public_method_count, 2);
+        assert_eq!(registry.method_count, 3);
+        assert!(registry
+            .public_signatures
+            .iter()
+            .any(|sig| sig == "all(0) -> array"));
+        assert!(registry
+            .public_signatures
+            .iter()
+            .any(|sig| sig.starts_with("find(1..2)")));
+        // The private method never appears in the public shape.
+        assert!(!registry
+            .public_signatures
+            .iter()
+            .any(|sig| sig.starts_with("internal")));
+        assert!(design
+            .inbound_modules
+            .iter()
+            .any(|module| module.module == "app/Feature" && module.edge_count >= 1));
     }
 
     #[tokio::test]

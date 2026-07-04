@@ -224,7 +224,7 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
                         container_symbol_id.as_deref(),
                         container_type_name.as_deref(),
                         function_return_type(current, context),
-                        Visibility::Public,
+                        php_method_visibility(current, context),
                         parameter_count(current),
                         required_parameter_count(current),
                         context.line(name_node),
@@ -662,6 +662,22 @@ fn infer_receiver_type_with_guards(
     );
     active_receivers.remove(receiver_name);
     inferred
+}
+
+/// PHP method visibility from its modifier list. `private` and `protected`
+/// both map to `Visibility::Private` — neither is part of the class's public
+/// shape, which is what the graph's two-level visibility models.
+fn php_method_visibility(node: Node<'_>, context: &PhpContext<'_>) -> Visibility {
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() == "visibility_modifier" {
+            return match context.text(child).as_str() {
+                "private" | "protected" => Visibility::Private,
+                _ => Visibility::Public,
+            };
+        }
+    }
+    Visibility::Public
 }
 
 fn infer_member_receiver_type(

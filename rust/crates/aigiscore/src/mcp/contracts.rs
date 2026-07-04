@@ -195,6 +195,56 @@ pub struct FindSymbolParams {
 
 /// One symbol definition, with just enough inbound-pressure context
 /// (`inbound_edges`/`inbound_files`) for an agent to judge how load-bearing it
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ModuleDesignParams {
+    /// Repo-relative path prefix of the module to render (e.g. `app/Services/_Core`).
+    pub path: String,
+    /// Maximum containers (classes/modules) to return (default 30, max 100).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_containers: Option<usize>,
+}
+
+/// The architect's read of a module: signatures and edges, no bodies.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ModuleDesignOutput {
+    pub path: String,
+    /// Files under the prefix that carry symbols.
+    pub file_count: usize,
+    pub container_count: usize,
+    pub truncated: bool,
+    pub containers: Vec<ContainerDesignOutput>,
+    /// Other modules this one depends on (top external targets, grouped by
+    /// their top-level module path), heaviest first.
+    pub outbound_modules: Vec<ModuleEdgeOutput>,
+    /// Other modules that depend on this one, heaviest first.
+    pub inbound_modules: Vec<ModuleEdgeOutput>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+/// One class/interface/trait/module with its public shape.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ContainerDesignOutput {
+    pub name: String,
+    pub kind: String,
+    pub file_path: String,
+    /// Compact public signatures: `name(params[, optional…]) -> ReturnType`.
+    /// Capped at 40 per container; `method_count` carries the real total.
+    pub public_signatures: Vec<String>,
+    pub method_count: usize,
+    pub public_method_count: usize,
+    /// Distinct files outside this module that reference this container's symbols.
+    pub external_dependent_files: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ModuleEdgeOutput {
+    /// The other module (top-level grouping path).
+    pub module: String,
+    pub edge_count: usize,
+    pub distinct_files: usize,
+}
+
 /// is without a second call.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct SymbolMatchOutput {
