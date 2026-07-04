@@ -1,6 +1,4 @@
-use crate::assessment::{
-    build_architectural_assessment_with_ast_grep_and_graph, ArchitecturalAssessment,
-};
+use crate::assessment::{build_architectural_assessment_full, ArchitecturalAssessment};
 use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
@@ -203,7 +201,12 @@ pub fn analyze_project(
     ));
 
     let assessment_started = Instant::now();
-    let architectural_assessment = build_architectural_assessment_with_ast_grep_and_graph(
+    // Layer contracts are doctrine-declared; absent or unreadable doctrine
+    // simply means no layer enforcement, never a pipeline failure.
+    let doctrine_layers = crate::doctrine::load_doctrine_registry(&root)
+        .map(|registry| registry.layers)
+        .unwrap_or_default();
+    let architectural_assessment = build_architectural_assessment_full(
         &graph_analysis,
         &dead_code,
         &hardwiring,
@@ -211,6 +214,7 @@ pub fn analyze_project(
         &parsed_sources,
         &ast_grep_scan,
         Some(&semantic_graph),
+        &doctrine_layers,
     );
     trace(&format!(
         "analyze.architectural_assessment elapsed_ms={}",

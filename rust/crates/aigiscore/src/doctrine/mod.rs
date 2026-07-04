@@ -12,6 +12,23 @@ const DOCTRINE_FILE: &str = ".aigiscode/doctrine.json";
 pub struct DoctrineRegistry {
     pub version: String,
     pub clauses: Vec<DoctrineClause>,
+    /// Declared architectural layers with allowed dependency directions.
+    /// Empty means "no layer contract declared" — the layering detector stays
+    /// silent rather than guessing layers from paths.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub layers: Vec<LayerContract>,
+}
+
+/// One declared layer: a name, the path prefixes that belong to it, and the
+/// names of layers its code may depend on. Depending on the same layer is
+/// always allowed; anything else — including depending on an undeclared
+/// direction — is a violation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct LayerContract {
+    pub name: String,
+    pub path_prefixes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub may_depend_on: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -66,11 +83,14 @@ struct DoctrineOverrideFile {
     version: Option<String>,
     #[serde(default)]
     clauses: Vec<DoctrineClause>,
+    #[serde(default)]
+    layers: Vec<LayerContract>,
 }
 
 pub fn built_in_doctrine_registry() -> DoctrineRegistry {
     DoctrineRegistry {
         version: String::from("2026-03"),
+        layers: Vec::new(),
         clauses: vec![
             clause(
                 "configuration.coherence",
@@ -452,6 +472,8 @@ pub fn load_doctrine_registry(root: &Path) -> Result<DoctrineRegistry, DoctrineL
         clauses.insert(clause.id.clone(), clause);
     }
     registry.clauses = clauses.into_values().collect();
+    // Layers have no built-in defaults; the repo's declaration is the contract.
+    registry.layers = overrides.layers;
     Ok(registry)
 }
 

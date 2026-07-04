@@ -1142,6 +1142,67 @@ fn surface_finding_from_architectural_assessment(
                 ],
             }
         }
+        ArchitecturalAssessmentKind::LayerContractViolation => {
+            let mut file_paths = vec![finding.file_path.clone()];
+            file_paths.extend(finding.related_file_paths.clone());
+            let from_layer = finding
+                .related_identifiers
+                .iter()
+                .find_map(|id| id.strip_prefix("from_layer:"))
+                .unwrap_or("?");
+            let to_layer = finding
+                .related_identifiers
+                .iter()
+                .find_map(|id| id.strip_prefix("to_layer:"))
+                .unwrap_or("?");
+            SurfaceFinding {
+                id: format!(
+                    "architecture:layer-contract-violation:{}:{}",
+                    finding.file_path.display(),
+                    finding
+                        .related_file_paths
+                        .first()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_default()
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                severity: SurfaceFindingSeverity::High,
+                precision: String::from("certain"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Layer contract violation"),
+                summary: format!(
+                    "{} (layer `{from_layer}`) depends on {} (layer `{to_layer}`) against the declared layer contract ({} edge instance(s))",
+                    finding.file_path.display(),
+                    finding
+                        .related_file_paths
+                        .first()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_default(),
+                    finding.warning_count
+                ),
+                file_paths,
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
+                locations: locations.clone(),
+                supporting_context: finding
+                    .related_identifiers
+                    .iter()
+                    .filter(|id| !id.starts_with("from_layer:") && !id.starts_with("to_layer:"))
+                    .cloned()
+                    .collect(),
+                provenance: vec![
+                    String::from("architectural_assessment"),
+                    String::from("semantic_graph"),
+                    String::from("doctrine_registry"),
+                ],
+                doctrine_refs: vec![
+                    String::from("structural.coherence"),
+                    String::from("guardian.architectonic-quality"),
+                ],
+            }
+        }
         ArchitecturalAssessmentKind::SanctionedPathBypass => {
             let mut file_paths = vec![finding.file_path.clone()];
             file_paths.extend(finding.related_file_paths.clone());

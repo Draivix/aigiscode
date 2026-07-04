@@ -5203,6 +5203,80 @@ fn build_guardian_packets(
                     context_labels,
                 });
             }
+            crate::assessment::ArchitecturalAssessmentKind::LayerContractViolation => {
+                let mut target_files = vec![finding.file_path.display().to_string()];
+                target_files.extend(
+                    finding
+                        .related_file_paths
+                        .iter()
+                        .map(|path| path.display().to_string()),
+                );
+                let context_labels = finding.related_identifiers.clone();
+                let finding_id = format!(
+                    "architecture:layer-contract-violation:{}:{}",
+                    finding.file_path.display(),
+                    finding
+                        .related_file_paths
+                        .first()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_default()
+                );
+                let doctrine_refs = vec![
+                    String::from("structural.coherence"),
+                    String::from("guardian.architectonic-quality"),
+                ];
+                packets.push(GuardianPacket {
+                    id: format!(
+                        "guardian:layer-contract-violation:{}",
+                        finding.file_path.display()
+                    ),
+                    priority: String::from("high"),
+                    focus: String::from("layer_contract_violation"),
+                    primary_target_file: finding.file_path.display().to_string(),
+                    precision: String::from("certain"),
+                    confidence_millis: finding.severity_millis,
+                    summary: format!(
+                        "{} depends on {} against the declared layer contract ({} edge instance(s)); invert or remove the wrong-direction dependency.",
+                        finding.file_path.display(),
+                        finding
+                            .related_file_paths
+                            .first()
+                            .map(|path| path.display().to_string())
+                            .unwrap_or_default(),
+                        finding.warning_count
+                    ),
+                    target_files,
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    locations: Vec::new(),
+                    finding_ids: vec![finding_id],
+                    provenance: vec![
+                        String::from("architectural_assessment"),
+                        String::from("semantic_graph"),
+                        String::from("doctrine_registry"),
+                    ],
+                    doctrine_refs,
+                    preferred_mechanism: Some(String::from("declared_layer_contract")),
+                    obligations: vec![GuardianObligation {
+                        action: format!(
+                            "Invert the dependency from `{}` so the lower layer exposes a contract the higher layer implements or consumes, or move the misplaced code into the layer it actually belongs to.",
+                            finding.file_path.display()
+                        ),
+                        acceptance: String::from(
+                            "No resolved edge crosses the declared layer boundary in the forbidden direction.",
+                        ),
+                    }],
+                    suppressibility: guardian_packet_suppressibility("layer_contract_violation"),
+                    investigation_questions: Vec::new(),
+                    context_labels,
+                });
+            }
             crate::assessment::ArchitecturalAssessmentKind::SanctionedPathBypass => {
                 let target_files = vec![finding.file_path.display().to_string()];
                 let mut context_labels = finding.warning_families.clone();

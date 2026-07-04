@@ -401,6 +401,15 @@ fn filter_candidates(
                 .collect::<Vec<_>>();
             if !free_function_candidates.is_empty() {
                 candidates.candidates = free_function_candidates;
+            } else if candidates.tier == ResolutionTier::Global
+                && !reference_language_allows_bare_method_calls(reference, context)
+            {
+                // A bare call can never invoke an instance method in PHP,
+                // JS/TS, or Python — `config(...)` binding to some
+                // controller's `config` method fabricates a cross-module
+                // edge. Ruby allows receiverless instance calls, so it keeps
+                // the method candidates.
+                candidates.candidates.clear();
             }
         }
         if let Some(receiver_type_name) = &reference.receiver_type_name {
@@ -509,17 +518,17 @@ fn filter_candidates(
         // `->where(...)->update([...])` binds to any `update` — fabricating
         // cross-module edges that manufacture giant false SCCs. An honest
         // unresolved site beats a confident wrong edge.
-        let explicit_non_self_receiver = matches!(
+        // Self receivers are included: `$this->helper()` whose method lives
+        // nowhere in the receiver's resolvable type universe (same file,
+        // inheritance chain) must stay unresolved instead of binding to an
+        // unrelated class's same-named method. Genuine recursion and
+        // same-class calls resolve at SameFile tier before this runs;
+        // inherited methods resolve through receiver narrowing.
+        let explicit_receiver = matches!(
             reference.call_form,
             Some(CallForm::Member | CallForm::Associated)
-        ) && reference
-            .receiver_name
-            .as_deref()
-            .is_some_and(|receiver| !is_self_receiver_name(receiver));
-        if candidates.tier == ResolutionTier::Global
-            && explicit_non_self_receiver
-            && !receiver_narrowed
-        {
+        ) && reference.receiver_name.is_some();
+        if candidates.tier == ResolutionTier::Global && explicit_receiver && !receiver_narrowed {
             candidates.candidates.clear();
         }
         if matches!(reference.call_form, Some(CallForm::Member))
@@ -563,6 +572,20 @@ fn filter_candidates(
     }
 
     candidates
+}
+
+/// Ruby permits receiverless instance-method calls (`helper` inside a class),
+/// so bare-call resolution may legitimately bind methods there. PHP, JS/TS,
+/// and Python require an explicit receiver for instance methods.
+fn reference_language_allows_bare_method_calls(
+    reference: &SemanticReference,
+    context: &ResolutionContext,
+) -> bool {
+    context
+        .language_map
+        .get(&reference.file_path)
+        .copied()
+        .is_some_and(|language| language == Language::Ruby)
 }
 
 /// Whether a member-call receiver expression is a bare self reference, across the
@@ -3530,6 +3553,38 @@ end
         graph
             .references
             .push(make_call(5, "update", "Known", CallForm::Associated, None));
+        // Bare free call `warning(...)` in PHP can never invoke an instance
+        // method — must not bind to Unrelated::warning either.
+        graph.files.push(FileNode {
+            path: PathBuf::from("app/Service.php"),
+            language: Language::Php,
+        });
+        graph.references.push(SemanticReference {
+            file_path: PathBuf::from("app/Service.php"),
+            enclosing_symbol_id: None,
+            kind: ReferenceKind::Call,
+            target_name: String::from("warning"),
+            binding_name: None,
+            line: 6,
+            arity: Some(2),
+            receiver_name: None,
+            receiver_type_name: None,
+            call_form: Some(CallForm::Free),
+        });
+        // Self-receiver call to a method defined nowhere in this class's
+        // resolvable universe must stay unresolved, not bind globally.
+        graph.references.push(SemanticReference {
+            file_path: PathBuf::from("app/Service.php"),
+            enclosing_symbol_id: None,
+            kind: ReferenceKind::Call,
+            target_name: String::from("update"),
+            binding_name: None,
+            line: 7,
+            arity: Some(2),
+            receiver_name: Some(String::from("$this")),
+            receiver_type_name: None,
+            call_form: Some(CallForm::Member),
+        });
 
         resolve_graph(&mut graph);
 

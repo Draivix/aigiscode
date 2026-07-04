@@ -13,7 +13,7 @@ use crate::scanners::framework_catalogs::{
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::ops::Not;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -28,6 +28,7 @@ pub enum ArchitecturalAssessmentKind {
     HandRolledParsing,
     AbstractionSprawl,
     AlgorithmicComplexityHotspot,
+    LayerContractViolation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -168,6 +169,29 @@ pub fn build_architectural_assessment_with_ast_grep_and_graph(
     ast_grep_scan: &AstGrepScanResult,
     semantic_graph: Option<&SemanticGraph>,
 ) -> ArchitecturalAssessment {
+    build_architectural_assessment_full(
+        graph_analysis,
+        dead_code,
+        hardwiring,
+        external_analysis,
+        parsed_sources,
+        ast_grep_scan,
+        semantic_graph,
+        &[],
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn build_architectural_assessment_full(
+    graph_analysis: &GraphAnalysis,
+    dead_code: &DeadCodeResult,
+    hardwiring: &HardwiringResult,
+    external_analysis: &ExternalAnalysisResult,
+    parsed_sources: &[(PathBuf, String)],
+    ast_grep_scan: &AstGrepScanResult,
+    semantic_graph: Option<&SemanticGraph>,
+    layers: &[crate::doctrine::LayerContract],
+) -> ArchitecturalAssessment {
     let mut findings = detect_warning_heavy_hotspots(
         &graph_analysis.bottleneck_files,
         dead_code,
@@ -218,6 +242,9 @@ pub fn build_architectural_assessment_with_ast_grep_and_graph(
         parsed_sources,
         ast_grep_scan,
     ));
+    if let Some(semantic_graph) = semantic_graph {
+        findings.extend(detect_layer_contract_violations(semantic_graph, layers));
+    }
     attach_complexity_graph_pressure(&mut findings, graph_analysis, semantic_graph);
     for finding in &mut findings {
         finding.fingerprint = architectural_assessment_fingerprint(finding);
@@ -624,6 +651,112 @@ fn external_weight(severity: ExternalSeverity) -> usize {
     }
 }
 
+/// Deterministic layer-contract enforcement over the resolved symbol graph.
+/// One finding per (source file, target file) pair whose edges point in a
+/// direction the declared contract does not allow. No layers declared → no
+/// findings: the detector enforces a contract, it never invents one.
+fn detect_layer_contract_violations(
+    graph: &SemanticGraph,
+    layers: &[crate::doctrine::LayerContract],
+) -> Vec<ArchitecturalAssessmentFinding> {
+    if layers.is_empty() {
+        return Vec::new();
+    }
+    // Longest-prefix wins so nested layers (`app/Core/Definitions` inside
+    // `app/Core`) can refine outer ones.
+    let layer_of = |path: &std::path::Path| -> Option<&crate::doctrine::LayerContract> {
+        let display = normalized_path(path);
+        layers
+            .iter()
+            .filter_map(|layer| {
+                layer
+                    .path_prefixes
+                    .iter()
+                    .filter(|prefix| {
+                        let prefix = prefix.trim_end_matches('/');
+                        display == *prefix || display.starts_with(&format!("{prefix}/"))
+                    })
+                    .map(|prefix| (prefix.trim_end_matches('/').len(), layer))
+                    .max_by_key(|(len, _)| *len)
+            })
+            .max_by_key(|(len, _)| *len)
+            .map(|(_, layer)| layer)
+    };
+
+    struct Violation {
+        edge_count: usize,
+        source_layer: String,
+        target_layer: String,
+        sample_sites: Vec<String>,
+    }
+    let mut violations: BTreeMap<(PathBuf, PathBuf), Violation> = BTreeMap::new();
+    for edge in &graph.resolved_edges {
+        if edge.source_file_path == edge.target_file_path {
+            continue;
+        }
+        let (Some(source_layer), Some(target_layer)) = (
+            layer_of(&edge.source_file_path),
+            layer_of(&edge.target_file_path),
+        ) else {
+            continue;
+        };
+        if source_layer.name == target_layer.name
+            || source_layer
+                .may_depend_on
+                .iter()
+                .any(|allowed| allowed == &target_layer.name)
+        {
+            continue;
+        }
+        let entry = violations
+            .entry((edge.source_file_path.clone(), edge.target_file_path.clone()))
+            .or_insert_with(|| Violation {
+                edge_count: 0,
+                source_layer: source_layer.name.clone(),
+                target_layer: target_layer.name.clone(),
+                sample_sites: Vec::new(),
+            });
+        entry.edge_count += 1;
+        if entry.sample_sites.len() < 5 {
+            let target_leaf = edge
+                .target_symbol_id
+                .rsplit(':')
+                .next()
+                .unwrap_or(&edge.target_symbol_id);
+            entry.sample_sites.push(format!(
+                "{:?}@L{} -> {}",
+                edge.relation_kind, edge.line, target_leaf
+            ));
+        }
+    }
+
+    violations
+        .into_iter()
+        .map(|((source, target), violation)| {
+            let mut related_identifiers = vec![
+                format!("from_layer:{}", violation.source_layer),
+                format!("to_layer:{}", violation.target_layer),
+            ];
+            related_identifiers.extend(violation.sample_sites);
+            ArchitecturalAssessmentFinding {
+                kind: ArchitecturalAssessmentKind::LayerContractViolation,
+                file_path: source,
+                related_file_paths: vec![target],
+                related_identifiers,
+                warning_count: violation.edge_count,
+                warning_weight: violation.edge_count,
+                bottleneck_centrality_millis: 0,
+                warning_families: vec![String::from("layer_contract")],
+                severity_millis: 700 + (violation.edge_count.min(28) as u16) * 10,
+                pressure_path: Vec::new(),
+                expensive_operation_sites: Vec::new(),
+                expensive_operation_flow: Vec::new(),
+                fingerprint: String::new(),
+            }
+        })
+        .collect()
+}
+
 fn architectural_assessment_fingerprint(finding: &ArchitecturalAssessmentFinding) -> String {
     let kind = architectural_assessment_kind_label(finding.kind);
     let primary_path = normalized_path(&finding.file_path);
@@ -649,6 +782,7 @@ fn architectural_assessment_kind_label(kind: ArchitecturalAssessmentKind) -> &'s
         ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot => {
             "algorithmic-complexity-hotspot"
         }
+        ArchitecturalAssessmentKind::LayerContractViolation => "layer-contract-violation",
     }
 }
 
@@ -5987,6 +6121,88 @@ export function run(items: string[][]) {
             .findings
             .iter()
             .all(|finding| finding.kind != ArchitecturalAssessmentKind::SplitIdentityModel));
+    }
+
+    #[test]
+    fn layer_contract_violations_flag_wrong_direction_edges_only() {
+        use crate::doctrine::LayerContract;
+        use crate::graph::{
+            EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, ResolutionTier, ResolvedEdge,
+        };
+        let layers = vec![
+            LayerContract {
+                name: String::from("definitions"),
+                path_prefixes: vec![String::from("app/Core/Definitions")],
+                may_depend_on: Vec::new(),
+            },
+            LayerContract {
+                name: String::from("runtime"),
+                path_prefixes: vec![String::from("app/Core/Runtime")],
+                may_depend_on: vec![String::from("definitions")],
+            },
+        ];
+        let edge = |src: &str, dst: &str, line: usize| ResolvedEdge {
+            source_file_path: PathBuf::from(src),
+            source_symbol_id: None,
+            target_file_path: PathBuf::from(dst),
+            target_symbol_id: format!("class:{dst}:Target"),
+            reference_target_name: None,
+            kind: ReferenceKind::Call,
+            relation_kind: RelationKind::Call,
+            layer: GraphLayer::Structural,
+            strength: EdgeStrength::Hard,
+            origin: EdgeOrigin::Resolver,
+            resolution_tier: ResolutionTier::ImportScoped,
+            confidence_millis: 900,
+            reason: String::from("test"),
+            line,
+            occurrence_index: 0,
+        };
+        let mut graph = SemanticGraph::default();
+        // Allowed: runtime -> definitions.
+        graph.resolved_edges.push(edge(
+            "app/Core/Runtime/Manager.php",
+            "app/Core/Definitions/FieldSet.php",
+            10,
+        ));
+        // Violation: definitions -> runtime, twice.
+        graph.resolved_edges.push(edge(
+            "app/Core/Definitions/FieldLoader.php",
+            "app/Core/Runtime/Manager.php",
+            20,
+        ));
+        graph.resolved_edges.push(edge(
+            "app/Core/Definitions/FieldLoader.php",
+            "app/Core/Runtime/Manager.php",
+            21,
+        ));
+        // Outside any declared layer: ignored.
+        graph.resolved_edges.push(edge(
+            "app/Other/Thing.php",
+            "app/Core/Runtime/Manager.php",
+            5,
+        ));
+
+        let findings = super::detect_layer_contract_violations(&graph, &layers);
+
+        assert_eq!(findings.len(), 1);
+        let violation = &findings[0];
+        assert_eq!(
+            violation.file_path,
+            PathBuf::from("app/Core/Definitions/FieldLoader.php")
+        );
+        assert_eq!(violation.warning_count, 2);
+        assert!(violation
+            .related_identifiers
+            .iter()
+            .any(|id| id == "from_layer:definitions"));
+        assert!(violation
+            .related_identifiers
+            .iter()
+            .any(|id| id == "to_layer:runtime"));
+
+        // No declared layers -> detector stays silent.
+        assert!(super::detect_layer_contract_violations(&graph, &[]).is_empty());
     }
 
     fn unique_fixture_dir(label: &str) -> PathBuf {
