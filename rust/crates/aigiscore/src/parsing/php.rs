@@ -795,20 +795,20 @@ fn infer_call_result_type(
             let method_name = node
                 .child_by_field_name("name")
                 .map(|name| context.text(name));
+            // When the inner receiver's type is unknown, a bare method name is
+            // NOT a type: returning `whereNull` as the "type" of a chained
+            // builder call used to poison receiver resolution downstream.
+            // Unknown stays unknown.
             match (receiver_name, method_name) {
-                (Some(receiver_name), Some(method_name)) => {
-                    let receiver_type_name = infer_receiver_type_with_guards(
-                        scope_node,
-                        &receiver_name,
-                        context,
-                        active_receivers,
-                        active_calls,
-                    );
-                    receiver_type_name
-                        .map(|receiver_type_name| format!("{receiver_type_name}::{method_name}"))
-                        .or(Some(method_name))
-                }
-                (_, method_name) => method_name,
+                (Some(receiver_name), Some(method_name)) => infer_receiver_type_with_guards(
+                    scope_node,
+                    &receiver_name,
+                    context,
+                    active_receivers,
+                    active_calls,
+                )
+                .map(|receiver_type_name| format!("{receiver_type_name}::{method_name}")),
+                _ => None,
             }
         }
         "scoped_call_expression" => {

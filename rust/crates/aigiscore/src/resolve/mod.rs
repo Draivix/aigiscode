@@ -410,6 +410,11 @@ fn filter_candidates(
                 || !receiver_resolution.type_names.is_empty()
                 || !receiver_resolution.file_paths.is_empty()
             {
+                // A non-empty receiver-consistent filter result is positive
+                // proof that the call target belongs to the resolved receiver
+                // type — even when it doesn't shrink the list (single global
+                // candidate that IS the receiver's method). `receiver_narrowed`
+                // is that proof flag, not a strictly-shrank flag.
                 let direct_owner_filtered = candidates
                     .candidates
                     .iter()
@@ -422,9 +427,7 @@ fn filter_candidates(
                     .cloned()
                     .collect::<Vec<_>>();
                 if !direct_owner_filtered.is_empty() {
-                    if direct_owner_filtered.len() < candidates.candidates.len() {
-                        receiver_narrowed = true;
-                    }
+                    receiver_narrowed = true;
                     candidates.candidates = direct_owner_filtered;
                 } else {
                     let receiver_filtered = candidates
@@ -441,9 +444,7 @@ fn filter_candidates(
                         .cloned()
                         .collect::<Vec<_>>();
                     if !receiver_filtered.is_empty() {
-                        if receiver_filtered.len() < candidates.candidates.len() {
-                            receiver_narrowed = true;
-                        }
+                        receiver_narrowed = true;
                         candidates.candidates = receiver_filtered;
                     }
                 }
@@ -478,9 +479,9 @@ fn filter_candidates(
                     .cloned()
                     .collect::<Vec<_>>();
                 if !owner_filtered.is_empty() {
-                    if owner_filtered.len() < candidates.candidates.len() {
-                        receiver_narrowed = true;
-                    }
+                    // Owner match on the scope name is receiver proof even for a
+                    // single candidate (see the member-call comment above).
+                    receiver_narrowed = true;
                     candidates.candidates = owner_filtered;
                 }
             }
@@ -501,6 +502,26 @@ fn filter_candidates(
             }
         }
 
+        // Global-tier name matching is indefensible for a call written through an
+        // explicit non-self receiver unless the receiver was positively resolved
+        // to a repo type that narrowed the candidates. Otherwise `Log::warning(...)`
+        // (vendor facade) binds to any repo method named `warning`, and a chained
+        // `->where(...)->update([...])` binds to any `update` — fabricating
+        // cross-module edges that manufacture giant false SCCs. An honest
+        // unresolved site beats a confident wrong edge.
+        let explicit_non_self_receiver = matches!(
+            reference.call_form,
+            Some(CallForm::Member | CallForm::Associated)
+        ) && reference
+            .receiver_name
+            .as_deref()
+            .is_some_and(|receiver| !is_self_receiver_name(receiver));
+        if candidates.tier == ResolutionTier::Global
+            && explicit_non_self_receiver
+            && !receiver_narrowed
+        {
+            candidates.candidates.clear();
+        }
         if matches!(reference.call_form, Some(CallForm::Member))
             && reference.receiver_type_name.is_none()
             && candidates.tier == ResolutionTier::Global
@@ -578,10 +599,13 @@ fn prefer_same_language_call_candidates(
     if !same_language_candidates.is_empty()
         && same_language_candidates.len() < candidates.candidates.len()
     {
+        // Language preference is candidate hygiene, NOT resolution evidence:
+        // dropping same-named candidates from other languages must not promote
+        // a global name-match to import-scoped confidence. That promotion let
+        // `->where(...)->update([...])` bind to an arbitrary same-language
+        // `update` method at confidence 900 whenever another language also
+        // defined `update`.
         candidates.candidates = same_language_candidates;
-        if candidates.tier == ResolutionTier::Global {
-            candidates.tier = ResolutionTier::ImportScoped;
-        }
     }
     candidates
 }
@@ -3410,6 +3434,85 @@ end
                 && edge.target_file_path == Path::new("lib/support/user.rb")
                 && edge.target_symbol_id == "module:lib/support/user.rb"
         }));
+    }
+
+    #[test]
+    fn global_tier_never_binds_explicit_receiver_calls_without_receiver_proof() {
+        let mut graph = SemanticGraph::default();
+        let mut push_method = |file: &str, owner: &str, name: &str| {
+            graph.symbols.push(SymbolNode {
+                id: format!("method:{file}:{owner}:{name}"),
+                file_path: PathBuf::from(file),
+                kind: SymbolKind::Method,
+                name: String::from(name),
+                qualified_name: format!("{owner}::{name}"),
+                parent_symbol_id: Some(format!("class:{file}:{owner}")),
+                owner_type_name: Some(String::from(owner)),
+                visibility: Visibility::Public,
+                parameter_count: 2,
+                required_parameter_count: 0,
+                return_type_name: None,
+                start_line: 1,
+                end_line: 2,
+            });
+        };
+        // An unrelated repo class that happens to define `warning` and `update`.
+        push_method("app/Unrelated.php", "Unrelated", "warning");
+        push_method("app/Unrelated.php", "Unrelated", "update");
+        // A repo class the Associated call CAN prove its receiver against.
+        push_method("app/Known.php", "Known", "update");
+
+        let make_call = |line: usize,
+                         target: &str,
+                         receiver: &str,
+                         form: CallForm,
+                         receiver_type: Option<&str>| SemanticReference {
+            file_path: PathBuf::from("app/Service.php"),
+            enclosing_symbol_id: None,
+            kind: ReferenceKind::Call,
+            target_name: String::from(target),
+            binding_name: None,
+            line,
+            arity: Some(2),
+            receiver_name: Some(String::from(receiver)),
+            receiver_type_name: receiver_type.map(str::to_owned),
+            call_form: Some(form),
+        };
+        // Vendor facade static call: `Log::warning(...)` — `Log` is not a repo type.
+        graph
+            .references
+            .push(make_call(3, "warning", "Log", CallForm::Associated, None));
+        // Chained builder member call: `...->where(...)->update([...])` — unknown receiver.
+        graph.references.push(make_call(
+            4,
+            "update",
+            "DB::connection('tenant')->table('t')->where('id', $id)",
+            CallForm::Member,
+            None,
+        ));
+        // Positively-owned static call: `Known::update(...)` must still resolve.
+        graph
+            .references
+            .push(make_call(5, "update", "Known", CallForm::Associated, None));
+
+        resolve_graph(&mut graph);
+
+        assert!(
+            !graph
+                .resolved_edges
+                .iter()
+                .any(|edge| edge.target_file_path == Path::new("app/Unrelated.php")),
+            "explicit-receiver calls with no receiver proof must stay unresolved, got: {:?}",
+            graph
+                .resolved_edges
+                .iter()
+                .map(|edge| (&edge.target_symbol_id, edge.line))
+                .collect::<Vec<_>>()
+        );
+        assert!(graph
+            .resolved_edges
+            .iter()
+            .any(|edge| { edge.line == 5 && edge.target_file_path == Path::new("app/Known.php") }));
     }
 
     #[test]
