@@ -65,17 +65,17 @@ to consume; then feed pass 2 its priority order.
 
 Each step is generic engine work, validated on draivix + self, gated by tests.
 
-1. **`module_design` MCP tool (G1)** — pure exposure, no new analysis. Input: path
-   prefix (+ budget). Output: per class/module — public method signatures
-   (name, params, return type, visibility), inbound/outbound cross-module edges
-   grouped by target module, doctrine flags on the module. This immediately gives
-   an AI reviewer the architect's read at ~zero token cost. *Effort: small.*
-2. **Layer contract + violation detector (G2)** — doctrine gains a `layers` section
-   (`name`, `path_prefixes`, `may_depend_on`). Detector emits deterministic
-   `LayerViolation` findings (symbol-level edge, wrong direction, with the exact
-   call/import as evidence). Draivix `_Core` L0–L4 becomes the first real contract;
-   CI gate = violations monotonically non-increasing. *Effort: medium. This is the
-   highest-value item on the list.*
+1. ✅ **`module_design` MCP tool (G1)** — shipped 2026-07-04 (`bf27030`). Also fixed
+   en route: the PHP parser hardcoded every method Public; visibility is now real,
+   which G3's VisibilityLeak will need. First live read of draivix `_Core` surfaced
+   EntityRegistry=57 public methods, EntityManager=46 in one 9 KB call.
+2. ✅ **Layer contract + violation detector (G2)** — shipped 2026-07-04 (`a695b8b`).
+   Doctrine `layers` section + deterministic `LayerContractViolation` findings with
+   guardian packets. First draivix contract yields 263 verified violations (111 =
+   module controllers extending the http-layer base Controller). Dogfooding it
+   exposed and fixed two further resolver fake-edge classes (bare free calls
+   binding methods; unproven `$this->` calls binding globally) — another 2,746
+   fabricated edges gone.
 3. **Design finding family (G3)** — new detector family `design` computed from the
    symbol graph only: `HighFanInWithoutInterface`, `GodClass` (with disjoint-cluster
    evidence), `VisibilityLeak`, `LayerSkip` (needs #2), `SiblingContractDrift`.
