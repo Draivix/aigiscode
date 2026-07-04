@@ -1300,7 +1300,19 @@ fn resolve_php_import_paths(
     }
     let mut candidates = vec![PathBuf::from(format!("{normalized}.php"))];
     let segments = normalized.split('/').collect::<Vec<_>>();
-    for start in 1..segments.len() {
+    // A namespaced import (`Illuminate\Support\Facades\Auth`) must keep at
+    // least its trailing directory+file pair (`Facades/Auth.php`) when the
+    // namespace is flattened for fuzzy matching. Allowing the bare leaf lets
+    // every vendor class whose last segment collides with a repo file stem
+    // (`Auth` vs `routes/auth.php`) fabricate an import edge — one such edge
+    // chained the auth controllers and the entity core into a single false SCC.
+    // Single-segment imports (`use Auth;`) keep leaf matching.
+    let last_fuzzy_start = if segments.len() >= 2 {
+        segments.len() - 1
+    } else {
+        segments.len()
+    };
+    for start in 1..last_fuzzy_start {
         candidates.push(PathBuf::from(format!(
             "{}.php",
             segments[start..].join("/")
@@ -1312,7 +1324,7 @@ fn resolve_php_import_paths(
             &format!("{normalized}.php"),
             known_files,
         ));
-        for start in 1..segments.len() {
+        for start in 1..last_fuzzy_start {
             resolved.extend(suffix_match_case_insensitive(
                 &format!("{}.php", segments[start..].join("/")),
                 known_files,
@@ -1643,8 +1655,9 @@ fn infer_language(path: &Path) -> Option<Language> {
 #[cfg(test)]
 mod tests {
     use super::{
-        load_resolve_config, resolve_graph, resolve_graph_with_config, ComposerPsr4Mapping,
-        ResolutionContext, ResolutionTier, ResolveConfig, TsPathAlias,
+        load_resolve_config, resolve_graph, resolve_graph_with_config, resolve_php_import_paths,
+        ComposerPsr4Mapping, HashSet, ResolutionContext, ResolutionTier, ResolveConfig,
+        TsPathAlias,
     };
     use crate::graph::{
         CallForm, FileNode, Language, ReferenceKind, SemanticGraph, SemanticReference, SymbolKind,
@@ -3434,6 +3447,29 @@ end
                 && edge.target_file_path == Path::new("lib/support/user.rb")
                 && edge.target_symbol_id == "module:lib/support/user.rb"
         }));
+    }
+
+    #[test]
+    fn namespaced_php_import_never_binds_to_bare_leaf_stem_file() {
+        let known_files: HashSet<PathBuf> = [
+            PathBuf::from("routes/auth.php"),
+            PathBuf::from("app/Support/Facades/Auth.php"),
+        ]
+        .into_iter()
+        .collect();
+        let config = ResolveConfig::default();
+        // Vendor facade: leaf `Auth` must not bind to `routes/auth.php`.
+        let vendor =
+            resolve_php_import_paths("Illuminate\\Support\\Facades\\Auth", &known_files, &config);
+        assert!(
+            !vendor.contains(Path::new("routes/auth.php")),
+            "vendor namespace leaf must not stem-match a module file, got {vendor:?}"
+        );
+        // The trailing directory+file pair still fuzzy-matches a real repo class.
+        assert!(vendor.contains(Path::new("app/Support/Facades/Auth.php")));
+        // Single-segment import keeps leaf matching.
+        let bare = resolve_php_import_paths("Auth", &known_files, &config);
+        assert!(bare.contains(Path::new("app/Support/Facades/Auth.php")));
     }
 
     #[test]
