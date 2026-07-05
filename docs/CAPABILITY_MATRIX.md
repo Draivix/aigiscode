@@ -7,7 +7,7 @@ Written for brainstorming coverage gaps. One line per capability.
 
 | Capability | Enables / prevents |
 |---|---|
-| Native parsers: PHP, TS/JS, Vue SFC, Python, Ruby, Rust (tree-sitter) | Whole-codebase truth without runtime; no language silo blind spots |
+| Native parsers: PHP, TS, JS, Python, Ruby, Rust + Vue SFC mode (tree-sitter) | Whole-codebase truth without runtime; no language silo blind spots |
 | Symbol graph: kind, qualified name, owner type, visibility, params, return type, spans | Signature-level (body-free) architecture judgment |
 | Resolved edge graph with receiver-proof discipline + confidence tiers (SameFile/ImportScoped/Global) | Fake edges / fabricated coupling; "confident wrong" beats honest unresolved — we choose honest unresolved |
 | Deterministic resolution (sorted candidates, byte-identical reruns) | Flaky findings; diff noise between runs |
@@ -69,6 +69,7 @@ Written for brainstorming coverage gaps. One line per capability.
 | `module_design` (signatures + cross-module edges, zero bodies) | Reading raw source to see a module's shape |
 | `list_findings` (family/phase/severity/path/language filters) + `explain_finding` (evidence by id) | Aggregate dumps without discrimination |
 | `show_hotspots` (inbound/outbound file counts), `show_cycles`, `graph_neighbors`, `graph_trace`, `cypher_query` | Instance-vs-dependents confusion; unanswerable "who talks to whom" |
+| `impact_radius` (direct/transitive dependents, cross-layer consumers, contract wiring, dynamic blind spots, review radius, risk band) | Blind edits; AI refactors without blast-radius awareness; scoped-zero mistaken for safe delete |
 | `coverage_report` with unresolved breakdown (same-repo vs external, per kind) | Hidden analysis blind spots presented as clean |
 | Graph packets + repository topology (bounded doctrine-aware neighborhoods, zone briefs, triage steps) | Agents loading whole graph artifacts |
 | Agent handoff artifact + agent-run/agent-spider executors (codex-exec, responses-http adapters) | Graph-blind AI review |
