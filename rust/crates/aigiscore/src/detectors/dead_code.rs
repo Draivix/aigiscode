@@ -104,6 +104,8 @@ pub fn analyze_dead_code(
         })
         .collect::<Vec<_>>();
 
+    suppress_inherited_dispatch_methods(&mut findings, graph, parsed_sources);
+
     let used_import_targets = graph
         .resolved_edges
         .iter()
@@ -962,6 +964,109 @@ fn is_import_like_line(line: &str) -> bool {
 /// simply missed the usage (a higher-order reference like `.map(func)`, a
 /// macro expansion, or an unresolved same-file call), and it is not dead.
 /// This mirrors the import lexical guard: a missing call edge is not proof.
+/// PHP maps `protected` onto the graph's two-level `Visibility::Private`, but
+/// protected methods are reachable via dynamic dispatch from ancestors and
+/// traits (`$this->handle()` in a base class template method, an abstract
+/// declaration satisfied by the override, a trait calling back into the using
+/// class). The graph cannot resolve those edges today, so any cross-file
+/// `->name(` / `::name(` call-shaped mention suppresses the finding. Looseness
+/// only removes findings; a truly private method cannot be called from another
+/// file, so private-only repos are unaffected.
+fn suppress_inherited_dispatch_methods(
+    findings: &mut Vec<DeadCodeFinding>,
+    graph: &SemanticGraph,
+    parsed_sources: &[(PathBuf, String)],
+) {
+    let symbols_by_id = graph
+        .symbols
+        .iter()
+        .map(|symbol| (symbol.id.as_str(), symbol))
+        .collect::<HashMap<_, _>>();
+    let protected_candidates = findings
+        .iter()
+        .filter(|finding| finding.category == DeadCodeCategory::UnusedPrivateFunction)
+        .filter_map(|finding| symbols_by_id.get(finding.symbol_id.as_str()))
+        .filter(|symbol| is_php_protected_method(symbol, parsed_sources))
+        .map(|symbol| symbol.name.clone())
+        .collect::<HashSet<_>>();
+    if protected_candidates.is_empty() {
+        return;
+    }
+    let mut dispatched_names = HashSet::new();
+    for name in &protected_candidates {
+        let arrow_call = format!("->{name}(");
+        let static_call = format!("::{name}(");
+        for (path, source) in parsed_sources {
+            if source.contains(arrow_call.as_str()) || source.contains(static_call.as_str()) {
+                // A same-file call is already covered by the in-file lexical
+                // check; only a mention in ANOTHER file proves inherited
+                // dispatch is possible.
+                let owner_files = findings
+                    .iter()
+                    .filter(|finding| finding.name == *name)
+                    .map(|finding| finding.file_path.as_path())
+                    .collect::<HashSet<_>>();
+                if !owner_files.contains(path.as_path()) {
+                    dispatched_names.insert(name.clone());
+                    break;
+                }
+            }
+        }
+    }
+    // A class extending a parent the corpus cannot resolve (vendor code,
+    // outside the analyzed slice) may have its protected methods invoked by
+    // that parent — Laravel's FormRequest calling `prepareForValidation`, a
+    // vendor ServiceProvider calling `gate`. The dispatch site is invisible,
+    // so protected deadness is unprovable there.
+    let resolved_extends_locations = graph
+        .resolved_edges
+        .iter()
+        .filter(|edge| edge.kind == ReferenceKind::Extends)
+        .map(|edge| (edge.source_file_path.as_path(), edge.line))
+        .collect::<HashSet<_>>();
+    let files_with_external_parent = graph
+        .references
+        .iter()
+        .filter(|reference| reference.kind == ReferenceKind::Extends)
+        .filter(|reference| {
+            !resolved_extends_locations.contains(&(reference.file_path.as_path(), reference.line))
+        })
+        .map(|reference| reference.file_path.clone())
+        .collect::<HashSet<_>>();
+    findings.retain(|finding| {
+        if finding.category != DeadCodeCategory::UnusedPrivateFunction {
+            return true;
+        }
+        let protected = symbols_by_id
+            .get(finding.symbol_id.as_str())
+            .is_some_and(|symbol| is_php_protected_method(symbol, parsed_sources));
+        !(protected
+            && (dispatched_names.contains(&finding.name)
+                || files_with_external_parent.contains(&finding.file_path)))
+    });
+}
+
+/// True when the symbol's declaration line in a PHP source carries the
+/// `protected` modifier. Declaration-line inspection keeps the graph's
+/// deliberate two-level visibility model intact.
+fn is_php_protected_method(symbol: &SymbolNode, parsed_sources: &[(PathBuf, String)]) -> bool {
+    if !is_php_file(&symbol.file_path) {
+        return false;
+    }
+    let Some((_, source)) = parsed_sources
+        .iter()
+        .find(|(path, _)| path == &symbol.file_path)
+    else {
+        return false;
+    };
+    source
+        .lines()
+        .nth(symbol.start_line.saturating_sub(1))
+        .is_some_and(|line| {
+            line_mentions_word(line, "protected") && line_mentions_word(line, &symbol.name)
+        })
+}
+
 fn private_function_used_lexically_in_file(
     symbol: &SymbolNode,
     sources_by_path: &HashMap<&Path, &str>,
@@ -1052,7 +1157,20 @@ fn dead_code_proof_tier_for_symbol(symbol: &SymbolNode) -> DeadCodeProofTier {
 }
 
 fn is_runtime_magic_method(file_path: &Path, name: &str) -> bool {
-    is_python_file(file_path) && name.len() > 4 && name.starts_with("__") && name.ends_with("__")
+    if is_python_file(file_path) {
+        return name.len() > 4 && name.starts_with("__") && name.ends_with("__");
+    }
+    // PHP reserves the `__` prefix for magic methods; the runtime invokes them
+    // without a lexical call by name (`__construct` via `new self()`, `__get`,
+    // `__call`, `__invoke`, ...), so a private one is never dead-by-name.
+    is_php_file(file_path) && name.starts_with("__")
+}
+
+fn is_php_file(file_path: &Path) -> bool {
+    file_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension == "php")
 }
 
 fn is_package_export_surface(file_path: &Path) -> bool {
@@ -1285,6 +1403,97 @@ export { helper } from '@/utils/reExported'
             vec!["Orphan"],
             "only the truly unreferenced module is an orphan; import, glob, \
              worker-URL, re-export, and index-stem channels all suppress: {orphans:?}"
+        );
+    }
+
+    #[test]
+    fn protected_methods_dispatched_from_ancestors_are_not_dead() {
+        // Template-method pattern: the base class calls `$this->handle()`;
+        // subclasses override the protected method. The graph has no dynamic
+        // dispatch edge, so the cross-file lexical channel must suppress.
+        let sources = vec![
+            (
+                PathBuf::from("app/Actions/Action.php"),
+                String::from(
+                    "<?php\nabstract class Action {\n    public function __invoke() { return $this->handle(); }\n    abstract protected function handle();\n}\n",
+                ),
+            ),
+            (
+                PathBuf::from("app/Actions/PutOrderAction.php"),
+                String::from(
+                    "<?php\nfinal class PutOrderAction extends Action {\n    private function __construct() {}\n    protected function handle() { return 1; }\n    protected function trulyDeadHelper() { return 2; }\n    private function trulyDeadPrivate() { return 3; }\n}\n",
+                ),
+            ),
+        ];
+        let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
+        for (path, source) in &sources[1..] {
+            let parsed = parse_php_to_graph(path.clone(), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+
+        let result = analyze_dead_code(
+            &graph,
+            &sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
+        let unused: Vec<&str> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == DeadCodeCategory::UnusedPrivateFunction)
+            .map(|f| f.name.as_str())
+            .collect();
+        assert!(
+            !unused.contains(&"handle"),
+            "protected override dispatched by ancestor must not be dead: {unused:?}"
+        );
+        assert!(
+            unused.contains(&"trulyDeadHelper"),
+            "protected method with zero call-shaped mentions stays dead: {unused:?}"
+        );
+        assert!(
+            unused.contains(&"trulyDeadPrivate"),
+            "private method is untouched by the protected channel: {unused:?}"
+        );
+        assert!(
+            !unused.contains(&"__construct"),
+            "PHP magic methods are runtime-invoked, never dead-by-name: {unused:?}"
+        );
+    }
+
+    #[test]
+    fn protected_methods_under_unresolved_vendor_parent_are_unprovable() {
+        let sources = vec![(
+            PathBuf::from("app/Http/Requests/StoreUserRequest.php"),
+            String::from(
+                "<?php\nclass StoreUserRequest extends FormRequest {\n    protected function prepareForValidation() {}\n    private function trulyDeadPrivate() { return 1; }\n}\n",
+            ),
+        )];
+        let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
+        resolve_graph(&mut graph);
+
+        let result = analyze_dead_code(
+            &graph,
+            &sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
+        let unused: Vec<&str> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == DeadCodeCategory::UnusedPrivateFunction)
+            .map(|f| f.name.as_str())
+            .collect();
+        assert!(
+            !unused.contains(&"prepareForValidation"),
+            "vendor parent may dispatch protected hooks — unprovable, must not flag: {unused:?}"
+        );
+        assert!(
+            unused.contains(&"trulyDeadPrivate"),
+            "private stays provable even under a vendor parent: {unused:?}"
         );
     }
 

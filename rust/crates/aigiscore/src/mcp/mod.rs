@@ -1306,10 +1306,10 @@ impl AigiscodeMcpServer {
 
     #[tool(
         name = "convergence_report",
-        description = "Return graph-connected diff state across runs, including new/worsened/resolved findings, contract deltas, and current attention items."
+        description = "Return graph-connected diff state across runs: summary counts, graph/contract deltas, capped moved-finding list (unchanged deltas summarized, never listed), and capped attention items. Full delta set lives in the convergence resource."
     )]
     async fn convergence_report(&self) -> Json<ConvergenceOutput> {
-        Json(self.state().await.snapshot().convergence.clone())
+        Json(self.state().await.snapshot().convergence.budget_capped())
     }
 
     #[tool(

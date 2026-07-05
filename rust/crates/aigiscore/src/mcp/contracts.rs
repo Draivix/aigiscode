@@ -783,6 +783,17 @@ pub struct ConvergenceOutput {
     pub required_radius: ConvergenceRequiredRadiusOutput,
     pub attention_items: Vec<ConvergenceAttentionItemOutput>,
     pub findings: Vec<ConvergenceFindingOutput>,
+    /// Honesty markers set only on the budget-capped MCP tool response; the
+    /// full artifact and resource never truncate, so these serialize as absent
+    /// there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub omitted_unchanged_findings: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub omitted_moved_findings: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub omitted_attention_items: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub truncation_note: Option<String>,
 }
 
 impl ConvergenceOutput {
@@ -808,11 +819,48 @@ impl ConvergenceOutput {
                 .iter()
                 .map(ConvergenceFindingOutput::from_delta)
                 .collect(),
+            omitted_unchanged_findings: None,
+            omitted_moved_findings: None,
+            omitted_attention_items: None,
+            truncation_note: None,
         }
+    }
+
+    /// Budget-capped view for the MCP tool: `unchanged` finding deltas are
+    /// dropped (the summary already counts them), moved findings and attention
+    /// items are capped, and every omission is stated. Full data stays in the
+    /// convergence resource / on-disk artifact.
+    pub fn budget_capped(&self) -> Self {
+        const MAX_MOVED_FINDINGS: usize = 60;
+        const MAX_ATTENTION_ITEMS: usize = 20;
+        let moved: Vec<ConvergenceFindingOutput> = self
+            .findings
+            .iter()
+            .filter(|finding| finding.status != "unchanged")
+            .cloned()
+            .collect();
+        let omitted_unchanged = self.findings.len() - moved.len();
+        let omitted_moved = moved.len().saturating_sub(MAX_MOVED_FINDINGS);
+        let omitted_attention = self
+            .attention_items
+            .len()
+            .saturating_sub(MAX_ATTENTION_ITEMS);
+        let mut capped = self.clone();
+        capped.findings = moved.into_iter().take(MAX_MOVED_FINDINGS).collect();
+        capped.attention_items.truncate(MAX_ATTENTION_ITEMS);
+        capped.omitted_unchanged_findings = Some(omitted_unchanged);
+        capped.omitted_moved_findings = Some(omitted_moved);
+        capped.omitted_attention_items = Some(omitted_attention);
+        if omitted_unchanged > 0 || omitted_moved > 0 || omitted_attention > 0 {
+            capped.truncation_note = Some(String::from(
+                "budget-capped: unchanged deltas dropped (see summary counts); read the aigiscode://repo/current/convergence resource or .aigiscode/convergence-history.json for the full set",
+            ));
+        }
+        capped
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConvergenceSummaryOutput {
     pub current_findings: usize,
     pub previous_findings: usize,
@@ -837,7 +885,7 @@ impl ConvergenceSummaryOutput {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConvergenceGraphDeltaOutput {
     pub strong_cycle_delta: isize,
     pub total_cycle_delta: isize,
@@ -893,7 +941,7 @@ impl ConvergenceRequiredRadiusOutput {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConvergenceContractDeltaOutput {
     pub routes: ContractValueDeltaOutput,
     pub hooks: ContractValueDeltaOutput,
@@ -2987,7 +3035,56 @@ pub fn display_path(path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_finding_details, build_unresolved_breakdown, security_explanation};
+    #[test]
+    fn convergence_budget_cap_drops_unchanged_and_states_omissions() {
+        let mut output = ConvergenceOutput {
+            root: String::from("/repo"),
+            summary: Default::default(),
+            graph_delta: Default::default(),
+            contract_delta: Default::default(),
+            required_investigation_files: Vec::new(),
+            required_radius: Default::default(),
+            attention_items: Vec::new(),
+            findings: Vec::new(),
+            omitted_unchanged_findings: None,
+            omitted_moved_findings: None,
+            omitted_attention_items: None,
+            truncation_note: None,
+        };
+        for index in 0..100 {
+            output.findings.push(ConvergenceFindingOutput {
+                fingerprint: format!("fp-{index}"),
+                current_id: None,
+                previous_id: None,
+                title: String::from("t"),
+                family: String::from("graph"),
+                status: if index < 90 {
+                    String::from("unchanged")
+                } else {
+                    String::from("new")
+                },
+                current_severity: None,
+                previous_severity: None,
+                current_visible: None,
+                previous_visible: None,
+                file_paths: Vec::new(),
+            });
+        }
+        let capped = output.budget_capped();
+        assert_eq!(capped.findings.len(), 10);
+        assert!(capped.findings.iter().all(|f| f.status == "new"));
+        assert_eq!(capped.omitted_unchanged_findings, Some(90));
+        assert_eq!(capped.omitted_moved_findings, Some(0));
+        assert!(capped.truncation_note.is_some());
+        // The uncapped struct serializes without the honesty markers.
+        let raw = serde_json::to_string(&output).unwrap();
+        assert!(!raw.contains("omitted_unchanged_findings"));
+    }
+
+    use super::{
+        build_finding_details, build_unresolved_breakdown, security_explanation,
+        ConvergenceFindingOutput, ConvergenceOutput,
+    };
     use crate::assessment::{
         ArchitecturalAssessment, ArchitecturalAssessmentFinding, ArchitecturalAssessmentKind,
     };
