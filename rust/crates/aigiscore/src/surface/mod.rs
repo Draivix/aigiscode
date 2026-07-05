@@ -1862,7 +1862,7 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         title: match finding.category {
             DeadCodeCategory::UnusedPrivateFunction => String::from("Unused private function"),
             DeadCodeCategory::UnusedImport => String::from("Unused import"),
-            DeadCodeCategory::OrphanModule => String::from("Orphan frontend module"),
+            DeadCodeCategory::OrphanModule => String::from("Orphan module"),
         },
         summary: format!(
             "{} appears unused ({})",
