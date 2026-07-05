@@ -115,14 +115,47 @@ pub fn run_stdio_server(
         .build()
         .map_err(McpServerError::Runtime)?;
     runtime.block_on(async move {
+        // Answer `initialize` immediately; build the initial index in the
+        // background and publish it through the same live handle the watcher
+        // uses. A large repository must not time out the MCP handshake —
+        // snapshot-reading tools wait on the first publish instead, and the
+        // freshness contract reports the pending index honestly.
+        let server = AigiscodeMcpServer::new_pending();
+        let live = Arc::clone(&server.live);
         let watch_root = root.clone();
-        let server =
-            AigiscodeMcpServer::load(root, output_dir.as_deref(), write_artifacts, write_kuzu)?;
-        // Live mode: a background watcher re-analyzes on change and atomically republishes
-        // the snapshot the (still one-shot-built) server reads through its live handle.
-        if watch {
-            watch::spawn_watch(Arc::clone(&server.live), watch_root);
-        }
+        tokio::spawn(async move {
+            let target = live.begin_rebuild().max(1);
+            let build_root = root.clone();
+            let output_dir = output_dir.clone();
+            let built = tokio::task::spawn_blocking(move || {
+                build_mcp_state(
+                    &build_root,
+                    output_dir.as_deref(),
+                    write_artifacts,
+                    write_kuzu,
+                )
+            })
+            .await;
+            match built {
+                Ok(Ok(state)) => {
+                    live.publish(Some(state), target);
+                    eprintln!("aigiscode mcp: initial index published (revision {target})");
+                    if watch {
+                        watch::spawn_watch(live, watch_root);
+                    }
+                }
+                Ok(Err(error)) => {
+                    let message = format!("initial analysis failed: {error}");
+                    eprintln!("aigiscode mcp: {message}");
+                    live.record_error(message);
+                }
+                Err(join_error) => {
+                    let message = format!("initial analysis task panicked: {join_error}");
+                    eprintln!("aigiscode mcp: {message}");
+                    live.record_error(message);
+                }
+            }
+        });
         server
             .serve(rmcp::transport::stdio())
             .await?
@@ -177,7 +210,7 @@ impl ServerHandler for AigiscodeMcpServer {
         request: ReadResourceRequestParams,
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
-        let (uri, payload) = self.read_resource_payload(&request.uri)?;
+        let (uri, payload) = self.read_resource_payload(&request.uri).await?;
         Ok(ReadResourceResult::new(vec![ResourceContents::text(
             payload, uri,
         )
@@ -186,7 +219,7 @@ impl ServerHandler for AigiscodeMcpServer {
 }
 
 pub struct AigiscodeMcpServer {
-    live: Arc<LiveState<McpState>>,
+    live: Arc<LiveState<Option<McpState>>>,
     tool_router: ToolRouter<Self>,
     prompt_router: PromptRouter<Self>,
 }
@@ -256,15 +289,36 @@ impl AigiscodeMcpServer {
 
     fn from_state(state: McpState) -> Self {
         Self {
-            live: LiveState::new(state),
+            live: LiveState::new(Some(state)),
             tool_router: Self::tool_router(),
             prompt_router: Self::prompt_router(),
         }
     }
 
-    /// Latest published snapshot + the revision it represents (single atomic load).
-    fn state(&self) -> Arc<live::Published<McpState>> {
-        self.live.load()
+    /// A server whose initial index has not been built yet: `initialize`
+    /// answers immediately, every snapshot-reading tool waits (via `state()`)
+    /// until the background initial build publishes revision 1, and the
+    /// freshness contract reports the pending state honestly.
+    fn new_pending() -> Self {
+        Self {
+            live: LiveState::new_at(None, 0, true),
+            tool_router: Self::tool_router(),
+            prompt_router: Self::prompt_router(),
+        }
+    }
+
+    /// Latest published snapshot + the revision it represents. Awaits the
+    /// initial index when the server started pending (bounded; the initial
+    /// build failing leaves the daemon degraded and loudly logged rather than
+    /// pretending an empty repository).
+    async fn state(&self) -> ReadyState {
+        // Fast path: already published.
+        if self.live.load().snapshot.is_some() {
+            return ReadyState(self.live.load());
+        }
+        // Initial index still building: wait generously, then re-check.
+        let _ = self.live.wait_for_revision(1, 15 * 60 * 1000).await;
+        ReadyState(self.live.load())
     }
 
     /// Test-only: mutate the published snapshot in place (clone → mutate → republish),
@@ -272,9 +326,29 @@ impl AigiscodeMcpServer {
     #[cfg(test)]
     fn mutate_state_for_test(&self, mutate: impl FnOnce(&mut McpState)) {
         let current = self.live.load();
-        let mut state = current.snapshot.clone();
+        let mut state = current
+            .snapshot
+            .clone()
+            .expect("test server always starts from a built state");
         mutate(&mut state);
-        self.live.publish(state, current.revision);
+        self.live.publish(Some(state), current.revision);
+    }
+}
+
+/// A published snapshot known to contain a built index.
+struct ReadyState(Arc<live::Published<Option<McpState>>>);
+
+impl ReadyState {
+    fn snapshot(&self) -> &McpState {
+        self.0
+            .snapshot
+            .as_ref()
+            .expect("state() only returns after the initial index is published")
+    }
+
+    #[allow(dead_code)]
+    fn revision(&self) -> u64 {
+        self.0.revision
     }
 }
 
@@ -304,8 +378,9 @@ impl AigiscodeMcpServer {
             // latest_available / allow_stale: satisfied unless an unmet min_revision was set.
             self.live.load().revision >= target
         };
-        let published = self.live.load();
-        let mut overview = published.snapshot.repo_overview.clone();
+        // Wait for the initial index if it is still building, then read.
+        let state = self.state().await;
+        let mut overview = state.snapshot().repo_overview.clone();
         overview.freshness = Some(self.live.freshness(satisfied));
         Json(overview)
     }
@@ -318,8 +393,8 @@ impl AigiscodeMcpServer {
                        repo_overview only when the full artifact dump is genuinely needed."
     )]
     async fn repo_brief(&self) -> Json<RepoBriefOutput> {
-        let state = self.state();
-        let snapshot = &state.snapshot;
+        let state = self.state().await;
+        let snapshot = state.snapshot();
         let overview = &snapshot.repo_overview.overview;
         let quality = &snapshot.quality;
         let guard = &snapshot.guard_decision;
@@ -409,8 +484,8 @@ impl AigiscodeMcpServer {
     ) -> Json<ModuleDesignOutput> {
         let max_containers = params.max_containers.unwrap_or(30).clamp(1, 100);
         let prefix = params.path.trim().trim_end_matches('/').to_string();
-        let state = self.state();
-        let graph = &state.snapshot.semantic_graph;
+        let state = self.state().await;
+        let graph = &state.snapshot().semantic_graph;
 
         let in_module = |path: &Path| {
             let display = display_path(path);
@@ -580,8 +655,8 @@ impl AigiscodeMcpServer {
             .kind
             .as_deref()
             .map(|kind| kind.trim().to_ascii_lowercase());
-        let state = self.state();
-        let graph = &state.snapshot.semantic_graph;
+        let state = self.state().await;
+        let graph = &state.snapshot().semantic_graph;
 
         let tier_for = |symbol: &crate::graph::SymbolNode| -> Option<u8> {
             if let Some(kind) = kind_filter.as_deref() {
@@ -649,8 +724,8 @@ impl AigiscodeMcpServer {
     ) -> Json<SymbolUsagesOutput> {
         let max_files = params.max_files.unwrap_or(25).clamp(1, 100);
         let query = params.symbol.trim().to_string();
-        let state = self.state();
-        let graph = &state.snapshot.semantic_graph;
+        let state = self.state().await;
+        let graph = &state.snapshot().semantic_graph;
         let freshness = Some(self.live.freshness(true));
 
         let target = if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == query) {
@@ -765,7 +840,8 @@ impl AigiscodeMcpServer {
         let max_items = params.max_items.unwrap_or(100).clamp(1, 500);
         let findings = self
             .state()
-            .snapshot
+            .await
+            .snapshot()
             .finding_summaries
             .iter()
             .filter(|finding| {
@@ -793,8 +869,8 @@ impl AigiscodeMcpServer {
         Parameters(params): Parameters<ImpactRadiusParams>,
     ) -> Result<Json<ImpactRadiusOutput>, String> {
         let max_depth = params.max_depth.unwrap_or(3).clamp(1, 6);
-        let state = self.state();
-        let graph = &state.snapshot.semantic_graph;
+        let state = self.state().await;
+        let graph = &state.snapshot().semantic_graph;
         let target = params.target.trim();
 
         // Target resolution: exact file path first, then symbol id, then
@@ -941,7 +1017,7 @@ impl AigiscodeMcpServer {
         let layer_of = |path: &Path| -> Option<&str> {
             let display = display_path(path);
             state
-                .snapshot
+                .snapshot()
                 .layers
                 .iter()
                 .flat_map(|layer| {
@@ -980,11 +1056,11 @@ impl AigiscodeMcpServer {
         let target_display = display_path(&target_file);
         let mut framework_contract_declarations = Vec::new();
         for (label, items) in [
-            ("route", &state.snapshot.contract_inventory.routes),
-            ("hook", &state.snapshot.contract_inventory.hooks),
+            ("route", &state.snapshot().contract_inventory.routes),
+            ("hook", &state.snapshot().contract_inventory.hooks),
             (
                 "registered_key",
-                &state.snapshot.contract_inventory.registered_keys,
+                &state.snapshot().contract_inventory.registered_keys,
             ),
         ] {
             for item in items {
@@ -1076,7 +1152,7 @@ impl AigiscodeMcpServer {
             ));
         }
         if state
-            .snapshot
+            .snapshot()
             .boundary_truncated_files
             .contains(&target_display)
         {
@@ -1110,7 +1186,8 @@ impl AigiscodeMcpServer {
         Parameters(params): Parameters<ExplainFindingParams>,
     ) -> Result<Json<FindingDetailOutput>, String> {
         self.state()
-            .snapshot
+            .await
+            .snapshot()
             .finding_details
             .get(&params.finding_id)
             .cloned()
@@ -1130,7 +1207,8 @@ impl AigiscodeMcpServer {
         Json(HotspotsOutput {
             hotspots: self
                 .state()
-                .snapshot
+                .await
+                .snapshot()
                 .hotspots
                 .iter()
                 .take(max_items)
@@ -1138,7 +1216,8 @@ impl AigiscodeMcpServer {
                 .collect(),
             bottlenecks: self
                 .state()
-                .snapshot
+                .await
+                .snapshot()
                 .bottlenecks
                 .iter()
                 .take(max_items)
@@ -1146,7 +1225,8 @@ impl AigiscodeMcpServer {
                 .collect(),
             orphan_files: self
                 .state()
-                .snapshot
+                .await
+                .snapshot()
                 .orphan_files
                 .iter()
                 .take(max_items)
@@ -1154,7 +1234,8 @@ impl AigiscodeMcpServer {
                 .collect(),
             boundary_truncated_files: self
                 .state()
-                .snapshot
+                .await
+                .snapshot()
                 .boundary_truncated_files
                 .iter()
                 .take(max_items)
@@ -1162,7 +1243,8 @@ impl AigiscodeMcpServer {
                 .collect(),
             runtime_entry_candidates: self
                 .state()
-                .snapshot
+                .await
+                .snapshot()
                 .runtime_entry_candidates
                 .iter()
                 .take(max_items)
@@ -1183,7 +1265,8 @@ impl AigiscodeMcpServer {
         Json(CyclesOutput {
             strong_cycles: self
                 .state()
-                .snapshot
+                .await
+                .snapshot()
                 .strong_cycles
                 .iter()
                 .take(max_items)
@@ -1193,14 +1276,15 @@ impl AigiscodeMcpServer {
                 Vec::new()
             } else {
                 self.state()
-                    .snapshot
+                    .await
+                    .snapshot()
                     .total_cycles
                     .iter()
                     .take(max_items)
                     .cloned()
                     .collect()
             },
-            corpus_scale_units: self.state().snapshot.corpus_scale_units.clone(),
+            corpus_scale_units: self.state().await.snapshot().corpus_scale_units.clone(),
         })
     }
 
@@ -1209,7 +1293,7 @@ impl AigiscodeMcpServer {
         description = "Return language coverage, unresolved-reference pressure, and current parity notes."
     )]
     async fn coverage_report(&self) -> Json<CoverageReportOutput> {
-        Json(self.state().snapshot.coverage.clone())
+        Json(self.state().await.snapshot().coverage.clone())
     }
 
     #[tool(
@@ -1217,7 +1301,7 @@ impl AigiscodeMcpServer {
         description = "Return a structured code-quality audit covering architecture, dead code, hardwiring, logic concentration, overengineering suspects, and security pressure."
     )]
     async fn quality_evaluation(&self) -> Json<QualityEvaluationOutput> {
-        Json(self.state().snapshot.quality.clone())
+        Json(self.state().await.snapshot().quality.clone())
     }
 
     #[tool(
@@ -1225,7 +1309,7 @@ impl AigiscodeMcpServer {
         description = "Return graph-connected diff state across runs, including new/worsened/resolved findings, contract deltas, and current attention items."
     )]
     async fn convergence_report(&self) -> Json<ConvergenceOutput> {
-        Json(self.state().snapshot.convergence.clone())
+        Json(self.state().await.snapshot().convergence.clone())
     }
 
     #[tool(
@@ -1233,7 +1317,7 @@ impl AigiscodeMcpServer {
         description = "Return the current doctrine-aware allow/warn/block guard decision derived from diff-local convergence pressure."
     )]
     async fn guard_decision(&self) -> Json<GuardDecisionOutput> {
-        Json(self.state().snapshot.guard_decision.clone())
+        Json(self.state().await.snapshot().guard_decision.clone())
     }
 
     #[tool(
@@ -1247,7 +1331,8 @@ impl AigiscodeMcpServer {
         let max_items = params.max_items.unwrap_or(25).clamp(1, 200);
         let mut packets =
             self.state()
-                .snapshot
+                .await
+                .snapshot()
                 .graph_packets
                 .packets
                 .iter()
@@ -1319,8 +1404,14 @@ impl AigiscodeMcpServer {
                 .collect(),
         };
         Json(GraphPacketArtifact {
-            root: self.state().snapshot.graph_packets.root.clone(),
-            contract_version: self.state().snapshot.graph_packets.contract_version.clone(),
+            root: self.state().await.snapshot().graph_packets.root.clone(),
+            contract_version: self
+                .state()
+                .await
+                .snapshot()
+                .graph_packets
+                .contract_version
+                .clone(),
             summary,
             packets: std::mem::take(&mut packets),
         })
@@ -1338,7 +1429,7 @@ impl AigiscodeMcpServer {
         Json(GraphNeighborsOutput {
             file_path: params.file_path.clone(),
             neighbors: graph_neighbors_for_file(
-                &self.state().snapshot.semantic_graph,
+                &self.state().await.snapshot().semantic_graph,
                 &params.file_path,
                 max_items,
             ),
@@ -1357,7 +1448,7 @@ impl AigiscodeMcpServer {
             start_file_path: params.start_file_path.clone(),
             goal_file_path: params.goal_file_path.clone(),
             paths: graph_trace_between_files(
-                &self.state().snapshot.semantic_graph,
+                &self.state().await.snapshot().semantic_graph,
                 &params.start_file_path,
                 &params.goal_file_path,
                 params.max_hops.unwrap_or(5).clamp(1, 12),
@@ -1371,7 +1462,7 @@ impl AigiscodeMcpServer {
         description = "Return a flatter repository topology over zones, manifests, runtime entries, and cross-zone links."
     )]
     async fn repository_topology(&self) -> Json<RepositoryTopologyArtifact> {
-        Json(self.state().snapshot.repository_topology.clone())
+        Json(self.state().await.snapshot().repository_topology.clone())
     }
 
     #[tool(
@@ -1382,8 +1473,8 @@ impl AigiscodeMcpServer {
         &self,
         Parameters(params): Parameters<CypherQueryParams>,
     ) -> Result<Json<CypherQueryOutput>, String> {
-        let state = self.state();
-        let Some(kuzu_path) = state.snapshot.kuzu_path.as_deref() else {
+        let state = self.state().await;
+        let Some(kuzu_path) = state.snapshot().kuzu_path.as_deref() else {
             return Err(String::from(
                 "Kuzu graph index is not available for this MCP session.",
             ));
@@ -1405,7 +1496,7 @@ impl AigiscodeMcpServer {
                 format!(
                     "Triage repository {}. Start with the overview, then inspect high-severity \
                      findings and the busiest hotspots first.",
-                    self.state().snapshot.root
+                    self.state().await.snapshot().root
                 ),
             ),
             PromptMessage::new_resource_link(
@@ -1435,7 +1526,7 @@ impl AigiscodeMcpServer {
                 format!(
                     "Write an architecture brief for {}. Summarize the dominant structural risks, \
                      the most coupled files, the cycle pressure, and where coverage is still partial.",
-                    self.state().snapshot.root
+                    self.state().await.snapshot().root
                 ),
             ),
             PromptMessage::new_resource_link(
@@ -1468,7 +1559,7 @@ impl AigiscodeMcpServer {
                 PromptMessageRole::User,
                 format!(
                     "Audit code quality for {}. Focus on architectural flaws, dead code pressure, hardwiring, logic concentration, overengineering suspects, and security pressure. Use the structured quality report and then drill into supporting findings and hotspots.",
-                    self.state().snapshot.root
+                    self.state().await.snapshot().root
                 ),
             ),
             PromptMessage::new_resource_link(
@@ -1570,99 +1661,101 @@ impl AigiscodeMcpServer {
         RawResource::new(uri, resource_name(uri)).with_title(resource_title(uri))
     }
 
-    fn read_resource_payload(&self, uri: &str) -> Result<(String, String), McpError> {
+    async fn read_resource_payload(&self, uri: &str) -> Result<(String, String), McpError> {
         match uri {
             OVERVIEW_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.repo_overview)?,
+                to_json_pretty(&self.state().await.snapshot().repo_overview)?,
             )),
             FINDINGS_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&ListFindingsOutput {
-                    total: self.state().snapshot.finding_summaries.len(),
-                    findings: self.state().snapshot.finding_summaries.clone(),
+                    total: self.state().await.snapshot().finding_summaries.len(),
+                    findings: self.state().await.snapshot().finding_summaries.clone(),
                 })?,
             )),
             ATLAS_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.atlas)?,
+                to_json_pretty(&self.state().await.snapshot().atlas)?,
             )),
             HOTSPOTS_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&HotspotsOutput {
-                    hotspots: self.state().snapshot.hotspots.clone(),
-                    bottlenecks: self.state().snapshot.bottlenecks.clone(),
-                    orphan_files: self.state().snapshot.orphan_files.clone(),
+                    hotspots: self.state().await.snapshot().hotspots.clone(),
+                    bottlenecks: self.state().await.snapshot().bottlenecks.clone(),
+                    orphan_files: self.state().await.snapshot().orphan_files.clone(),
                     boundary_truncated_files: self
                         .state()
-                        .snapshot
+                        .await
+                        .snapshot()
                         .boundary_truncated_files
                         .clone(),
                     runtime_entry_candidates: self
                         .state()
-                        .snapshot
+                        .await
+                        .snapshot()
                         .runtime_entry_candidates
                         .clone(),
                 })?,
             )),
             COVERAGE_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.coverage)?,
+                to_json_pretty(&self.state().await.snapshot().coverage)?,
             )),
             GRAPH_SCHEMA_URI => Ok((String::from(uri), schema_reference_markdown())),
             DEPENDENCY_GRAPH_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.dependency_graph)?,
+                to_json_pretty(&self.state().await.snapshot().dependency_graph)?,
             )),
             EVIDENCE_GRAPH_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.evidence_graph)?,
+                to_json_pretty(&self.state().await.snapshot().evidence_graph)?,
             )),
             CONTRACTS_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.contract_inventory)?,
+                to_json_pretty(&self.state().await.snapshot().contract_inventory)?,
             )),
             DOCTRINE_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.doctrine_registry)?,
+                to_json_pretty(&self.state().await.snapshot().doctrine_registry)?,
             )),
             HANDOFF_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.handoff)?,
+                to_json_pretty(&self.state().await.snapshot().handoff)?,
             )),
             CONVERGENCE_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.convergence)?,
+                to_json_pretty(&self.state().await.snapshot().convergence)?,
             )),
             GUARD_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.guard_decision)?,
+                to_json_pretty(&self.state().await.snapshot().guard_decision)?,
             )),
             REPOSITORY_TOPOLOGY_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.repository_topology)?,
+                to_json_pretty(&self.state().await.snapshot().repository_topology)?,
             )),
             GRAPH_PACKETS_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.graph_packets)?,
+                to_json_pretty(&self.state().await.snapshot().graph_packets)?,
             )),
             QUALITY_URI => Ok((
                 String::from(uri),
-                to_json_pretty(&self.state().snapshot.quality)?,
+                to_json_pretty(&self.state().await.snapshot().quality)?,
             )),
             CYCLES_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&CyclesOutput {
-                    strong_cycles: self.state().snapshot.strong_cycles.clone(),
-                    total_cycles: self.state().snapshot.total_cycles.clone(),
-                    corpus_scale_units: self.state().snapshot.corpus_scale_units.clone(),
+                    strong_cycles: self.state().await.snapshot().strong_cycles.clone(),
+                    total_cycles: self.state().await.snapshot().total_cycles.clone(),
+                    corpus_scale_units: self.state().await.snapshot().corpus_scale_units.clone(),
                 })?,
             )),
             _ if uri.starts_with(FINDING_URI_PREFIX) => {
                 let finding_id = uri.trim_start_matches(FINDING_URI_PREFIX);
-                let state = self.state();
+                let state = self.state().await;
                 let detail = state
-                    .snapshot
+                    .snapshot()
                     .finding_details
                     .get(finding_id)
                     .ok_or_else(|| {
@@ -2289,29 +2382,35 @@ fn main() {
             .iter()
             .any(|resource| resource.raw.uri == GRAPH_PACKETS_URI));
 
-        let (_, overview_payload) = server.read_resource_payload(OVERVIEW_URI).unwrap();
+        let (_, overview_payload) = server.read_resource_payload(OVERVIEW_URI).await.unwrap();
         let overview_json: Value = serde_json::from_str(&overview_payload).unwrap();
         assert!(overview_json["overview"]["scanned_files"].as_u64().unwrap() >= 1);
 
-        let (_, findings_payload) = server.read_resource_payload(FINDINGS_URI).unwrap();
+        let (_, findings_payload) = server.read_resource_payload(FINDINGS_URI).await.unwrap();
         let findings_json: Value = serde_json::from_str(&findings_payload).unwrap();
         let finding_id = findings_json["findings"][0]["id"]
             .as_str()
             .unwrap()
             .to_owned();
 
-        let (_, hotspot_payload) = server.read_resource_payload(HOTSPOTS_URI).unwrap();
+        let (_, hotspot_payload) = server.read_resource_payload(HOTSPOTS_URI).await.unwrap();
         let hotspots_json: Value = serde_json::from_str(&hotspot_payload).unwrap();
         assert!(hotspots_json["hotspots"].is_array());
 
-        let (_, coverage_payload) = server.read_resource_payload(COVERAGE_URI).unwrap();
+        let (_, coverage_payload) = server.read_resource_payload(COVERAGE_URI).await.unwrap();
         let coverage_json: Value = serde_json::from_str(&coverage_payload).unwrap();
         assert!(coverage_json["notes"].is_array());
 
-        let (_, schema_payload) = server.read_resource_payload(GRAPH_SCHEMA_URI).unwrap();
+        let (_, schema_payload) = server
+            .read_resource_payload(GRAPH_SCHEMA_URI)
+            .await
+            .unwrap();
         assert!(schema_payload.contains("CodeRelation"));
 
-        let (_, dependency_payload) = server.read_resource_payload(DEPENDENCY_GRAPH_URI).unwrap();
+        let (_, dependency_payload) = server
+            .read_resource_payload(DEPENDENCY_GRAPH_URI)
+            .await
+            .unwrap();
         let dependency_json: Value = serde_json::from_str(&dependency_payload).unwrap();
         assert_eq!(
             dependency_json["view"],
@@ -2319,7 +2418,10 @@ fn main() {
         );
         assert!(dependency_json["edges"].is_array());
 
-        let (_, evidence_payload) = server.read_resource_payload(EVIDENCE_GRAPH_URI).unwrap();
+        let (_, evidence_payload) = server
+            .read_resource_payload(EVIDENCE_GRAPH_URI)
+            .await
+            .unwrap();
         let evidence_json: Value = serde_json::from_str(&evidence_payload).unwrap();
         assert_eq!(
             evidence_json["view"],
@@ -2327,16 +2429,16 @@ fn main() {
         );
         assert!(evidence_json["edges"].is_array());
 
-        let (_, contracts_payload) = server.read_resource_payload(CONTRACTS_URI).unwrap();
+        let (_, contracts_payload) = server.read_resource_payload(CONTRACTS_URI).await.unwrap();
         let contracts_json: Value = serde_json::from_str(&contracts_payload).unwrap();
         assert_eq!(contracts_json["summary"]["env_keys"]["unique_values"], 0);
 
-        let (_, doctrine_payload) = server.read_resource_payload(DOCTRINE_URI).unwrap();
+        let (_, doctrine_payload) = server.read_resource_payload(DOCTRINE_URI).await.unwrap();
         let doctrine_json: Value = serde_json::from_str(&doctrine_payload).unwrap();
         assert!(doctrine_json["clauses"].is_array());
         assert_eq!(doctrine_json["version"], "2026-03");
 
-        let (_, handoff_payload) = server.read_resource_payload(HANDOFF_URI).unwrap();
+        let (_, handoff_payload) = server.read_resource_payload(HANDOFF_URI).await.unwrap();
         let handoff_json: Value = serde_json::from_str(&handoff_payload).unwrap();
         assert!(handoff_json["next_steps"].is_array());
         assert!(handoff_json["guardian_packets"].is_array());
@@ -2347,29 +2449,33 @@ fn main() {
                 >= 1
         );
 
-        let (_, convergence_payload) = server.read_resource_payload(CONVERGENCE_URI).unwrap();
+        let (_, convergence_payload) = server.read_resource_payload(CONVERGENCE_URI).await.unwrap();
         let convergence_json: Value = serde_json::from_str(&convergence_payload).unwrap();
         assert!(convergence_json["summary"].is_object());
         assert!(convergence_json["findings"].is_array());
 
-        let (_, guard_payload) = server.read_resource_payload(GUARD_URI).unwrap();
+        let (_, guard_payload) = server.read_resource_payload(GUARD_URI).await.unwrap();
         let guard_json: Value = serde_json::from_str(&guard_payload).unwrap();
         assert!(guard_json["verdict"].as_str().is_some());
         assert!(guard_json["pressure"].is_object());
 
         let (_, topology_payload) = server
             .read_resource_payload(REPOSITORY_TOPOLOGY_URI)
+            .await
             .unwrap();
         let topology_json: Value = serde_json::from_str(&topology_payload).unwrap();
         assert!(topology_json["zones"].is_array());
         assert!(topology_json["summary"]["zone_count"].as_u64().unwrap() >= 1);
 
-        let (_, graph_packets_payload) = server.read_resource_payload(GRAPH_PACKETS_URI).unwrap();
+        let (_, graph_packets_payload) = server
+            .read_resource_payload(GRAPH_PACKETS_URI)
+            .await
+            .unwrap();
         let graph_packets_json: Value = serde_json::from_str(&graph_packets_payload).unwrap();
         assert!(graph_packets_json["packets"].is_array());
 
         let finding_uri = format!("{FINDING_URI_PREFIX}{finding_id}");
-        let (_, finding_payload) = server.read_resource_payload(&finding_uri).unwrap();
+        let (_, finding_payload) = server.read_resource_payload(&finding_uri).await.unwrap();
         let finding_json: Value = serde_json::from_str(&finding_payload).unwrap();
         assert_eq!(finding_json["finding"]["id"], Value::String(finding_id));
 
@@ -2881,7 +2987,7 @@ fn helper() {}"#,
         // Rebuild + publish exactly as the watcher's loop does.
         let target = server.live.begin_rebuild();
         let state = super::build_mcp_state(&fixture, None, false, false).unwrap();
-        server.live.publish(state, target);
+        server.live.publish(Some(state), target);
 
         let f = server.repo_overview(params()).await.0.freshness.unwrap();
         assert_eq!(f.indexed_revision, 2);

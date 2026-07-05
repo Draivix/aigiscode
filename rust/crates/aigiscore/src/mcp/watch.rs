@@ -63,7 +63,7 @@ fn is_ignored(path: &Path, root: &Path) -> bool {
 /// fresh snapshot into `live`. Returns once the watcher is armed; the rebuild loop runs on
 /// a spawned task for the daemon's lifetime. Failures to arm the watcher are logged (the
 /// server still serves the initial snapshot) rather than fatal.
-pub(super) fn spawn_watch(live: Arc<LiveState<McpState>>, root: PathBuf) {
+pub(super) fn spawn_watch(live: Arc<LiveState<Option<McpState>>>, root: PathBuf) {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<(PathBuf, DirtyKind)>>();
 
     let filter_root = root.clone();
@@ -135,7 +135,7 @@ pub(super) fn spawn_watch(live: Arc<LiveState<McpState>>, root: PathBuf) {
                 .await;
                 match result {
                     Ok(Ok(state)) => {
-                        live.publish(state, target);
+                        live.publish(Some(state), target);
                         eprintln!("aigiscode watch: published revision {target}");
                     }
                     Ok(Err(message)) => {

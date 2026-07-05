@@ -78,20 +78,28 @@ pub(super) struct LiveState<S> {
 impl<S> LiveState<S> {
     /// Seed the live state with an initial snapshot at revision 1.
     pub(super) fn new(initial: S) -> Arc<Self> {
-        let (published_tx, _rx) = watch::channel(1);
+        Self::new_at(initial, 1, false)
+    }
+
+    /// Seed the live state at an explicit revision. `revision 0` +
+    /// `rebuilding = true` is the pending-initial-index state: the daemon can
+    /// answer `initialize` immediately while the first analysis runs, and the
+    /// freshness contract reports the truth (nothing indexed yet).
+    pub(super) fn new_at(initial: S, revision: u64, rebuilding: bool) -> Arc<Self> {
+        let (published_tx, _rx) = watch::channel(revision);
         Arc::new(Self {
             current: ArcSwap::from_pointee(Published {
-                revision: 1,
+                revision,
                 generated_at_ms: now_unix_ms(),
                 snapshot: initial,
             }),
             meta: Mutex::new(LiveMeta {
-                observed: 1,
+                observed: revision.max(1),
                 dirty: BTreeMap::new(),
-                rebuilding: false,
+                rebuilding,
                 last_error: None,
             }),
-            observed_atomic: AtomicU64::new(1),
+            observed_atomic: AtomicU64::new(revision.max(1)),
             published_tx,
         })
     }
