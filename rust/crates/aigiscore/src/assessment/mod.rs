@@ -30,6 +30,7 @@ pub enum ArchitecturalAssessmentKind {
     AlgorithmicComplexityHotspot,
     LayerContractViolation,
     GodClass,
+    UnwiredFrameworkArtifact,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -246,6 +247,11 @@ pub fn build_architectural_assessment_full(
     if let Some(semantic_graph) = semantic_graph {
         findings.extend(detect_layer_contract_violations(semantic_graph, layers));
         findings.extend(detect_god_classes(semantic_graph));
+        findings.extend(detect_unwired_framework_artifacts(
+            parsed_sources,
+            semantic_graph,
+            dead_code,
+        ));
     }
     attach_complexity_graph_pressure(&mut findings, graph_analysis, semantic_graph);
     for finding in &mut findings {
@@ -893,6 +899,160 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
     findings
 }
 
+/// Framework artifacts that look the part but are not wired into their
+/// framework channel: a controller no route points at, a job never
+/// dispatched. Role vocabulary lives in `scanners::framework_catalogs`
+/// (data, per-framework); this engine is generic. Files already reported as
+/// orphans are skipped — a full orphan is the stronger finding. Base-class
+/// shapes are exempt: a stem equal to the role suffix (`Controller.php`) or
+/// any inbound inheritance edge means subclasses carry the wiring.
+fn detect_unwired_framework_artifacts(
+    parsed_sources: &[(PathBuf, String)],
+    graph: &SemanticGraph,
+    dead_code: &crate::detectors::dead_code::DeadCodeResult,
+) -> Vec<ArchitecturalAssessmentFinding> {
+    use crate::detectors::dead_code::{identifier_mentioned, DeadCodeCategory};
+    use crate::scanners::framework_catalogs::{role_wiring_catalogs_for_file, RoleWiringEvidence};
+
+    let orphan_files = dead_code
+        .findings
+        .iter()
+        .filter(|finding| finding.category == DeadCodeCategory::OrphanModule)
+        .map(|finding| finding.file_path.as_path())
+        .collect::<HashSet<_>>();
+    let route_files = crate::contracts::route_declaring_files(parsed_sources);
+    let route_sources = parsed_sources
+        .iter()
+        .filter(|(path, _)| route_files.contains(path))
+        .collect::<Vec<_>>();
+
+    let mut containers_by_file: HashMap<&Path, Vec<&str>> = HashMap::new();
+    for symbol in &graph.symbols {
+        if symbol.parent_symbol_id.is_none()
+            && matches!(
+                symbol.kind,
+                SymbolKind::Class | SymbolKind::Struct | SymbolKind::Trait
+            )
+            && symbol.name.len() >= 4
+        {
+            containers_by_file
+                .entry(symbol.file_path.as_path())
+                .or_default()
+                .push(symbol.name.as_str());
+        }
+    }
+    let mut inherited_files: HashSet<&Path> = HashSet::new();
+    for edge in &graph.resolved_edges {
+        if matches!(
+            edge.relation_kind,
+            RelationKind::Extends | RelationKind::Implements
+        ) && edge.source_file_path != edge.target_file_path
+        {
+            inherited_files.insert(edge.target_file_path.as_path());
+        }
+    }
+
+    let is_test_path = |path: &Path| {
+        let normalized = path.to_string_lossy().replace('\\', "/");
+        let lowered = normalized.to_ascii_lowercase();
+        lowered
+            .split('/')
+            .any(|part| matches!(part, "tests" | "test" | "__tests__" | "testing"))
+            || lowered.ends_with("test.php")
+            || lowered.contains(".spec.")
+            || lowered.contains(".test.")
+    };
+
+    let mut findings = Vec::new();
+    for (path, source) in parsed_sources {
+        if is_test_path(path) || orphan_files.contains(path.as_path()) {
+            continue;
+        }
+        let Some(containers) = containers_by_file.get(path.as_path()) else {
+            continue;
+        };
+        let stem = path
+            .file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default();
+        for catalog in role_wiring_catalogs_for_file(path, source) {
+            for role in catalog.roles {
+                // Suffix is the identity signal when declared (Concerns
+                // traits and helper Handlers inside a Controllers dir are not
+                // controllers); directory segments only gate roles that have
+                // no suffix vocabulary.
+                let role_matches = if role.name_suffixes.is_empty() {
+                    path.iter().any(|part| {
+                        part.to_str()
+                            .is_some_and(|part| role.path_segments.contains(&part))
+                    })
+                } else {
+                    role.name_suffixes
+                        .iter()
+                        .any(|suffix| stem.ends_with(suffix) && stem.len() > suffix.len())
+                };
+                if !role_matches {
+                    continue;
+                }
+                // Bare role-suffix stem = base-class shape.
+                if role.name_suffixes.contains(&stem) {
+                    continue;
+                }
+                if inherited_files.contains(path.as_path()) {
+                    continue;
+                }
+                let wired = match role.evidence {
+                    RoleWiringEvidence::RouteContract => {
+                        route_files.contains(path)
+                            || containers.iter().any(|name| {
+                                route_sources.iter().any(|(_, route_source)| {
+                                    identifier_mentioned(name, route_source)
+                                })
+                            })
+                    }
+                    RoleWiringEvidence::LexicalMarker => containers.iter().any(|name| {
+                        parsed_sources.iter().any(|(other_path, other_source)| {
+                            other_path != path
+                                && !is_test_path(other_path)
+                                && other_source.lines().any(|line| {
+                                    role.markers.iter().any(|marker| line.contains(marker))
+                                        && identifier_mentioned(name, line)
+                                })
+                        })
+                    }),
+                };
+                if wired {
+                    continue;
+                }
+                let mut finding = ArchitecturalAssessmentFinding {
+                    kind: ArchitecturalAssessmentKind::UnwiredFrameworkArtifact,
+                    file_path: path.clone(),
+                    related_file_paths: Vec::new(),
+                    related_identifiers: vec![
+                        format!("role:{}", role.role),
+                        format!("framework:{}", catalog.framework_id),
+                        format!("advice:{}", role.advice),
+                    ],
+                    warning_count: 1,
+                    warning_weight: 0,
+                    bottleneck_centrality_millis: 0,
+                    warning_families: vec![String::from("framework_wiring")],
+                    severity_millis: 620,
+                    pressure_path: Vec::new(),
+                    expensive_operation_sites: Vec::new(),
+                    expensive_operation_flow: Vec::new(),
+                    fingerprint: String::new(),
+                };
+                finding.related_identifiers.sort();
+                findings.push(finding);
+            }
+        }
+    }
+    findings.sort_by(|a, b| a.file_path.cmp(&b.file_path));
+    findings.dedup_by(|a, b| a.file_path == b.file_path);
+    findings
+}
+
 fn architectural_assessment_fingerprint(finding: &ArchitecturalAssessmentFinding) -> String {
     let kind = architectural_assessment_kind_label(finding.kind);
     let primary_path = normalized_path(&finding.file_path);
@@ -920,6 +1080,7 @@ fn architectural_assessment_kind_label(kind: ArchitecturalAssessmentKind) -> &'s
         }
         ArchitecturalAssessmentKind::LayerContractViolation => "layer-contract-violation",
         ArchitecturalAssessmentKind::GodClass => "god-class",
+        ArchitecturalAssessmentKind::UnwiredFrameworkArtifact => "unwired-framework-artifact",
     }
 }
 
@@ -6258,6 +6419,158 @@ export function run(items: string[][]) {
             .findings
             .iter()
             .all(|finding| finding.kind != ArchitecturalAssessmentKind::SplitIdentityModel));
+    }
+
+    #[test]
+    fn unwired_framework_artifacts_fire_only_without_wiring_evidence() {
+        use crate::contracts::{ContractInventory, ContractInventoryItem, ContractLocation};
+        use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeResult};
+        use crate::graph::SymbolNode;
+
+        let mut graph = SemanticGraph::default();
+        let mut add_class = |graph: &mut SemanticGraph, file: &str, name: &str| {
+            graph.symbols.push(SymbolNode {
+                id: format!("class:{file}:{name}"),
+                file_path: PathBuf::from(file),
+                kind: SymbolKind::Class,
+                name: String::from(name),
+                qualified_name: String::from(name),
+                parent_symbol_id: None,
+                owner_type_name: None,
+                return_type_name: None,
+                visibility: Visibility::Public,
+                parameter_count: 0,
+                required_parameter_count: 0,
+                start_line: 1,
+                end_line: 30,
+            });
+        };
+        add_class(
+            &mut graph,
+            "app/Http/Controllers/RoutedController.php",
+            "RoutedController",
+        );
+        add_class(
+            &mut graph,
+            "app/Http/Controllers/GhostController.php",
+            "GhostController",
+        );
+        add_class(&mut graph, "app/Jobs/DispatchedJob.php", "DispatchedJob");
+        add_class(&mut graph, "app/Jobs/GhostJob.php", "GhostJob");
+        add_class(&mut graph, "app/Jobs/OrphanJob.php", "OrphanJob");
+
+        let sources = vec![
+            (
+                PathBuf::from("routes/api.php"),
+                String::from("<?php\nRoute::get('/x', [RoutedController::class, 'show']);\n"),
+            ),
+            (
+                PathBuf::from("app/Http/Controllers/RoutedController.php"),
+                String::from("<?php\nclass RoutedController {}\n"),
+            ),
+            (
+                PathBuf::from("app/Http/Controllers/GhostController.php"),
+                String::from("<?php\nclass GhostController {}\n"),
+            ),
+            (
+                PathBuf::from("app/Jobs/DispatchedJob.php"),
+                String::from("<?php\nclass DispatchedJob {}\n"),
+            ),
+            (
+                PathBuf::from("app/Jobs/GhostJob.php"),
+                String::from("<?php\nclass GhostJob {}\n"),
+            ),
+            (
+                PathBuf::from("app/Jobs/OrphanJob.php"),
+                String::from("<?php\nclass OrphanJob {}\n"),
+            ),
+            (
+                PathBuf::from("app/Services/Caller.php"),
+                String::from(
+                    "<?php\nclass Caller {\n  public function go(): void {\n    DispatchedJob::dispatch(1);\n    new GhostJob();\n  }\n}\n",
+                ),
+            ),
+        ];
+        let mut inventory = ContractInventory::default();
+        inventory.routes.push(ContractInventoryItem {
+            value: String::from("/x"),
+            count: 1,
+            locations: vec![ContractLocation {
+                file_path: PathBuf::from("routes/api.php"),
+                line: 2,
+            }],
+        });
+        // OrphanJob is already an orphan finding — must not double-report.
+        let dead_code = DeadCodeResult {
+            findings: vec![DeadCodeFinding {
+                category: DeadCodeCategory::OrphanModule,
+                symbol_id: String::from("module:app/Jobs/OrphanJob.php"),
+                file_path: PathBuf::from("app/Jobs/OrphanJob.php"),
+                name: String::from("OrphanJob"),
+                line: 1,
+                proof_tier: Default::default(),
+                fingerprint: String::new(),
+            }],
+        };
+
+        let _ = inventory;
+        let findings = super::detect_unwired_framework_artifacts(&sources, &graph, &dead_code);
+        let files = findings
+            .iter()
+            .map(|finding| finding.file_path.display().to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            files,
+            vec!["app/Http/Controllers/GhostController.php"],
+            "routed controller and orphan-covered files must stay silent: {files:?}"
+        );
+        assert!(findings[0]
+            .related_identifiers
+            .iter()
+            .any(|id| id == "role:controller"));
+    }
+
+    #[test]
+    fn slashless_route_declarations_still_wire_controllers() {
+        use crate::detectors::dead_code::DeadCodeResult;
+        use crate::graph::SymbolNode;
+        let mut graph = SemanticGraph::default();
+        graph.symbols.push(SymbolNode {
+            id: String::from(
+                "class:app/Modules/M/Http/Controllers/ProxyController.php:ProxyController",
+            ),
+            file_path: PathBuf::from("app/Modules/M/Http/Controllers/ProxyController.php"),
+            kind: SymbolKind::Class,
+            name: String::from("ProxyController"),
+            qualified_name: String::from("ProxyController"),
+            parent_symbol_id: None,
+            owner_type_name: None,
+            return_type_name: None,
+            visibility: Visibility::Public,
+            parameter_count: 0,
+            required_parameter_count: 0,
+            start_line: 1,
+            end_line: 5,
+        });
+        let sources = vec![
+            (
+                PathBuf::from("app/Modules/M/routes/api.php"),
+                String::from(
+                    "<?php\nRoute::get('config', [ProxyController::class, 'getConfig']);\n",
+                ),
+            ),
+            (
+                PathBuf::from("app/Modules/M/Http/Controllers/ProxyController.php"),
+                String::from("<?php\nclass ProxyController {}\n"),
+            ),
+        ];
+        let findings =
+            super::detect_unwired_framework_artifacts(&sources, &graph, &DeadCodeResult::default());
+        assert!(
+            findings.is_empty(),
+            "slashless Route::get declaration must count as wiring: {findings:?}"
+        );
     }
 
     #[test]

@@ -410,6 +410,72 @@ const PHP_DISPATCH_MECHANISM_CATALOG: DispatchMechanismCatalog = DispatchMechani
 /// gating is what stops PHP/Laravel markers from being tested against Rust, Vue,
 /// or TypeScript files — including the analyzer's own source, which contains these
 /// marker strings as literals.
+
+/// How a role-shaped file proves it is wired into its framework channel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum RoleWiringEvidence {
+    /// The file itself declares a route contract, or its container name is
+    /// mentioned inside any file that declares route contracts.
+    RouteContract,
+    /// The container name co-occurs on a line with one of the wiring markers
+    /// anywhere outside the file itself (and outside test trees).
+    LexicalMarker,
+}
+
+/// A framework artifact role shape and the evidence that proves wiring.
+/// The generic `UnwiredFrameworkArtifact` engine in `assessment` owns matching
+/// and judgment; the role vocabulary lives here as data.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct RoleWiringSpec {
+    pub role: &'static str,
+    /// Directory segments that mark the role (any match).
+    pub path_segments: &'static [&'static str],
+    /// File-stem suffixes that mark the role (any match).
+    pub name_suffixes: &'static [&'static str],
+    pub evidence: RoleWiringEvidence,
+    /// Line-level markers for LexicalMarker evidence.
+    pub markers: &'static [&'static str],
+    /// Fix directive shown when unwired.
+    pub advice: &'static str,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct RoleWiringCatalog {
+    pub framework_id: &'static str,
+    pub roles: &'static [RoleWiringSpec],
+    pub matches_file: fn(&Path, &str) -> bool,
+}
+
+static LARAVEL_PHP_ROLE_WIRING_CATALOG: RoleWiringCatalog = RoleWiringCatalog {
+    framework_id: "laravel",
+    matches_file: is_php_source_file,
+    roles: &[
+        RoleWiringSpec {
+            role: "controller",
+            path_segments: &["Controllers"],
+            name_suffixes: &["Controller"],
+            evidence: RoleWiringEvidence::RouteContract,
+            markers: &[],
+            advice: "Register a route pointing at this controller (routes file or #[Route] attribute), or delete it.",
+        },
+        // NOTE: a "job never dispatched" role was evaluated and dropped —
+        // real repos wire jobs through dynamic channels (module manifests,
+        // DB-driven schedulers, console commands outside the scan slice)
+        // that static markers cannot prove, and the zero-reference case is
+        // already the orphan detector's finding.
+    ],
+};
+
+pub(crate) fn role_wiring_catalogs_for_file(
+    path: &Path,
+    source: &str,
+) -> Vec<&'static RoleWiringCatalog> {
+    [&LARAVEL_PHP_ROLE_WIRING_CATALOG]
+        .into_iter()
+        .filter(|catalog| (catalog.matches_file)(path, source))
+        .collect()
+}
+
 pub(crate) fn dispatch_mechanism_catalogs_for_file(
     path: &Path,
     source: &str,

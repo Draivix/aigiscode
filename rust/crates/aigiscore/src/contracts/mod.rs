@@ -5,7 +5,7 @@ use crate::semantic_models::{
 use regex::Regex;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -287,6 +287,42 @@ fn serialize_semantic_model_packs(
                 .collect(),
         })
         .collect()
+}
+
+/// Every file that declares at least one route pattern — full fidelity, no
+/// per-category caps (the artifact inventory samples for size; wiring
+/// judgments must not inherit that truncation).
+pub(crate) fn route_declaring_files(files: &[(PathBuf, String)]) -> HashSet<PathBuf> {
+    let mut declaring = HashSet::new();
+    for (path, content) in files {
+        let Some(language) = detect_contract_language(path) else {
+            continue;
+        };
+        if is_test_like_path(path) || is_non_runtime_contract_source(path, content) {
+            continue;
+        }
+        if route_patterns(language)
+            .iter()
+            .any(|pattern| pattern.is_match(content))
+            || route_declaration_shape().is_match(content)
+        {
+            declaring.insert(path.clone());
+        }
+    }
+    declaring
+}
+
+/// Loose route-declaration shape for wiring judgments only: the inventory
+/// patterns demand a leading-slash path literal to extract a value, but a
+/// file declaring `Route::get('config', ...)` still wires its controllers.
+fn route_declaration_shape() -> &'static Regex {
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
+    PATTERN.get_or_init(|| {
+        Regex::new(
+            r"\b(?:Route|Router)(?:::|->)(?:get|post|put|patch|delete|options|any|match|resource|apiResource|group)\s*\(",
+        )
+        .unwrap()
+    })
 }
 
 fn scan_pattern_bucket(
@@ -799,6 +835,16 @@ fn multiline_union_start_pattern() -> &'static Regex {
 mod tests {
     use super::{build_contract_inventory, ContractCategorySummary};
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn route_declaring_files_accepts_slashless_declarations() {
+        let files = vec![(
+            PathBuf::from("app/Modules/M/routes/api.php"),
+            String::from("<?php\nRoute::get('config', [ProxyController::class, 'getConfig']);\n"),
+        )];
+        let declaring = super::route_declaring_files(&files);
+        assert!(declaring.contains(&PathBuf::from("app/Modules/M/routes/api.php")));
+    }
 
     #[test]
     fn builds_contract_inventory_for_routes_hooks_and_runtime_keys() {

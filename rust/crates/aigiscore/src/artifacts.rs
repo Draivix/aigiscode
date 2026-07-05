@@ -5228,6 +5228,67 @@ fn build_guardian_packets(
                     context_labels,
                 });
             }
+            crate::assessment::ArchitecturalAssessmentKind::UnwiredFrameworkArtifact => {
+                let target_files = vec![finding.file_path.display().to_string()];
+                let context_labels = finding.related_identifiers.clone();
+                let finding_id = format!(
+                    "architecture:unwired-framework-artifact:{}",
+                    finding.file_path.display()
+                );
+                let role = finding
+                    .related_identifiers
+                    .iter()
+                    .find_map(|id| id.strip_prefix("role:"))
+                    .unwrap_or("artifact")
+                    .to_string();
+                let advice = finding
+                    .related_identifiers
+                    .iter()
+                    .find_map(|id| id.strip_prefix("advice:"))
+                    .unwrap_or("Wire this artifact into its framework channel or delete it.")
+                    .to_string();
+                packets.push(GuardianPacket {
+                    id: format!(
+                        "guardian:unwired-framework-artifact:{}",
+                        finding.file_path.display()
+                    ),
+                    priority: String::from("medium"),
+                    focus: String::from("unwired_framework_artifact"),
+                    primary_target_file: finding.file_path.display().to_string(),
+                    precision: String::from("modeled"),
+                    confidence_millis: finding.severity_millis,
+                    summary: format!(
+                        "{} is shaped like a {role} but no framework channel wires it in — invented, not integrated.",
+                        finding.file_path.display()
+                    ),
+                    target_files,
+                    primary_anchor: best_effort_anchor_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    evidence_anchors: supporting_anchors_for_architectural_assessment(
+                        finding,
+                        analysis,
+                    ),
+                    locations: Vec::new(),
+                    finding_ids: vec![finding_id],
+                    provenance: vec![
+                        String::from("architectural_assessment"),
+                        String::from("contract_inventory"),
+                    ],
+                    doctrine_refs: vec![String::from("structural.integration")],
+                    preferred_mechanism: Some(String::from("framework_channel_registration")),
+                    obligations: vec![GuardianObligation {
+                        action: advice,
+                        acceptance: String::from(
+                            "The artifact is reachable through its framework channel (route, dispatch site, registration), or it no longer exists.",
+                        ),
+                    }],
+                    suppressibility: guardian_packet_suppressibility("unwired_framework_artifact"),
+                    investigation_questions: Vec::new(),
+                    context_labels,
+                });
+            }
             crate::assessment::ArchitecturalAssessmentKind::GodClass => {
                 let target_files = vec![finding.file_path.display().to_string()];
                 let context_labels = finding.related_identifiers.clone();

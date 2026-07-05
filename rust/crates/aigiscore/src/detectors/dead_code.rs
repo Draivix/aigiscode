@@ -691,7 +691,7 @@ fn collect_out_of_slice_sources(
     sources
 }
 
-fn identifier_mentioned(name: &str, source: &str) -> bool {
+pub(crate) fn identifier_mentioned(name: &str, source: &str) -> bool {
     let is_ident = |byte: u8| byte == b'_' || byte.is_ascii_alphanumeric();
     let bytes = source.as_bytes();
     let mut start = 0;

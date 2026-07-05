@@ -1165,6 +1165,43 @@ fn surface_finding_from_architectural_assessment(
                 ],
             }
         }
+        ArchitecturalAssessmentKind::UnwiredFrameworkArtifact => {
+            let role = finding
+                .related_identifiers
+                .iter()
+                .find_map(|id| id.strip_prefix("role:"))
+                .unwrap_or("artifact");
+            let advice = finding
+                .related_identifiers
+                .iter()
+                .find_map(|id| id.strip_prefix("advice:"))
+                .unwrap_or("Wire this artifact into its framework channel or delete it.");
+            SurfaceFinding {
+                id: format!(
+                    "architecture:unwired-framework-artifact:{}",
+                    finding.file_path.display()
+                ),
+                fingerprint: finding.fingerprint.clone(),
+                family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
+                severity: SurfaceFindingSeverity::Medium,
+                precision: String::from("modeled"),
+                confidence_millis: finding.severity_millis,
+                title: String::from("Unwired framework artifact"),
+                summary: format!(
+                    "{} is shaped like a {role} but is not wired into its framework channel — it exists without integration. {advice}",
+                    finding.file_path.display()
+                ),
+                file_paths: vec![finding.file_path.clone()],
+                line: primary_line,
+                primary_anchor,
+                evidence_anchors,
+                locations,
+                supporting_context: Vec::new(),
+                provenance: vec![String::from("architectural_assessment")],
+                doctrine_refs: vec![String::from("structural.integration")],
+            }
+        }
         ArchitecturalAssessmentKind::GodClass => SurfaceFinding {
             id: format!("architecture:god-class:{}", finding.file_path.display()),
             fingerprint: finding.fingerprint.clone(),
