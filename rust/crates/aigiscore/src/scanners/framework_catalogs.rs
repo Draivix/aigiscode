@@ -413,6 +413,7 @@ const PHP_DISPATCH_MECHANISM_CATALOG: DispatchMechanismCatalog = DispatchMechani
 
 /// How a role-shaped file proves it is wired into its framework channel.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)] // LexicalMarker + markers stay for future roles (job/listener revisit)
 pub(crate) enum RoleWiringEvidence {
     /// The file itself declares a route contract, or its container name is
     /// mentioned inside any file that declares route contracts.

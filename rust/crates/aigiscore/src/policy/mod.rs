@@ -620,6 +620,8 @@ mod tests {
                 line: 4,
                 proof_tier: DeadCodeProofTier::Strong,
                 fingerprint: String::from("dead-1"),
+                delete_verdict: String::new(),
+                delete_evidence: Vec::new(),
             }),
             Some(SuppressionReason::Policy)
         );
@@ -632,6 +634,8 @@ mod tests {
                 line: 2,
                 proof_tier: DeadCodeProofTier::Certain,
                 fingerprint: String::from("dead-2"),
+                delete_verdict: String::new(),
+                delete_evidence: Vec::new(),
             }),
             Some(SuppressionReason::Rule)
         );
@@ -860,6 +864,8 @@ mod tests {
                 line: 2,
                 proof_tier: DeadCodeProofTier::Certain,
                 fingerprint: String::from("dead-3"),
+                delete_verdict: String::new(),
+                delete_evidence: Vec::new(),
             }),
             None
         );

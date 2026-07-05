@@ -1901,17 +1901,26 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
             DeadCodeCategory::UnusedImport => String::from("Unused import"),
             DeadCodeCategory::OrphanModule => String::from("Orphan module"),
         },
-        summary: format!(
-            "{} appears unused ({})",
-            finding.name,
-            dead_code_proof_tier_label(finding.proof_tier)
-        ),
+        summary: if finding.delete_verdict.is_empty() {
+            format!(
+                "{} appears unused ({})",
+                finding.name,
+                dead_code_proof_tier_label(finding.proof_tier)
+            )
+        } else {
+            format!(
+                "{} appears unused ({}) — deletion verdict: {}",
+                finding.name,
+                dead_code_proof_tier_label(finding.proof_tier),
+                finding.delete_verdict
+            )
+        },
         file_paths: vec![finding.file_path.clone()],
         line: Some(finding.line),
         primary_anchor,
         evidence_anchors: Vec::new(),
         locations,
-        supporting_context: Vec::new(),
+        supporting_context: finding.delete_evidence.clone(),
         provenance: vec![
             String::from("dead_code_detector"),
             String::from("graph_analysis"),

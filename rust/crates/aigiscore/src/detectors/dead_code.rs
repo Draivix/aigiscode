@@ -39,6 +39,16 @@ pub struct DeadCodeFinding {
     pub proof_tier: DeadCodeProofTier,
     #[serde(default)]
     pub fingerprint: String,
+    /// Deletion confidence for orphan findings: safe_delete (explicit import
+    /// graph, every channel checked) | probably_delete (autoload world —
+    /// dynamic construction from strings outside the repo stays possible).
+    /// Empty for non-orphan categories.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub delete_verdict: String,
+    /// The suppression channels that came back silent — the positive evidence
+    /// a deleter reviews before acting.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub delete_evidence: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -89,6 +99,8 @@ pub fn analyze_dead_code(
                 &symbol.file_path,
                 &symbol.name,
             ),
+            delete_verdict: String::new(),
+            delete_evidence: Vec::new(),
         })
         .collect::<Vec<_>>();
 
@@ -264,6 +276,8 @@ pub fn analyze_dead_code(
                     .clone()
                     .unwrap_or_else(|| leaf_symbol_name(&reference.target_name)),
             ),
+            delete_verdict: String::new(),
+            delete_evidence: Vec::new(),
         });
     }
 
@@ -398,6 +412,14 @@ fn detect_orphan_modules(
             line: 1,
             proof_tier: dead_code_proof_tier(DeadCodeCategory::OrphanModule),
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, path, stem),
+            delete_verdict: String::from("safe_delete"),
+            delete_evidence: vec![
+                String::from("no inbound resolved edge anywhere in the corpus"),
+                String::from("no import specifier tail matches the module stem"),
+                String::from("no quoted path literal (worker URL, addModule, re-export) names it"),
+                String::from("not covered by any import.meta.glob prefix"),
+                String::from("not a framework convention path (pages/routes/config/entry stems)"),
+            ],
         });
     }
     findings
@@ -606,6 +628,19 @@ fn detect_backend_orphan_modules(
             line: 1,
             proof_tier: DeadCodeProofTier::Heuristic,
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, &path, &stem),
+            delete_verdict: String::from("probably_delete"),
+            delete_evidence: vec![
+                String::from("no inbound resolved edge anywhere in the corpus"),
+                String::from("declares no framework contract (route/hook/registration)"),
+                String::from("no quoted path literal names the file"),
+                String::from("not a corpus convention shape (multi-dot suffix or directory-derived stem)"),
+                String::from(
+                    "container names unmentioned corpus-wide, including out-of-slice non-test files",
+                ),
+                String::from(
+                    "residual risk: runtime can still build the class name from strings that do not appear in the repo",
+                ),
+            ],
         });
     }
     findings

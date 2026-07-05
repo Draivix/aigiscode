@@ -4255,6 +4255,8 @@ mod tests {
                 line: 10,
                 proof_tier: DeadCodeProofTier::Strong,
                 fingerprint: String::new(),
+                delete_verdict: String::new(),
+                delete_evidence: Vec::new(),
             }],
         };
         let hardwiring = HardwiringResult {
@@ -4340,6 +4342,8 @@ mod tests {
                     line: 10,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -4349,6 +4353,8 @@ mod tests {
                     line: 11,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -4358,6 +4364,8 @@ mod tests {
                     line: 12,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
             ],
         };
@@ -4393,6 +4401,8 @@ mod tests {
                     line: 10,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -4402,6 +4412,8 @@ mod tests {
                     line: 11,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -4411,6 +4423,8 @@ mod tests {
                     line: 12,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -4420,6 +4434,8 @@ mod tests {
                     line: 13,
                     proof_tier: DeadCodeProofTier::Strong,
                     fingerprint: String::new(),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
                 },
             ],
         };
@@ -6510,6 +6526,8 @@ export function run(items: string[][]) {
                 line: 1,
                 proof_tier: Default::default(),
                 fingerprint: String::new(),
+                delete_verdict: String::new(),
+                delete_evidence: Vec::new(),
             }],
         };
 
