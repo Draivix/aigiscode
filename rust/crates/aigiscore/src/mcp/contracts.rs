@@ -114,6 +114,55 @@ pub struct ListFindingsParams {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ImpactRadiusParams {
+    /// File path (repo-relative) or symbol name / symbol id to assess.
+    pub target: String,
+    /// Transitive depth over inbound (dependent) edges. Default 3, max 6.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ImpactRadiusOutput {
+    pub target_file: String,
+    /// Set when the target resolved to a specific symbol rather than a file.
+    pub target_symbol: Option<String>,
+    pub direct_dependent_files: usize,
+    pub transitive_dependent_files: usize,
+    pub max_depth: usize,
+    /// Module groups containing dependents, heaviest first, capped.
+    pub dependent_modules: Vec<String>,
+    /// Dependents living in a different declared layer than the target.
+    pub cross_layer_consumers: Vec<CrossLayerConsumerOutput>,
+    /// Contracts declared in the target file (routes/hooks/registrations):
+    /// the framework wires these, so consumers exist outside the code graph.
+    pub framework_contract_declarations: Vec<String>,
+    /// Same-repo unresolved references matching names declared in the target
+    /// file — dynamic dispatch may hide additional consumers.
+    pub unresolved_name_matches: usize,
+    /// low | medium | high — dependent scale, cross-layer exposure, and
+    /// contract wiring combined.
+    pub risk_band: String,
+    /// Files a reviewer must inspect when the target changes, heaviest first.
+    pub review_radius: Vec<ReviewRadiusFileOutput>,
+    /// Honesty notes: boundary truncation, contract wiring, dynamic blind spots.
+    pub honesty: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct CrossLayerConsumerOutput {
+    pub from_layer: String,
+    pub files: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ReviewRadiusFileOutput {
+    pub file_path: String,
+    pub edge_count: usize,
+    pub depth: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ExplainFindingParams {
     pub finding_id: String,
 }

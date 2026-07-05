@@ -6,13 +6,14 @@ use self::contracts::{
     build_finding_details, display_path, family_matches, is_corpus_scale_cycle, language_matches,
     path_matches, phase_matches, severity_matches, AtlasOutput, BottleneckOutput,
     BriefHotspotOutput, ConsistencyMode, ContainerDesignOutput, ContractInventoryOutput,
-    ConvergenceOutput, CorpusScaleUnitOutput, CoverageReportOutput, CycleOutput, CyclesOutput,
-    CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams,
-    FindSymbolOutput, FindSymbolParams, FindingDetailOutput, FindingSummaryOutput,
-    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
-    ModuleDesignOutput, ModuleDesignParams, ModuleEdgeOutput, QualityEvaluationOutput,
-    RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
-    SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
+    ConvergenceOutput, CorpusScaleUnitOutput, CoverageReportOutput, CrossLayerConsumerOutput,
+    CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput,
+    ExplainFindingParams, FindSymbolOutput, FindSymbolParams, FindingDetailOutput,
+    FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput, ImpactRadiusOutput,
+    ImpactRadiusParams, ListFindingsOutput, ListFindingsParams, ModuleDesignOutput,
+    ModuleDesignParams, ModuleEdgeOutput, QualityEvaluationOutput, RepoBriefOutput,
+    RepoOverviewOutput, RepoOverviewParams, ReviewRadiusFileOutput, ShowCyclesParams,
+    ShowHotspotsParams, SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -784,6 +785,323 @@ impl AigiscodeMcpServer {
     }
 
     #[tool(
+        name = "impact_radius",
+        description = "Blast radius before changing a file or symbol: direct and transitive dependents, dependent modules, cross-layer consumers, framework contract wiring, dynamic blind spots, and the concrete review radius."
+    )]
+    async fn impact_radius(
+        &self,
+        Parameters(params): Parameters<ImpactRadiusParams>,
+    ) -> Result<Json<ImpactRadiusOutput>, String> {
+        let max_depth = params.max_depth.unwrap_or(3).clamp(1, 6);
+        let state = self.state();
+        let graph = &state.snapshot.semantic_graph;
+        let target = params.target.trim();
+
+        // Target resolution: exact file path first, then symbol id, then
+        // unique symbol name. Ambiguity is an error, never a guess.
+        let file_by_display = graph
+            .files
+            .iter()
+            .find(|file| display_path(&file.path) == target)
+            .map(|file| file.path.clone());
+        let (target_file, target_symbol_id, target_symbol_label) =
+            if let Some(path) = file_by_display {
+                (path, None, None)
+            } else if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == target) {
+                (
+                    symbol.file_path.clone(),
+                    Some(symbol.id.clone()),
+                    Some(format!(
+                        "{} {}",
+                        symbol_kind_label(symbol.kind),
+                        symbol.qualified_name
+                    )),
+                )
+            } else {
+                let mut matches = graph
+                    .symbols
+                    .iter()
+                    .filter(|symbol| symbol.name == target || symbol.qualified_name == target)
+                    .collect::<Vec<_>>();
+                // A file's Module symbol sharing the name of the container it
+                // holds is not real ambiguity — prefer the concrete symbol.
+                if matches.len() > 1
+                    && matches
+                        .iter()
+                        .all(|symbol| symbol.file_path == matches[0].file_path)
+                {
+                    matches.retain(|symbol| symbol.kind != crate::graph::SymbolKind::Module);
+                }
+                match matches.len() {
+                    0 => {
+                        return Err(format!(
+                        "unknown target: {target} (no file path, symbol id, or symbol name matched)"
+                    ))
+                    }
+                    1 => (
+                        matches[0].file_path.clone(),
+                        Some(matches[0].id.clone()),
+                        Some(format!(
+                            "{} {}",
+                            symbol_kind_label(matches[0].kind),
+                            matches[0].qualified_name
+                        )),
+                    ),
+                    count => {
+                        let mut candidates = matches
+                            .iter()
+                            .take(10)
+                            .map(|symbol| symbol.id.clone())
+                            .collect::<Vec<_>>();
+                        candidates.sort();
+                        return Err(format!(
+                            "ambiguous target: {count} symbols named {target}; pass one id: {}",
+                            candidates.join(", ")
+                        ));
+                    }
+                }
+            };
+
+        // Depth 1: edges into the target (symbol-scoped when a symbol was
+        // named — includes edges to its members). Deeper levels: file-level.
+        let symbol_parent: HashMap<&str, Option<&str>> = graph
+            .symbols
+            .iter()
+            .map(|symbol| (symbol.id.as_str(), symbol.parent_symbol_id.as_deref()))
+            .collect();
+        let mut direct_edge_counts: HashMap<&Path, usize> = HashMap::new();
+        for edge in &graph.resolved_edges {
+            if edge.source_file_path == target_file {
+                continue;
+            }
+            let hits = match target_symbol_id.as_deref() {
+                Some(symbol_id) => {
+                    edge.target_symbol_id == symbol_id
+                        || symbol_parent
+                            .get(edge.target_symbol_id.as_str())
+                            .copied()
+                            .flatten()
+                            == Some(symbol_id)
+                }
+                None => edge.target_file_path == target_file,
+            };
+            if hits {
+                *direct_edge_counts
+                    .entry(edge.source_file_path.as_path())
+                    .or_default() += 1;
+            }
+        }
+
+        // Reverse file adjacency for transitive expansion.
+        let mut reverse: HashMap<&Path, HashSet<&Path>> = HashMap::new();
+        for edge in &graph.resolved_edges {
+            if edge.source_file_path != edge.target_file_path {
+                reverse
+                    .entry(edge.target_file_path.as_path())
+                    .or_default()
+                    .insert(edge.source_file_path.as_path());
+            }
+        }
+        let mut depth_of: HashMap<&Path, usize> = HashMap::new();
+        let mut frontier: Vec<&Path> = direct_edge_counts.keys().copied().collect();
+        for path in &frontier {
+            depth_of.insert(path, 1);
+        }
+        let mut depth = 1;
+        while depth < max_depth && !frontier.is_empty() {
+            depth += 1;
+            let mut next = Vec::new();
+            for file in frontier {
+                if let Some(sources) = reverse.get(file) {
+                    for source in sources {
+                        if *source != target_file.as_path() && !depth_of.contains_key(source) {
+                            depth_of.insert(source, depth);
+                            next.push(*source);
+                        }
+                    }
+                }
+            }
+            frontier = next;
+        }
+
+        // Dependent modules, heaviest first.
+        let mut module_counts: HashMap<String, usize> = HashMap::new();
+        for path in depth_of.keys() {
+            *module_counts.entry(module_group_of(path)).or_default() += 1;
+        }
+        let mut dependent_modules = module_counts.into_iter().collect::<Vec<_>>();
+        dependent_modules.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        let dependent_modules = dependent_modules
+            .into_iter()
+            .take(20)
+            .map(|(module, files)| format!("{module} ({files} files)"))
+            .collect::<Vec<_>>();
+
+        // Cross-layer consumers under the declared layer contract.
+        let layer_of = |path: &Path| -> Option<&str> {
+            let display = display_path(path);
+            state
+                .snapshot
+                .layers
+                .iter()
+                .flat_map(|layer| {
+                    layer
+                        .path_prefixes
+                        .iter()
+                        .map(move |prefix| (layer.name.as_str(), prefix))
+                })
+                .filter(|(_, prefix)| {
+                    display == **prefix || display.starts_with(&format!("{prefix}/"))
+                })
+                .max_by_key(|(_, prefix)| prefix.len())
+                .map(|(name, _)| name)
+        };
+        let target_layer = layer_of(&target_file);
+        let mut cross_layer: HashMap<&str, usize> = HashMap::new();
+        if let Some(target_layer) = target_layer {
+            for path in depth_of.keys() {
+                if let Some(consumer_layer) = layer_of(path) {
+                    if consumer_layer != target_layer {
+                        *cross_layer.entry(consumer_layer).or_default() += 1;
+                    }
+                }
+            }
+        }
+        let mut cross_layer_consumers = cross_layer
+            .into_iter()
+            .map(|(from_layer, files)| CrossLayerConsumerOutput {
+                from_layer: from_layer.to_string(),
+                files,
+            })
+            .collect::<Vec<_>>();
+        cross_layer_consumers.sort_by(|a, b| b.files.cmp(&a.files));
+
+        // Framework contracts declared in the target file.
+        let target_display = display_path(&target_file);
+        let mut framework_contract_declarations = Vec::new();
+        for (label, items) in [
+            ("route", &state.snapshot.contract_inventory.routes),
+            ("hook", &state.snapshot.contract_inventory.hooks),
+            (
+                "registered_key",
+                &state.snapshot.contract_inventory.registered_keys,
+            ),
+        ] {
+            for item in items {
+                if item
+                    .locations
+                    .iter()
+                    .any(|location| location.file_path == target_display)
+                {
+                    framework_contract_declarations.push(format!("{label}:{}", item.value));
+                }
+            }
+        }
+        framework_contract_declarations.sort();
+        framework_contract_declarations.dedup();
+        framework_contract_declarations.truncate(20);
+
+        // Dynamic blind spots: unresolved same-repo references matching names
+        // declared in the target file.
+        let declared_names = graph
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.file_path == target_file && symbol.name.len() >= 4)
+            .map(|symbol| symbol.name.as_str())
+            .collect::<HashSet<_>>();
+        let resolved_refs = graph
+            .resolved_edges
+            .iter()
+            .filter_map(|edge| {
+                edge.reference_target_name
+                    .as_deref()
+                    .map(|name| (edge.source_file_path.as_path(), edge.line, name))
+            })
+            .collect::<HashSet<_>>();
+        let unresolved_name_matches = graph
+            .references
+            .iter()
+            .filter(|reference| {
+                reference.file_path != target_file
+                    && matches!(
+                        reference.kind,
+                        crate::graph::ReferenceKind::Call | crate::graph::ReferenceKind::Type
+                    )
+                    && declared_names.contains(leaf_reference_name(&reference.target_name))
+                    && !resolved_refs.contains(&(
+                        reference.file_path.as_path(),
+                        reference.line,
+                        reference.target_name.as_str(),
+                    ))
+            })
+            .count();
+
+        let direct = direct_edge_counts.len();
+        let transitive = depth_of.len();
+        let risk_band = if transitive > 100 || direct > 50 {
+            "high"
+        } else if transitive > 20
+            || !cross_layer_consumers.is_empty()
+            || !framework_contract_declarations.is_empty()
+        {
+            "medium"
+        } else {
+            "low"
+        };
+
+        let mut review_radius = direct_edge_counts
+            .iter()
+            .map(|(path, edges)| ReviewRadiusFileOutput {
+                file_path: display_path(path),
+                edge_count: *edges,
+                depth: 1,
+            })
+            .collect::<Vec<_>>();
+        review_radius.sort_by(|a, b| {
+            b.edge_count
+                .cmp(&a.edge_count)
+                .then(a.file_path.cmp(&b.file_path))
+        });
+        review_radius.truncate(15);
+
+        let mut honesty = Vec::new();
+        if !framework_contract_declarations.is_empty() {
+            honesty.push(String::from(
+                "target declares framework contracts — consumers exist outside the code graph (routes/hooks fire at runtime)",
+            ));
+        }
+        if unresolved_name_matches > 0 {
+            honesty.push(format!(
+                "{unresolved_name_matches} unresolved same-name references elsewhere may hide additional consumers (dynamic dispatch)"
+            ));
+        }
+        if state
+            .snapshot
+            .boundary_truncated_files
+            .contains(&target_display)
+        {
+            honesty.push(String::from(
+                "analysis boundary is truncated around this file — dependents outside the analyzed slice are invisible",
+            ));
+        }
+
+        Ok(Json(ImpactRadiusOutput {
+            target_file: target_display,
+            target_symbol: target_symbol_label,
+            direct_dependent_files: direct,
+            transitive_dependent_files: transitive,
+            max_depth,
+            dependent_modules,
+            cross_layer_consumers,
+            framework_contract_declarations,
+            unresolved_name_matches,
+            risk_band: risk_band.to_string(),
+            review_radius,
+            honesty,
+        }))
+    }
+
+    #[tool(
         name = "explain_finding",
         description = "Return structured detail and evidence for a single AigisCode finding id."
     )]
@@ -1363,6 +1681,18 @@ impl AigiscodeMcpServer {
     }
 }
 
+/// Trailing identifier of a reference target (`Foo::bar` -> `bar`,
+/// `ns/mod::name` -> `name`, plain names unchanged).
+fn leaf_reference_name(target: &str) -> &str {
+    target
+        .rsplit("::")
+        .next()
+        .unwrap_or(target)
+        .rsplit(['.', '/'])
+        .next()
+        .unwrap_or(target)
+}
+
 #[derive(Debug, Clone)]
 struct McpState {
     root: String,
@@ -1391,6 +1721,7 @@ struct McpState {
     atlas: AtlasOutput,
     coverage: CoverageReportOutput,
     quality: QualityEvaluationOutput,
+    layers: Vec<crate::doctrine::LayerContract>,
 }
 
 impl McpState {
@@ -1400,6 +1731,9 @@ impl McpState {
         kuzu_path: Option<PathBuf>,
     ) -> Result<Self, McpServerError> {
         let surface = analysis.architecture_surface();
+        let layers = crate::doctrine::load_doctrine_registry(&analysis.root)
+            .map(|registry| registry.layers)
+            .unwrap_or_default();
         let root = display_path(&analysis.root);
         let review_surface = load_review_surface(&analysis)?;
         let finding_summaries = review_surface
@@ -1553,6 +1887,7 @@ impl McpState {
             atlas,
             coverage,
             quality,
+            layers,
         })
     }
 }
@@ -2293,6 +2628,82 @@ class Consumer {
             .inbound_modules
             .iter()
             .any(|module| module.module == "app/Feature" && module.edge_count >= 1));
+    }
+
+    #[tokio::test]
+    async fn impact_radius_reports_dependents_and_review_radius() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("app/Core")).unwrap();
+        fs::create_dir_all(fixture.join("app/Feature")).unwrap();
+        fs::create_dir_all(fixture.join("app/Other")).unwrap();
+        fs::write(
+            fixture.join("app/Core/Registry.php"),
+            br#"<?php
+class Registry {
+    public function find(string $key): ?string { return null; }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Feature/Consumer.php"),
+            br#"<?php
+use Core\Registry;
+class Consumer {
+    public function run(Registry $registry): void { $registry->find('a'); $registry->find('b'); }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Other/Indirect.php"),
+            br#"<?php
+use Feature\Consumer;
+class Indirect {
+    public function go(Consumer $consumer): void { $consumer->run(new \Core\Registry()); }
+}
+"#,
+        )
+        .unwrap();
+
+        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+
+        let radius = server
+            .impact_radius(Parameters(super::ImpactRadiusParams {
+                target: String::from("app/Core/Registry.php"),
+                max_depth: None,
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(radius.target_file, "app/Core/Registry.php");
+        assert!(radius.direct_dependent_files >= 1);
+        assert!(radius.transitive_dependent_files >= radius.direct_dependent_files);
+        assert!(radius
+            .review_radius
+            .iter()
+            .any(|entry| entry.file_path == "app/Feature/Consumer.php" && entry.edge_count >= 1));
+
+        // Symbol-name targeting resolves without guessing.
+        let by_symbol = server
+            .impact_radius(Parameters(super::ImpactRadiusParams {
+                target: String::from("Registry"),
+                max_depth: Some(1),
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(by_symbol.target_file, "app/Core/Registry.php");
+        assert!(by_symbol.target_symbol.is_some());
+
+        // Unknown target is an error, not an empty radius.
+        assert!(server
+            .impact_radius(Parameters(super::ImpactRadiusParams {
+                target: String::from("does/not/Exist.php"),
+                max_depth: None,
+            }))
+            .await
+            .is_err());
     }
 
     #[tokio::test]
