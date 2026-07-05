@@ -84,6 +84,13 @@ pub enum FindingFamilyFilter {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+pub enum FindingPhaseFilter {
+    Architecture,
+    Implementation,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum FindingSeverityFilter {
     High,
     Medium,
@@ -94,6 +101,8 @@ pub enum FindingSeverityFilter {
 pub struct ListFindingsParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub family: Option<FindingFamilyFilter>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phase: Option<FindingPhaseFilter>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub severity: Option<FindingSeverityFilter>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1282,6 +1291,7 @@ pub struct FindingSummaryOutput {
     pub id: String,
     pub fingerprint: String,
     pub family: String,
+    pub phase: String,
     pub severity: String,
     pub precision: String,
     pub confidence_millis: u16,
@@ -1306,6 +1316,7 @@ impl FindingSummaryOutput {
             id: finding.id.clone(),
             fingerprint: finding.fingerprint.clone(),
             family: review_family_label(finding.family),
+            phase: review_phase_label(finding.phase),
             severity: review_severity_label(finding.severity),
             precision: finding.precision.clone(),
             confidence_millis: finding.confidence_millis,
@@ -2641,6 +2652,21 @@ pub fn family_matches(family: &str, filter: Option<FindingFamilyFilter>) -> bool
         Some(FindingFamilyFilter::Hardwiring) => family == "hardwiring",
         Some(FindingFamilyFilter::Security) => family == "security",
         Some(FindingFamilyFilter::External) => family == "external",
+    }
+}
+
+fn review_phase_label(phase: crate::surface::SurfaceFindingPhase) -> String {
+    match phase {
+        crate::surface::SurfaceFindingPhase::Architecture => String::from("architecture"),
+        crate::surface::SurfaceFindingPhase::Implementation => String::from("implementation"),
+    }
+}
+
+pub fn phase_matches(phase: &str, filter: Option<FindingPhaseFilter>) -> bool {
+    match filter {
+        None => true,
+        Some(FindingPhaseFilter::Architecture) => phase == "architecture",
+        Some(FindingPhaseFilter::Implementation) => phase == "implementation",
     }
 }
 

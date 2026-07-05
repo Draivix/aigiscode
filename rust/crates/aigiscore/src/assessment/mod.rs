@@ -6267,7 +6267,7 @@ export function run(items: string[][]) {
             SymbolNode,
         };
         let mut graph = SemanticGraph::default();
-        let mut add_class = |graph: &mut SemanticGraph, file: &str, name: &str, methods: usize| {
+        let add_class = |graph: &mut SemanticGraph, file: &str, name: &str, methods: usize| {
             let class_id = format!("class:{file}:{name}");
             graph.symbols.push(SymbolNode {
                 id: class_id.clone(),

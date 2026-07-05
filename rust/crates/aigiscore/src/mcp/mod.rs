@@ -4,14 +4,14 @@ mod watch;
 
 use self::contracts::{
     build_finding_details, display_path, family_matches, is_corpus_scale_cycle, language_matches,
-    path_matches, severity_matches, AtlasOutput, BottleneckOutput, BriefHotspotOutput,
-    ConsistencyMode, ContainerDesignOutput, ContractInventoryOutput, ConvergenceOutput,
-    CorpusScaleUnitOutput, CoverageReportOutput, CycleOutput, CyclesOutput, CypherQueryOutput,
-    CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput,
-    FindSymbolParams, FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput,
-    HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams, ModuleDesignOutput,
-    ModuleDesignParams, ModuleEdgeOutput, QualityEvaluationOutput, RepoBriefOutput,
-    RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
+    path_matches, phase_matches, severity_matches, AtlasOutput, BottleneckOutput,
+    BriefHotspotOutput, ConsistencyMode, ContainerDesignOutput, ContractInventoryOutput,
+    ConvergenceOutput, CorpusScaleUnitOutput, CoverageReportOutput, CycleOutput, CyclesOutput,
+    CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams,
+    FindSymbolOutput, FindSymbolParams, FindingDetailOutput, FindingSummaryOutput,
+    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ListFindingsOutput, ListFindingsParams,
+    ModuleDesignOutput, ModuleDesignParams, ModuleEdgeOutput, QualityEvaluationOutput,
+    RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams, ShowCyclesParams, ShowHotspotsParams,
     SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
 };
 use self::live::LiveState;
@@ -755,7 +755,7 @@ impl AigiscodeMcpServer {
 
     #[tool(
         name = "list_findings",
-        description = "List architecture findings filtered by family, severity, path, and language."
+        description = "List findings filtered by review phase (architecture|implementation), family, severity, path, and language. Architecture-phase findings are the pass-1 design judgments; implementation-phase findings live in function bodies."
     )]
     async fn list_findings(
         &self,
@@ -769,6 +769,7 @@ impl AigiscodeMcpServer {
             .iter()
             .filter(|finding| {
                 family_matches(&finding.family, params.family)
+                    && phase_matches(&finding.phase, params.phase)
                     && severity_matches(&finding.severity, params.severity)
                     && path_matches(finding, params.file_path.as_deref())
                     && language_matches(finding, params.language.as_deref())
@@ -1871,6 +1872,7 @@ fn main() {
 
         let findings = server
             .list_findings(Parameters(ListFindingsParams {
+                phase: None,
                 family: None,
                 severity: None,
                 file_path: None,

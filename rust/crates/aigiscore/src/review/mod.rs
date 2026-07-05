@@ -4,7 +4,7 @@ use crate::ingestion::pipeline::ProjectAnalysis;
 use crate::policy::{PolicyBundle, PolicyLoadError, SuppressionReason};
 use crate::surface::{
     effective_orphan_files, ArchitectureSurface, SurfaceFinding, SurfaceFindingFamily,
-    SurfaceFindingSeverity,
+    SurfaceFindingPhase, SurfaceFindingSeverity,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -51,6 +51,8 @@ pub struct ReviewFinding {
     pub id: String,
     pub fingerprint: String,
     pub family: ReviewFindingFamily,
+    #[serde(default)]
+    pub phase: SurfaceFindingPhase,
     pub severity: ReviewFindingSeverity,
     pub precision: String,
     pub confidence_millis: u16,
@@ -144,6 +146,7 @@ impl ReviewFinding {
             id: finding.id.clone(),
             fingerprint: finding.fingerprint.clone(),
             family: ReviewFindingFamily::from_surface_family(finding.family),
+            phase: finding.phase,
             severity: ReviewFindingSeverity::from_surface_severity(finding.severity),
             precision: finding.precision.clone(),
             confidence_millis: finding.confidence_millis,

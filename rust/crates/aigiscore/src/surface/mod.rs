@@ -224,6 +224,19 @@ pub enum SurfaceFindingFamily {
     External,
 }
 
+/// Two-phase review model: `Architecture` findings are judgments an architect
+/// can make from the signature graph and topology alone (design, layering,
+/// coupling, mechanism choice); `Implementation` findings live in function
+/// bodies and line-level content. Reports and triage lead with architecture —
+/// bodies are brick and mortar, reviewed after the structure is judged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum SurfaceFindingPhase {
+    Architecture,
+    #[default]
+    Implementation,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SurfaceFindingSeverity {
     High,
@@ -236,6 +249,8 @@ pub struct SurfaceFinding {
     pub id: String,
     pub fingerprint: String,
     pub family: SurfaceFindingFamily,
+    #[serde(default)]
+    pub phase: SurfaceFindingPhase,
     pub severity: SurfaceFindingSeverity,
     pub precision: String,
     pub confidence_millis: u16,
@@ -771,6 +786,7 @@ fn build_highlights(
             id: format!("graph:cycle:{index}"),
             fingerprint: cycle.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Architecture,
             severity: SurfaceFindingSeverity::High,
             precision: String::from("modeled"),
             confidence_millis: 780,
@@ -833,6 +849,7 @@ fn build_highlights(
             id: format!("graph:orphan:{}", path.display()),
             fingerprint: stable_fingerprint(&["graph", "orphan", &normalized_path(path)]),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Architecture,
             severity: SurfaceFindingSeverity::Medium,
             precision: String::from("exact"),
             confidence_millis: 900,
@@ -869,6 +886,7 @@ fn build_highlights(
                 &normalized_path(path),
             ]),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Architecture,
             severity: SurfaceFindingSeverity::Low,
             precision: String::from("exact"),
             confidence_millis: 900,
@@ -929,8 +947,9 @@ fn build_highlights(
     }
 
     highlights.sort_by(|left, right| {
-        severity_rank(right.severity)
-            .cmp(&severity_rank(left.severity))
+        phase_rank(left.phase)
+            .cmp(&phase_rank(right.phase))
+            .then(severity_rank(right.severity).cmp(&severity_rank(left.severity)))
             .then(family_rank(left.family).cmp(&family_rank(right.family)))
             .then(left.file_paths.cmp(&right.file_paths))
             .then(left.line.cmp(&right.line))
@@ -1004,6 +1023,7 @@ fn surface_finding_from_architectural_assessment(
             id: format!("architecture:hotspot:{}", finding.file_path.display()),
             fingerprint: finding.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Implementation,
             severity: SurfaceFindingSeverity::High,
             precision: String::from("modeled"),
             confidence_millis: finding.severity_millis,
@@ -1042,6 +1062,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::Medium,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1078,6 +1099,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1116,6 +1138,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1146,6 +1169,7 @@ fn surface_finding_from_architectural_assessment(
             id: format!("architecture:god-class:{}", finding.file_path.display()),
             fingerprint: finding.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Architecture,
             severity: SurfaceFindingSeverity::High,
             precision: String::from("modeled"),
             confidence_millis: finding.severity_millis,
@@ -1204,6 +1228,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("certain"),
                 confidence_millis: finding.severity_millis,
@@ -1251,6 +1276,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1288,6 +1314,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1350,6 +1377,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1436,6 +1464,7 @@ fn surface_finding_from_architectural_assessment(
                 ),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
+                phase: SurfaceFindingPhase::Implementation,
                 severity: SurfaceFindingSeverity::High,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
@@ -1501,6 +1530,7 @@ fn surface_finding_from_architectural_smell(
             id: format!("graph:smell:hub:{}", smell.subject),
             fingerprint: smell.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Architecture,
             severity: SurfaceFindingSeverity::High,
             precision: String::from("modeled"),
             confidence_millis: 820,
@@ -1537,6 +1567,7 @@ fn surface_finding_from_architectural_smell(
             ),
             fingerprint: smell.fingerprint.clone(),
             family: SurfaceFindingFamily::Graph,
+            phase: SurfaceFindingPhase::Architecture,
             severity: SurfaceFindingSeverity::High,
             precision: String::from("modeled"),
             confidence_millis: 780,
@@ -1783,6 +1814,7 @@ fn surface_finding_from_bottleneck(
         id: format!("graph:bottleneck:{}", bottleneck.file_path.display()),
         fingerprint: bottleneck.fingerprint.clone(),
         family: SurfaceFindingFamily::Graph,
+        phase: SurfaceFindingPhase::Architecture,
         severity: SurfaceFindingSeverity::Medium,
         precision: String::from("modeled"),
         confidence_millis: 760,
@@ -1823,6 +1855,7 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         ),
         fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::DeadCode,
+        phase: SurfaceFindingPhase::Implementation,
         severity: SurfaceFindingSeverity::Medium,
         precision: String::from(precision),
         confidence_millis,
@@ -1870,6 +1903,7 @@ fn surface_finding_from_hardwiring(finding: &HardwiringFinding) -> SurfaceFindin
         ),
         fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::Hardwiring,
+        phase: SurfaceFindingPhase::Implementation,
         severity: hardwiring_severity(finding.category),
         precision: String::from("heuristic"),
         confidence_millis: match finding.category {
@@ -1951,6 +1985,7 @@ fn surface_finding_from_external(finding: &ExternalFinding) -> SurfaceFinding {
         id: format!("external:{}:{}", finding.tool, finding.fingerprint),
         fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::External,
+        phase: SurfaceFindingPhase::Implementation,
         severity: external_severity(finding.severity),
         precision: String::from("imported"),
         confidence_millis: match finding.confidence {
@@ -1982,6 +2017,7 @@ fn surface_finding_from_security(finding: &SecurityFinding) -> SurfaceFinding {
         id: format!("security:native:{}", finding.fingerprint),
         fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::Security,
+        phase: SurfaceFindingPhase::Implementation,
         severity: security_severity(finding.severity),
         precision: String::from("modeled"),
         confidence_millis: 840,
@@ -2695,6 +2731,13 @@ fn severity_rank(severity: SurfaceFindingSeverity) -> u8 {
     }
 }
 
+fn phase_rank(phase: SurfaceFindingPhase) -> u8 {
+    match phase {
+        SurfaceFindingPhase::Architecture => 0,
+        SurfaceFindingPhase::Implementation => 1,
+    }
+}
+
 fn family_rank(family: SurfaceFindingFamily) -> u8 {
     match family {
         SurfaceFindingFamily::Graph => 0,
@@ -2908,6 +2951,65 @@ export function runB() { runA(); }
         assert_eq!(cycle.fingerprint, highlight.fingerprint);
         assert!(!cycle.fingerprint.is_empty());
         assert_ne!(cycle.fingerprint, cycle.id);
+    }
+
+    #[test]
+    fn findings_carry_review_phase_and_architecture_sorts_first() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/a.ts"),
+            br#"import { runB } from "./b";
+export function runA() { runB(); }
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/b.ts"),
+            br#"import { runA } from "./a";
+export function runB() { runA(); }
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/danger.php"),
+            br#"<?php
+eval($_GET['payload']);
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+
+        let cycle = surface
+            .highlights
+            .iter()
+            .find(|finding| finding.id.starts_with("graph:cycle:"))
+            .expect("expected cycle highlight");
+        assert_eq!(cycle.phase, super::SurfaceFindingPhase::Architecture);
+
+        let security = surface
+            .highlights
+            .iter()
+            .find(|finding| finding.id.starts_with("security:"))
+            .expect("expected security highlight");
+        assert_eq!(security.phase, super::SurfaceFindingPhase::Implementation);
+
+        // Architecture phase leads the ordered highlight list.
+        let first_implementation = surface
+            .highlights
+            .iter()
+            .position(|finding| finding.phase == super::SurfaceFindingPhase::Implementation);
+        let last_architecture = surface
+            .highlights
+            .iter()
+            .rposition(|finding| finding.phase == super::SurfaceFindingPhase::Architecture);
+        if let (Some(first_implementation), Some(last_architecture)) =
+            (first_implementation, last_architecture)
+        {
+            assert!(last_architecture < first_implementation);
+        }
     }
 
     #[test]

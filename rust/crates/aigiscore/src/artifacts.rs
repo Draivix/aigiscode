@@ -743,6 +743,7 @@ pub struct AgentHandoffSummary {
 pub struct AgentHandoffFinding {
     pub id: String,
     pub family: String,
+    pub phase: String,
     pub severity: String,
     pub title: String,
     pub summary: String,
@@ -4679,21 +4680,45 @@ pub fn build_agent_handoff_artifact(
         feedback_loop,
         next_steps,
         guardian_packets,
-        top_findings: visible_findings
-            .into_iter()
-            .take(if high_visible > 0 { 8 } else { 5 })
-            .map(|finding| AgentHandoffFinding {
-                id: finding.id.clone(),
-                family: format!("{:?}", finding.family),
-                severity: format!("{:?}", finding.severity),
-                title: finding.title.clone(),
-                summary: finding.summary.clone(),
-                file_paths: finding.file_paths.clone(),
-                line: finding.line,
-                primary_anchor: finding.primary_anchor.clone(),
-                locations: finding.locations.clone(),
-            })
-            .collect(),
+        top_findings: {
+            let per_phase_cap = if high_visible > 0 { 5 } else { 3 };
+            let mut architecture_taken = 0usize;
+            let mut implementation_taken = 0usize;
+            visible_findings
+                .into_iter()
+                .filter(|finding| {
+                    let taken = match finding.phase {
+                        crate::surface::SurfaceFindingPhase::Architecture => {
+                            &mut architecture_taken
+                        }
+                        crate::surface::SurfaceFindingPhase::Implementation => {
+                            &mut implementation_taken
+                        }
+                    };
+                    *taken += 1;
+                    *taken <= per_phase_cap
+                })
+                .map(|finding| AgentHandoffFinding {
+                    id: finding.id.clone(),
+                    family: format!("{:?}", finding.family),
+                    phase: review_phase_label(finding.phase).to_string(),
+                    severity: format!("{:?}", finding.severity),
+                    title: finding.title.clone(),
+                    summary: finding.summary.clone(),
+                    file_paths: finding.file_paths.clone(),
+                    line: finding.line,
+                    primary_anchor: finding.primary_anchor.clone(),
+                    locations: finding.locations.clone(),
+                })
+                .collect()
+        },
+    }
+}
+
+fn review_phase_label(phase: crate::surface::SurfaceFindingPhase) -> &'static str {
+    match phase {
+        crate::surface::SurfaceFindingPhase::Architecture => "architecture",
+        crate::surface::SurfaceFindingPhase::Implementation => "implementation",
     }
 }
 
@@ -7036,25 +7061,50 @@ fn build_markdown_report(
     if handoff.top_findings.is_empty() {
         lines.push(String::from("- No visible findings."));
     } else {
-        for finding in &handoff.top_findings {
-            let line_suffix = finding
-                .line
-                .map(|line| format!(" line {}", line))
-                .unwrap_or_default();
-            let location = finding
-                .file_paths
-                .first()
-                .cloned()
-                .unwrap_or_else(|| String::from("unknown"));
-            lines.push(format!(
-                "- [{} / {}] {}: {} (`{}`{})",
-                finding.family,
-                finding.severity,
-                finding.title,
-                finding.summary,
-                location,
-                line_suffix
-            ));
+        for (phase, heading, empty_note) in [
+            (
+                "architecture",
+                "### Architecture (judge the structure first)",
+                "- No architecture-phase findings.",
+            ),
+            (
+                "implementation",
+                "### Implementation (bodies, after the structure is judged)",
+                "- No implementation-phase findings in the top slice.",
+            ),
+        ] {
+            lines.push(String::from(heading));
+            lines.push(String::new());
+            let mut any = false;
+            for finding in handoff
+                .top_findings
+                .iter()
+                .filter(|finding| finding.phase == phase)
+            {
+                any = true;
+                let line_suffix = finding
+                    .line
+                    .map(|line| format!(" line {}", line))
+                    .unwrap_or_default();
+                let location = finding
+                    .file_paths
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| String::from("unknown"));
+                lines.push(format!(
+                    "- [{} / {}] {}: {} (`{}`{})",
+                    finding.family,
+                    finding.severity,
+                    finding.title,
+                    finding.summary,
+                    location,
+                    line_suffix
+                ));
+            }
+            if !any {
+                lines.push(String::from(empty_note));
+            }
+            lines.push(String::new());
         }
     }
 
@@ -7181,6 +7231,7 @@ mod tests {
                 id: String::from("finding-1"),
                 fingerprint: String::from("fp-1"),
                 family,
+                phase: crate::surface::SurfaceFindingPhase::default(),
                 severity: crate::review::ReviewFindingSeverity::Medium,
                 precision: String::from("modeled"),
                 confidence_millis: 800,

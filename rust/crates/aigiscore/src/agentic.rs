@@ -4136,6 +4136,7 @@ mod tests {
             top_findings: vec![AgentHandoffFinding {
                 id: String::from("finding-1"),
                 family: String::from("graph"),
+                phase: String::from("architecture"),
                 severity: String::from("high"),
                 title: String::from("Example finding"),
                 summary: String::from("Bounded fallback finding"),
@@ -4160,6 +4161,7 @@ mod tests {
                 id: String::from("finding-1"),
                 fingerprint: String::from("finding-1"),
                 family: ReviewFindingFamily::Graph,
+                phase: crate::surface::SurfaceFindingPhase::Architecture,
                 severity: ReviewFindingSeverity::High,
                 title: String::from("Example finding"),
                 summary: String::from("Bounded fallback finding"),
@@ -5523,6 +5525,7 @@ class Consumer {
             top_findings: vec![AgentHandoffFinding {
                 id: String::from("finding-1"),
                 family: String::from("graph"),
+                phase: String::from("architecture"),
                 severity: String::from("high"),
                 title: String::from("Example finding"),
                 summary: String::from("Bounded fallback finding"),
