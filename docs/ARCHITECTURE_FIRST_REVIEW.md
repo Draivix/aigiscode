@@ -89,11 +89,15 @@ Each step is generic engine work, validated on draivix + self, gated by tests.
    the explicit layer contract from #2 already encodes direction. These are
    pass-1 findings by construction — no body reads anywhere in the family.
    *Effort: medium, incremental per detector.*
-4. **Two-phase surface (G6)** — every finding gets `phase: architecture |
-   implementation`. `aigiscode-report.md` restructured: Architecture first,
-   Implementation second with priority = centrality of the enclosing symbol's
-   file. MCP `list_findings` gains a `phase` filter; guard weighs architecture
-   regressions above implementation ones. *Effort: small-medium, mostly plumbing.*
+4. ✅ **Two-phase surface (G6)** — shipped 2026-07-04 (`b201294`). Every finding
+   carries `phase: architecture | implementation`; review surface sorts
+   phase-first; `aigiscode-report.md` splits Top Visible Findings into
+   Architecture / Implementation subsections with per-phase caps; MCP
+   `list_findings` gains a `phase` filter + phase in every summary. Draivix:
+   1679 architecture / 1050 implementation, report now leads with god classes
+   and layer violations. Deferred: guard-level phase weighting (guard triggers
+   are convergence-delta based — needs phase attribution in deltas first) and
+   phase-2 ordering by phase-1 centrality.
 5. **Symbol-level SCC + cut analysis as `scc_breakdown` MCP tool (G5)** — port the
    knot-forensics notebook into the graph crate: Tarjan at symbol granularity,
    weighted ELS feedback-edge cut list, edge-kind breakdown, resulting layer order.
