@@ -1,3 +1,4 @@
+use crate::contracts::ContractInventory;
 use crate::graph::{
     ReferenceKind, ResolvedEdge, SemanticGraph, SymbolKind, SymbolNode, Visibility,
 };
@@ -48,6 +49,8 @@ pub struct DeadCodeResult {
 pub fn analyze_dead_code(
     graph: &SemanticGraph,
     parsed_sources: &[(PathBuf, String)],
+    contract_inventory: &ContractInventory,
+    repo_root: &Path,
 ) -> DeadCodeResult {
     let called_symbols = graph
         .resolved_edges
@@ -265,6 +268,12 @@ pub fn analyze_dead_code(
     }
 
     findings.extend(detect_orphan_modules(graph, parsed_sources));
+    findings.extend(detect_backend_orphan_modules(
+        graph,
+        parsed_sources,
+        contract_inventory,
+        repo_root,
+    ));
 
     findings.sort_by(|left, right| {
         left.file_path
@@ -392,6 +401,360 @@ fn detect_orphan_modules(
         });
     }
     findings
+}
+
+const BACKEND_ORPHAN_EXTENSIONS: &[&str] = &["php"];
+
+/// Backend (PHP) files that nothing in the analyzed corpus provably reaches.
+/// Autoloading makes every class loadable by string, so this stays Heuristic
+/// tier and stacks suppression channels: any inbound resolved edge, any
+/// contract declaration in the file (routes/hooks/registered keys — the
+/// framework wires those), any quoted path literal ending in the file name,
+/// any framework convention suffix shared by sibling files (`*.hooks.php`
+/// discovered dynamically), and a lexical backstop — if any declared
+/// container name is mentioned anywhere else in the corpus (`Foo::class`
+/// strings in config, route arrays, reflection targets, docblocks), the file
+/// is treated as alive. Files that declare no container (pure function/side
+/// -effect files) are never flagged: composer `files` autoload can run them
+/// unconditionally.
+fn detect_backend_orphan_modules(
+    graph: &SemanticGraph,
+    parsed_sources: &[(PathBuf, String)],
+    contract_inventory: &ContractInventory,
+    repo_root: &Path,
+) -> Vec<DeadCodeFinding> {
+    let inbound_files = graph
+        .resolved_edges
+        .iter()
+        .filter(|edge| edge.source_file_path != edge.target_file_path)
+        .map(|edge| edge.target_file_path.as_path())
+        .collect::<HashSet<_>>();
+
+    // Files that declare framework contracts are wired in by the framework
+    // even with zero code references.
+    let mut contract_files = HashSet::new();
+    for items in [
+        &contract_inventory.routes,
+        &contract_inventory.hooks,
+        &contract_inventory.registered_keys,
+    ] {
+        for item in items.iter() {
+            for location in &item.locations {
+                contract_files.insert(location.file_path.as_path());
+            }
+        }
+    }
+
+    // Convention suffixes: a multi-dot basename shape (`User.hooks.php`)
+    // shared across >= 2 directories is a framework discovery channel, not an
+    // orphan shape. Derived from the corpus itself — no
+    // framework vocabulary.
+    let mut suffix_files: HashMap<String, HashSet<&Path>> = HashMap::new();
+    for (path, _) in parsed_sources {
+        let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        let mut parts = file_name.splitn(2, '.');
+        let _stem = parts.next();
+        if let Some(suffix) = parts.next() {
+            if suffix.contains('.') {
+                suffix_files
+                    .entry(suffix.to_ascii_lowercase())
+                    .or_default()
+                    .insert(path.parent().unwrap_or_else(|| Path::new("")));
+            }
+        }
+    }
+    let convention_suffixes = suffix_files
+        .iter()
+        .filter(|(_, dirs)| dirs.len() >= 2)
+        .map(|(suffix, _)| suffix.clone())
+        .collect::<HashSet<_>>();
+
+    // Quoted path literal tails across the whole corpus: `require 'Legacy.php'`,
+    // template/module manifests naming PHP files.
+    let mut path_tails = HashSet::new();
+    for (_, source) in parsed_sources {
+        for captures in path_literal_pattern().captures_iter(source) {
+            if let Some(literal) = captures.get(1).map(|m| m.as_str()) {
+                let tail = literal
+                    .trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or_default();
+                if !tail.is_empty() {
+                    path_tails.insert(tail.to_ascii_lowercase());
+                }
+            }
+        }
+    }
+
+    // Top-level containers per file.
+    let mut containers_by_file: HashMap<&Path, Vec<&str>> = HashMap::new();
+    for symbol in &graph.symbols {
+        if symbol.parent_symbol_id.is_none()
+            && matches!(
+                symbol.kind,
+                SymbolKind::Class
+                    | SymbolKind::Interface
+                    | SymbolKind::Trait
+                    | SymbolKind::Struct
+                    | SymbolKind::Enum
+            )
+        {
+            containers_by_file
+                .entry(symbol.file_path.as_path())
+                .or_default()
+                .push(symbol.name.as_str());
+        }
+    }
+
+    // Convention stems: frameworks construct class names from directory names
+    // at runtime (`"App\\Modules\\{$name}\\{$name}ServiceProvider"`), which no
+    // lexical scan can see. If a file stem equals its enclosing convention
+    // directory name plus a suffix, and that suffix recurs under >= 3 distinct
+    // directories, the stem shape is a discovery convention — exempt.
+    let mut stem_suffix_dirs: HashMap<String, HashSet<&Path>> = HashMap::new();
+    let convention_stem_suffix = |path: &Path| -> Option<String> {
+        let stem = path.file_stem()?.to_str()?;
+        let dir = path.parent()?;
+        let dir_name = dir.file_name()?.to_str()?;
+        let suffix = stem.strip_prefix(dir_name)?;
+        (!suffix.is_empty()).then(|| suffix.to_ascii_lowercase())
+    };
+    for (path, _) in parsed_sources {
+        if let (Some(suffix), Some(dir)) = (convention_stem_suffix(path), path.parent()) {
+            stem_suffix_dirs.entry(suffix).or_default().insert(dir);
+        }
+    }
+    let convention_stem_suffixes = stem_suffix_dirs
+        .iter()
+        .filter(|(_, dirs)| dirs.len() >= 3)
+        .map(|(suffix, _)| suffix.clone())
+        .collect::<HashSet<_>>();
+
+    let mut candidates: Vec<(PathBuf, String, Vec<&str>)> = Vec::new();
+    for (path, _) in parsed_sources {
+        let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if !BACKEND_ORPHAN_EXTENSIONS.contains(&extension) {
+            continue;
+        }
+        if is_backend_orphan_exempt_path(path) {
+            continue;
+        }
+        if convention_stem_suffix(path)
+            .is_some_and(|suffix| convention_stem_suffixes.contains(&suffix))
+        {
+            continue;
+        }
+        let file_name = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default();
+        let mut name_parts = file_name.splitn(2, '.');
+        let stem = name_parts.next().unwrap_or_default();
+        if let Some(suffix) = name_parts.next() {
+            if suffix.contains('.') && convention_suffixes.contains(&suffix.to_ascii_lowercase()) {
+                continue;
+            }
+        }
+        if inbound_files.contains(path.as_path()) || contract_files.contains(path.as_path()) {
+            continue;
+        }
+        if path_tails.contains(&file_name.to_ascii_lowercase()) {
+            continue;
+        }
+        let Some(containers) = containers_by_file.get(path.as_path()) else {
+            // No container declared: side-effect or function file — composer
+            // `files` autoload can run it unconditionally. Never flag.
+            continue;
+        };
+        let mentioned = containers.iter().any(|name| {
+            // Names too short to be discriminating suppress the finding —
+            // suppression-only looseness cannot fabricate an orphan.
+            name.len() < 4 || identifier_mentioned_in_other_files(name, path, parsed_sources)
+        });
+        if mentioned {
+            continue;
+        }
+        candidates.push((path.clone(), stem.to_owned(), containers.clone()));
+    }
+
+    // Final suppression sweep over files OUTSIDE the analyzed slice (excluded
+    // command dirs, bootstrap wiring, composer manifests): a scoped analysis
+    // must not accuse a file that excluded code still points at. Reading
+    // excluded files is safe here because it can only remove findings.
+    let out_of_slice = collect_out_of_slice_sources(repo_root, parsed_sources);
+    let mut findings = Vec::new();
+    for (path, stem, containers) in candidates {
+        let mentioned_outside = containers.iter().any(|name| {
+            out_of_slice
+                .iter()
+                .any(|source| identifier_mentioned(name, source))
+        });
+        if mentioned_outside {
+            continue;
+        }
+        let normalized = normalized_path(&path);
+        findings.push(DeadCodeFinding {
+            category: DeadCodeCategory::OrphanModule,
+            symbol_id: format!("module:{normalized}"),
+            file_path: path.clone(),
+            name: stem.clone(),
+            line: 1,
+            proof_tier: DeadCodeProofTier::Heuristic,
+            fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, &path, &stem),
+        });
+    }
+    findings
+}
+
+/// Text files under the repo root that are NOT part of the analyzed slice —
+/// excluded directories, bootstrap wiring, manifests. Used exclusively for
+/// suppression. Bounded: code/config extensions, files <= 1 MiB, vendored and
+/// generated trees skipped.
+fn collect_out_of_slice_sources(
+    repo_root: &Path,
+    parsed_sources: &[(PathBuf, String)],
+) -> Vec<String> {
+    const SWEEP_EXTENSIONS: &[&str] = &[
+        "php", "json", "yaml", "yml", "xml", "neon", "ini", "sh", "env", "ts", "js",
+    ];
+    if repo_root.as_os_str().is_empty() {
+        return Vec::new();
+    }
+    let parsed: HashSet<&Path> = parsed_sources
+        .iter()
+        .map(|(path, _)| path.as_path())
+        .collect();
+    let mut sources = Vec::new();
+    let mut stack = vec![repo_root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if path.is_dir() {
+                // Test trees cannot prove production aliveness: a module only
+                // exercised by its tests is dead production code.
+                if name.starts_with('.')
+                    || matches!(
+                        name.as_ref(),
+                        "vendor"
+                            | "node_modules"
+                            | "storage"
+                            | "dist"
+                            | "build"
+                            | "target"
+                            | "tests"
+                            | "Tests"
+                            | "__tests__"
+                            | "test"
+                            | "Test"
+                    )
+                {
+                    continue;
+                }
+                stack.push(path);
+                continue;
+            }
+            if name.contains(".spec.") || name.contains(".test.") || name.ends_with("Test.php") {
+                continue;
+            }
+            let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
+                continue;
+            };
+            if !SWEEP_EXTENSIONS.contains(&extension) {
+                continue;
+            }
+            let relative = path.strip_prefix(repo_root).unwrap_or(&path);
+            if parsed.contains(relative) || parsed.contains(path.as_path()) {
+                continue;
+            }
+            if entry
+                .metadata()
+                .map(|meta| meta.len() > 1_048_576)
+                .unwrap_or(true)
+            {
+                continue;
+            }
+            if let Ok(source) = std::fs::read_to_string(&path) {
+                sources.push(source);
+            }
+        }
+    }
+    sources
+}
+
+fn identifier_mentioned(name: &str, source: &str) -> bool {
+    let is_ident = |byte: u8| byte == b'_' || byte.is_ascii_alphanumeric();
+    let bytes = source.as_bytes();
+    let mut start = 0;
+    while let Some(position) = source[start..].find(name) {
+        let begin = start + position;
+        let end = begin + name.len();
+        let before_ok = begin == 0 || !is_ident(bytes[begin - 1]);
+        let after_ok = end >= bytes.len() || !is_ident(bytes[end]);
+        if before_ok && after_ok {
+            return true;
+        }
+        start = end;
+    }
+    false
+}
+
+/// Paths a backend framework reaches without a code reference: migrations,
+/// seeders, config/route/bootstrap files loaded by convention, views,
+/// entry scripts, vendored and generated trees.
+fn is_backend_orphan_exempt_path(path: &Path) -> bool {
+    let normalized = normalized_path(path).to_ascii_lowercase();
+    let has_segment = |segment: &str| normalized.split('/').any(|part| part == segment);
+    if has_segment("migrations")
+        || has_segment("seeders")
+        || has_segment("seeds")
+        || has_segment("database")
+        || has_segment("config")
+        || has_segment("routes")
+        || has_segment("bootstrap")
+        || has_segment("public")
+        || has_segment("views")
+        || has_segment("resources")
+        || has_segment("tests")
+        || has_segment("__tests__")
+        || has_segment("vendor")
+        || has_segment("storage")
+        || has_segment("stubs")
+        || has_segment("bin")
+    {
+        return true;
+    }
+    let file_name = normalized.rsplit('/').next().unwrap_or_default();
+    if file_name.ends_with(".blade.php") {
+        return true;
+    }
+    let stem = file_name.split('.').next().unwrap_or_default();
+    matches!(
+        stem,
+        "index" | "artisan" | "server" | "bootstrap" | "autoload"
+    )
+}
+
+/// Word-boundary lexical mention of `name` in any file other than `origin`.
+/// Deliberately covers strings, comments, and code alike: any of them proves
+/// a human or framework still points at the identifier.
+fn identifier_mentioned_in_other_files(
+    name: &str,
+    origin: &Path,
+    parsed_sources: &[(PathBuf, String)],
+) -> bool {
+    parsed_sources
+        .iter()
+        .any(|(path, source)| path != origin && identifier_mentioned(name, source))
 }
 
 /// Paths a frontend framework or build system reaches without an import:
@@ -805,13 +1168,14 @@ fn leaf_symbol_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{analyze_dead_code, DeadCodeCategory, DeadCodeProofTier};
+    use crate::contracts::ContractInventory;
     use crate::parsing::javascript::parse_javascript_to_graph;
     use crate::parsing::php::parse_php_to_graph;
     use crate::parsing::python::parse_python_to_graph;
     use crate::parsing::rust::parse_rust_to_graph;
     use crate::parsing::vue::parse_vue_to_graph;
     use crate::resolve::resolve_graph;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn detects_orphan_frontend_modules_with_all_suppression_channels() {
@@ -868,7 +1232,12 @@ export { helper } from '@/utils/reExported'
         }
         resolve_graph(&mut graph);
 
-        let result = analyze_dead_code(&graph, &sources);
+        let result = analyze_dead_code(
+            &graph,
+            &sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
         let orphans: Vec<&str> = result
             .findings
             .iter()
@@ -881,6 +1250,98 @@ export { helper } from '@/utils/reExported'
             vec!["Orphan"],
             "only the truly unreferenced module is an orphan; import, glob, \
              worker-URL, re-export, and index-stem channels all suppress: {orphans:?}"
+        );
+    }
+
+    #[test]
+    fn detects_backend_orphan_php_classes_with_all_suppression_channels() {
+        let sources = vec![
+            (
+                PathBuf::from("app/Services/Consumer.php"),
+                String::from(
+                    "<?php\nuse App\\Services\\UsedService;\nclass Consumer { public function run(): void { (new UsedService())->go(); } }\n",
+                ),
+            ),
+            (
+                PathBuf::from("app/Services/UsedService.php"),
+                String::from("<?php\nclass UsedService { public function go(): void {} }\n"),
+            ),
+            (
+                PathBuf::from("app/Services/DeadService.php"),
+                String::from("<?php\nclass DeadService { public function never(): void {} }\n"),
+            ),
+            (
+                // Mentioned only as a ::class string in another file: alive.
+                PathBuf::from("app/Services/StringWired.php"),
+                String::from("<?php\nclass StringWired {}\n"),
+            ),
+            (
+                PathBuf::from("app/Providers/Wiring.php"),
+                String::from(
+                    "<?php\nclass Wiring { public function map(): array { return ['handler' => StringWired::class]; } }\n",
+                ),
+            ),
+            (
+                // Convention suffix shared across directories: framework channel.
+                PathBuf::from("app/Entities/User/User.hooks.php"),
+                String::from("<?php\nclass UserHooksUnusual {}\n"),
+            ),
+            (
+                PathBuf::from("app/Entities/Order/Order.hooks.php"),
+                String::from("<?php\nclass OrderHooksUnusual {}\n"),
+            ),
+            (
+                // No container symbol: side-effect file, never flagged.
+                PathBuf::from("app/Support/helpers_extra.php"),
+                String::from("<?php\nfunction totally_unused_helper(): int { return 1; }\n"),
+            ),
+        ];
+        let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
+        for (path, source) in &sources[1..] {
+            let parsed = parse_php_to_graph(path.clone(), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+
+        // Entry classes are wired by framework contracts (routes, registered
+        // keys) rather than code references — that channel must suppress.
+        let mut inventory = ContractInventory::default();
+        inventory
+            .routes
+            .push(crate::contracts::ContractInventoryItem {
+                value: String::from("/api/run"),
+                count: 1,
+                locations: vec![crate::contracts::ContractLocation {
+                    file_path: PathBuf::from("app/Services/Consumer.php"),
+                    line: 3,
+                }],
+            });
+        inventory
+            .registered_keys
+            .push(crate::contracts::ContractInventoryItem {
+                value: String::from("handler"),
+                count: 1,
+                locations: vec![crate::contracts::ContractLocation {
+                    file_path: PathBuf::from("app/Providers/Wiring.php"),
+                    line: 2,
+                }],
+            });
+
+        let result = analyze_dead_code(&graph, &sources, &inventory, Path::new(""));
+        let orphans: Vec<&str> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == DeadCodeCategory::OrphanModule)
+            .map(|f| f.name.as_str())
+            .collect();
+
+        assert_eq!(
+            orphans,
+            vec!["DeadService"],
+            "inbound-edge, contract-location, ::class-string, convention-suffix, \
+             and no-container channels must all suppress: {orphans:?}"
         );
     }
 
@@ -900,7 +1361,7 @@ pub fn entry() {
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert_eq!(result.findings.len(), 1);
         assert_eq!(
@@ -932,7 +1393,12 @@ mod tests {
 "#;
         let mut graph = parse_rust_to_graph(path.clone(), source).unwrap();
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[(path, source.to_string())]);
+        let result = analyze_dead_code(
+            &graph,
+            &[(path, source.to_string())],
+            &ContractInventory::default(),
+            Path::new(""),
+        );
 
         let names: Vec<&str> = result.findings.iter().map(|f| f.name.as_str()).collect();
         assert!(
@@ -994,7 +1460,12 @@ final class Account {}
 
         resolve_graph(&mut graph);
         let parsed_sources = vec![(importer_path, String::from(importer_source))];
-        let result = analyze_dead_code(&graph, &parsed_sources);
+        let result = analyze_dead_code(
+            &graph,
+            &parsed_sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
 
         // `User` only appears via `instanceof`, which never resolves to an
         // edge; the lexical guard must keep it out of the findings.
@@ -1038,7 +1509,7 @@ pub struct Repo {}
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(result
             .findings
@@ -1083,7 +1554,12 @@ fn truly_dead_helper() {}
         let mut graph = parse_rust_to_graph(path.clone(), source).unwrap();
         resolve_graph(&mut graph);
         let parsed_sources = vec![(path, String::from(source))];
-        let result = analyze_dead_code(&graph, &parsed_sources);
+        let result = analyze_dead_code(
+            &graph,
+            &parsed_sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
 
         // Trait-impl method is public contract surface, not dead.
         assert!(
@@ -1143,7 +1619,12 @@ const label = "widget";
 
         resolve_graph(&mut graph);
         let parsed_sources = vec![(importer_path, String::from(importer_source))];
-        let result = analyze_dead_code(&graph, &parsed_sources);
+        let result = analyze_dead_code(
+            &graph,
+            &parsed_sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
 
         assert!(
             !result
@@ -1182,7 +1663,7 @@ export class Service {
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(!result
             .findings
@@ -1239,7 +1720,7 @@ final class FieldLoader
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(!result
             .findings
@@ -1284,7 +1765,7 @@ final class EntityRegistry
         graph.references.append(&mut imported.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(!result
             .findings
@@ -1312,7 +1793,7 @@ class Settings:
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(result
             .findings
@@ -1356,7 +1837,7 @@ apps = {}
         graph.references.append(&mut registry.references);
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(!result
             .findings
@@ -1380,7 +1861,7 @@ def outer():
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(result
             .findings
@@ -1405,7 +1886,7 @@ class Token:
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(result
             .findings
@@ -1439,7 +1920,7 @@ class Settings:
         .unwrap();
 
         resolve_graph(&mut graph);
-        let result = analyze_dead_code(&graph, &[]);
+        let result = analyze_dead_code(&graph, &[], &ContractInventory::default(), Path::new(""));
 
         assert!(!result
             .findings

@@ -167,7 +167,7 @@ pub fn analyze_project(
     let contract_lookup = contract_inventory.lookup();
 
     let dead_code_started = Instant::now();
-    let dead_code = analyze_dead_code(&semantic_graph, &parsed_sources);
+    let dead_code = analyze_dead_code(&semantic_graph, &parsed_sources, &contract_inventory, &root);
     trace(&format!(
         "analyze.dead_code elapsed_ms={}",
         dead_code_started.elapsed().as_millis()
