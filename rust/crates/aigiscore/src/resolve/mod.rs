@@ -80,6 +80,17 @@ impl ResolutionContext {
                 .insert(file.path.clone(), file.language);
         }
 
+        // A function nested inside another function/method is scope-local:
+        // no code outside its enclosing scope can name it, so it must never
+        // be a cross-file (global-tier) resolution target. Same-file
+        // resolution keeps it (closures calling siblings).
+        let function_like_ids = graph
+            .symbols
+            .iter()
+            .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method))
+            .map(|symbol| symbol.id.as_str())
+            .collect::<HashSet<_>>();
+
         for symbol in &graph.symbols {
             let definition = SymbolDefinition {
                 symbol_id: symbol.id.clone(),
@@ -106,11 +117,18 @@ impl ResolutionContext {
                 .entry((symbol.file_path.clone(), symbol.name.clone()))
                 .or_default()
                 .push(definition.clone());
-            context
-                .global_index
-                .entry(symbol.name.clone())
-                .or_default()
-                .push(definition.clone());
+            let scope_local = matches!(symbol.kind, SymbolKind::Function)
+                && symbol
+                    .parent_symbol_id
+                    .as_deref()
+                    .is_some_and(|parent| function_like_ids.contains(parent));
+            if !scope_local {
+                context
+                    .global_index
+                    .entry(symbol.name.clone())
+                    .or_default()
+                    .push(definition.clone());
+            }
             context
                 .qualified_index
                 .entry(symbol.qualified_name.clone())
@@ -389,10 +407,47 @@ fn filter_candidates(
     mut candidates: TieredCandidates,
     context: &ResolutionContext,
 ) -> TieredCandidates {
+    // A static reference can never cross a language family: a TS `extends
+    // Error` / `new Error()` / `SomeService` type-use must not bind to a PHP
+    // class of the same name elsewhere in the repo. Vue SFC scripts parse as
+    // JS/TS, so legitimate Vue->TS edges stay within one family and survive.
+    if let Some(source_language) = context.language_map.get(&reference.file_path).copied() {
+        candidates.candidates.retain(|candidate| {
+            context
+                .language_map
+                .get(&candidate.file_path)
+                .copied()
+                .map_or(true, |candidate_language| {
+                    same_language_family(source_language, candidate_language)
+                })
+        });
+        // A global-tier (no import, no same-file definition) inheritance match
+        // on a builtin supertype name is the language builtin, not a same-named
+        // user class from an unrelated namespace.
+        if candidates.tier == ResolutionTier::Global
+            && matches!(
+                reference.kind,
+                ReferenceKind::Extends | ReferenceKind::Implements
+            )
+            && is_builtin_supertype_name(source_language, &leaf_symbol_name(&reference.target_name))
+        {
+            candidates.candidates.clear();
+        }
+    }
     if reference.kind == ReferenceKind::Call {
         candidates = prefer_same_language_call_candidates(reference, candidates, context);
         let mut receiver_narrowed = false;
         if matches!(reference.call_form, Some(CallForm::Free)) {
+            // A single-character callee (`t(...)`, `h(...)`, `_(...)`) is a
+            // local alias convention (i18n, hyperscript, gettext). With no
+            // same-file or import evidence, binding it repo-wide is a guess
+            // that fabricates cross-module edges — resolve to nothing.
+            if candidates.tier == ResolutionTier::Global
+                && leaf_symbol_name(&reference.target_name).chars().count() <= 1
+            {
+                candidates.candidates.clear();
+                return candidates;
+            }
             let free_function_candidates = candidates
                 .candidates
                 .iter()
@@ -577,6 +632,84 @@ fn filter_candidates(
 /// Ruby permits receiverless instance-method calls (`helper` inside a class),
 /// so bare-call resolution may legitimately bind methods there. PHP, JS/TS,
 /// and Python require an explicit receiver for instance methods.
+/// Two languages that can statically reference each other's symbols. JS and TS
+/// share one module ecosystem (and Vue SFC scripts parse as one of them), so
+/// they form a single family; every other language only references itself.
+fn same_language_family(left: Language, right: Language) -> bool {
+    fn family(language: Language) -> u8 {
+        match language {
+            Language::JavaScript | Language::TypeScript => 0,
+            Language::Php => 1,
+            Language::Python => 2,
+            Language::Ruby => 3,
+            Language::Rust => 4,
+        }
+    }
+    family(left) == family(right)
+}
+
+/// Builtin/stdlib supertypes commonly extended without an import. At global
+/// tier these names denote the language builtin — binding them to a same-named
+/// user class in an unrelated corner of the repo fabricates cross-module (and
+/// with the language gate above, formerly cross-language) inheritance edges.
+fn is_builtin_supertype_name(language: Language, leaf: &str) -> bool {
+    match language {
+        Language::JavaScript | Language::TypeScript => matches!(
+            leaf,
+            "Error"
+                | "TypeError"
+                | "RangeError"
+                | "SyntaxError"
+                | "EvalError"
+                | "ReferenceError"
+                | "URIError"
+                | "AggregateError"
+                | "Object"
+                | "Array"
+                | "Map"
+                | "Set"
+                | "WeakMap"
+                | "WeakSet"
+                | "Promise"
+                | "Event"
+                | "EventTarget"
+                | "CustomEvent"
+                | "Element"
+                | "HTMLElement"
+                | "Node"
+        ),
+        Language::Php => matches!(
+            leaf,
+            "Exception"
+                | "Error"
+                | "TypeError"
+                | "ValueError"
+                | "RuntimeException"
+                | "InvalidArgumentException"
+                | "LogicException"
+                | "DomainException"
+                | "OutOfRangeException"
+                | "ArrayObject"
+                | "ArrayIterator"
+                | "stdClass"
+        ),
+        Language::Python => matches!(
+            leaf,
+            "Exception"
+                | "BaseException"
+                | "ValueError"
+                | "TypeError"
+                | "RuntimeError"
+                | "KeyError"
+                | "AttributeError"
+                | "NotImplementedError"
+                | "object"
+        ),
+        Language::Ruby => matches!(leaf, "StandardError" | "RuntimeError" | "Exception"),
+        Language::Rust => false,
+    }
+}
+
 fn reference_language_allows_bare_method_calls(
     reference: &SemanticReference,
     context: &ResolutionContext,
@@ -1763,6 +1896,95 @@ mod tests {
             .resolved_edges
             .iter()
             .any(|edge| edge.target_symbol_id == "function:src/other.rs:helper"));
+    }
+
+    // A TS `extends Error` names the JS builtin — it must not bind to a PHP
+    // class named `Error` elsewhere in the repo (cross-language inheritance
+    // is impossible), nor to any global-tier same-language user class.
+    #[test]
+    fn builtin_supertype_extends_never_resolves_cross_language_or_globally() {
+        let mut graph = parse_javascript_to_graph(
+            PathBuf::from("resources/js/e2ee.ts"),
+            "export class KeyMismatchError extends Error {\n  constructor() { super(); }\n}\n",
+            true,
+        )
+        .unwrap();
+        let mut php = parse_php_to_graph(
+            PathBuf::from("app/Support/Error.php"),
+            "<?php\nnamespace App\\Support;\n\nfinal class Error\n{\n}\n",
+        )
+        .unwrap();
+        graph.files.append(&mut php.files);
+        graph.symbols.append(&mut php.symbols);
+        graph.references.append(&mut php.references);
+
+        resolve_graph(&mut graph);
+
+        assert!(!graph.resolved_edges.iter().any(|edge| {
+            edge.kind == ReferenceKind::Extends
+                && edge.target_file_path == Path::new("app/Support/Error.php")
+        }));
+    }
+
+    // `new Error(...)` in TS is a constructor call to the JS builtin — it must
+    // not resolve to a PHP class named `Error` (cross-family), yet a real
+    // Vue(TS)->TS import of a user class must still resolve.
+    #[test]
+    fn constructor_calls_do_not_cross_language_families() {
+        let mut graph = parse_javascript_to_graph(
+            PathBuf::from("resources/js/keyStore.ts"),
+            "export function fail(): void {\n  throw new Error('boom');\n}\n",
+            true,
+        )
+        .unwrap();
+        let mut php = parse_php_to_graph(
+            PathBuf::from("app/Modules/Pohoda/Support/Error.php"),
+            "<?php\nnamespace App\\Modules\\Pohoda\\Support;\n\nclass Error\n{\n    public function __construct(string $m = '') {}\n}\n",
+        )
+        .unwrap();
+        graph.files.append(&mut php.files);
+        graph.symbols.append(&mut php.symbols);
+        graph.references.append(&mut php.references);
+
+        resolve_graph(&mut graph);
+
+        assert!(!graph.resolved_edges.iter().any(|edge| {
+            edge.target_file_path == Path::new("app/Modules/Pohoda/Support/Error.php")
+                && edge.source_file_path == Path::new("resources/js/keyStore.ts")
+        }));
+    }
+
+    // A destructured i18n alias `t(...)` must not bind repo-wide to a nested
+    // helper `function t()` in a foreign module: nested functions are
+    // scope-local (excluded from the global tier) and one-char callees carry
+    // no global-binding evidence at all.
+    #[test]
+    fn one_char_free_calls_and_nested_functions_never_bind_globally() {
+        let mut graph = parse_javascript_to_graph(
+            PathBuf::from("app/Modules/WarehouseMobile/resources/js/Index.vue.ts"),
+            "const { t } = useTranslation();\nexport function label(): string {\n  return t('warehouse.title');\n}\n",
+            true,
+        )
+        .unwrap();
+        let mut other = parse_javascript_to_graph(
+            PathBuf::from("app/Modules/Website/resources/js/fullPreviewOverlay.ts"),
+            "export function overlay(): void {\n  function t(key: string): string {\n    return key;\n  }\n  t('x');\n}\n",
+            true,
+        )
+        .unwrap();
+        graph.files.append(&mut other.files);
+        graph.symbols.append(&mut other.symbols);
+        graph.references.append(&mut other.references);
+
+        resolve_graph(&mut graph);
+
+        assert!(!graph.resolved_edges.iter().any(|edge| {
+            edge.kind == ReferenceKind::Call
+                && edge.source_file_path
+                    == Path::new("app/Modules/WarehouseMobile/resources/js/Index.vue.ts")
+                && edge.target_file_path
+                    == Path::new("app/Modules/Website/resources/js/fullPreviewOverlay.ts")
+        }));
     }
 
     #[test]

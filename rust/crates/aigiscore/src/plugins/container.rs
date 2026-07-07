@@ -29,7 +29,7 @@ impl RuntimePlugin for ContainerResolutionPlugin {
             matches!(symbol.kind, SymbolKind::Class | SymbolKind::Struct)
         });
         let same_file_symbols = same_file_symbol_targets(graph);
-        let global_unique_symbols = global_unique_class_targets(graph);
+        let class_targets = class_targets_by_leaf(graph);
         let mut source_cache = HashMap::<PathBuf, Vec<String>>::new();
         let mut emitted = HashSet::<(PathBuf, String, usize)>::new();
         let mut edges = Vec::new();
@@ -43,12 +43,12 @@ impl RuntimePlugin for ContainerResolutionPlugin {
             else {
                 continue;
             };
-            let Some((target_symbol_id, target_file_path)) = resolve_container_target(
+            let Some((target_symbol_id, target_file_path, channel)) = resolve_container_target(
                 &reference.file_path,
                 &binding_name,
                 &import_targets,
                 &same_file_symbols,
-                &global_unique_symbols,
+                &class_targets,
             ) else {
                 continue;
             };
@@ -66,11 +66,12 @@ impl RuntimePlugin for ContainerResolutionPlugin {
                     target_file_path,
                     target_symbol_id,
                     ReferenceKind::Call,
-                    ResolutionTier::Global,
-                    650,
+                    channel.resolution_tier(),
+                    channel.confidence_millis(),
                     format!(
-                        "framework container resolution via {}",
-                        container_via(reference)
+                        "framework container resolution via {} ({})",
+                        container_via(reference),
+                        channel.evidence_label()
                     ),
                     reference.line,
                 )
@@ -174,26 +175,162 @@ fn container_via(reference: &crate::graph::SemanticReference) -> String {
     }
 }
 
+/// How a container binding was bound to a concrete class. The channel decides
+/// how much the rest of the pipeline may trust the edge: an imported class, a
+/// same-file class, a namespace-qualified literal whose path matches, or a
+/// same-directory sibling (PHP same-namespace needs no `use`) all pin the
+/// target exactly; a bare name matched against a repo-unique class is only a
+/// plausible guess.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContainerResolutionChannel {
+    ImportedClass,
+    SameFileClass,
+    QualifiedPathVerified,
+    SameDirectoryClass,
+    GlobalUniqueName,
+}
+
+impl ContainerResolutionChannel {
+    fn resolution_tier(self) -> ResolutionTier {
+        match self {
+            Self::ImportedClass => ResolutionTier::ImportScoped,
+            Self::SameFileClass => ResolutionTier::SameFile,
+            Self::QualifiedPathVerified | Self::SameDirectoryClass | Self::GlobalUniqueName => {
+                ResolutionTier::Global
+            }
+        }
+    }
+
+    fn confidence_millis(self) -> u16 {
+        match self {
+            Self::ImportedClass
+            | Self::SameFileClass
+            | Self::QualifiedPathVerified
+            | Self::SameDirectoryClass => 900,
+            Self::GlobalUniqueName => 650,
+        }
+    }
+
+    fn evidence_label(self) -> &'static str {
+        match self {
+            Self::ImportedClass => "imported class",
+            Self::SameFileClass => "same-file class",
+            Self::QualifiedPathVerified => "qualified name, path-verified",
+            Self::SameDirectoryClass => "same-directory class",
+            Self::GlobalUniqueName => "globally unique name",
+        }
+    }
+}
+
 fn resolve_container_target(
     file_path: &Path,
     binding_name: &str,
     import_targets: &HashMap<(PathBuf, String), (String, PathBuf)>,
     same_file_symbols: &HashMap<(PathBuf, String), (String, PathBuf)>,
-    global_unique_symbols: &HashMap<String, (String, PathBuf)>,
-) -> Option<(String, PathBuf)> {
+    class_targets: &HashMap<String, Vec<(String, PathBuf)>>,
+) -> Option<(String, PathBuf, ContainerResolutionChannel)> {
     let leaf = leaf_symbol_name(binding_name);
-    import_targets
-        .get(&(file_path.to_path_buf(), leaf.clone()))
-        .cloned()
-        .or_else(|| {
-            same_file_symbols
-                .get(&(file_path.to_path_buf(), leaf.clone()))
-                .cloned()
-        })
-        .or_else(|| global_unique_symbols.get(&leaf).cloned())
+    if let Some((symbol_id, target)) = import_targets.get(&(file_path.to_path_buf(), leaf.clone()))
+    {
+        return Some((
+            symbol_id.clone(),
+            target.clone(),
+            ContainerResolutionChannel::ImportedClass,
+        ));
+    }
+    if let Some((symbol_id, target)) =
+        same_file_symbols.get(&(file_path.to_path_buf(), leaf.clone()))
+    {
+        return Some((
+            symbol_id.clone(),
+            target.clone(),
+            ContainerResolutionChannel::SameFileClass,
+        ));
+    }
+    let candidates = class_targets.get(&leaf)?;
+    if binding_name.contains('\\') {
+        if let Some((symbol_id, target)) = qualified_path_match(binding_name, candidates) {
+            return Some((
+                symbol_id,
+                target,
+                ContainerResolutionChannel::QualifiedPathVerified,
+            ));
+        }
+    }
+    if let Some((symbol_id, target)) = same_directory_match(file_path, candidates) {
+        return Some((
+            symbol_id,
+            target,
+            ContainerResolutionChannel::SameDirectoryClass,
+        ));
+    }
+    if candidates.len() == 1 {
+        let (symbol_id, target) = &candidates[0];
+        return Some((
+            symbol_id.clone(),
+            target.clone(),
+            ContainerResolutionChannel::GlobalUniqueName,
+        ));
+    }
+    None
 }
 
-fn global_unique_class_targets(graph: &SemanticGraph) -> HashMap<String, (String, PathBuf)> {
+/// A namespace-qualified binding (`App\Entities\_Core\EntityManager`) names its
+/// own path under PSR-4-style layouts: the candidate whose trailing directory
+/// segments equal the namespace segments (case-insensitive) is the target.
+/// Requires a unique match so an ambiguous layout falls through to weaker
+/// channels instead of guessing.
+fn qualified_path_match(
+    binding_name: &str,
+    candidates: &[(String, PathBuf)],
+) -> Option<(String, PathBuf)> {
+    let namespace_segments = binding_name.split('\\').collect::<Vec<_>>();
+    let dir_segments = &namespace_segments[..namespace_segments.len().saturating_sub(1)];
+    if dir_segments.is_empty() {
+        return None;
+    }
+    let mut matches = candidates.iter().filter(|(_, path)| {
+        let dirs = path
+            .parent()
+            .map(|parent| {
+                parent
+                    .components()
+                    .map(|component| component.as_os_str().to_string_lossy().to_string())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        dirs.len() >= dir_segments.len()
+            && dirs[dirs.len() - dir_segments.len()..]
+                .iter()
+                .zip(dir_segments)
+                .all(|(dir, segment)| dir.eq_ignore_ascii_case(segment))
+    });
+    let first = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+    Some(first.clone())
+}
+
+/// PHP resolves a bare class name against the current namespace before
+/// anything else, and PSR-4 puts same-namespace classes in the same directory
+/// — so a same-directory candidate is an exact-semantics match, not a guess.
+fn same_directory_match(
+    file_path: &Path,
+    candidates: &[(String, PathBuf)],
+) -> Option<(String, PathBuf)> {
+    let directory = file_path.parent()?;
+    let mut matches = candidates
+        .iter()
+        .filter(|(_, path)| path.parent() == Some(directory));
+    let first = matches.next()?;
+    if matches.next().is_some() {
+        return None;
+    }
+    Some(first.clone())
+}
+
+fn class_targets_by_leaf(graph: &SemanticGraph) -> HashMap<String, Vec<(String, PathBuf)>> {
     let mut grouped = HashMap::<String, Vec<(String, PathBuf)>>::new();
     for symbol in graph
         .symbols
@@ -205,17 +342,7 @@ fn global_unique_class_targets(graph: &SemanticGraph) -> HashMap<String, (String
             .or_default()
             .push((symbol.id.clone(), symbol.file_path.clone()));
     }
-
     grouped
-        .into_iter()
-        .filter_map(|(name, mut matches)| {
-            if matches.len() == 1 {
-                matches.pop().map(|entry| (name, entry))
-            } else {
-                None
-            }
-        })
-        .collect()
 }
 
 fn app_helper_regex() -> &'static Regex {
@@ -373,6 +500,107 @@ $app->make(\App\Services\TenantManager::class);
         assert!(framework_edges.iter().any(|edge| edge.line == 11));
         assert!(framework_edges.iter().any(|edge| edge.line == 12));
         assert!(framework_edges.iter().any(|edge| edge.line == 2));
+    }
+
+    // PHP resolves a bare class name against its own namespace without a
+    // `use` statement, and a namespace-qualified literal names its PSR-4
+    // path — both channels must produce high-confidence edges even when a
+    // same-named decoy class exists elsewhere (which kills the old
+    // globally-unique-name fallback).
+    #[test]
+    fn resolves_same_namespace_and_qualified_bindings_with_high_confidence() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("app/Services")).unwrap();
+        fs::create_dir_all(fixture.join("app/Entities")).unwrap();
+        fs::create_dir_all(fixture.join("app/Legacy")).unwrap();
+        fs::write(
+            fixture.join("app/Services/TenantDb.php"),
+            r#"<?php
+namespace App\Services;
+
+final class TenantDb
+{
+    public function tenant(): ?string
+    {
+        return app(TenantManager::class)->getCurrentTenant();
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Services/TenantManager.php"),
+            r#"<?php
+namespace App\Services;
+
+final class TenantManager
+{
+    public function getCurrentTenant(): ?string
+    {
+        return null;
+    }
+
+    public function reset(): void
+    {
+        app(\App\Entities\EntityManager::class)->clear();
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Entities/EntityManager.php"),
+            r#"<?php
+namespace App\Entities;
+
+final class EntityManager
+{
+    public function clear(): void
+    {
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/Legacy/EntityManager.php"),
+            r#"<?php
+namespace App\Legacy;
+
+final class EntityManager
+{
+}
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let container_edges = analysis
+            .semantic_graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| edge.relation_kind == RelationKind::ContainerResolution)
+            .collect::<Vec<_>>();
+
+        let same_directory = container_edges
+            .iter()
+            .find(|edge| edge.source_file_path == PathBuf::from("app/Services/TenantDb.php"))
+            .expect("same-namespace binding resolves");
+        assert_eq!(
+            same_directory.target_file_path,
+            PathBuf::from("app/Services/TenantManager.php")
+        );
+        assert_eq!(same_directory.confidence_millis, 900);
+
+        let qualified = container_edges
+            .iter()
+            .find(|edge| edge.source_file_path == PathBuf::from("app/Services/TenantManager.php"))
+            .expect("qualified binding resolves despite decoy class");
+        assert_eq!(
+            qualified.target_file_path,
+            PathBuf::from("app/Entities/EntityManager.php")
+        );
+        assert_eq!(qualified.confidence_millis, 900);
     }
 
     fn create_fixture() -> PathBuf {
