@@ -515,7 +515,7 @@ fn classify_cycles(graph: &SemanticGraph, cycles: &[Vec<PathBuf>]) -> Vec<CycleF
 
             let mut finding = CycleFinding {
                 files: files.clone(),
-                cycle_class: classify_cycle_class(files, &layers, &dominant_relations),
+                cycle_class: classify_cycle_class(files, &layers, &component_edges),
                 layers,
                 dominant_relations,
                 edge_count: component_edges.len(),
@@ -530,31 +530,60 @@ fn classify_cycles(graph: &SemanticGraph, cycles: &[Vec<PathBuf>]) -> Vec<CycleF
 fn classify_cycle_class(
     files: &[PathBuf],
     layers: &[GraphLayer],
-    dominant_relations: &[RelationKind],
+    component_edges: &[&ResolvedEdge],
 ) -> CycleClass {
+    // A big knot is only "probably the analyzer's fault" when its cyclicity
+    // rests on low-confidence edges. If a strongly-connected core covering
+    // most of the component survives on high-confidence edges alone, the
+    // knot is proven real regardless of size — labeling it an artifact
+    // would teach users to distrust true findings.
+    if files.len() >= 8 && !high_confidence_core_covers_component(files, component_edges) {
+        return CycleClass::ProbableArtifact;
+    }
+
     if layers.len() > 1 {
-        if files.len() >= 8 {
-            return CycleClass::ProbableArtifact;
-        }
         return CycleClass::Mixed;
     }
 
     match layers.first().copied().unwrap_or(GraphLayer::Structural) {
         GraphLayer::Structural => CycleClass::Structural,
         GraphLayer::Runtime => CycleClass::Runtime,
-        GraphLayer::Framework => {
-            if files.len() >= 8
-                && dominant_relations
-                    .iter()
-                    .all(|relation| matches!(relation, RelationKind::Call | RelationKind::Import))
-            {
-                CycleClass::ProbableArtifact
-            } else {
-                CycleClass::Framework
-            }
-        }
+        GraphLayer::Framework => CycleClass::Framework,
         GraphLayer::PolicyOverlay => CycleClass::PolicyOverlay,
     }
+}
+
+const HIGH_CONFIDENCE_EDGE_MILLIS: u16 = 900;
+
+/// True when the component stays strongly connected across most of its files
+/// (>= 60%) using only high-confidence edges.
+fn high_confidence_core_covers_component(
+    files: &[PathBuf],
+    component_edges: &[&ResolvedEdge],
+) -> bool {
+    let mut graph = DiGraph::<PathBuf, ()>::new();
+    let mut indices = HashMap::<PathBuf, _>::new();
+    let mut seen_edges = HashSet::new();
+    for edge in component_edges
+        .iter()
+        .filter(|edge| edge.confidence_millis >= HIGH_CONFIDENCE_EDGE_MILLIS)
+    {
+        let source = *indices
+            .entry(edge.source_file_path.clone())
+            .or_insert_with(|| graph.add_node(edge.source_file_path.clone()));
+        let target = *indices
+            .entry(edge.target_file_path.clone())
+            .or_insert_with(|| graph.add_node(edge.target_file_path.clone()));
+        if source != target && seen_edges.insert((source, target)) {
+            graph.add_edge(source, target, ());
+        }
+    }
+    let largest_core = kosaraju_scc(&graph)
+        .into_iter()
+        .map(|component| component.len())
+        .max()
+        .unwrap_or(0);
+    largest_core * 10 >= files.len() * 6
 }
 
 fn layer_rank(layer: &GraphLayer) -> u8 {
@@ -1107,5 +1136,58 @@ mod tests {
             String::from("test"),
             1,
         )
+    }
+
+    fn low_confidence_framework_edge(source: &str, target: &str) -> ResolvedEdge {
+        let mut edge = edge(source, target, ReferenceKind::Call);
+        edge.resolution_tier = ResolutionTier::Global;
+        edge.confidence_millis = 650;
+        edge.layer = GraphLayer::Framework;
+        edge.relation_kind = RelationKind::ContainerResolution;
+        edge
+    }
+
+    // Ten files in a ring. With high-confidence edges closing the ring the
+    // knot is proven real (Mixed), never an artifact — even at suspicious
+    // size with mixed layers.
+    #[test]
+    fn big_cycle_on_high_confidence_edges_is_not_an_artifact() {
+        let mut graph = SemanticGraph::default();
+        let files = (0..10).map(|i| format!("src/f{i}.php")).collect::<Vec<_>>();
+        for pair in files.windows(2) {
+            graph.add_resolved_edge(edge(&pair[0], &pair[1], ReferenceKind::Call));
+        }
+        graph.add_resolved_edge(edge(&files[9], &files[0], ReferenceKind::Call));
+        // One extra low-confidence framework edge mixes the layers without
+        // being load-bearing for the cycle.
+        graph.add_resolved_edge(low_confidence_framework_edge(&files[0], &files[5]));
+
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
+
+        assert_eq!(analysis.strong_cycle_findings.len(), 1);
+        assert_eq!(
+            analysis.strong_cycle_findings[0].cycle_class,
+            super::CycleClass::Mixed
+        );
+    }
+
+    // Same ring, but the closing edge only exists at low confidence: the
+    // cyclicity itself is unproven, so the artifact suspicion stands.
+    #[test]
+    fn big_cycle_closed_only_by_low_confidence_edges_is_probable_artifact() {
+        let mut graph = SemanticGraph::default();
+        let files = (0..10).map(|i| format!("src/f{i}.php")).collect::<Vec<_>>();
+        for pair in files.windows(2) {
+            graph.add_resolved_edge(edge(&pair[0], &pair[1], ReferenceKind::Call));
+        }
+        graph.add_resolved_edge(low_confidence_framework_edge(&files[9], &files[0]));
+
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
+
+        assert_eq!(analysis.strong_cycle_findings.len(), 1);
+        assert_eq!(
+            analysis.strong_cycle_findings[0].cycle_class,
+            super::CycleClass::ProbableArtifact
+        );
     }
 }
