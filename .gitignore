@@ -13,3 +13,5 @@ website/.plan/
 docs/plans/
 target/
 reports/
+.mcp.json
+.omo/
