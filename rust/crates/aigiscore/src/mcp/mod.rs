@@ -14,8 +14,9 @@ use self::contracts::{
     ListFindingsOutput, ListFindingsParams, ModuleDesignOutput, ModuleDesignParams,
     ModuleEdgeOutput, PrepareChangeOutput, PrepareChangeParams, QualityEvaluationOutput,
     RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams, ReviewRadiusFileOutput,
-    ShowCyclesParams, ShowHotspotsParams, SymbolMatchOutput, SymbolUsagesOutput,
-    SymbolUsagesParams, UsageSiteOutput, VerifyChangeOutput, VerifyChangeParams,
+    ShowCyclesParams, ShowHotspotsParams, SuppressFindingOutput, SuppressFindingParams,
+    SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput, VerifyChangeOutput,
+    VerifyChangeParams,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -1047,6 +1048,72 @@ impl AigiscodeMcpServer {
             honesty,
             freshness: self.live.actionable_freshness(true),
         })
+    }
+
+    #[tool(
+        name = "suppress_finding",
+        description = "Accept a finding as a sanctioned pattern: writes one exclusion rule (finding type + file pattern + optional symbol + your reason) to .aigiscode/rules.json so future analyses hide it and convergence gets quieter. Detector and orphan findings only — architecture findings need a fix or a doctrine change. Takes effect on the next analysis; under `mcp --watch` that is the next observed source change."
+    )]
+    async fn suppress_finding(
+        &self,
+        Parameters(params): Parameters<SuppressFindingParams>,
+    ) -> Result<Json<SuppressFindingOutput>, String> {
+        let reason = params.reason.trim();
+        if reason.is_empty() {
+            return Err(String::from(
+                "reason is required — rules without a reason decay into mystery policy",
+            ));
+        }
+        let finding_id = params.finding_id.trim();
+        let state = self.state().await;
+        let snapshot = state.snapshot();
+        let finding = snapshot
+            .finding_summaries
+            .iter()
+            .find(|finding| finding.id == finding_id || finding.fingerprint == finding_id)
+            .ok_or_else(|| format!("unknown finding: {finding_id}"))?;
+        let detail = snapshot.finding_details.get(&finding.id);
+        let evidence_kind = detail
+            .map(|detail| detail.evidence_kind.as_str())
+            .unwrap_or("");
+        let (finding_type, symbol_name) = rule_spec_for_finding(finding, evidence_kind, detail)
+            .ok_or_else(|| {
+                format!(
+                    "finding `{finding_id}` ({evidence_kind}) cannot be suppressed by rules — only detector and orphan findings can; architecture findings need a fix or a doctrine change"
+                )
+            })?;
+        let file_pattern =
+            finding.file_paths.first().cloned().ok_or_else(|| {
+                format!("finding `{finding_id}` has no file path to scope a rule to")
+            })?;
+
+        let (rules_path, outcome) = crate::policy::append_exclusion_rule(
+            Path::new(&snapshot.root),
+            &finding_type,
+            &file_pattern,
+            symbol_name.as_deref(),
+            reason,
+        )
+        .map_err(|error| error.to_string())?;
+
+        Ok(Json(SuppressFindingOutput {
+            finding_id: finding.id.clone(),
+            finding_type,
+            file_pattern,
+            symbol_name,
+            rules_path: rules_path.display().to_string(),
+            outcome: match outcome {
+                crate::policy::AppendRuleOutcome::Appended => String::from("appended"),
+                crate::policy::AppendRuleOutcome::AlreadyPresent => String::from("already_present"),
+            },
+            takes_effect: String::from(
+                "next analysis — under `mcp --watch`, the next observed source change triggers it; or run `aigiscode analyze`",
+            ),
+            honesty: vec![String::from(
+                "the finding stays visible in the current snapshot until the next analysis runs",
+            )],
+            freshness: self.live.actionable_freshness(true),
+        }))
     }
 
     #[tool(
@@ -2212,6 +2279,46 @@ fn looks_like_test(path: &str) -> bool {
         || lower.contains(".spec.")
 }
 
+/// Map a finding to the exclusion rule the policy engine can enforce for it.
+/// Returns `None` for findings the rule engine cannot express (architecture
+/// judgments, cycle/topology notes) so the caller refuses honestly instead of
+/// writing a rule that never matches.
+fn rule_spec_for_finding(
+    finding: &FindingSummaryOutput,
+    evidence_kind: &str,
+    detail: Option<&FindingDetailOutput>,
+) -> Option<(String, Option<String>)> {
+    match evidence_kind {
+        "unused_private_function" | "unused_import" => {
+            // dead-code ids are `dead-code:{path}:{line}:{name}`.
+            let name = finding
+                .id
+                .rsplit_once(':')
+                .map(|(_, name)| name.to_string());
+            Some((String::from(evidence_kind), name))
+        }
+        "orphan_module" | "orphan_file" => Some((String::from("orphan_file"), None)),
+        "magic_string" | "repeated_literal" | "hardcoded_network" | "env_outside_config" => Some((
+            String::from(evidence_kind),
+            detail.and_then(|detail| detail.literal_value.clone()),
+        )),
+        "dangerous_command_execution" => Some((
+            String::from("security_command_execution"),
+            Some(finding.fingerprint.clone()),
+        )),
+        "dangerous_code_injection" => Some((
+            String::from("security_code_injection"),
+            Some(finding.fingerprint.clone()),
+        )),
+        "unsafe_deserialization" | "unsafe_html_output" => Some((
+            String::from(evidence_kind),
+            Some(finding.fingerprint.clone()),
+        )),
+        _ if finding.family == "external" => Some((String::from("external"), None)),
+        _ => None,
+    }
+}
+
 fn resource_name(uri: &str) -> &'static str {
     match uri {
         OVERVIEW_URI => "overview",
@@ -2814,6 +2921,89 @@ fn main() {
             .freshness
             .expect("dirty snapshot must report actionable freshness");
         assert!(freshness.is_stale);
+    }
+
+    #[tokio::test]
+    async fn suppress_finding_writes_a_scoped_reasoned_rule() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"fn unused() {}
+
+fn main() {
+    let _ = "https://api.example.com";
+}
+"#,
+        )
+        .unwrap();
+
+        let server =
+            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+
+        let dead_code = server
+            .list_findings(Parameters(ListFindingsParams {
+                family: Some(super::contracts::FindingFamilyFilter::DeadCode),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        let finding = dead_code
+            .findings
+            .first()
+            .expect("fixture must yield a dead-code finding")
+            .clone();
+
+        // Reason is mandatory: rules without one decay into mystery policy.
+        assert!(server
+            .suppress_finding(Parameters(super::SuppressFindingParams {
+                finding_id: finding.id.clone(),
+                reason: String::new(),
+            }))
+            .await
+            .is_err());
+
+        let suppressed = server
+            .suppress_finding(Parameters(super::SuppressFindingParams {
+                finding_id: finding.id.clone(),
+                reason: String::from("kept for the CLI compatibility surface"),
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(suppressed.outcome, "appended");
+        assert_eq!(suppressed.finding_type, "unused_private_function");
+        assert_eq!(suppressed.file_pattern, "src/main.rs");
+        assert_eq!(suppressed.symbol_name.as_deref(), Some("unused"));
+
+        // The rule landed on disk with its reason, scoped narrowly.
+        let rules: Value = serde_json::from_str(
+            &fs::read_to_string(fixture.join(".aigiscode/rules.json")).unwrap(),
+        )
+        .unwrap();
+        let rules = rules["rules"].as_array().unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0]["reason"], "kept for the CLI compatibility surface");
+
+        // Same finding again dedups.
+        let again = server
+            .suppress_finding(Parameters(super::SuppressFindingParams {
+                finding_id: finding.id.clone(),
+                reason: String::from("duplicate"),
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(again.outcome, "already_present");
+
+        // Unknown findings are errors, never silent no-ops.
+        assert!(server
+            .suppress_finding(Parameters(super::SuppressFindingParams {
+                finding_id: String::from("dead-code:nope.rs:1:ghost"),
+                reason: String::from("ghost"),
+            }))
+            .await
+            .is_err());
     }
 
     #[tokio::test]

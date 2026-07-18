@@ -232,6 +232,34 @@ pub struct VerifyChangeOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SuppressFindingParams {
+    /// Finding id (from list_findings / prepare_change) or fingerprint.
+    pub finding_id: String,
+    /// Why this finding is an accepted pattern — stored on the rule for the
+    /// next reviewer. Required: rules without a reason decay into mystery policy.
+    pub reason: String,
+}
+
+/// Result of writing an exclusion rule for a finding.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct SuppressFindingOutput {
+    pub finding_id: String,
+    /// The rule that was written (or matched an existing one).
+    pub finding_type: String,
+    pub file_pattern: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol_name: Option<String>,
+    pub rules_path: String,
+    /// appended | already_present
+    pub outcome: String,
+    /// When the suppression becomes visible in findings.
+    pub takes_effect: String,
+    pub honesty: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ExplainFindingParams {
     pub finding_id: String,
 }

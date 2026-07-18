@@ -35,6 +35,14 @@ pub enum PolicyLoadError {
         #[source]
         source: globset::Error,
     },
+    #[error("failed to write {path}: {source}")]
+    Write {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("cannot append exclusion rule to {path}: {reason}")]
+    Unsupported { path: PathBuf, reason: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -280,6 +288,11 @@ struct ExclusionRule {
     symbol_name: Option<String>,
     #[serde(default, alias = "source")]
     tool: Option<String>,
+    /// Why the finding is accepted — carried for the next human/agent reading
+    /// the policy; matching does not use it.
+    #[serde(default)]
+    #[allow(dead_code)]
+    reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -553,6 +566,150 @@ fn external_match_path(finding: &ExternalFinding) -> String {
         normalize_token(&finding.tool),
         normalize_token(&finding.category)
     )
+}
+
+/// Outcome of an [`append_exclusion_rule`] call.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AppendRuleOutcome {
+    /// A new rule was written to `.aigiscode/rules.json`.
+    Appended,
+    /// An equivalent rule (same type + path pattern + symbol) already exists.
+    AlreadyPresent,
+}
+
+/// Append one exclusion rule to `.aigiscode/rules.json`, preserving existing
+/// content and format (bare array or wrapped `{ "rules": [...] }`).
+///
+/// Honesty guards: the finding type must be one the engine actually enforces,
+/// and the merged file must still parse as live rules — legacy shapes that the
+/// loader would silently drop are refused instead of extended, so an append
+/// can never silently disable the whole rule set.
+pub fn append_exclusion_rule(
+    root: &Path,
+    finding_type: &str,
+    file_pattern: &str,
+    symbol_name: Option<&str>,
+    reason: &str,
+) -> Result<(PathBuf, AppendRuleOutcome), PolicyLoadError> {
+    let rules_path = root.join(RULES_FILE);
+    if RuleFindingType::parse(finding_type).is_none() {
+        return Err(PolicyLoadError::Unsupported {
+            path: rules_path,
+            reason: format!("unknown finding type `{finding_type}` — the rule would never match"),
+        });
+    }
+
+    let mut new_rule = serde_json::json!({
+        "finding_type": finding_type,
+        "file_pattern": file_pattern,
+        "reason": reason,
+        "created_by": "aigiscode suppress_finding",
+    });
+    if let Some(symbol_name) = symbol_name {
+        new_rule["symbol_name"] = Value::String(symbol_name.to_string());
+    }
+
+    let (mut document, wrapped) = match fs::read_to_string(&rules_path) {
+        Ok(content) => {
+            let value: Value =
+                serde_json::from_str(&content).map_err(|source| PolicyLoadError::Parse {
+                    path: rules_path.clone(),
+                    source,
+                })?;
+            if value.get("rules").is_some() {
+                (value, true)
+            } else if value.is_array() {
+                (value, false)
+            } else {
+                return Err(PolicyLoadError::Unsupported {
+                    path: rules_path,
+                    reason: String::from("expected a rules array or an object with a `rules` key"),
+                });
+            }
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            (serde_json::json!({ "rules": [] }), true)
+        }
+        Err(source) => {
+            return Err(PolicyLoadError::Read {
+                path: rules_path,
+                source,
+            })
+        }
+    };
+
+    let rules = if wrapped {
+        document
+            .get_mut("rules")
+            .and_then(Value::as_array_mut)
+            .ok_or_else(|| PolicyLoadError::Unsupported {
+                path: rules_path.clone(),
+                reason: String::from("`rules` is not an array"),
+            })?
+    } else {
+        document
+            .as_array_mut()
+            .ok_or_else(|| PolicyLoadError::Unsupported {
+                path: rules_path.clone(),
+                reason: String::from("expected a rules array"),
+            })?
+    };
+
+    let equivalent = |rule: &Value| {
+        let type_matches = ["finding_type", "type", "kind", "findingType"]
+            .iter()
+            .find_map(|key| rule.get(key))
+            .and_then(Value::as_str)
+            .is_some_and(|value| {
+                RuleFindingType::parse(value) == RuleFindingType::parse(finding_type)
+            });
+        let path_matches = ["file_pattern", "path", "filePathPattern"]
+            .iter()
+            .find_map(|key| rule.get(key))
+            .and_then(Value::as_str)
+            == Some(file_pattern);
+        let symbol_matches = ["symbol_name", "name", "value"]
+            .iter()
+            .find_map(|key| rule.get(key))
+            .and_then(Value::as_str)
+            == symbol_name;
+        type_matches && path_matches && symbol_matches
+    };
+    if rules.iter().any(equivalent) {
+        return Ok((rules_path, AppendRuleOutcome::AlreadyPresent));
+    }
+    rules.push(new_rule);
+
+    // Never write a file the loader would degrade to legacy (dropping every
+    // rule): the merged document must round-trip as live rules.
+    if !matches!(
+        serde_json::from_value::<RulesFile>(document.clone()),
+        Ok(RulesFile::Wrapped { .. } | RulesFile::Bare(_))
+    ) {
+        return Err(PolicyLoadError::Unsupported {
+            path: rules_path,
+            reason: String::from(
+                "existing rules use a legacy shape that the loader ignores — migrate them before appending",
+            ),
+        });
+    }
+
+    if let Some(parent) = rules_path.parent() {
+        fs::create_dir_all(parent).map_err(|source| PolicyLoadError::Write {
+            path: parent.to_path_buf(),
+            source,
+        })?;
+    }
+    let serialized =
+        serde_json::to_string_pretty(&document).map_err(|source| PolicyLoadError::Unsupported {
+            path: rules_path.clone(),
+            reason: format!("failed to serialize rules: {source}"),
+        })?;
+    fs::write(&rules_path, format!("{serialized}\n")).map_err(|source| PolicyLoadError::Write {
+        path: rules_path.clone(),
+        source,
+    })?;
+    Ok((rules_path, AppendRuleOutcome::Appended))
 }
 
 #[cfg(test)]
@@ -878,6 +1035,105 @@ mod tests {
             Value::String(package_name.to_string()),
         );
         extras
+    }
+
+    #[test]
+    fn append_exclusion_rule_appends_dedups_and_preserves_existing_rules() {
+        let fixture = create_fixture();
+
+        // First append creates the wrapped file with the reason carried along.
+        let (path, outcome) = super::append_exclusion_rule(
+            &fixture,
+            "unused_import",
+            "src/lib.rs",
+            Some("RepoAlias"),
+            "re-export shim kept for the public API",
+        )
+        .unwrap();
+        assert_eq!(outcome, super::AppendRuleOutcome::Appended);
+        let written: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        let rules = written["rules"].as_array().unwrap();
+        assert_eq!(rules.len(), 1);
+        assert_eq!(rules[0]["finding_type"], "unused_import");
+        assert_eq!(rules[0]["reason"], "re-export shim kept for the public API");
+
+        // The engine enforces what we just wrote on the next load.
+        let bundle = PolicyBundle::load(&fixture).unwrap();
+        assert_eq!(
+            bundle.suppress_dead_code(&DeadCodeFinding {
+                category: DeadCodeCategory::UnusedImport,
+                symbol_id: String::from("imp1"),
+                file_path: PathBuf::from("src/lib.rs"),
+                name: String::from("RepoAlias"),
+                line: 3,
+                proof_tier: DeadCodeProofTier::Certain,
+                fingerprint: String::from("dead-9"),
+                delete_verdict: String::new(),
+                delete_evidence: Vec::new(),
+            }),
+            Some(SuppressionReason::Rule)
+        );
+
+        // Identical append dedups instead of stacking rules.
+        let (_, outcome) = super::append_exclusion_rule(
+            &fixture,
+            "unused_import",
+            "src/lib.rs",
+            Some("RepoAlias"),
+            "same rule again",
+        )
+        .unwrap();
+        assert_eq!(outcome, super::AppendRuleOutcome::AlreadyPresent);
+        let written: Value = serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(written["rules"].as_array().unwrap().len(), 1);
+
+        // A different symbol in the same file is a distinct rule.
+        let (_, outcome) = super::append_exclusion_rule(
+            &fixture,
+            "unused_import",
+            "src/lib.rs",
+            Some("OtherAlias"),
+            "second shim",
+        )
+        .unwrap();
+        assert_eq!(outcome, super::AppendRuleOutcome::Appended);
+
+        // Unknown finding types are refused instead of writing a dead rule.
+        assert!(super::append_exclusion_rule(
+            &fixture,
+            "not_a_real_type",
+            "src/lib.rs",
+            None,
+            "bogus",
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn append_exclusion_rule_refuses_legacy_files_instead_of_disabling_them() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        // A legacy entry the loader ignores: appending must not turn the whole
+        // file into a silently-dropped legacy blob.
+        fs::write(
+            fixture.join(".aigiscode/rules.json"),
+            br#"[{"weird": true}]"#,
+        )
+        .unwrap();
+
+        assert!(super::append_exclusion_rule(
+            &fixture,
+            "unused_import",
+            "src/lib.rs",
+            None,
+            "should not land",
+        )
+        .is_err());
+        // File untouched.
+        assert_eq!(
+            fs::read_to_string(fixture.join(".aigiscode/rules.json")).unwrap(),
+            "[{\"weird\": true}]"
+        );
     }
 
     fn create_fixture() -> PathBuf {

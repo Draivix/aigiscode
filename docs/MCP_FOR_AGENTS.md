@@ -143,6 +143,14 @@ Verify:
   fixes (resolved+improved) over the touched paths, or the daemon's observed
   dirty paths when called empty under `--watch`.
 
+Converge:
+- `suppress_finding(finding_id, reason)` — accept a detector/orphan finding as
+  a sanctioned pattern by writing one scoped, reasoned exclusion rule to
+  `.aigiscode/rules.json`. Takes effect on the next analysis; architecture
+  findings are refused honestly (they need a fix or a doctrine change). This
+  is the agent-driven half of the convergence loop: every dismissal makes the
+  next run quieter instead of re-triaging the same noise.
+
 Existing query tools (`explain_finding`, `graph_neighbors`,
 `graph_trace`, `list_graph_packets`, `repository_topology`, `cypher_query`)
 stay; they get budgets and cursors. `list_findings` is now budget-first:
