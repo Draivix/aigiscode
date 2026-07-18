@@ -3,17 +3,18 @@ mod live;
 mod watch;
 
 use self::contracts::{
-    build_finding_details, display_path, family_matches, is_corpus_scale_cycle, language_matches,
-    path_matches, phase_matches, severity_matches, AtlasOutput, BottleneckOutput,
-    BriefHotspotOutput, ConsistencyMode, ContainerDesignOutput, ContractInventoryOutput,
-    ConvergenceOutput, CorpusScaleUnitOutput, CoverageReportOutput, CrossLayerConsumerOutput,
-    CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams, DoctrineRegistryOutput,
-    ExplainFindingParams, FindSymbolOutput, FindSymbolParams, FindingDetailOutput,
-    FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput, ImpactRadiusOutput,
-    ImpactRadiusParams, ListFindingsOutput, ListFindingsParams, ModuleDesignOutput,
-    ModuleDesignParams, ModuleEdgeOutput, QualityEvaluationOutput, RepoBriefOutput,
-    RepoOverviewOutput, RepoOverviewParams, ReviewRadiusFileOutput, ShowCyclesParams,
-    ShowHotspotsParams, SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
+    build_finding_details, confidence_matches, display_path, family_matches, is_corpus_scale_cycle,
+    language_matches, path_matches, phase_matches, precision_matches, severity_matches,
+    AtlasOutput, BottleneckOutput, BriefHotspotOutput, ConsistencyMode, ContainerDesignOutput,
+    ContractInventoryOutput, ConvergenceOutput, CorpusScaleUnitOutput, CoverageReportOutput,
+    CrossLayerConsumerOutput, CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams,
+    DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput, FindSymbolParams,
+    FindingBriefOutput, FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput,
+    HotspotOutput, HotspotsOutput, ImpactRadiusOutput, ImpactRadiusParams, ListFindingsOutput,
+    ListFindingsParams, ModuleDesignOutput, ModuleDesignParams, ModuleEdgeOutput,
+    QualityEvaluationOutput, RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
+    ReviewRadiusFileOutput, ShowCyclesParams, ShowHotspotsParams, SymbolMatchOutput,
+    SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -633,7 +634,7 @@ impl AigiscodeMcpServer {
             containers: rendered,
             outbound_modules: to_module_edges(outbound),
             inbound_modules: to_module_edges(inbound),
-            freshness: Some(self.live.freshness(true)),
+            freshness: self.live.actionable_freshness(true),
         })
     }
 
@@ -707,7 +708,7 @@ impl AigiscodeMcpServer {
             total_matches,
             truncated: total_matches > max_items,
             matches,
-            freshness: Some(self.live.freshness(true)),
+            freshness: self.live.actionable_freshness(true),
         })
     }
 
@@ -726,7 +727,7 @@ impl AigiscodeMcpServer {
         let query = params.symbol.trim().to_string();
         let state = self.state().await;
         let graph = &state.snapshot().semantic_graph;
-        let freshness = Some(self.live.freshness(true));
+        let freshness = self.live.actionable_freshness(true);
 
         let target = if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == query) {
             Some(symbol)
@@ -831,16 +832,15 @@ impl AigiscodeMcpServer {
 
     #[tool(
         name = "list_findings",
-        description = "List findings filtered by review phase (architecture|implementation), family, severity, path, and language. Architecture-phase findings are the pass-1 design judgments; implementation-phase findings live in function bodies."
+        description = "List findings filtered by review phase (architecture|implementation), family, severity, path, language, precision (certain|modeled|heuristic), and min_confidence (millis). Returns compact briefs sized for triage; call explain_finding(id) for full evidence, anchors, and provenance. `total` reports all matches before the max_items cap."
     )]
     async fn list_findings(
         &self,
         Parameters(params): Parameters<ListFindingsParams>,
     ) -> Json<ListFindingsOutput> {
         let max_items = params.max_items.unwrap_or(100).clamp(1, 500);
-        let findings = self
-            .state()
-            .await
+        let state = self.state().await;
+        let matching = state
             .snapshot()
             .finding_summaries
             .iter()
@@ -850,12 +850,19 @@ impl AigiscodeMcpServer {
                     && severity_matches(&finding.severity, params.severity)
                     && path_matches(finding, params.file_path.as_deref())
                     && language_matches(finding, params.language.as_deref())
+                    && precision_matches(&finding.precision, params.precision.as_deref())
+                    && confidence_matches(finding.confidence_millis, params.min_confidence)
             })
+            .collect::<Vec<_>>();
+        let total = matching.len();
+        let findings = matching
+            .into_iter()
             .take(max_items)
-            .cloned()
+            .map(FindingBriefOutput::from_summary)
             .collect::<Vec<_>>();
         Json(ListFindingsOutput {
-            total: findings.len(),
+            total,
+            truncated: total > findings.len(),
             findings,
         })
     }
@@ -1667,13 +1674,21 @@ impl AigiscodeMcpServer {
                 String::from(uri),
                 to_json_pretty(&self.state().await.snapshot().repo_overview)?,
             )),
-            FINDINGS_URI => Ok((
-                String::from(uri),
-                to_json_pretty(&ListFindingsOutput {
-                    total: self.state().await.snapshot().finding_summaries.len(),
-                    findings: self.state().await.snapshot().finding_summaries.clone(),
-                })?,
-            )),
+            FINDINGS_URI => {
+                let state = self.state().await;
+                let summaries = &state.snapshot().finding_summaries;
+                Ok((
+                    String::from(uri),
+                    to_json_pretty(&ListFindingsOutput {
+                        total: summaries.len(),
+                        truncated: false,
+                        findings: summaries
+                            .iter()
+                            .map(FindingBriefOutput::from_summary)
+                            .collect(),
+                    })?,
+                ))
+            }
             ATLAS_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&self.state().await.snapshot().atlas)?,
@@ -1950,7 +1965,11 @@ impl McpState {
             &handoff,
             &convergence,
             &guard_decision,
-            finding_summaries.iter().take(10).cloned().collect(),
+            finding_summaries
+                .iter()
+                .take(10)
+                .map(FindingBriefOutput::from_summary)
+                .collect(),
         );
 
         Ok(Self {
@@ -2305,6 +2324,8 @@ fn main() {
                 severity: None,
                 file_path: None,
                 language: Some(String::from("rust")),
+                precision: None,
+                min_confidence: None,
                 max_items: Some(20),
             }))
             .await
@@ -2323,6 +2344,109 @@ fn main() {
             .unwrap()
             .0;
         assert!(detail.resource_uri.starts_with(FINDING_URI_PREFIX));
+    }
+
+    #[tokio::test]
+    async fn list_findings_returns_budgeted_briefs_with_honest_totals() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"mod config;
+use crate::config::read_mode;
+
+fn unused() {}
+
+fn main() {
+    let mode = read_mode();
+    if mode == "draft" {
+        let _ = "shared-value";
+        let _ = "shared-value";
+    }
+    let _ = "https://api.example.com";
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/config.rs"),
+            br#"pub fn read_mode() -> String {
+    std::env::var("APP_MODE").unwrap_or_default()
+}
+"#,
+        )
+        .unwrap();
+
+        let server =
+            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+
+        // Honest totals: `total` counts every match before the cap, and the
+        // briefs stay compact — evidence and provenance belong to explain_finding.
+        let page = server
+            .list_findings(Parameters(ListFindingsParams {
+                max_items: Some(1),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert!(page.total >= 2, "fixture should yield multiple findings");
+        assert_eq!(page.findings.len(), 1);
+        assert!(page.truncated);
+        let brief = serde_json::to_value(&page.findings[0]).unwrap();
+        assert!(brief.get("id").and_then(Value::as_str).is_some());
+        assert!(brief.get("file_paths").is_some());
+        assert!(brief.get("evidence_anchors").is_none());
+        assert!(brief.get("provenance").is_none());
+        assert!(brief.get("fingerprint").is_none());
+
+        // Precision and confidence filters actually filter.
+        let confident = server
+            .list_findings(Parameters(ListFindingsParams {
+                min_confidence: Some(1001),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert_eq!(confident.total, 0);
+        let heuristic_only = server
+            .list_findings(Parameters(ListFindingsParams {
+                precision: Some(String::from("heuristic")),
+                ..Default::default()
+            }))
+            .await
+            .0;
+        assert!(heuristic_only
+            .findings
+            .iter()
+            .all(|finding| finding.precision == "heuristic"));
+
+        // Freshness rides along only when actionable: fresh snapshots omit it,
+        // observed edits make it appear.
+        let fresh = server
+            .find_symbol(Parameters(FindSymbolParams {
+                name: String::from("main"),
+                kind: None,
+                max_items: None,
+            }))
+            .await
+            .0;
+        assert!(fresh.freshness.is_none());
+        server.live.mark_dirty([(
+            fixture.join("src/main.rs"),
+            super::live::DirtyKind::Modified,
+        )]);
+        let stale = server
+            .find_symbol(Parameters(FindSymbolParams {
+                name: String::from("main"),
+                kind: None,
+                max_items: None,
+            }))
+            .await
+            .0;
+        let freshness = stale
+            .freshness
+            .expect("stale snapshot must report freshness");
+        assert!(freshness.is_stale);
     }
 
     #[tokio::test]

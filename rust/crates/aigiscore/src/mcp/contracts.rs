@@ -109,6 +109,13 @@ pub struct ListFindingsParams {
     pub file_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    /// Precision filter: certain|modeled|heuristic. Use it to separate
+    /// evidence-backed findings from heuristic pressure.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub precision: Option<String>,
+    /// Minimum confidence in millis (0-1000). Findings below it are dropped.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_confidence: Option<u16>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<usize>,
 }
@@ -197,8 +204,12 @@ pub struct RepoOverviewOutput {
     pub guard_decision: GuardDecisionOutput,
     pub feedback_loop: FeedbackLoopOutput,
     pub guardian_packets: Vec<GuardianPacketOutput>,
+    /// True when `guardian_packets` was capped to keep the overview budgeted;
+    /// `list_graph_packets` returns the full set.
+    pub guardian_packets_truncated: bool,
     pub languages: Vec<LanguageCoverageOutput>,
-    pub top_findings: Vec<FindingSummaryOutput>,
+    /// Compact triage projection; `explain_finding(id)` carries full evidence.
+    pub top_findings: Vec<FindingBriefOutput>,
     /// Freshness of the answer relative to the live repository. `None` on a plain
     /// batch run; populated by the daemon (`mcp --watch`) so an agent can tell whether
     /// the graph reflects its latest edits or is honestly stale. See [`Freshness`].
@@ -438,6 +449,13 @@ pub struct RepoOverviewParams {
 }
 
 impl RepoOverviewOutput {
+    /// Budget caps for the overview response. The overview is an orientation
+    /// surface, not a data dump: full inventories live in the artifacts listed
+    /// under `artifact_files`, and `list_graph_packets` serves all packets.
+    const CONTRACT_CATEGORY_CAP: usize = 25;
+    const CONTRACT_LOCATION_CAP: usize = 5;
+    const GUARDIAN_PACKET_CAP: usize = 5;
+
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         root: &str,
@@ -448,7 +466,7 @@ impl RepoOverviewOutput {
         handoff: &AgentHandoffArtifact,
         convergence: &ConvergenceOutput,
         guard_decision: &GuardDecisionOutput,
-        top_findings: Vec<FindingSummaryOutput>,
+        top_findings: Vec<FindingBriefOutput>,
     ) -> Self {
         Self {
             root: String::from(root),
@@ -456,7 +474,8 @@ impl RepoOverviewOutput {
             overview: OverviewOutput::from_surface(surface),
             contract_inventory: ContractInventoryOutput::from_inventory(
                 &surface.contract_inventory,
-            ),
+            )
+            .capped(Self::CONTRACT_CATEGORY_CAP, Self::CONTRACT_LOCATION_CAP),
             review_summary: ReviewSummaryOutput::from_review_surface(review_surface),
             convergence: convergence.summary.clone(),
             guard_decision: guard_decision.clone(),
@@ -464,8 +483,10 @@ impl RepoOverviewOutput {
             guardian_packets: handoff
                 .guardian_packets
                 .iter()
+                .take(Self::GUARDIAN_PACKET_CAP)
                 .map(GuardianPacketOutput::from_packet)
                 .collect(),
+            guardian_packets_truncated: handoff.guardian_packets.len() > Self::GUARDIAN_PACKET_CAP,
             languages: surface
                 .languages
                 .iter()
@@ -1190,6 +1211,10 @@ impl OverviewOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ContractInventoryOutput {
     pub summary: ContractInventorySummaryOutput,
+    /// True when any category was capped by `capped()` — the full inventory is
+    /// in `contract-inventory.json` (see `artifact_files`).
+    #[serde(default)]
+    pub truncated: bool,
     pub semantic_model_packs: Vec<ContractSemanticModelPackUsageOutput>,
     pub routes: Vec<ContractItemOutput>,
     pub hooks: Vec<ContractItemOutput>,
@@ -1203,6 +1228,7 @@ impl ContractInventoryOutput {
     pub(crate) fn from_inventory(inventory: &ContractInventory) -> Self {
         Self {
             summary: ContractInventorySummaryOutput::from_summary(&inventory.summary),
+            truncated: false,
             semantic_model_packs: inventory
                 .semantic_model_packs
                 .iter()
@@ -1239,6 +1265,35 @@ impl ContractInventoryOutput {
                 .map(ContractItemOutput::from_item)
                 .collect(),
         }
+    }
+
+    /// Cap every category to its `max_items` highest-count entries and each
+    /// entry to `max_locations` locations, flagging `truncated` when anything
+    /// was dropped. Totals in `summary` stay exact, so truncation is honest.
+    pub(crate) fn capped(mut self, max_items: usize, max_locations: usize) -> Self {
+        fn cap_items(
+            items: &mut Vec<ContractItemOutput>,
+            max_items: usize,
+            max_locations: usize,
+        ) -> bool {
+            let mut truncated = items.len() > max_items;
+            items.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.value.cmp(&b.value)));
+            items.truncate(max_items);
+            for item in items.iter_mut() {
+                if item.locations.len() > max_locations {
+                    item.locations.truncate(max_locations);
+                    truncated = true;
+                }
+            }
+            truncated
+        }
+        self.truncated = cap_items(&mut self.routes, max_items, max_locations)
+            | cap_items(&mut self.hooks, max_items, max_locations)
+            | cap_items(&mut self.registered_keys, max_items, max_locations)
+            | cap_items(&mut self.symbolic_literals, max_items, max_locations)
+            | cap_items(&mut self.env_keys, max_items, max_locations)
+            | cap_items(&mut self.config_keys, max_items, max_locations);
+        self
     }
 }
 
@@ -1362,8 +1417,10 @@ impl LanguageCoverageOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ListFindingsOutput {
+    /// Total findings matching the filters before the `max_items` cap.
     pub total: usize,
-    pub findings: Vec<FindingSummaryOutput>,
+    pub truncated: bool,
+    pub findings: Vec<FindingBriefOutput>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -1441,6 +1498,43 @@ impl FindingSummaryOutput {
             doctrine_refs: finding.doctrine_refs.clone(),
             policy_status: review_policy_status_label(finding.policy_status),
             is_visible: finding.is_visible,
+        }
+    }
+}
+
+/// Compact finding projection — the default `list_findings` shape. Carries
+/// everything an agent needs to triage and navigate (id, verdict fields,
+/// file:line); full evidence, anchors, and provenance stay one call away via
+/// `explain_finding(id)`, so list responses never blow up the context window.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct FindingBriefOutput {
+    pub id: String,
+    pub family: String,
+    pub phase: String,
+    pub severity: String,
+    pub precision: String,
+    pub confidence_millis: u16,
+    pub title: String,
+    pub summary: String,
+    pub file_paths: Vec<String>,
+    pub line: Option<usize>,
+    pub policy_status: String,
+}
+
+impl FindingBriefOutput {
+    pub fn from_summary(summary: &FindingSummaryOutput) -> Self {
+        Self {
+            id: summary.id.clone(),
+            family: summary.family.clone(),
+            phase: summary.phase.clone(),
+            severity: summary.severity.clone(),
+            precision: summary.precision.clone(),
+            confidence_millis: summary.confidence_millis,
+            title: summary.title.clone(),
+            summary: summary.summary.clone(),
+            file_paths: summary.file_paths.clone(),
+            line: summary.line,
+            policy_status: summary.policy_status.clone(),
         }
     }
 }
@@ -2790,6 +2884,14 @@ pub fn language_matches(finding: &FindingSummaryOutput, language: Option<&str>) 
         let expected = language.to_ascii_lowercase();
         finding.languages.iter().any(|entry| entry == &expected)
     })
+}
+
+pub fn precision_matches(precision: &str, filter: Option<&str>) -> bool {
+    filter.is_none_or(|filter| precision.eq_ignore_ascii_case(filter.trim()))
+}
+
+pub fn confidence_matches(confidence_millis: u16, min_confidence: Option<u16>) -> bool {
+    min_confidence.is_none_or(|min| confidence_millis >= min)
 }
 
 fn infer_languages_from_strings(paths: &[String]) -> Vec<String> {

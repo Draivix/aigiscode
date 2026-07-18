@@ -33,17 +33,25 @@ actually asked, at the size a colleague would answer it.*
 
 1. **Token budget per tool result.** Orientation tools ≤ ~3 KB. Query tools
    ≤ ~8 KB with explicit `limit`/`cursor` params. Nothing returns unbounded
-   inline dumps — measured today, `repo_overview` returned **89.7 KB**, which
-   is not an overview, it is context poison. A human colleague answers "what
-   is this repo?" in a paragraph, not by reciting the filing cabinet.
+   inline dumps — `repo_overview` once returned **89.7 KB**, which is not an
+   overview, it is context poison. It is now budgeted: contract inventory
+   capped per category with exact totals preserved, guardian packets capped
+   (`list_graph_packets` serves the rest), and `top_findings` carried as
+   compact briefs. A human colleague answers "what is this repo?" in a
+   paragraph, not by reciting the filing cabinet.
 2. **Answer-first, evidence-on-demand.** Every response leads with the
    verdict/summary a human would say out loud; file paths, line anchors, and
    raw evidence hang off IDs the agent can expand via `explain_finding` /
-   dedicated detail calls. Never inline what an ID can defer.
+   dedicated detail calls. Never inline what an ID can defer. `list_findings`
+   applies this directly: compact briefs (`id`, verdict fields, `file:line`)
+   by default, full evidence one call away per finding.
 3. **Honesty markers are load-bearing.** `is_stale`, `boundary_truncated`,
    proof tiers (`certain`/`strong`/`heuristic`), and unresolved-reference
    pressure must ride along with every answer they qualify. An agent cannot
-   eyeball skepticism; the payload must carry it.
+   eyeball skepticism; the payload must carry it. Corollary: markers that
+   currently qualify *nothing* stay silent — per-call tools carry `freshness`
+   only when it is actionable (stale or rebuilding); `repo_overview` and
+   `repo_brief` always carry it.
 4. **Deterministic.** Same repo state → byte-identical answers. (Resolver
    nondeterminism was found and fixed during this audit; treat any HashSet
    iteration reaching an output as a bug.)
@@ -80,9 +88,13 @@ the codebase".
 
 Each observed through the MCP server itself, against this repository and draivix.
 
-* **`repo_overview` returns 89.7 KB** — inlines the full contract inventory
-  and every artifact path. → Split: `repo_brief` (budgeted prose+numbers) and
-  keep the artifact map behind a dedicated `artifact_paths` call.
+* **`repo_overview` returned 89.7 KB** — inlined the full contract inventory
+  and every artifact path. **Fixed 2026-07-18:** the overview now caps each
+  contract category (top entries by count, capped locations) with exact totals
+  preserved in `summary` and `truncated: true` as the honesty marker, caps
+  guardian packets behind `guardian_packets_truncated`, and carries
+  `top_findings` as compact briefs. Full data stays in the artifacts under
+  `artifact_files`.
 * **`show_hotspots` is good** (7.7 KB, ranked, honest flags) but
   `inbound_edges: 1527` counts edge *instances*, not distinct dependents —
   an agent reads that as "1527 files depend on this". Report both:
@@ -131,9 +143,11 @@ Verify:
 - `verify_paths(files)` — diff-scoped guard: findings delta, new bypasses,
   orphan-cascade check restricted to the touched neighborhood.
 
-Existing query tools (`list_findings`, `explain_finding`, `graph_neighbors`,
+Existing query tools (`explain_finding`, `graph_neighbors`,
 `graph_trace`, `list_graph_packets`, `repository_topology`, `cypher_query`)
-stay; they get budgets and cursors.
+stay; they get budgets and cursors. `list_findings` is now budget-first:
+compact briefs plus `precision` / `min_confidence` filters so heuristic noise
+never hides certain findings, and `total` reports all matches before the cap.
 
 ## Non-Goals
 

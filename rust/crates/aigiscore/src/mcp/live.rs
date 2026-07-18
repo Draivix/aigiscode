@@ -197,6 +197,19 @@ impl<S> LiveState<S> {
         }
     }
 
+    /// Freshness only when it changes what the caller should do — the snapshot is
+    /// stale or a rebuild is in flight. `None` means "fresh", so per-call tool
+    /// responses stay lean; `repo_overview`/`repo_brief` remain the always-on
+    /// freshness surfaces. Never under-report: any doubt yields `Some`.
+    pub(super) fn actionable_freshness(&self, consistency_satisfied: bool) -> Option<Freshness> {
+        let freshness = self.freshness(consistency_satisfied);
+        if freshness.is_stale || freshness.rebuilding {
+            Some(freshness)
+        } else {
+            None
+        }
+    }
+
     /// Block (up to `wait_ms`) until `indexed_revision >= target`. Returns whether the
     /// target was reached. `wait_ms == 0` is a pure non-blocking check.
     pub(super) async fn wait_for_revision(&self, target: u64, wait_ms: u64) -> bool {
@@ -310,6 +323,24 @@ mod tests {
         let f = live.freshness(false);
         assert!(!f.consistency_satisfied);
         assert!(f.is_stale);
+    }
+
+    #[test]
+    fn actionable_freshness_only_appears_when_the_caller_must_act() {
+        let live = LiveState::new("v1".to_string());
+        assert!(
+            live.actionable_freshness(true).is_none(),
+            "fresh + satisfied must stay silent to keep per-call responses lean"
+        );
+        assert!(
+            live.actionable_freshness(false).is_some(),
+            "unmet consistency is actionable"
+        );
+        live.mark_dirty([(p("a"), DirtyKind::Modified)]);
+        let freshness = live
+            .actionable_freshness(true)
+            .expect("dirty snapshot is actionable");
+        assert!(freshness.is_stale);
     }
 
     #[tokio::test]
