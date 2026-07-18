@@ -6,15 +6,16 @@ use self::contracts::{
     build_finding_details, confidence_matches, display_path, family_matches, is_corpus_scale_cycle,
     language_matches, path_matches, phase_matches, precision_matches, severity_matches,
     AtlasOutput, BottleneckOutput, BriefHotspotOutput, ConsistencyMode, ContainerDesignOutput,
-    ContractInventoryOutput, ConvergenceOutput, CorpusScaleUnitOutput, CoverageReportOutput,
-    CrossLayerConsumerOutput, CycleOutput, CyclesOutput, CypherQueryOutput, CypherQueryParams,
-    DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput, FindSymbolParams,
-    FindingBriefOutput, FindingDetailOutput, FindingSummaryOutput, GuardDecisionOutput,
-    HotspotOutput, HotspotsOutput, ImpactRadiusOutput, ImpactRadiusParams, ListFindingsOutput,
-    ListFindingsParams, ModuleDesignOutput, ModuleDesignParams, ModuleEdgeOutput,
-    QualityEvaluationOutput, RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
-    ReviewRadiusFileOutput, ShowCyclesParams, ShowHotspotsParams, SymbolMatchOutput,
-    SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput,
+    ContractInventoryOutput, ConvergenceFindingOutput, ConvergenceOutput, CorpusScaleUnitOutput,
+    CoverageReportOutput, CrossLayerConsumerOutput, CycleOutput, CyclesOutput, CypherQueryOutput,
+    CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput,
+    FindSymbolParams, FindingBriefOutput, FindingDetailOutput, FindingSummaryOutput,
+    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ImpactRadiusOutput, ImpactRadiusParams,
+    ListFindingsOutput, ListFindingsParams, ModuleDesignOutput, ModuleDesignParams,
+    ModuleEdgeOutput, PrepareChangeOutput, PrepareChangeParams, QualityEvaluationOutput,
+    RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams, ReviewRadiusFileOutput,
+    ShowCyclesParams, ShowHotspotsParams, SymbolMatchOutput, SymbolUsagesOutput,
+    SymbolUsagesParams, UsageSiteOutput, VerifyChangeOutput, VerifyChangeParams,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -877,311 +878,175 @@ impl AigiscodeMcpServer {
     ) -> Result<Json<ImpactRadiusOutput>, String> {
         let max_depth = params.max_depth.unwrap_or(3).clamp(1, 6);
         let state = self.state().await;
-        let graph = &state.snapshot().semantic_graph;
-        let target = params.target.trim();
+        let computation = compute_impact_radius(state.snapshot(), params.target.trim(), max_depth)?;
+        Ok(Json(computation.output))
+    }
 
-        // Target resolution: exact file path first, then symbol id, then
-        // unique symbol name. Ambiguity is an error, never a guess.
-        let file_by_display = graph
-            .files
-            .iter()
-            .find(|file| display_path(&file.path) == target)
-            .map(|file| file.path.clone());
-        let (target_file, target_symbol_id, target_symbol_label) =
-            if let Some(path) = file_by_display {
-                (path, None, None)
-            } else if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == target) {
-                (
-                    symbol.file_path.clone(),
-                    Some(symbol.id.clone()),
-                    Some(format!(
-                        "{} {}",
-                        symbol_kind_label(symbol.kind),
-                        symbol.qualified_name
-                    )),
-                )
-            } else {
-                let mut matches = graph
-                    .symbols
-                    .iter()
-                    .filter(|symbol| symbol.name == target || symbol.qualified_name == target)
-                    .collect::<Vec<_>>();
-                // A file's Module symbol sharing the name of the container it
-                // holds is not real ambiguity — prefer the concrete symbol.
-                if matches.len() > 1
-                    && matches
-                        .iter()
-                        .all(|symbol| symbol.file_path == matches[0].file_path)
-                {
-                    matches.retain(|symbol| symbol.kind != crate::graph::SymbolKind::Module);
-                }
-                match matches.len() {
-                    0 => {
-                        return Err(format!(
-                        "unknown target: {target} (no file path, symbol id, or symbol name matched)"
-                    ))
-                    }
-                    1 => (
-                        matches[0].file_path.clone(),
-                        Some(matches[0].id.clone()),
-                        Some(format!(
-                            "{} {}",
-                            symbol_kind_label(matches[0].kind),
-                            matches[0].qualified_name
-                        )),
-                    ),
-                    count => {
-                        let mut candidates = matches
-                            .iter()
-                            .take(10)
-                            .map(|symbol| symbol.id.clone())
-                            .collect::<Vec<_>>();
-                        candidates.sort();
-                        return Err(format!(
-                            "ambiguous target: {count} symbols named {target}; pass one id: {}",
-                            candidates.join(", ")
-                        ));
-                    }
-                }
-            };
+    #[tool(
+        name = "prepare_change",
+        description = "Pre-edit briefing for a file or symbol in one budgeted call: blast radius (dependents, cross-layer consumers, contract wiring, risk band), findings already flagged inside that radius, test dependents to run after the edit, and doctrine refs in play. Use before editing to know what breaks and what is already under pressure."
+    )]
+    async fn prepare_change(
+        &self,
+        Parameters(params): Parameters<PrepareChangeParams>,
+    ) -> Result<Json<PrepareChangeOutput>, String> {
+        const FINDINGS_CAP: usize = 20;
+        const TESTS_CAP: usize = 20;
+        const DOCTRINE_CAP: usize = 20;
+        let max_depth = params.max_depth.unwrap_or(3).clamp(1, 6);
+        let state = self.state().await;
+        let snapshot = state.snapshot();
+        let computation = compute_impact_radius(snapshot, params.target.trim(), max_depth)?;
 
-        // Depth 1: edges into the target (symbol-scoped when a symbol was
-        // named — includes edges to its members). Deeper levels: file-level.
-        let symbol_parent: HashMap<&str, Option<&str>> = graph
-            .symbols
+        let mut scope: HashSet<&str> = computation
+            .dependent_files
             .iter()
-            .map(|symbol| (symbol.id.as_str(), symbol.parent_symbol_id.as_deref()))
+            .map(String::as_str)
             .collect();
-        let mut direct_edge_counts: HashMap<&Path, usize> = HashMap::new();
-        for edge in &graph.resolved_edges {
-            if edge.source_file_path == target_file {
+        scope.insert(computation.output.target_file.as_str());
+        let mut in_radius = snapshot
+            .finding_summaries
+            .iter()
+            .filter(|finding| {
+                finding
+                    .file_paths
+                    .iter()
+                    .any(|path| scope.contains(path.as_str()))
+            })
+            .collect::<Vec<_>>();
+        in_radius.sort_by(|a, b| {
+            severity_rank(&a.severity)
+                .cmp(&severity_rank(&b.severity))
+                .then(b.confidence_millis.cmp(&a.confidence_millis))
+                .then(a.id.cmp(&b.id))
+        });
+        let findings_total = in_radius.len();
+        let findings_in_radius = in_radius
+            .iter()
+            .take(FINDINGS_CAP)
+            .map(|finding| FindingBriefOutput::from_summary(finding))
+            .collect::<Vec<_>>();
+
+        let mut doctrine_refs = in_radius
+            .iter()
+            .flat_map(|finding| finding.doctrine_refs.iter().cloned())
+            .collect::<Vec<_>>();
+        doctrine_refs.sort();
+        doctrine_refs.dedup();
+        doctrine_refs.truncate(DOCTRINE_CAP);
+
+        let mut test_dependents = computation
+            .dependent_files
+            .iter()
+            .filter(|path| looks_like_test(path))
+            .cloned()
+            .collect::<Vec<_>>();
+        test_dependents.sort();
+        test_dependents.truncate(TESTS_CAP);
+
+        Ok(Json(PrepareChangeOutput {
+            impact: computation.output,
+            findings_in_radius,
+            findings_total,
+            findings_truncated: findings_total > FINDINGS_CAP,
+            test_dependents,
+            doctrine_refs,
+            freshness: self.live.actionable_freshness(true),
+        }))
+    }
+
+    #[tool(
+        name = "verify_change",
+        description = "Post-edit check scoped to the paths you touched (or, under `mcp --watch` with empty paths, the daemon's observed dirty paths): new/worsened findings in scope versus resolved/improved ones, plus honesty notes when the analysis has not caught up with the edits. Ask about YOUR change, not the whole repo."
+    )]
+    async fn verify_change(
+        &self,
+        Parameters(params): Parameters<VerifyChangeParams>,
+    ) -> Json<VerifyChangeOutput> {
+        const SCOPE_CAP: usize = 50;
+        let max_items = params.max_items.unwrap_or(50).clamp(1, 200);
+        let state = self.state().await;
+        let snapshot = state.snapshot();
+
+        let (raw_scope, scope_source) = if params.paths.is_empty() {
+            (self.live.freshness(true).dirty_paths, "daemon_dirty_paths")
+        } else {
+            (params.paths.clone(), "explicit")
+        };
+        let root_prefix = format!("{}/", snapshot.root);
+        let scope = raw_scope
+            .iter()
+            .map(|path| {
+                path.strip_prefix(&root_prefix)
+                    .map(str::to_string)
+                    .unwrap_or_else(|| path.clone())
+            })
+            .collect::<Vec<_>>();
+
+        let in_scope = |finding: &ConvergenceFindingOutput| {
+            finding.file_paths.iter().any(|file_path| {
+                scope.iter().any(|scope_path| {
+                    !scope_path.is_empty()
+                        && (file_path.contains(scope_path) || scope_path.contains(file_path))
+                })
+            })
+        };
+        let mut regressions: Vec<ConvergenceFindingOutput> = Vec::new();
+        let mut fixes: Vec<ConvergenceFindingOutput> = Vec::new();
+        for finding in &snapshot.convergence.findings {
+            if !in_scope(finding) {
                 continue;
             }
-            let hits = match target_symbol_id.as_deref() {
-                Some(symbol_id) => {
-                    edge.target_symbol_id == symbol_id
-                        || symbol_parent
-                            .get(edge.target_symbol_id.as_str())
-                            .copied()
-                            .flatten()
-                            == Some(symbol_id)
-                }
-                None => edge.target_file_path == target_file,
-            };
-            if hits {
-                *direct_edge_counts
-                    .entry(edge.source_file_path.as_path())
-                    .or_default() += 1;
+            match finding.status.as_str() {
+                "new" | "worsened" => regressions.push(finding.clone()),
+                "resolved" | "improved" => fixes.push(finding.clone()),
+                _ => {}
             }
         }
-
-        // Reverse file adjacency for transitive expansion.
-        let mut reverse: HashMap<&Path, HashSet<&Path>> = HashMap::new();
-        for edge in &graph.resolved_edges {
-            if edge.source_file_path != edge.target_file_path {
-                reverse
-                    .entry(edge.target_file_path.as_path())
-                    .or_default()
-                    .insert(edge.source_file_path.as_path());
-            }
-        }
-        let mut depth_of: HashMap<&Path, usize> = HashMap::new();
-        let mut frontier: Vec<&Path> = direct_edge_counts.keys().copied().collect();
-        for path in &frontier {
-            depth_of.insert(path, 1);
-        }
-        let mut depth = 1;
-        while depth < max_depth && !frontier.is_empty() {
-            depth += 1;
-            let mut next = Vec::new();
-            for file in frontier {
-                if let Some(sources) = reverse.get(file) {
-                    for source in sources {
-                        if *source != target_file.as_path() && !depth_of.contains_key(source) {
-                            depth_of.insert(source, depth);
-                            next.push(*source);
-                        }
-                    }
-                }
-            }
-            frontier = next;
-        }
-
-        // Dependent modules, heaviest first.
-        let mut module_counts: HashMap<String, usize> = HashMap::new();
-        for path in depth_of.keys() {
-            *module_counts.entry(module_group_of(path)).or_default() += 1;
-        }
-        let mut dependent_modules = module_counts.into_iter().collect::<Vec<_>>();
-        dependent_modules.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-        let dependent_modules = dependent_modules
-            .into_iter()
-            .take(20)
-            .map(|(module, files)| format!("{module} ({files} files)"))
-            .collect::<Vec<_>>();
-
-        // Cross-layer consumers under the declared layer contract.
-        let layer_of = |path: &Path| -> Option<&str> {
-            let display = display_path(path);
-            state
-                .snapshot()
-                .layers
-                .iter()
-                .flat_map(|layer| {
-                    layer
-                        .path_prefixes
-                        .iter()
-                        .map(move |prefix| (layer.name.as_str(), prefix))
-                })
-                .filter(|(_, prefix)| {
-                    display == **prefix || display.starts_with(&format!("{prefix}/"))
-                })
-                .max_by_key(|(_, prefix)| prefix.len())
-                .map(|(name, _)| name)
-        };
-        let target_layer = layer_of(&target_file);
-        let mut cross_layer: HashMap<&str, usize> = HashMap::new();
-        if let Some(target_layer) = target_layer {
-            for path in depth_of.keys() {
-                if let Some(consumer_layer) = layer_of(path) {
-                    if consumer_layer != target_layer {
-                        *cross_layer.entry(consumer_layer).or_default() += 1;
-                    }
-                }
-            }
-        }
-        let mut cross_layer_consumers = cross_layer
-            .into_iter()
-            .map(|(from_layer, files)| CrossLayerConsumerOutput {
-                from_layer: from_layer.to_string(),
-                files,
-            })
-            .collect::<Vec<_>>();
-        cross_layer_consumers.sort_by(|a, b| b.files.cmp(&a.files));
-
-        // Framework contracts declared in the target file.
-        let target_display = display_path(&target_file);
-        let mut framework_contract_declarations = Vec::new();
-        for (label, items) in [
-            ("route", &state.snapshot().contract_inventory.routes),
-            ("hook", &state.snapshot().contract_inventory.hooks),
-            (
-                "registered_key",
-                &state.snapshot().contract_inventory.registered_keys,
-            ),
-        ] {
-            for item in items {
-                if item
-                    .locations
-                    .iter()
-                    .any(|location| location.file_path == target_display)
-                {
-                    framework_contract_declarations.push(format!("{label}:{}", item.value));
-                }
-            }
-        }
-        framework_contract_declarations.sort();
-        framework_contract_declarations.dedup();
-        framework_contract_declarations.truncate(20);
-
-        // Dynamic blind spots: unresolved same-repo references matching names
-        // declared in the target file.
-        let declared_names = graph
-            .symbols
-            .iter()
-            .filter(|symbol| symbol.file_path == target_file && symbol.name.len() >= 4)
-            .map(|symbol| symbol.name.as_str())
-            .collect::<HashSet<_>>();
-        let resolved_refs = graph
-            .resolved_edges
-            .iter()
-            .filter_map(|edge| {
-                edge.reference_target_name
-                    .as_deref()
-                    .map(|name| (edge.source_file_path.as_path(), edge.line, name))
-            })
-            .collect::<HashSet<_>>();
-        let unresolved_name_matches = graph
-            .references
-            .iter()
-            .filter(|reference| {
-                reference.file_path != target_file
-                    && matches!(
-                        reference.kind,
-                        crate::graph::ReferenceKind::Call | crate::graph::ReferenceKind::Type
-                    )
-                    && declared_names.contains(leaf_reference_name(&reference.target_name))
-                    && !resolved_refs.contains(&(
-                        reference.file_path.as_path(),
-                        reference.line,
-                        reference.target_name.as_str(),
-                    ))
-            })
-            .count();
-
-        let direct = direct_edge_counts.len();
-        let transitive = depth_of.len();
-        let risk_band = if transitive > 100 || direct > 50 {
-            "high"
-        } else if transitive > 20
-            || !cross_layer_consumers.is_empty()
-            || !framework_contract_declarations.is_empty()
-        {
-            "medium"
-        } else {
-            "low"
-        };
-
-        let mut review_radius = direct_edge_counts
-            .iter()
-            .map(|(path, edges)| ReviewRadiusFileOutput {
-                file_path: display_path(path),
-                edge_count: *edges,
-                depth: 1,
-            })
-            .collect::<Vec<_>>();
-        review_radius.sort_by(|a, b| {
-            b.edge_count
-                .cmp(&a.edge_count)
-                .then(a.file_path.cmp(&b.file_path))
+        regressions.sort_by(|a, b| {
+            severity_rank(a.current_severity.as_deref().unwrap_or(""))
+                .cmp(&severity_rank(b.current_severity.as_deref().unwrap_or("")))
+                .then(a.title.cmp(&b.title))
+                .then(a.fingerprint.cmp(&b.fingerprint))
         });
-        review_radius.truncate(15);
+        fixes.sort_by(|a, b| {
+            a.title
+                .cmp(&b.title)
+                .then(a.fingerprint.cmp(&b.fingerprint))
+        });
+        let regression_count = regressions.len();
+        let fix_count = fixes.len();
+        let truncated = regression_count > max_items || fix_count > max_items;
+        regressions.truncate(max_items);
+        fixes.truncate(max_items);
 
         let mut honesty = Vec::new();
-        if !framework_contract_declarations.is_empty() {
+        if scope.is_empty() {
             honesty.push(String::from(
-                "target declares framework contracts — consumers exist outside the code graph (routes/hooks fire at runtime)",
+                "scope is empty — pass the paths you edited, or run under `mcp --watch` so the daemon tracks them",
             ));
         }
-        if unresolved_name_matches > 0 {
-            honesty.push(format!(
-                "{unresolved_name_matches} unresolved same-name references elsewhere may hide additional consumers (dynamic dispatch)"
-            ));
-        }
-        if state
-            .snapshot()
-            .boundary_truncated_files
-            .contains(&target_display)
-        {
+        if scope_source == "daemon_dirty_paths" && self.live.freshness(true).is_stale {
             honesty.push(String::from(
-                "analysis boundary is truncated around this file — dependents outside the analyzed slice are invisible",
+                "the daemon has observed edits the current analysis does not cover yet — this delta lags your latest changes",
             ));
         }
+        honesty.push(String::from(
+            "convergence compares the last two analyses; changes never analyzed are invisible to this delta",
+        ));
 
-        Ok(Json(ImpactRadiusOutput {
-            target_file: target_display,
-            target_symbol: target_symbol_label,
-            direct_dependent_files: direct,
-            transitive_dependent_files: transitive,
-            max_depth,
-            dependent_modules,
-            cross_layer_consumers,
-            framework_contract_declarations,
-            unresolved_name_matches,
-            risk_band: risk_band.to_string(),
-            review_radius,
+        Json(VerifyChangeOutput {
+            scope_paths: scope.into_iter().take(SCOPE_CAP).collect(),
+            scope_source: scope_source.to_string(),
+            guard_verdict: snapshot.guard_decision.verdict.clone(),
+            regressions,
+            fixes,
+            regression_count,
+            fix_count,
+            truncated,
             honesty,
-        }))
+            freshness: self.live.actionable_freshness(true),
+        })
     }
 
     #[tool(
@@ -2004,6 +1869,349 @@ impl McpState {
     }
 }
 
+/// Shared blast-radius computation behind `impact_radius` and `prepare_change`.
+struct ImpactComputation {
+    output: ImpactRadiusOutput,
+    /// Every dependent file inside `max_depth` (display paths, closest first) —
+    /// not just the capped review radius. `prepare_change` scopes findings to it.
+    dependent_files: Vec<String>,
+}
+
+fn compute_impact_radius(
+    snapshot: &McpState,
+    target: &str,
+    max_depth: usize,
+) -> Result<ImpactComputation, String> {
+    let graph = &snapshot.semantic_graph;
+
+    // Target resolution: exact file path first, then symbol id, then
+    // unique symbol name. Ambiguity is an error, never a guess.
+    let file_by_display = graph
+        .files
+        .iter()
+        .find(|file| display_path(&file.path) == target)
+        .map(|file| file.path.clone());
+    let (target_file, target_symbol_id, target_symbol_label) = if let Some(path) = file_by_display {
+        (path, None, None)
+    } else if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == target) {
+        (
+            symbol.file_path.clone(),
+            Some(symbol.id.clone()),
+            Some(format!(
+                "{} {}",
+                symbol_kind_label(symbol.kind),
+                symbol.qualified_name
+            )),
+        )
+    } else {
+        let mut matches = graph
+            .symbols
+            .iter()
+            .filter(|symbol| symbol.name == target || symbol.qualified_name == target)
+            .collect::<Vec<_>>();
+        // A file's Module symbol sharing the name of the container it
+        // holds is not real ambiguity — prefer the concrete symbol.
+        if matches.len() > 1
+            && matches
+                .iter()
+                .all(|symbol| symbol.file_path == matches[0].file_path)
+        {
+            matches.retain(|symbol| symbol.kind != crate::graph::SymbolKind::Module);
+        }
+        match matches.len() {
+            0 => {
+                return Err(format!(
+                    "unknown target: {target} (no file path, symbol id, or symbol name matched)"
+                ))
+            }
+            1 => (
+                matches[0].file_path.clone(),
+                Some(matches[0].id.clone()),
+                Some(format!(
+                    "{} {}",
+                    symbol_kind_label(matches[0].kind),
+                    matches[0].qualified_name
+                )),
+            ),
+            count => {
+                let mut candidates = matches
+                    .iter()
+                    .take(10)
+                    .map(|symbol| symbol.id.clone())
+                    .collect::<Vec<_>>();
+                candidates.sort();
+                return Err(format!(
+                    "ambiguous target: {count} symbols named {target}; pass one id: {}",
+                    candidates.join(", ")
+                ));
+            }
+        }
+    };
+
+    // Depth 1: edges into the target (symbol-scoped when a symbol was
+    // named — includes edges to its members). Deeper levels: file-level.
+    let symbol_parent: HashMap<&str, Option<&str>> = graph
+        .symbols
+        .iter()
+        .map(|symbol| (symbol.id.as_str(), symbol.parent_symbol_id.as_deref()))
+        .collect();
+    let mut direct_edge_counts: HashMap<&Path, usize> = HashMap::new();
+    for edge in &graph.resolved_edges {
+        if edge.source_file_path == target_file {
+            continue;
+        }
+        let hits = match target_symbol_id.as_deref() {
+            Some(symbol_id) => {
+                edge.target_symbol_id == symbol_id
+                    || symbol_parent
+                        .get(edge.target_symbol_id.as_str())
+                        .copied()
+                        .flatten()
+                        == Some(symbol_id)
+            }
+            None => edge.target_file_path == target_file,
+        };
+        if hits {
+            *direct_edge_counts
+                .entry(edge.source_file_path.as_path())
+                .or_default() += 1;
+        }
+    }
+
+    // Reverse file adjacency for transitive expansion.
+    let mut reverse: HashMap<&Path, HashSet<&Path>> = HashMap::new();
+    for edge in &graph.resolved_edges {
+        if edge.source_file_path != edge.target_file_path {
+            reverse
+                .entry(edge.target_file_path.as_path())
+                .or_default()
+                .insert(edge.source_file_path.as_path());
+        }
+    }
+    let mut depth_of: HashMap<&Path, usize> = HashMap::new();
+    let mut frontier: Vec<&Path> = direct_edge_counts.keys().copied().collect();
+    for path in &frontier {
+        depth_of.insert(path, 1);
+    }
+    let mut depth = 1;
+    while depth < max_depth && !frontier.is_empty() {
+        depth += 1;
+        let mut next = Vec::new();
+        for file in frontier {
+            if let Some(sources) = reverse.get(file) {
+                for source in sources {
+                    if *source != target_file.as_path() && !depth_of.contains_key(source) {
+                        depth_of.insert(source, depth);
+                        next.push(*source);
+                    }
+                }
+            }
+        }
+        frontier = next;
+    }
+
+    let mut dependents_by_depth = depth_of.iter().map(|(p, d)| (*p, *d)).collect::<Vec<_>>();
+    dependents_by_depth.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.cmp(b.0)));
+    let dependent_files = dependents_by_depth
+        .iter()
+        .map(|(path, _)| display_path(path))
+        .collect::<Vec<_>>();
+
+    // Dependent modules, heaviest first.
+    let mut module_counts: HashMap<String, usize> = HashMap::new();
+    for path in depth_of.keys() {
+        *module_counts.entry(module_group_of(path)).or_default() += 1;
+    }
+    let mut dependent_modules = module_counts.into_iter().collect::<Vec<_>>();
+    dependent_modules.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+    let dependent_modules = dependent_modules
+        .into_iter()
+        .take(20)
+        .map(|(module, files)| format!("{module} ({files} files)"))
+        .collect::<Vec<_>>();
+
+    // Cross-layer consumers under the declared layer contract.
+    let layer_of = |path: &Path| -> Option<&str> {
+        let display = display_path(path);
+        snapshot
+            .layers
+            .iter()
+            .flat_map(|layer| {
+                layer
+                    .path_prefixes
+                    .iter()
+                    .map(move |prefix| (layer.name.as_str(), prefix))
+            })
+            .filter(|(_, prefix)| display == **prefix || display.starts_with(&format!("{prefix}/")))
+            .max_by_key(|(_, prefix)| prefix.len())
+            .map(|(name, _)| name)
+    };
+    let target_layer = layer_of(&target_file);
+    let mut cross_layer: HashMap<&str, usize> = HashMap::new();
+    if let Some(target_layer) = target_layer {
+        for path in depth_of.keys() {
+            if let Some(consumer_layer) = layer_of(path) {
+                if consumer_layer != target_layer {
+                    *cross_layer.entry(consumer_layer).or_default() += 1;
+                }
+            }
+        }
+    }
+    let mut cross_layer_consumers = cross_layer
+        .into_iter()
+        .map(|(from_layer, files)| CrossLayerConsumerOutput {
+            from_layer: from_layer.to_string(),
+            files,
+        })
+        .collect::<Vec<_>>();
+    cross_layer_consumers.sort_by(|a, b| b.files.cmp(&a.files));
+
+    // Framework contracts declared in the target file.
+    let target_display = display_path(&target_file);
+    let mut framework_contract_declarations = Vec::new();
+    for (label, items) in [
+        ("route", &snapshot.contract_inventory.routes),
+        ("hook", &snapshot.contract_inventory.hooks),
+        (
+            "registered_key",
+            &snapshot.contract_inventory.registered_keys,
+        ),
+    ] {
+        for item in items {
+            if item
+                .locations
+                .iter()
+                .any(|location| location.file_path == target_display)
+            {
+                framework_contract_declarations.push(format!("{label}:{}", item.value));
+            }
+        }
+    }
+    framework_contract_declarations.sort();
+    framework_contract_declarations.dedup();
+    framework_contract_declarations.truncate(20);
+
+    // Dynamic blind spots: unresolved same-repo references matching names
+    // declared in the target file.
+    let declared_names = graph
+        .symbols
+        .iter()
+        .filter(|symbol| symbol.file_path == target_file && symbol.name.len() >= 4)
+        .map(|symbol| symbol.name.as_str())
+        .collect::<HashSet<_>>();
+    let resolved_refs = graph
+        .resolved_edges
+        .iter()
+        .filter_map(|edge| {
+            edge.reference_target_name
+                .as_deref()
+                .map(|name| (edge.source_file_path.as_path(), edge.line, name))
+        })
+        .collect::<HashSet<_>>();
+    let unresolved_name_matches = graph
+        .references
+        .iter()
+        .filter(|reference| {
+            reference.file_path != target_file
+                && matches!(
+                    reference.kind,
+                    crate::graph::ReferenceKind::Call | crate::graph::ReferenceKind::Type
+                )
+                && declared_names.contains(leaf_reference_name(&reference.target_name))
+                && !resolved_refs.contains(&(
+                    reference.file_path.as_path(),
+                    reference.line,
+                    reference.target_name.as_str(),
+                ))
+        })
+        .count();
+
+    let direct = direct_edge_counts.len();
+    let transitive = depth_of.len();
+    let risk_band = if transitive > 100 || direct > 50 {
+        "high"
+    } else if transitive > 20
+        || !cross_layer_consumers.is_empty()
+        || !framework_contract_declarations.is_empty()
+    {
+        "medium"
+    } else {
+        "low"
+    };
+
+    let mut review_radius = direct_edge_counts
+        .iter()
+        .map(|(path, edges)| ReviewRadiusFileOutput {
+            file_path: display_path(path),
+            edge_count: *edges,
+            depth: 1,
+        })
+        .collect::<Vec<_>>();
+    review_radius.sort_by(|a, b| {
+        b.edge_count
+            .cmp(&a.edge_count)
+            .then(a.file_path.cmp(&b.file_path))
+    });
+    review_radius.truncate(15);
+
+    let mut honesty = Vec::new();
+    if !framework_contract_declarations.is_empty() {
+        honesty.push(String::from(
+            "target declares framework contracts — consumers exist outside the code graph (routes/hooks fire at runtime)",
+        ));
+    }
+    if unresolved_name_matches > 0 {
+        honesty.push(format!(
+            "{unresolved_name_matches} unresolved same-name references elsewhere may hide additional consumers (dynamic dispatch)"
+        ));
+    }
+    if snapshot.boundary_truncated_files.contains(&target_display) {
+        honesty.push(String::from(
+            "analysis boundary is truncated around this file — dependents outside the analyzed slice are invisible",
+        ));
+    }
+
+    Ok(ImpactComputation {
+        output: ImpactRadiusOutput {
+            target_file: target_display,
+            target_symbol: target_symbol_label,
+            direct_dependent_files: direct,
+            transitive_dependent_files: transitive,
+            max_depth,
+            dependent_modules,
+            cross_layer_consumers,
+            framework_contract_declarations,
+            unresolved_name_matches,
+            risk_band: risk_band.to_string(),
+            review_radius,
+            honesty,
+        },
+        dependent_files,
+    })
+}
+
+fn severity_rank(severity: &str) -> u8 {
+    match severity {
+        "high" => 0,
+        "medium" => 1,
+        "low" => 2,
+        _ => 3,
+    }
+}
+
+/// Path heuristic for "this file is a test" — used to tell an agent which
+/// dependents exercise the change instead of listing every consumer.
+fn looks_like_test(path: &str) -> bool {
+    let lower = path.to_ascii_lowercase();
+    lower.starts_with("tests/")
+        || lower.contains("/tests/")
+        || lower.contains("__tests__")
+        || lower.ends_with("_test.rs")
+        || lower.ends_with("test.php")
+        || lower.contains(".test.")
+        || lower.contains(".spec.")
+}
+
 fn resource_name(uri: &str) -> &'static str {
     match uri {
         OVERVIEW_URI => "overview",
@@ -2446,6 +2654,165 @@ fn main() {
         let freshness = stale
             .freshness
             .expect("stale snapshot must report freshness");
+        assert!(freshness.is_stale);
+    }
+
+    #[tokio::test]
+    async fn prepare_change_briefs_impact_findings_tests_and_doctrine_in_one_call() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::create_dir_all(fixture.join("tests")).unwrap();
+        fs::write(
+            fixture.join("src/config.rs"),
+            br#"pub fn read_mode() -> String {
+    std::env::var("APP_MODE").unwrap_or_default()
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"mod config;
+use crate::config::read_mode;
+
+fn main() {
+    let mode = read_mode();
+    if mode == "draft" {
+        let _ = "shared-value";
+        let _ = "shared-value";
+    }
+}
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("tests/mode_check.rs"),
+            br#"#[test]
+fn placeholder() {
+    assert_eq!(1, 1);
+}
+"#,
+        )
+        .unwrap();
+
+        let server =
+            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+
+        // One call answers what used to take three: blast radius + in-radius
+        // findings + test dependents, all budgeted.
+        let briefing = server
+            .prepare_change(Parameters(super::PrepareChangeParams {
+                target: String::from("src/config.rs"),
+                max_depth: None,
+            }))
+            .await
+            .unwrap()
+            .0;
+        assert_eq!(briefing.impact.target_file, "src/config.rs");
+        assert!(
+            briefing.impact.direct_dependent_files >= 1,
+            "main.rs depends on config.rs"
+        );
+        assert!(
+            briefing
+                .findings_in_radius
+                .iter()
+                .all(|finding| !finding.id.is_empty()),
+            "in-radius findings must be compact briefs with ids for explain_finding"
+        );
+        assert_eq!(
+            briefing.findings_total,
+            briefing
+                .findings_in_radius
+                .len()
+                .max(briefing.findings_total)
+        );
+
+        // Unknown targets are errors, never guesses — same contract as impact_radius.
+        let unknown = server
+            .prepare_change(Parameters(super::PrepareChangeParams {
+                target: String::from("no/such/file.rs"),
+                max_depth: None,
+            }))
+            .await;
+        assert!(unknown.is_err());
+    }
+
+    #[tokio::test]
+    async fn verify_change_scopes_convergence_to_the_touched_paths() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/main.rs"),
+            br#"fn unused() {}
+
+fn main() {
+    let _ = "shared-value";
+    let _ = "shared-value";
+    let _ = "https://api.example.com";
+}
+"#,
+        )
+        .unwrap();
+
+        let server =
+            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+
+        // Explicit scope: first analysis has no baseline, so every finding in
+        // scope shows up as new — the honest "you own these now" answer.
+        let scoped = server
+            .verify_change(Parameters(super::VerifyChangeParams {
+                paths: vec![String::from("src/main.rs")],
+                max_items: None,
+            }))
+            .await
+            .0;
+        assert_eq!(scoped.scope_source, "explicit");
+        assert_eq!(scoped.scope_paths, vec![String::from("src/main.rs")]);
+        assert!(
+            scoped.regression_count >= 1,
+            "first-run findings in the touched file must surface as regressions"
+        );
+        assert_eq!(scoped.regression_count, scoped.regressions.len());
+
+        // Out-of-scope path: nothing should match.
+        let other = server
+            .verify_change(Parameters(super::VerifyChangeParams {
+                paths: vec![String::from("src/elsewhere.rs")],
+                max_items: None,
+            }))
+            .await
+            .0;
+        assert_eq!(other.regression_count, 0);
+        assert_eq!(other.fix_count, 0);
+
+        // Empty explicit scope falls back to daemon dirty paths; with nothing
+        // observed there is nothing to verify, and it says so.
+        let idle = server
+            .verify_change(Parameters(super::VerifyChangeParams::default()))
+            .await
+            .0;
+        assert_eq!(idle.scope_source, "daemon_dirty_paths");
+        assert_eq!(idle.regression_count, 0);
+        assert!(idle
+            .honesty
+            .iter()
+            .any(|note| note.contains("scope is empty")));
+
+        // Once the daemon observes an edit, the fallback scope picks it up.
+        server.live.mark_dirty([(
+            fixture.join("src/main.rs"),
+            super::live::DirtyKind::Modified,
+        )]);
+        let dirty = server
+            .verify_change(Parameters(super::VerifyChangeParams::default()))
+            .await
+            .0;
+        assert_eq!(dirty.scope_paths, vec![String::from("src/main.rs")]);
+        assert!(dirty.regression_count >= 1);
+        let freshness = dirty
+            .freshness
+            .expect("dirty snapshot must report actionable freshness");
         assert!(freshness.is_stale);
     }
 

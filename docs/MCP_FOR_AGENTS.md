@@ -71,18 +71,17 @@ orient → locate → plan the change → make the change → verify the change
 
 | Loop stage | Question the agent asks | Today | Needed |
 |---|---|---|---|
-| Orient | "What is this repo? Where do I start?" | `repo_overview` (89 KB dump) | `repo_brief` ≤ 3 KB: purpose-guess, zones, entries, top-3 pressures, doctrine headline |
-| Locate | "Where is symbol/concept X?" | ❌ nothing (grep fallback) | `find_symbol` — name → definitions + kind + owner + file:line, fuzzy-tail match |
-| Locate | "Who calls / uses X?" | ❌ file-level `graph_neighbors` only | `symbol_usages` — inbound edges *at symbol granularity*, grouped by caller file |
-| Plan | "What breaks if I change X?" | ❌ | `blast_radius` — transitive inbound closure with depth cap + contract hits (routes/config keys that reach X) |
+| Orient | "What is this repo? Where do I start?" | `repo_brief` ≤ 3 KB ✅ (budgeted; `repo_overview` capped) | keep |
+| Locate | "Where is symbol/concept X?" | `find_symbol` ✅ — name → definitions + kind + owner + file:line | keep |
+| Locate | "Who calls / uses X?" | `symbol_usages` ✅ — inbound edges *at symbol granularity*, grouped by caller file | keep |
+| Plan | "What breaks if I change X?" | `prepare_change` ✅ — one call: blast radius + findings already in the radius + test dependents + doctrine refs | keep |
 | Plan | "What is the sanctioned way to do Y here?" | doctrine registry is a raw artifact | `convention_for` — given a file path + concern (config/dispatch/persistence/http), return the doctrine clause + one in-repo exemplar |
 | Change | — (agent edits via its own tools) | — | — |
-| Verify | "Did I make it worse?" | `guard_decision` + `convergence_report` ✅ (good shape) | keep; add diff-scoped `verify_paths([files])` so the agent asks about *its* edit, not the whole repo |
+| Verify | "Did I make it worse?" | `verify_change` ✅ — diff-scoped delta over the touched paths (or the daemon's dirty paths), regressions vs fixes, freshness honest about lag | keep |
 | Verify | "Did my delete leave second-order dead code?" | re-run analyze + orphans ✅ (proven today: deleting 16 orphans exposed 3 more) | keep; document the loop |
 
-The Locate/Plan rows are the gap that matters most. Symbol-level graph queries
-are what separates "static-analysis report reader" from "colleague who knows
-the codebase".
+The `convention_for` row is the remaining gap: sanctioned-pattern lookup is
+still a raw artifact read. Everything else in the loop has a budgeted tool.
 
 ## Findings from Dogfooding (2026-07-03)
 
@@ -132,16 +131,17 @@ Orientation (small, prose-leading):
 Locate (symbol-granular, the new core):
 - `find_symbol(name)` — definitions with kind/owner/file:line.
 - `symbol_usages(symbol)` — inbound references grouped by file, with lines.
-- `blast_radius(symbol|file, depth)` — transitive dependents + reached
-  contracts (routes/env/config), capped and explicit about truncation.
+- `prepare_change(target)` — pre-edit briefing: blast radius + findings
+  already inside the radius + test dependents + doctrine refs, one call.
 
 Convention:
 - `convention_for(path, concern)` — doctrine clause + sanctioned mechanism +
   one exemplar file in this repo that does it right.
 
 Verify:
-- `verify_paths(files)` — diff-scoped guard: findings delta, new bypasses,
-  orphan-cascade check restricted to the touched neighborhood.
+- `verify_change(paths?)` — diff-scoped delta: regressions (new+worsened) vs
+  fixes (resolved+improved) over the touched paths, or the daemon's observed
+  dirty paths when called empty under `--watch`.
 
 Existing query tools (`explain_finding`, `graph_neighbors`,
 `graph_trace`, `list_graph_packets`, `repository_topology`, `cypher_query`)

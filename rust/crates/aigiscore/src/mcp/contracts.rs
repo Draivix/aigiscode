@@ -170,6 +170,68 @@ pub struct ReviewRadiusFileOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PrepareChangeParams {
+    /// File path (repo-relative) or symbol name / symbol id to assess.
+    pub target: String,
+    /// Transitive depth over inbound (dependent) edges. Default 3, max 6.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_depth: Option<usize>,
+}
+
+/// Pre-edit briefing: everything an agent should know before touching a file,
+/// in one budgeted call instead of three.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PrepareChangeOutput {
+    /// Blast radius: dependents, cross-layer consumers, contract wiring, risk band.
+    pub impact: ImpactRadiusOutput,
+    /// Findings attached to the target or its dependents, severity-first
+    /// (capped): what is already flagged before the edit begins.
+    pub findings_in_radius: Vec<FindingBriefOutput>,
+    /// In-radius findings before the cap.
+    pub findings_total: usize,
+    pub findings_truncated: bool,
+    /// Dependents that look like test files — run these after the change.
+    pub test_dependents: Vec<String>,
+    /// Doctrine refs attached to the in-radius findings, deduped.
+    pub doctrine_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
+pub struct VerifyChangeParams {
+    /// Repo-relative paths the agent touched. Empty means "use the paths the
+    /// daemon observed as changed since the snapshot" (`mcp --watch`).
+    #[serde(default)]
+    pub paths: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<usize>,
+}
+
+/// Post-edit answer: did *my* change make things worse, scoped to the touched
+/// paths — not a whole-repo convergence dump.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct VerifyChangeOutput {
+    /// Effective scope the delta was computed over (repo-relative, capped).
+    pub scope_paths: Vec<String>,
+    /// explicit | daemon_dirty_paths
+    pub scope_source: String,
+    /// Overall guard verdict for the current run (context, not scoped).
+    pub guard_verdict: String,
+    /// new + worsened findings touching the scope, severity-first (capped).
+    pub regressions: Vec<ConvergenceFindingOutput>,
+    /// resolved + improved findings touching the scope (capped).
+    pub fixes: Vec<ConvergenceFindingOutput>,
+    pub regression_count: usize,
+    pub fix_count: usize,
+    pub truncated: bool,
+    /// Caveats the agent must not miss (e.g. edits the analysis has not seen).
+    pub honesty: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ExplainFindingParams {
     pub finding_id: String,
 }
@@ -1522,7 +1584,28 @@ pub struct FindingBriefOutput {
 }
 
 impl FindingBriefOutput {
+    /// Triage briefs are for ranking, not reading: cap runaway summaries
+    /// (cycle findings embed whole file lists). Full text stays in
+    /// `explain_finding(id)`. Truncation is deterministic.
+    const SUMMARY_CAP_CHARS: usize = 300;
+    /// Multi-file findings (cycles) would otherwise inline dozens of paths
+    /// into every brief; the primary paths suffice for triage.
+    const FILE_PATHS_CAP: usize = 8;
+
     pub fn from_summary(summary: &FindingSummaryOutput) -> Self {
+        let capped_summary = if summary.summary.chars().count() > Self::SUMMARY_CAP_CHARS {
+            let mut capped = summary
+                .summary
+                .chars()
+                .take(Self::SUMMARY_CAP_CHARS)
+                .collect::<String>();
+            capped.push('…');
+            capped
+        } else {
+            summary.summary.clone()
+        };
+        let mut file_paths = summary.file_paths.clone();
+        file_paths.truncate(Self::FILE_PATHS_CAP);
         Self {
             id: summary.id.clone(),
             family: summary.family.clone(),
@@ -1531,8 +1614,8 @@ impl FindingBriefOutput {
             precision: summary.precision.clone(),
             confidence_millis: summary.confidence_millis,
             title: summary.title.clone(),
-            summary: summary.summary.clone(),
-            file_paths: summary.file_paths.clone(),
+            summary: capped_summary,
+            file_paths,
             line: summary.line,
             policy_status: summary.policy_status.clone(),
         }
