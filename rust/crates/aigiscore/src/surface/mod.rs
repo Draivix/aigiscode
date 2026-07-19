@@ -1211,20 +1211,36 @@ fn surface_finding_from_architectural_assessment(
             precision: String::from("modeled"),
             confidence_millis: finding.severity_millis,
             title: String::from("God class"),
-            summary: format!(
-                "{} exposes {} public methods and is depended on by {} distinct files — every change to it ripples wide ({})",
-                finding.file_path.display(),
-                finding.warning_count,
-                finding.warning_weight,
-                finding
+            summary: {
+                let accessor_methods = finding
                     .related_identifiers
                     .iter()
-                    .filter(|id| id.starts_with("used:"))
-                    .take(3)
-                    .cloned()
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+                    .find_map(|id| id.strip_prefix("accessor_methods:"))
+                    .and_then(|value| value.parse::<usize>().ok())
+                    .unwrap_or(0);
+                let surface_description = if accessor_methods > 0 {
+                    format!(
+                        "{} public methods beyond {} framework-idiom accessors",
+                        finding.warning_count, accessor_methods
+                    )
+                } else {
+                    format!("{} public methods", finding.warning_count)
+                };
+                format!(
+                    "{} exposes {} and is depended on by {} distinct files — every change to it ripples wide ({})",
+                    finding.file_path.display(),
+                    surface_description,
+                    finding.warning_weight,
+                    finding
+                        .related_identifiers
+                        .iter()
+                        .filter(|id| id.starts_with("used:"))
+                        .take(3)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            },
             file_paths: vec![finding.file_path.clone()],
             line: primary_line,
             primary_anchor,

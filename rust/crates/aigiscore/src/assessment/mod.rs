@@ -782,6 +782,7 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
         )
     };
     let mut public_counts: HashMap<&str, usize> = HashMap::new();
+    let mut accessor_counts: HashMap<&str, usize> = HashMap::new();
     let mut containers: HashMap<&str, &crate::graph::SymbolNode> = HashMap::new();
     for symbol in &graph.symbols {
         if container_like(symbol.kind) {
@@ -798,6 +799,9 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
         // Magic/dunder methods are framework contracts, not interface width.
         if symbol.visibility == Visibility::Public && !symbol.name.starts_with("__") {
             *public_counts.entry(parent).or_default() += 1;
+            if is_trivial_accessor(&symbol.name, symbol.parameter_count) {
+                *accessor_counts.entry(parent).or_default() += 1;
+            }
         }
     }
 
@@ -854,9 +858,13 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
         .iter()
         .filter_map(|(id, container)| {
             let public_methods = public_counts.get(id).copied().unwrap_or(0);
+            let accessor_methods = accessor_counts.get(id).copied().unwrap_or(0);
+            // Cycle ORM / Eloquent style entities carry dozens of idiomatic
+            // accessors without being god classes — judge the remaining width.
+            let effective_methods = public_methods.saturating_sub(accessor_methods);
             let consumption = usage.get(id)?;
             let dependent_files = consumption.files.len();
-            if public_methods < MIN_PUBLIC_METHODS || dependent_files < MIN_DEPENDENT_FILES {
+            if effective_methods < MIN_PUBLIC_METHODS || dependent_files < MIN_DEPENDENT_FILES {
                 return None;
             }
             let externally_used = consumption.used_methods.len();
@@ -868,6 +876,8 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
             top_used.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(b.1)));
             let mut related_identifiers = vec![
                 format!("public_methods:{public_methods}"),
+                format!("accessor_methods:{accessor_methods}"),
+                format!("effective_public_methods:{effective_methods}"),
                 format!("external_dependent_files:{dependent_files}"),
                 format!("externally_used_methods:{externally_used}"),
             ];
@@ -877,13 +887,13 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
                     .take(5)
                     .map(|(files, name)| format!("used:{name}@{files}files")),
             );
-            let raw = public_methods.min(80) * 8 + dependent_files.min(100) * 4;
+            let raw = effective_methods.min(80) * 8 + dependent_files.min(100) * 4;
             Some(ArchitecturalAssessmentFinding {
                 kind: ArchitecturalAssessmentKind::GodClass,
                 file_path: container.file_path.clone(),
                 related_file_paths: Vec::new(),
                 related_identifiers,
-                warning_count: public_methods,
+                warning_count: effective_methods,
                 warning_weight: dependent_files,
                 bottleneck_centrality_millis: 0,
                 warning_families: vec![String::from("design")],
@@ -897,6 +907,27 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
         .collect::<Vec<_>>();
     findings.sort_by(|a, b| a.file_path.cmp(&b.file_path));
     findings
+}
+
+/// Framework-idiom accessors (`getX`/`isX`/`hasX` with no parameters, `setX`
+/// with one) are generated surface, not design width: an entity with 70
+/// accessors and 4 real methods is not a god class. Arity keeps the discount
+/// honest — a `getX(a, b)` with real logic still counts as interface.
+fn is_trivial_accessor(name: &str, parameter_count: usize) -> bool {
+    for (prefix, is_write) in [("get", false), ("is", false), ("has", false), ("set", true)] {
+        let Some(rest) = name.strip_prefix(prefix) else {
+            continue;
+        };
+        if !rest.chars().next().is_some_and(char::is_uppercase) {
+            return false;
+        }
+        return if is_write {
+            parameter_count == 1
+        } else {
+            parameter_count == 0
+        };
+    }
+    false
 }
 
 /// Framework artifacts that look the part but are not wired into their
@@ -6690,6 +6721,100 @@ export function run(items: string[][]) {
             .related_identifiers
             .iter()
             .any(|id| id.starts_with("used:")));
+    }
+
+    #[test]
+    fn god_class_discounts_framework_idiom_accessors() {
+        use crate::graph::{
+            EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, ResolutionTier, ResolvedEdge,
+            SymbolNode,
+        };
+        let mut graph = SemanticGraph::default();
+        let class_id = "class:app/Entity.php:Entity";
+        graph.symbols.push(SymbolNode {
+            id: class_id.to_string(),
+            file_path: PathBuf::from("app/Entity.php"),
+            kind: SymbolKind::Class,
+            name: String::from("Entity"),
+            qualified_name: String::from("Entity"),
+            parent_symbol_id: None,
+            owner_type_name: None,
+            return_type_name: None,
+            visibility: Visibility::Public,
+            parameter_count: 0,
+            required_parameter_count: 0,
+            start_line: 1,
+            end_line: 400,
+        });
+        let add_method = |graph: &mut SemanticGraph, name: &str, params: usize, line: usize| {
+            graph.symbols.push(SymbolNode {
+                id: format!("method:app/Entity.php:Entity:{name}"),
+                file_path: PathBuf::from("app/Entity.php"),
+                kind: SymbolKind::Method,
+                name: String::from(name),
+                qualified_name: format!("Entity::{name}"),
+                parent_symbol_id: Some(class_id.to_string()),
+                owner_type_name: Some(String::from("Entity")),
+                return_type_name: None,
+                visibility: Visibility::Public,
+                parameter_count: params,
+                required_parameter_count: params,
+                start_line: line,
+                end_line: line,
+            });
+        };
+        // 28 idiomatic accessors + 3 real methods with wide consumption:
+        // entity idiom, not a god class.
+        for index in 0..14 {
+            add_method(&mut graph, &format!("getField{index}"), 0, 10 + index);
+            add_method(&mut graph, &format!("setField{index}"), 1, 30 + index);
+        }
+        for index in 0..3 {
+            add_method(&mut graph, &format!("compute{index}"), 0, 50 + index);
+        }
+        let edge_to = |src: &str, method: &str| ResolvedEdge {
+            source_file_path: PathBuf::from(src),
+            source_symbol_id: None,
+            target_file_path: PathBuf::from("app/Entity.php"),
+            target_symbol_id: format!("method:app/Entity.php:Entity:{method}"),
+            reference_target_name: None,
+            kind: ReferenceKind::Call,
+            relation_kind: RelationKind::Call,
+            layer: GraphLayer::Structural,
+            strength: EdgeStrength::Hard,
+            origin: EdgeOrigin::Resolver,
+            resolution_tier: ResolutionTier::ImportScoped,
+            confidence_millis: 900,
+            reason: String::from("test"),
+            line: 5,
+            occurrence_index: 0,
+        };
+        for caller in 0..12 {
+            graph.resolved_edges.push(edge_to(
+                &format!("app/callers/C{caller}.php"),
+                &format!("getField{}", caller % 14),
+            ));
+        }
+
+        assert!(super::detect_god_classes(&graph).is_empty());
+
+        // Add real interface width beyond the accessors: now it is a god
+        // class, judged on the effective surface.
+        for index in 0..26 {
+            add_method(&mut graph, &format!("operate{index}"), 0, 60 + index);
+        }
+        let findings = super::detect_god_classes(&graph);
+        assert_eq!(findings.len(), 1);
+        let god = &findings[0];
+        assert_eq!(god.warning_count, 29);
+        assert!(god
+            .related_identifiers
+            .iter()
+            .any(|id| id == "accessor_methods:28"));
+        assert!(god
+            .related_identifiers
+            .iter()
+            .any(|id| id == "effective_public_methods:29"));
     }
 
     #[test]
