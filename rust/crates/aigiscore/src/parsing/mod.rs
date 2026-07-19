@@ -32,12 +32,12 @@ pub fn parse_source_file(
     let file_path = file_path.into();
     match file_path.extension().and_then(|ext| ext.to_str()) {
         Some("rs") => Ok(rust::parse_rust_to_graph(file_path, source)?),
-        Some("js") | Some("jsx") => Ok(javascript::parse_javascript_to_graph(
-            file_path, source, false,
-        )?),
-        Some("ts") | Some("tsx") => Ok(javascript::parse_javascript_to_graph(
-            file_path, source, true,
-        )?),
+        Some("js") | Some("jsx") | Some("mjs") | Some("cjs") => Ok(
+            javascript::parse_javascript_to_graph(file_path, source, false)?,
+        ),
+        Some("ts") | Some("tsx") | Some("mts") | Some("cts") => Ok(
+            javascript::parse_javascript_to_graph(file_path, source, true)?,
+        ),
         Some("vue") => Ok(vue::parse_vue_to_graph(file_path, source)?),
         Some("php") | Some("phtml") | Some("php3") | Some("php4") | Some("php5") | Some("php8") => {
             Ok(php::parse_php_to_graph(file_path, source)?)
@@ -54,8 +54,12 @@ pub fn is_supported_source_file(path: &Path) -> bool {
         Some(
             "rs" | "js"
                 | "jsx"
+                | "mjs"
+                | "cjs"
                 | "ts"
                 | "tsx"
+                | "mts"
+                | "cts"
                 | "vue"
                 | "php"
                 | "phtml"
@@ -68,6 +72,27 @@ pub fn is_supported_source_file(path: &Path) -> bool {
                 | "rake"
         )
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_supported_source_file, parse_source_file};
+    use std::path::Path;
+
+    #[test]
+    fn parses_module_script_and_type_variants_as_javascript_family() {
+        for path in ["server.mjs", "server.cjs", "types.mts", "types.cts"] {
+            assert!(
+                is_supported_source_file(Path::new(path)),
+                "{path} must be supported"
+            );
+            let graph = parse_source_file(path, "export function main() {}\nmain();\n").unwrap();
+            assert!(
+                graph.symbols.iter().any(|symbol| symbol.name == "main"),
+                "{path} must yield symbols"
+            );
+        }
+    }
 }
 
 pub(crate) fn add_file_module_symbol(

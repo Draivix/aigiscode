@@ -406,7 +406,7 @@ impl AigiscodeMcpServer {
             .repo_overview
             .languages
             .iter()
-            .filter(|language| language.language != "Unsupported")
+            .filter(|language| language.language != "Unsupported" && language.language != "Data")
             .map(|language| format!("{} {} files", language.language, language.file_count))
             .collect::<Vec<_>>()
             .join(", ");

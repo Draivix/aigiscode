@@ -2808,13 +2808,23 @@ fn language_label(language: Language) -> String {
 fn path_language_label(path: &Path) -> Option<String> {
     match path.extension().and_then(|ext| ext.to_str()) {
         Some("rs") => Some(String::from("Rust")),
-        Some("js") | Some("jsx") => Some(String::from("JavaScript")),
-        Some("ts") | Some("tsx") => Some(String::from("TypeScript")),
+        Some("js") | Some("jsx") | Some("mjs") | Some("cjs") => Some(String::from("JavaScript")),
+        Some("ts") | Some("tsx") | Some("mts") | Some("cts") => Some(String::from("TypeScript")),
+        Some("vue") => Some(String::from("JavaScript")),
         Some("php") | Some("phtml") | Some("php3") | Some("php4") | Some("php5") | Some("php8") => {
             Some(String::from("PHP"))
         }
         Some("py") => Some(String::from("Python")),
         Some("rb") | Some("rake") => Some(String::from("Ruby")),
+        // Data and asset files are an expected part of any repository, not an
+        // analysis gap — they get their own label so "Unsupported" stays
+        // honest: code we cannot parse, not bytes we never wanted to.
+        Some(
+            "json" | "md" | "markdown" | "txt" | "yml" | "yaml" | "toml" | "xml" | "xsd" | "csv"
+            | "tsv" | "sql" | "css" | "less" | "scss" | "sass" | "svg" | "png" | "jpg" | "jpeg"
+            | "gif" | "webp" | "ico" | "icons" | "wav" | "mp3" | "mp4" | "pdf" | "lock" | "gitkeep"
+            | "gitignore" | "gitattributes" | "html" | "htm" | "service" | "conf" | "ini" | "cfg",
+        ) => Some(String::from("Data")),
         _ => None,
     }
 }
