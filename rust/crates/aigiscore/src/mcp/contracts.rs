@@ -260,6 +260,56 @@ pub struct SuppressFindingOutput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ConventionForParams {
+    /// What you are about to do — "config", "persistence", "http", "dispatch",
+    /// "security", … Matched against the doctrine registry, never guessed at.
+    pub concern: String,
+    /// File you plan to touch: adds the declared layer context for that path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+/// One doctrine clause matched to the concern.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ConventionClauseOutput {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub default_disposition: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_mechanism: Option<String>,
+    pub guidance: Vec<String>,
+}
+
+/// One in-repo file already doing it the sanctioned way.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ConventionExemplarOutput {
+    pub file_path: String,
+    /// Why this file was picked (e.g. "19 config_key accesses, zero visible findings").
+    pub basis: String,
+}
+
+/// The sanctioned way to do something here: doctrine clauses plus (when the
+/// concern maps to a measurable contract) a real in-repo exemplar.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ConventionForOutput {
+    pub concern: String,
+    /// Matching doctrine clauses, best first (capped at 3).
+    pub clauses: Vec<ConventionClauseOutput>,
+    /// Declared layer of `path` and what it may depend on, when a layer
+    /// contract exists for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layer: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub may_depend_on: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exemplar: Option<ConventionExemplarOutput>,
+    pub honesty: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freshness: Option<Freshness>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ExplainFindingParams {
     pub finding_id: String,
 }

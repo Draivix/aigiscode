@@ -6,17 +6,18 @@ use self::contracts::{
     build_finding_details, confidence_matches, display_path, family_matches, is_corpus_scale_cycle,
     language_matches, path_matches, phase_matches, precision_matches, severity_matches,
     AtlasOutput, BottleneckOutput, BriefHotspotOutput, ConsistencyMode, ContainerDesignOutput,
-    ContractInventoryOutput, ConvergenceFindingOutput, ConvergenceOutput, CorpusScaleUnitOutput,
+    ContractInventoryOutput, ConventionClauseOutput, ConventionExemplarOutput, ConventionForOutput,
+    ConventionForParams, ConvergenceFindingOutput, ConvergenceOutput, CorpusScaleUnitOutput,
     CoverageReportOutput, CrossLayerConsumerOutput, CycleOutput, CyclesOutput, CypherQueryOutput,
-    CypherQueryParams, DoctrineRegistryOutput, ExplainFindingParams, FindSymbolOutput,
-    FindSymbolParams, FindingBriefOutput, FindingDetailOutput, FindingSummaryOutput,
-    GuardDecisionOutput, HotspotOutput, HotspotsOutput, ImpactRadiusOutput, ImpactRadiusParams,
-    ListFindingsOutput, ListFindingsParams, ModuleDesignOutput, ModuleDesignParams,
-    ModuleEdgeOutput, PrepareChangeOutput, PrepareChangeParams, QualityEvaluationOutput,
-    RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams, ReviewRadiusFileOutput,
-    ShowCyclesParams, ShowHotspotsParams, SuppressFindingOutput, SuppressFindingParams,
-    SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams, UsageSiteOutput, VerifyChangeOutput,
-    VerifyChangeParams,
+    CypherQueryParams, DoctrineClauseOutput, DoctrineRegistryOutput, ExplainFindingParams,
+    FindSymbolOutput, FindSymbolParams, FindingBriefOutput, FindingDetailOutput,
+    FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput, ImpactRadiusOutput,
+    ImpactRadiusParams, ListFindingsOutput, ListFindingsParams, ModuleDesignOutput,
+    ModuleDesignParams, ModuleEdgeOutput, PrepareChangeOutput, PrepareChangeParams,
+    QualityEvaluationOutput, RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
+    ReviewRadiusFileOutput, ShowCyclesParams, ShowHotspotsParams, SuppressFindingOutput,
+    SuppressFindingParams, SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams,
+    UsageSiteOutput, VerifyChangeOutput, VerifyChangeParams,
 };
 use self::live::LiveState;
 use crate::agentic::{
@@ -1114,6 +1115,107 @@ impl AigiscodeMcpServer {
             )],
             freshness: self.live.actionable_freshness(true),
         }))
+    }
+
+    #[tool(
+        name = "convention_for",
+        description = "The sanctioned way to do something in this repo: doctrine clauses matching your concern (config, persistence, http, dispatch, security, …) with preferred mechanisms and guidance, the declared layer context for the file you plan to touch, and — when the concern maps to a measurable contract — one real in-repo exemplar that does it right with zero visible findings."
+    )]
+    async fn convention_for(
+        &self,
+        Parameters(params): Parameters<ConventionForParams>,
+    ) -> Json<ConventionForOutput> {
+        const CLAUSE_CAP: usize = 3;
+        let concern = params.concern.trim().to_string();
+        let state = self.state().await;
+        let snapshot = state.snapshot();
+
+        let tokens = concern
+            .to_ascii_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|token| token.len() >= 3)
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+        let mut scored = snapshot
+            .doctrine_registry
+            .clauses
+            .iter()
+            .map(|clause| (clause_score(clause, &tokens), clause))
+            .filter(|(score, _)| *score > 0)
+            .collect::<Vec<_>>();
+        scored.sort_by(|(score_a, a), (score_b, b)| {
+            score_b.cmp(score_a).then_with(|| a.id.cmp(&b.id))
+        });
+        let clauses = scored
+            .into_iter()
+            .take(CLAUSE_CAP)
+            .map(|(_, clause)| ConventionClauseOutput {
+                id: clause.id.clone(),
+                title: clause.title.clone(),
+                description: clause.description.clone(),
+                default_disposition: clause.default_disposition.clone(),
+                preferred_mechanism: clause.preferred_mechanism.clone(),
+                guidance: clause.guidance.clone(),
+            })
+            .collect::<Vec<_>>();
+
+        // Declared layer context for the target path, when a contract exists.
+        let (layer, may_depend_on) = params
+            .path
+            .as_deref()
+            .and_then(|path| {
+                snapshot
+                    .layers
+                    .iter()
+                    .filter(|layer| {
+                        layer.path_prefixes.iter().any(|prefix| {
+                            let path = path.trim_end_matches('/');
+                            path == prefix || path.starts_with(&format!("{prefix}/"))
+                        })
+                    })
+                    .max_by_key(|layer| {
+                        layer
+                            .path_prefixes
+                            .iter()
+                            .map(|prefix| prefix.len())
+                            .max()
+                            .unwrap_or(0)
+                    })
+            })
+            .map(|layer| (Some(layer.name.clone()), layer.may_depend_on.clone()))
+            .unwrap_or((None, Vec::new()));
+
+        // Exemplar: the heaviest clean user of the contract the concern maps to.
+        let exemplar_category = exemplar_contract_category(&tokens);
+        let exemplar =
+            exemplar_category.and_then(|category| pick_convention_exemplar(snapshot, category));
+
+        let mut honesty = Vec::new();
+        if clauses.is_empty() {
+            honesty.push(String::from(
+                "no doctrine clause matched — absence of a clause is not permission, ask or check the registry",
+            ));
+        }
+        if exemplar_category.is_some() && exemplar.is_none() {
+            honesty.push(String::from(
+                "no clean exemplar found — every file using this contract carries visible findings",
+            ));
+        }
+        if exemplar_category.is_none() {
+            honesty.push(String::from(
+                "concern does not map to a measurable contract — clauses still apply, exemplar unavailable",
+            ));
+        }
+
+        Json(ConventionForOutput {
+            concern,
+            clauses,
+            layer,
+            may_depend_on,
+            exemplar,
+            honesty,
+            freshness: self.live.actionable_freshness(true),
+        })
     }
 
     #[tool(
@@ -2319,6 +2421,120 @@ fn rule_spec_for_finding(
     }
 }
 
+/// Score a doctrine clause against concern tokens: id parts weigh most
+/// (they are the registry's vocabulary), then title, then description, plus a
+/// category affinity for the concerns agents actually ask about. Anything
+/// scoring zero is not about the concern and stays out.
+fn clause_score(clause: &DoctrineClauseOutput, tokens: &[String]) -> usize {
+    let id_parts: Vec<&str> = clause.id.split(|c: char| !c.is_alphanumeric()).collect();
+    let title = clause.title.to_ascii_lowercase();
+    let description = clause.description.to_ascii_lowercase();
+    let mut score = 0;
+    for token in tokens {
+        if id_parts.iter().any(|part| part == token) {
+            score += 3;
+        }
+        if title.contains(token.as_str()) {
+            score += 2;
+        }
+        if description.contains(token.as_str()) {
+            score += 1;
+        }
+    }
+    let affinity = |words: &[&str]| tokens.iter().any(|token| words.contains(&token.as_str()));
+    score += match clause.category.as_str() {
+        "configuration" if affinity(&["config", "env", "setting", "settings"]) => 2,
+        "security" if affinity(&["security", "auth", "token", "password", "crypto"]) => 2,
+        "architecture"
+            if affinity(&[
+                "layer",
+                "module",
+                "structure",
+                "cycle",
+                "dependency",
+                "architecture",
+            ]) =>
+        {
+            2
+        }
+        "mechanism_choice"
+            if affinity(&[
+                "parser",
+                "library",
+                "mechanism",
+                "framework",
+                "persistence",
+                "orm",
+                "database",
+                "db",
+                "http",
+                "client",
+            ]) =>
+        {
+            2
+        }
+        "maintainability" if affinity(&["complexity", "maintainability", "quality", "clean"]) => 2,
+        "change_governance" if affinity(&["change", "release", "migration", "deploy"]) => 2,
+        _ => 0,
+    };
+    score
+}
+
+/// The contract-inventory bucket a concern maps to, when it maps to one —
+/// exemplars can only be picked where usage is measurable.
+fn exemplar_contract_category(tokens: &[String]) -> Option<&'static str> {
+    let has = |words: &[&str]| tokens.iter().any(|token| words.contains(&token.as_str()));
+    if has(&["env"]) {
+        Some("env_keys")
+    } else if has(&["config", "setting", "settings"]) {
+        Some("config_keys")
+    } else if has(&["route", "routes", "http", "api", "endpoint"]) {
+        Some("routes")
+    } else if has(&["hook", "hooks", "event", "events", "dispatch", "listener"]) {
+        Some("hooks")
+    } else {
+        None
+    }
+}
+
+/// One exemplar file: the heaviest user of the contract that carries zero
+/// visible findings. Heaviest so it shows the *established* pattern, clean so
+/// the agent does not copy pressure.
+fn pick_convention_exemplar(
+    snapshot: &McpState,
+    category: &str,
+) -> Option<ConventionExemplarOutput> {
+    let items = match category {
+        "config_keys" => &snapshot.contract_inventory.config_keys,
+        "env_keys" => &snapshot.contract_inventory.env_keys,
+        "routes" => &snapshot.contract_inventory.routes,
+        "hooks" => &snapshot.contract_inventory.hooks,
+        _ => return None,
+    };
+    let mut counts: HashMap<&str, usize> = HashMap::new();
+    for item in items {
+        for location in &item.locations {
+            *counts.entry(location.file_path.as_str()).or_default() += 1;
+        }
+    }
+    let flagged: HashSet<&str> = snapshot
+        .finding_summaries
+        .iter()
+        .flat_map(|finding| finding.file_paths.iter().map(String::as_str))
+        .collect();
+    let mut candidates = counts
+        .into_iter()
+        .filter(|(path, _)| !flagged.contains(path))
+        .collect::<Vec<_>>();
+    candidates.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+    candidates
+        .first()
+        .map(|(path, count)| ConventionExemplarOutput {
+            file_path: (*path).to_string(),
+            basis: format!("{count} {category} accesses, zero visible findings"),
+        })
+}
+
 fn resource_name(uri: &str) -> &'static str {
     match uri {
         OVERVIEW_URI => "overview",
@@ -3004,6 +3220,65 @@ fn main() {
             }))
             .await
             .is_err());
+    }
+
+    #[tokio::test]
+    async fn convention_for_returns_doctrine_clauses_and_a_clean_exemplar() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/settings.php"),
+            br#"<?php
+$name = config('app.name');
+$zone = config('app.timezone');
+"#,
+        )
+        .unwrap();
+        fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
+
+        let server =
+            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+
+        // A config concern surfaces the configuration doctrine and points at
+        // the file already doing it the sanctioned way.
+        let answer = server
+            .convention_for(Parameters(super::ConventionForParams {
+                concern: String::from("config"),
+                path: None,
+            }))
+            .await
+            .0;
+        assert!(
+            answer
+                .clauses
+                .iter()
+                .any(|clause| clause.id == "configuration.coherence"),
+            "config concern must match the configuration doctrine, got: {:?}",
+            answer
+                .clauses
+                .iter()
+                .map(|clause| clause.id.as_str())
+                .collect::<Vec<_>>()
+        );
+        let exemplar = answer
+            .exemplar
+            .expect("config maps to the config_keys contract");
+        assert_eq!(exemplar.file_path, "src/settings.php");
+        assert!(exemplar.basis.contains("config_keys"));
+
+        // A nonsense concern is honestly empty, never a guess.
+        let empty = server
+            .convention_for(Parameters(super::ConventionForParams {
+                concern: String::from("zzzqwx"),
+                path: None,
+            }))
+            .await
+            .0;
+        assert!(empty.clauses.is_empty());
+        assert!(empty
+            .honesty
+            .iter()
+            .any(|note| note.contains("no doctrine clause matched")));
     }
 
     #[tokio::test]

@@ -75,13 +75,14 @@ orient → locate → plan the change → make the change → verify the change
 | Locate | "Where is symbol/concept X?" | `find_symbol` ✅ — name → definitions + kind + owner + file:line | keep |
 | Locate | "Who calls / uses X?" | `symbol_usages` ✅ — inbound edges *at symbol granularity*, grouped by caller file | keep |
 | Plan | "What breaks if I change X?" | `prepare_change` ✅ — one call: blast radius + findings already in the radius + test dependents + doctrine refs | keep |
-| Plan | "What is the sanctioned way to do Y here?" | doctrine registry is a raw artifact | `convention_for` — given a file path + concern (config/dispatch/persistence/http), return the doctrine clause + one in-repo exemplar |
+| Plan | "What is the sanctioned way to do Y here?" | `convention_for` ✅ — doctrine clauses + preferred mechanism + declared layer context + one clean in-repo exemplar | keep |
 | Change | — (agent edits via its own tools) | — | — |
 | Verify | "Did I make it worse?" | `verify_change` ✅ — diff-scoped delta over the touched paths (or the daemon's dirty paths), regressions vs fixes, freshness honest about lag | keep |
 | Verify | "Did my delete leave second-order dead code?" | re-run analyze + orphans ✅ (proven today: deleting 16 orphans exposed 3 more) | keep; document the loop |
 
-The `convention_for` row is the remaining gap: sanctioned-pattern lookup is
-still a raw artifact read. Everything else in the loop has a budgeted tool.
+The loop is fully tool-backed: orient (`repo_brief`) → locate (`find_symbol` /
+`symbol_usages`) → plan (`prepare_change`, `convention_for`) → verify
+(`verify_change`) → converge (`suppress_finding`).
 
 ## Findings from Dogfooding (2026-07-03)
 
@@ -135,8 +136,10 @@ Locate (symbol-granular, the new core):
   already inside the radius + test dependents + doctrine refs, one call.
 
 Convention:
-- `convention_for(path, concern)` — doctrine clause + sanctioned mechanism +
-  one exemplar file in this repo that does it right.
+- `convention_for(concern, path?)` — doctrine clauses matching the concern
+  (best first, capped), preferred mechanisms and guidance, the declared layer
+  context for the file you will touch, and one clean in-repo exemplar picked
+  from contract usage (heaviest user with zero visible findings).
 
 Verify:
 - `verify_change(paths?)` — diff-scoped delta: regressions (new+worsened) vs
