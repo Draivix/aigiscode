@@ -194,23 +194,38 @@ fn try_fast_load_graph_project(
         .iter()
         .map(|entry| (entry.path.as_str(), entry.xxh3.as_str()))
         .collect();
-    let mut parsed_sources = Vec::with_capacity(supported.len());
-    for file in &supported {
-        let display = file.relative_path.display().to_string();
-        let Some(expected_hash) = expected.get(display.as_str()) else {
-            return Ok(None);
-        };
-        let absolute_path = root.join(&file.relative_path);
-        let source = fs::read_to_string(&absolute_path).map_err(|source| {
-            ProjectAnalysisError::ReadFile {
-                path: absolute_path.clone(),
-                source,
+    // Reads are parallel; results merge in scan order and any mismatch
+    // declines the whole fast-load.
+    enum FastLoadFile {
+        Match(PathBuf, String),
+        Mismatch,
+    }
+    let loaded = supported
+        .par_iter()
+        .map(|file| {
+            let display = file.relative_path.display().to_string();
+            let Some(expected_hash) = expected.get(display.as_str()) else {
+                return Ok(FastLoadFile::Mismatch);
+            };
+            let absolute_path = root.join(&file.relative_path);
+            let source = fs::read_to_string(&absolute_path).map_err(|source| {
+                ProjectAnalysisError::ReadFile {
+                    path: absolute_path.clone(),
+                    source,
+                }
+            })?;
+            if format!("{:016x}", xxhash_rust::xxh3::xxh3_64(source.as_bytes())) != *expected_hash {
+                return Ok(FastLoadFile::Mismatch);
             }
-        })?;
-        if format!("{:016x}", xxhash_rust::xxh3::xxh3_64(source.as_bytes())) != *expected_hash {
-            return Ok(None);
+            Ok(FastLoadFile::Match(file.relative_path.clone(), source))
+        })
+        .collect::<Result<Vec<_>, ProjectAnalysisError>>()?;
+    let mut parsed_sources = Vec::with_capacity(loaded.len());
+    for item in loaded {
+        match item {
+            FastLoadFile::Match(path, source) => parsed_sources.push((path, source)),
+            FastLoadFile::Mismatch => return Ok(None),
         }
-        parsed_sources.push((file.relative_path.clone(), source));
     }
 
     let semantic_graph: SemanticGraph =
