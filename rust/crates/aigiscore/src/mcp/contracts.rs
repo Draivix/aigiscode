@@ -1362,6 +1362,8 @@ pub struct ContractInventoryOutput {
     pub symbolic_literals: Vec<ContractItemOutput>,
     pub env_keys: Vec<ContractItemOutput>,
     pub config_keys: Vec<ContractItemOutput>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub channels: Vec<ContractItemOutput>,
 }
 
 impl ContractInventoryOutput {
@@ -1404,6 +1406,11 @@ impl ContractInventoryOutput {
                 .iter()
                 .map(ContractItemOutput::from_item)
                 .collect(),
+            channels: inventory
+                .channels
+                .iter()
+                .map(ContractItemOutput::from_item)
+                .collect(),
         }
     }
 
@@ -1432,6 +1439,7 @@ impl ContractInventoryOutput {
             | cap_items(&mut self.registered_keys, max_items, max_locations)
             | cap_items(&mut self.symbolic_literals, max_items, max_locations)
             | cap_items(&mut self.env_keys, max_items, max_locations)
+            | cap_items(&mut self.channels, max_items, max_locations)
             | cap_items(&mut self.config_keys, max_items, max_locations);
         self
     }
@@ -1472,6 +1480,8 @@ pub struct ContractInventorySummaryOutput {
     pub symbolic_literals: ContractCategorySummaryOutput,
     pub env_keys: ContractCategorySummaryOutput,
     pub config_keys: ContractCategorySummaryOutput,
+    #[serde(default)]
+    pub channels: ContractCategorySummaryOutput,
 }
 
 impl ContractInventorySummaryOutput {
@@ -1485,11 +1495,12 @@ impl ContractInventorySummaryOutput {
             ),
             env_keys: ContractCategorySummaryOutput::from_summary(&summary.env_keys),
             config_keys: ContractCategorySummaryOutput::from_summary(&summary.config_keys),
+            channels: ContractCategorySummaryOutput::from_summary(&summary.channels),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ContractCategorySummaryOutput {
     pub unique_values: usize,
     pub occurrences: usize,

@@ -2241,6 +2241,7 @@ fn compute_impact_radius(
     for (label, items) in [
         ("route", &snapshot.contract_inventory.routes),
         ("hook", &snapshot.contract_inventory.hooks),
+        ("channel", &snapshot.contract_inventory.channels),
         (
             "registered_key",
             &snapshot.contract_inventory.registered_keys,

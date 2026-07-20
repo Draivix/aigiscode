@@ -29,6 +29,10 @@ pub struct ContractInventory {
     pub env_keys: Vec<ContractInventoryItem>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub config_keys: Vec<ContractInventoryItem>,
+    /// Pub-sub channel names (emit/listen/publish/subscribe) — the cross-file
+    /// wiring that only exists at runtime.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub channels: Vec<ContractInventoryItem>,
 }
 
 impl ContractInventory {
@@ -56,6 +60,11 @@ impl ContractInventory {
                 .iter()
                 .map(|item| item.value.clone())
                 .collect(),
+            channels: self
+                .channels
+                .iter()
+                .map(|item| item.value.clone())
+                .collect(),
         }
     }
 }
@@ -68,6 +77,8 @@ pub struct ContractInventorySummary {
     pub symbolic_literals: ContractCategorySummary,
     pub env_keys: ContractCategorySummary,
     pub config_keys: ContractCategorySummary,
+    #[serde(default)]
+    pub channels: ContractCategorySummary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
@@ -97,6 +108,7 @@ pub struct ContractLookup {
     pub symbolic_literals: Vec<String>,
     pub env_keys: Vec<String>,
     pub config_keys: Vec<String>,
+    pub channels: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -117,6 +129,7 @@ impl ContractLookup {
             &self.symbolic_literals,
             &self.env_keys,
             &self.config_keys,
+            &self.channels,
         ]
         .into_iter()
         .flatten()
@@ -144,6 +157,7 @@ struct ContractBuckets {
     symbolic_literals: HashMap<String, ContractEntryAccumulator>,
     env_keys: HashMap<String, ContractEntryAccumulator>,
     config_keys: HashMap<String, ContractEntryAccumulator>,
+    channels: HashMap<String, ContractEntryAccumulator>,
 }
 
 #[derive(Debug, Default)]
@@ -191,6 +205,9 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
         scan_pattern_bucket(&mut buckets.env_keys, env_patterns(), path, content);
         scan_import_meta_env(&mut buckets.env_keys, path, content);
         scan_pattern_bucket(&mut buckets.config_keys, config_patterns(), path, content);
+        // Pub-sub channels are runtime wiring: an emit in one file and a
+        // listener in another share nothing the call graph can see.
+        scan_pattern_bucket(&mut buckets.channels, channel_patterns(), path, content);
         scan_symbolic_literals(&mut buckets.symbolic_literals, path, content, language);
         scan_semantic_model_contracts(&mut buckets, path, content);
     }
@@ -203,6 +220,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
             symbolic_literals: summarize_bucket(&buckets.symbolic_literals),
             env_keys: summarize_bucket(&buckets.env_keys),
             config_keys: summarize_bucket(&buckets.config_keys),
+            channels: summarize_bucket(&buckets.channels),
         },
         semantic_model_packs: serialize_semantic_model_packs(&buckets.semantic_model_pack_ids),
         routes: serialize_bucket(&buckets.routes),
@@ -211,6 +229,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
         symbolic_literals: serialize_bucket(&buckets.symbolic_literals),
         env_keys: serialize_bucket(&buckets.env_keys),
         config_keys: serialize_bucket(&buckets.config_keys),
+        channels: serialize_bucket(&buckets.channels),
     }
 }
 
@@ -761,6 +780,42 @@ fn config_patterns() -> Vec<&'static Regex> {
         .collect()
 }
 
+/// Pub-sub channel usage, both sides of the wire. Patterns are receiver- or
+/// verb-scoped so ordinary event APIs (DOM `.on('click')`) stay out; template-
+/// literal channels (`entity.${id}`) are captured with their hole.
+fn channel_patterns() -> Vec<&'static Regex> {
+    static PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
+    PATTERNS
+        .get_or_init(|| {
+            let value = r#"['\"`](?P<value>[A-Za-z0-9_.:/${}-]+)['\"`]"#;
+            vec![
+                // Socket.IO / ws send side.
+                Regex::new(&format!(r#"\bsocket\s*\.\s*(?:emit|send)\s*\(\s*{value}"#)).unwrap(),
+                // Socket.IO / EventEmitter listen side — receiver-scoped so DOM
+                // and jQuery `.on(...)` handlers do not leak in.
+                Regex::new(&format!(r#"\b(?:socket|io|ws)\s*\.\s*on\s*\(\s*{value}"#)).unwrap(),
+                // Laravel Echo (channel/private/join subscribe + listen).
+                Regex::new(&format!(
+                    r#"\bEcho\s*\.\s*(?:channel|private|join|listen)\s*\(\s*{value}"#
+                ))
+                .unwrap(),
+                // Laravel channel authorization + broadcastOn channel shapes.
+                Regex::new(&format!(r#"\bBroadcast::channel\s*\(\s*{value}"#)).unwrap(),
+                Regex::new(&format!(
+                    r#"\bnew\s+(?:PrivateChannel|PresenceChannel|Channel)\s*\(\s*{value}"#
+                ))
+                .unwrap(),
+                // Redis / generic pub-sub.
+                Regex::new(&format!(r#"(?:->|\.)publish\s*\(\s*{value}"#)).unwrap(),
+                Regex::new(&format!(r#"(?:->|\.)p?subscribe\s*\(\s*{value}"#)).unwrap(),
+                // Pusher-style trigger.
+                Regex::new(&format!(r#"(?:->|\.)trigger\s*\(\s*{value}"#)).unwrap(),
+            ]
+        })
+        .iter()
+        .collect()
+}
+
 fn ts_literal_union_patterns() -> Vec<&'static Regex> {
     static PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
     PATTERNS
@@ -835,6 +890,62 @@ fn multiline_union_start_pattern() -> &'static Regex {
 mod tests {
     use super::{build_contract_inventory, ContractCategorySummary};
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn channel_patterns_capture_both_sides_of_pub_sub_wiring() {
+        let files = vec![
+            (
+                PathBuf::from("resources/js/realtime.js"),
+                String::from(
+                    "Echo.private('orders.5').listen('OrderUpdated');\n\
+                     socket.emit('chat.message', payload);\n\
+                     socket.on('chat.typing', handler);\n\
+                     button.on('click', handler);\n",
+                ),
+            ),
+            (
+                PathBuf::from("app/Services/PushService.php"),
+                String::from(
+                    "<?php\n\
+                     $redis->publish('orders.updated', $payload);\n\
+                     $redis->subscribe('orders.cancelled');\n\
+                     Broadcast::channel('orders.{id}', $callback);\n\
+                     return [new PrivateChannel('users.' . $id)];\n",
+                ),
+            ),
+        ];
+        let inventory = build_contract_inventory(&files);
+        let values = inventory
+            .channels
+            .iter()
+            .map(|item| {
+                (
+                    item.value.as_str(),
+                    item.locations[0].file_path.to_str().unwrap(),
+                )
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for expected in [
+            "orders.5",
+            "chat.message",
+            "chat.typing",
+            "orders.updated",
+            "orders.cancelled",
+            "orders.{id}",
+        ] {
+            assert!(
+                values.contains_key(expected),
+                "missing channel `{expected}`, got: {values:?}"
+            );
+        }
+        assert_eq!(
+            values.get("orders.updated"),
+            Some(&"app/Services/PushService.php")
+        );
+        // DOM event handlers are not pub-sub channels.
+        assert!(!values.contains_key("click"));
+        assert!(inventory.summary.channels.occurrences >= 6);
+    }
 
     #[test]
     fn route_declaring_files_accepts_slashless_declarations() {
