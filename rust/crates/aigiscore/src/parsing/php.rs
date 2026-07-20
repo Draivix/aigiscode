@@ -801,9 +801,20 @@ fn infer_call_result_type(
         return None;
     }
     let inferred = match node.kind() {
-        "function_call_expression" => node
-            .child_by_field_name("function")
-            .map(|function| leaf_namespace_name(&context.text(function))),
+        "function_call_expression" => {
+            let function_name = node
+                .child_by_field_name("function")
+                .map(|function| leaf_namespace_name(&context.text(function)));
+            match function_name.as_deref() {
+                // Container helpers return the class they are asked to resolve:
+                // `$x = app(Foo::class)` types $x as Foo, not as `app`. Ecosystem
+                // idiom (Laravel), not a repo-specific heuristic.
+                Some("app") | Some("resolve") => {
+                    class_constant_argument(node, context).or(function_name)
+                }
+                _ => function_name,
+            }
+        }
         "member_call_expression" | "nullsafe_member_call_expression" => {
             let receiver_name = node
                 .child_by_field_name("object")
@@ -856,6 +867,29 @@ fn leaf_namespace_name(value: &str) -> String {
         .to_owned()
 }
 
+/// First `Foo::class` argument of a call — the type a container helper
+/// (`app()`, `resolve()`) actually returns. Grammar versions vary on whether
+/// arguments are wrapped in an `argument` node, so both shapes are accepted.
+fn class_constant_argument(node: Node<'_>, context: &PhpContext<'_>) -> Option<String> {
+    let arguments = node.child_by_field_name("arguments")?;
+    arguments
+        .children(&mut arguments.walk())
+        .map(|child| {
+            if child.kind() == "argument" {
+                child.child(0).unwrap_or(child)
+            } else {
+                child
+            }
+        })
+        .find(|child| child.kind() == "class_constant_access_expression")
+        .and_then(|constant| {
+            constant
+                .children(&mut constant.walk())
+                .find(|part| matches!(part.kind(), "name" | "qualified_name"))
+                .map(|name| context.text(name))
+        })
+}
+
 fn trace(message: &str) {
     if env::var_os("AIGISCORE_TRACE").is_some() {
         eprintln!("[aigiscore] {message}");
@@ -867,6 +901,44 @@ mod tests {
     use super::parse_php_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn container_helper_assignments_type_the_receiver_as_the_resolved_class() {
+        let graph = parse_php_to_graph(
+            PathBuf::from("app/Console/SyncCommand.php"),
+            r#"<?php
+namespace App\Console;
+
+use App\Services\EmailSyncManager;
+
+class SyncCommand
+{
+    public function handle(): void
+    {
+        $syncManager = app(EmailSyncManager::class);
+        $syncManager->queueFullSync($account);
+
+        $made = resolve(EmailSyncManager::class);
+        $made->queueFullSync($account);
+    }
+}
+"#,
+        )
+        .unwrap();
+        let receiver_types = graph
+            .references
+            .iter()
+            .filter(|reference| reference.target_name == "queueFullSync")
+            .filter_map(|reference| reference.receiver_type_name.as_deref())
+            .collect::<Vec<_>>();
+        assert_eq!(receiver_types.len(), 2);
+        assert!(
+            receiver_types
+                .iter()
+                .all(|receiver_type| *receiver_type == "EmailSyncManager"),
+            "app()/resolve() must bind the ::class argument as the type, got: {receiver_types:?}"
+        );
+    }
 
     #[test]
     fn conditionally_declared_duplicate_classes_get_distinct_symbol_ids() {
