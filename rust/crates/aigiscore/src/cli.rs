@@ -13,7 +13,7 @@ use crate::artifacts::{
     CONVERGENCE_HISTORY_FILE, DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE,
     DETERMINISTIC_FINDINGS_FILE, DOCTRINE_REGISTRY_FILE, EVIDENCE_GRAPH_FILE,
     EXTERNAL_ANALYSIS_FILE, GRAPH_PACKETS_FILE, GUARD_DECISION_FILE, REPOSITORY_TOPOLOGY_FILE,
-    REVIEW_SURFACE_FILE, SEMANTIC_GRAPH_FILE,
+    REVIEW_SURFACE_FILE, SCAN_MANIFEST_FILE, SEMANTIC_GRAPH_FILE,
 };
 use crate::assessment::build_architectural_assessment_with_ast_grep_and_graph;
 use crate::doctrine::load_doctrine_registry;
@@ -1524,6 +1524,7 @@ fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPa
         repository_topology: output_dir.join(REPOSITORY_TOPOLOGY_FILE),
         aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
         aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
+        scan_manifest: output_dir.join(SCAN_MANIFEST_FILE),
     }
 }
 

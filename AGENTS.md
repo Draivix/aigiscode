@@ -66,6 +66,12 @@ silently served a stale graph. See `docs/ONLINE_CODE_GRAPH_ARCHITECTURE.md`.
 - `.aigiscode/repository-topology.json`
 - `.aigiscode/aigiscode-report.json`
 - `.aigiscode/aigiscode-report.md`
+- `.aigiscode/scan-manifest.json`
+
+`scan-manifest.json` is the fast-load fingerprint: with `AIGISCORE_FAST_LOAD=1`,
+`aigiscode mcp` verifies it (version, resolver-config hash, per-file content
+hashes) and skips Parse+Resolve when everything matches, declining to a full
+analysis on any mismatch.
 
 ## Recommended Agent Workflow
 

@@ -15,9 +15,10 @@ use crate::security::{analyze_security_findings_with_ast_grep_and_graph, Securit
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use thiserror::Error;
 
@@ -141,6 +142,109 @@ pub fn analyze_project(
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
     let root = root.into();
     let graph_project = build_semantic_graph_project(&root, scan_config)?;
+    finish_project_analysis(graph_project)
+}
+
+/// Opt-in fast load (driven by `AIGISCORE_FAST_LOAD=1` at the call site):
+/// skips Parse+Resolve when the scan manifest proves the analyzed file set
+/// and contents are unchanged and the resolver-config fingerprint matches.
+/// Returns `Ok(None)` on any doubt — fast-load may decline, never lie.
+pub fn analyze_project_fast_load(
+    root: impl Into<PathBuf>,
+    scan_config: &ScanConfig,
+) -> Result<Option<ProjectAnalysis>, ProjectAnalysisError> {
+    let root = root.into();
+    let Some(graph_project) = try_fast_load_graph_project(&root, scan_config)? else {
+        return Ok(None);
+    };
+    Ok(Some(finish_project_analysis(graph_project)?))
+}
+
+fn try_fast_load_graph_project(
+    root: &Path,
+    scan_config: &ScanConfig,
+) -> Result<Option<SemanticGraphProject>, ProjectAnalysisError> {
+    let scan_started = Instant::now();
+    let output_dir = root.join(crate::artifacts::DEFAULT_OUTPUT_DIR_NAME);
+    let manifest: crate::artifacts::ScanManifest =
+        match fs::read_to_string(output_dir.join(crate::artifacts::SCAN_MANIFEST_FILE))
+            .ok()
+            .and_then(|raw| serde_json::from_str(&raw).ok())
+        {
+            Some(manifest) => manifest,
+            None => return Ok(None),
+        };
+    if manifest.aigiscode_version != env!("CARGO_PKG_VERSION")
+        || manifest.resolve_config_xxh3 != crate::artifacts::resolve_config_hash(root)
+    {
+        return Ok(None);
+    }
+
+    let scan = scan_repository(root, scan_config)?;
+    let supported = scan
+        .files
+        .iter()
+        .filter(|file| is_supported_source_file(&file.relative_path))
+        .collect::<Vec<_>>();
+    if supported.len() != manifest.files.len() {
+        return Ok(None);
+    }
+    let expected: HashMap<&str, &str> = manifest
+        .files
+        .iter()
+        .map(|entry| (entry.path.as_str(), entry.xxh3.as_str()))
+        .collect();
+    let mut parsed_sources = Vec::with_capacity(supported.len());
+    for file in &supported {
+        let display = file.relative_path.display().to_string();
+        let Some(expected_hash) = expected.get(display.as_str()) else {
+            return Ok(None);
+        };
+        let absolute_path = root.join(&file.relative_path);
+        let source = fs::read_to_string(&absolute_path).map_err(|source| {
+            ProjectAnalysisError::ReadFile {
+                path: absolute_path.clone(),
+                source,
+            }
+        })?;
+        if format!("{:016x}", xxhash_rust::xxh3::xxh3_64(source.as_bytes())) != *expected_hash {
+            return Ok(None);
+        }
+        parsed_sources.push((file.relative_path.clone(), source));
+    }
+
+    let semantic_graph: SemanticGraph =
+        match fs::read_to_string(output_dir.join(crate::artifacts::SEMANTIC_GRAPH_FILE))
+            .ok()
+            .and_then(|raw| serde_json::from_str(&raw).ok())
+        {
+            Some(graph) => graph,
+            None => return Ok(None),
+        };
+    let structure_started = Instant::now();
+    let structure = build_structure_graph(&scan.files);
+    Ok(Some(SemanticGraphProject {
+        root: root.to_path_buf(),
+        scan,
+        structure,
+        semantic_graph,
+        parsed_sources,
+        timings: vec![
+            PhaseTiming {
+                phase: IngestionPhase::Scan,
+                elapsed_ms: scan_started.elapsed().as_millis(),
+            },
+            PhaseTiming {
+                phase: IngestionPhase::Structure,
+                elapsed_ms: structure_started.elapsed().as_millis(),
+            },
+        ],
+    }))
+}
+
+fn finish_project_analysis(
+    graph_project: SemanticGraphProject,
+) -> Result<ProjectAnalysis, ProjectAnalysisError> {
     let SemanticGraphProject {
         root,
         scan,
@@ -396,6 +500,50 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn fast_load_round_trips_unchanged_tree_and_declines_on_change() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(
+            fixture.join("src/models.rs"),
+            b"pub struct User {}\nimpl User { pub fn save(&self) {} }\n",
+        )
+        .unwrap();
+        fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
+
+        // Unchanged tree: fast load succeeds and carries the same graph.
+        let loaded = super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+            .unwrap()
+            .expect("unchanged tree must fast-load");
+        assert_eq!(
+            loaded.semantic_graph.symbols.len(),
+            analysis.semantic_graph.symbols.len()
+        );
+        assert_eq!(
+            loaded.semantic_graph.resolved_edges.len(),
+            analysis.semantic_graph.resolved_edges.len()
+        );
+
+        // Any content change must decline, never serve the stale graph.
+        fs::write(fixture.join("src/main.rs"), b"fn main() { changed(); }\n").unwrap();
+        assert!(
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+                .unwrap()
+                .is_none()
+        );
+
+        // A deleted manifest also declines cleanly.
+        let _ = fs::remove_file(fixture.join(".aigiscode/scan-manifest.json"));
+        assert!(
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+                .unwrap()
+                .is_none()
+        );
+    }
 
     #[test]
     fn runs_scan_and_structure_as_explicit_phases() {

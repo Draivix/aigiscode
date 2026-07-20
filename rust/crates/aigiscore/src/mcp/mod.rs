@@ -236,7 +236,22 @@ fn build_mcp_state(
     write_artifacts: bool,
     write_kuzu: bool,
 ) -> Result<McpState, McpServerError> {
-    let analysis = analyze_project(root.to_path_buf(), &ScanConfig::default())?;
+    let mut fast_analysis = None;
+    if std::env::var_os("AIGISCORE_FAST_LOAD").is_some() {
+        fast_analysis =
+            crate::ingestion::pipeline::analyze_project_fast_load(root, &ScanConfig::default())?;
+    }
+    let analysis = match fast_analysis {
+        Some(analysis) => {
+            eprintln!(
+                "[aigiscore] fast-loaded graph from artifacts ({} files, {} symbols); skipping Parse+Resolve",
+                analysis.semantic_graph.files.len(),
+                analysis.semantic_graph.symbols.len()
+            );
+            analysis
+        }
+        None => analyze_project(root.to_path_buf(), &ScanConfig::default())?,
+    };
     let artifact_paths = if write_artifacts {
         write_project_analysis_artifacts(&analysis, output_dir)
             .map_err(McpServerError::WriteArtifacts)?
@@ -264,6 +279,7 @@ fn build_mcp_state(
             repository_topology: output_dir.join("repository-topology.json"),
             aigiscode_report: output_dir.join("aigiscode-report.json"),
             aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
+            scan_manifest: output_dir.join("scan-manifest.json"),
             output_dir,
         }
     };

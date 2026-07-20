@@ -60,6 +60,53 @@ pub const AGENT_EXECUTION_EVENTS_FILE: &str = "agent-execution.jsonl";
 pub const AGENT_SPIDER_REPORT_FILE: &str = "agent-spider-report.json";
 pub const AIGISCODE_REPORT_FILE: &str = "aigiscode-report.json";
 pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
+pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
+
+/// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
+/// proves the analyzed file set and contents still match `semantic-graph.json`
+/// before an MCP startup skips Parse+Resolve. Anything mismatched falls back
+/// to a full analysis — fast-load may decline, never lie.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScanManifest {
+    pub aigiscode_version: String,
+    /// xxh3 of the resolver-affecting config files (tsconfig/jsconfig/composer).
+    pub resolve_config_xxh3: String,
+    pub files: Vec<ScanManifestEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScanManifestEntry {
+    pub path: String,
+    pub xxh3: String,
+}
+
+pub fn build_scan_manifest(root: &Path, parsed_sources: &[(PathBuf, String)]) -> ScanManifest {
+    ScanManifest {
+        aigiscode_version: env!("CARGO_PKG_VERSION").to_string(),
+        resolve_config_xxh3: resolve_config_hash(root),
+        files: parsed_sources
+            .iter()
+            .map(|(path, source)| ScanManifestEntry {
+                path: path.display().to_string(),
+                xxh3: format!("{:016x}", xxhash_rust::xxh3::xxh3_64(source.as_bytes())),
+            })
+            .collect(),
+    }
+}
+
+/// Hash of the files whose content changes resolution semantics. Missing
+/// files hash as empty — their absence is itself part of the fingerprint.
+pub fn resolve_config_hash(root: &Path) -> String {
+    let mut acc = xxhash_rust::xxh3::Xxh3::new();
+    for name in ["tsconfig.json", "jsconfig.json", "composer.json"] {
+        let path = root.join(name);
+        acc.update(name.as_bytes());
+        if let Ok(bytes) = fs::read(&path) {
+            acc.update(&bytes);
+        }
+    }
+    format!("{:016x}", acc.digest())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum JsonArtifactStyle {
@@ -89,6 +136,7 @@ pub struct ArtifactPaths {
     pub repository_topology: PathBuf,
     pub aigiscode_report: PathBuf,
     pub aigiscode_report_markdown: PathBuf,
+    pub scan_manifest: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -849,6 +897,7 @@ pub fn write_project_analysis_artifacts(
         repository_topology: output_dir.join(REPOSITORY_TOPOLOGY_FILE),
         aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
         aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
+        scan_manifest: output_dir.join(SCAN_MANIFEST_FILE),
         output_dir,
     };
 
@@ -1138,6 +1187,11 @@ pub fn write_project_analysis_artifacts(
         &repository_topology,
     )?;
     write_json_payload("aigiscode_report", &paths.aigiscode_report, &report_payload)?;
+    write_json(
+        "scan_manifest",
+        &paths.scan_manifest,
+        &build_scan_manifest(&analysis.root, &analysis.parsed_sources),
+    )?;
     trace_artifact_step("json.write", write_started.elapsed().as_millis());
     let markdown_started = Instant::now();
     write_markdown(
