@@ -1364,6 +1364,8 @@ pub struct ContractInventoryOutput {
     pub config_keys: Vec<ContractItemOutput>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub channels: Vec<ContractItemOutput>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub http_calls: Vec<ContractItemOutput>,
 }
 
 impl ContractInventoryOutput {
@@ -1411,6 +1413,11 @@ impl ContractInventoryOutput {
                 .iter()
                 .map(ContractItemOutput::from_item)
                 .collect(),
+            http_calls: inventory
+                .http_calls
+                .iter()
+                .map(ContractItemOutput::from_item)
+                .collect(),
         }
     }
 
@@ -1440,6 +1447,7 @@ impl ContractInventoryOutput {
             | cap_items(&mut self.symbolic_literals, max_items, max_locations)
             | cap_items(&mut self.env_keys, max_items, max_locations)
             | cap_items(&mut self.channels, max_items, max_locations)
+            | cap_items(&mut self.http_calls, max_items, max_locations)
             | cap_items(&mut self.config_keys, max_items, max_locations);
         self
     }
@@ -1482,6 +1490,8 @@ pub struct ContractInventorySummaryOutput {
     pub config_keys: ContractCategorySummaryOutput,
     #[serde(default)]
     pub channels: ContractCategorySummaryOutput,
+    #[serde(default)]
+    pub http_calls: ContractCategorySummaryOutput,
 }
 
 impl ContractInventorySummaryOutput {
@@ -1496,6 +1506,7 @@ impl ContractInventorySummaryOutput {
             env_keys: ContractCategorySummaryOutput::from_summary(&summary.env_keys),
             config_keys: ContractCategorySummaryOutput::from_summary(&summary.config_keys),
             channels: ContractCategorySummaryOutput::from_summary(&summary.channels),
+            http_calls: ContractCategorySummaryOutput::from_summary(&summary.http_calls),
         }
     }
 }

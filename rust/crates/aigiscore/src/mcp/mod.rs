@@ -2242,6 +2242,7 @@ fn compute_impact_radius(
         ("route", &snapshot.contract_inventory.routes),
         ("hook", &snapshot.contract_inventory.hooks),
         ("channel", &snapshot.contract_inventory.channels),
+        ("http_call", &snapshot.contract_inventory.http_calls),
         (
             "registered_key",
             &snapshot.contract_inventory.registered_keys,

@@ -33,6 +33,10 @@ pub struct ContractInventory {
     /// wiring that only exists at runtime.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub channels: Vec<ContractInventoryItem>,
+    /// Outgoing HTTP call-sites (`Http::post`, `fetch`, `axios`, Guzzle,
+    /// cURL) — the consumer side of route contracts, including external APIs.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub http_calls: Vec<ContractInventoryItem>,
 }
 
 impl ContractInventory {
@@ -65,6 +69,11 @@ impl ContractInventory {
                 .iter()
                 .map(|item| item.value.clone())
                 .collect(),
+            http_calls: self
+                .http_calls
+                .iter()
+                .map(|item| item.value.clone())
+                .collect(),
         }
     }
 }
@@ -79,6 +88,8 @@ pub struct ContractInventorySummary {
     pub config_keys: ContractCategorySummary,
     #[serde(default)]
     pub channels: ContractCategorySummary,
+    #[serde(default)]
+    pub http_calls: ContractCategorySummary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
@@ -109,6 +120,7 @@ pub struct ContractLookup {
     pub env_keys: Vec<String>,
     pub config_keys: Vec<String>,
     pub channels: Vec<String>,
+    pub http_calls: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -130,6 +142,7 @@ impl ContractLookup {
             &self.env_keys,
             &self.config_keys,
             &self.channels,
+            &self.http_calls,
         ]
         .into_iter()
         .flatten()
@@ -158,6 +171,7 @@ struct ContractBuckets {
     env_keys: HashMap<String, ContractEntryAccumulator>,
     config_keys: HashMap<String, ContractEntryAccumulator>,
     channels: HashMap<String, ContractEntryAccumulator>,
+    http_calls: HashMap<String, ContractEntryAccumulator>,
 }
 
 #[derive(Debug, Default)]
@@ -208,6 +222,8 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
         // Pub-sub channels are runtime wiring: an emit in one file and a
         // listener in another share nothing the call graph can see.
         scan_pattern_bucket(&mut buckets.channels, channel_patterns(), path, content);
+        // Outgoing HTTP calls are the consumer side of route contracts.
+        scan_pattern_bucket(&mut buckets.http_calls, http_call_patterns(), path, content);
         scan_symbolic_literals(&mut buckets.symbolic_literals, path, content, language);
         scan_semantic_model_contracts(&mut buckets, path, content);
     }
@@ -221,6 +237,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
             env_keys: summarize_bucket(&buckets.env_keys),
             config_keys: summarize_bucket(&buckets.config_keys),
             channels: summarize_bucket(&buckets.channels),
+            http_calls: summarize_bucket(&buckets.http_calls),
         },
         semantic_model_packs: serialize_semantic_model_packs(&buckets.semantic_model_pack_ids),
         routes: serialize_bucket(&buckets.routes),
@@ -230,6 +247,7 @@ pub fn build_contract_inventory(files: &[(PathBuf, String)]) -> ContractInventor
         env_keys: serialize_bucket(&buckets.env_keys),
         config_keys: serialize_bucket(&buckets.config_keys),
         channels: serialize_bucket(&buckets.channels),
+        http_calls: serialize_bucket(&buckets.http_calls),
     }
 }
 
@@ -780,6 +798,52 @@ fn config_patterns() -> Vec<&'static Regex> {
         .collect()
 }
 
+/// Outgoing HTTP call-sites: framework facades, browser fetch, axios, Guzzle,
+/// cURL, WP HTTP API. Values keep query strings and template holes — a route
+/// consumer and a route declaration link by shared path, not by identical
+/// strings.
+fn http_call_patterns() -> Vec<&'static Regex> {
+    static PATTERNS: OnceLock<Vec<Regex>> = OnceLock::new();
+    PATTERNS
+        .get_or_init(|| {
+            let value = r#"['\"`](?P<value>[A-Za-z0-9_./:>?&=~%${}+-]+)['\"`]"#;
+            vec![
+                // Laravel Http facade (verb-first; `send` takes the method first, skipped).
+                Regex::new(&format!(
+                    r#"\bHttp::(?:get|post|put|patch|delete|head)\s*\(\s*{value}"#
+                ))
+                .unwrap(),
+                // Browser / node fetch.
+                Regex::new(&format!(r#"\bfetch\s*\(\s*{value}"#)).unwrap(),
+                // axios verb methods and axios({url: ...}).
+                Regex::new(&format!(
+                    r#"\baxios\s*\.\s*(?:get|post|put|patch|delete|head)\s*\(\s*{value}"#
+                ))
+                .unwrap(),
+                Regex::new(&format!(
+                    r#"\baxios\s*\(\s*\{{[^}}]{{0,200}}?url\s*:\s*{value}"#
+                ))
+                .unwrap(),
+                // Guzzle request('METHOD', uri).
+                Regex::new(&format!(
+                    r#"->request\s*\(\s*['"](?:GET|POST|PUT|PATCH|DELETE|HEAD)['"]\s*,\s*{value}"#
+                ))
+                .unwrap(),
+                // cURL.
+                Regex::new(&format!(
+                    r#"\bcurl_setopt\s*\([^,]+,\s*CURLOPT_URL\s*,\s*{value}"#
+                ))
+                .unwrap(),
+                // WordPress HTTP API.
+                Regex::new(&format!(
+                    r#"\bwp_remote_(?:get|post|request)\s*\(\s*{value}"#
+                ))
+                .unwrap(),
+            ]
+        })
+        .iter()
+        .collect()
+}
 /// Pub-sub channel usage, both sides of the wire. Patterns are receiver- or
 /// verb-scoped so ordinary event APIs (DOM `.on('click')`) stay out; template-
 /// literal channels (`entity.${id}`) are captured with their hole.
@@ -890,6 +954,49 @@ fn multiline_union_start_pattern() -> &'static Regex {
 mod tests {
     use super::{build_contract_inventory, ContractCategorySummary};
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn http_call_patterns_capture_route_consumers_and_external_apis() {
+        let files = vec![
+            (
+                PathBuf::from("resources/js/api.ts"),
+                String::from(
+                    "await fetch('/api/entities');\n\
+                     axios.post('/api/import', payload);\n\
+                     axios({ url: '/api/tabs/1', method: 'get' });\n",
+                ),
+            ),
+            (
+                PathBuf::from("app/Services/SatelliteService.php"),
+                String::from(
+                    "<?php\n\
+                     Http::post('https://satellite.example.com/api/provision');\n\
+                     $client->request('GET', 'https://tracking.dpd.de/parcelstatus');\n\
+                     curl_setopt($ch, CURLOPT_URL, 'https://api.signi.com/v1/documents');\n",
+                ),
+            ),
+        ];
+        let inventory = build_contract_inventory(&files);
+        let values = inventory
+            .http_calls
+            .iter()
+            .map(|item| item.value.as_str())
+            .collect::<Vec<_>>();
+        for expected in [
+            "/api/entities",
+            "/api/import",
+            "/api/tabs/1",
+            "https://satellite.example.com/api/provision",
+            "https://tracking.dpd.de/parcelstatus",
+            "https://api.signi.com/v1/documents",
+        ] {
+            assert!(
+                values.contains(&expected),
+                "missing http call `{expected}`, got: {values:?}"
+            );
+        }
+        assert!(inventory.summary.http_calls.occurrences >= 6);
+    }
 
     #[test]
     fn channel_patterns_capture_both_sides_of_pub_sub_wiring() {
