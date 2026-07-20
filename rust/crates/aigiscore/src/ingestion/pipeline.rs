@@ -13,6 +13,7 @@ use crate::resolve::{load_resolve_config, resolve_graph_with_config};
 use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
 use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fs;
@@ -288,29 +289,39 @@ pub fn build_semantic_graph_project(
     ));
 
     let parse_started = Instant::now();
+    // Per-file parsing is embarrassingly parallel; results are collected in
+    // scan order and merged sequentially, so the graph stays byte-identical
+    // to a single-threaded run (Hard Rule: same repo, same bytes).
+    let supported_files = scan
+        .files
+        .iter()
+        .filter(|file| is_supported_source_file(&file.relative_path))
+        .collect::<Vec<_>>();
+    let parsed_results = supported_files
+        .par_iter()
+        .map(|file| {
+            let absolute_path = root.join(&file.relative_path);
+            let source = fs::read_to_string(&absolute_path).map_err(|source| {
+                ProjectAnalysisError::ReadFile {
+                    path: absolute_path.clone(),
+                    source,
+                }
+            })?;
+            let parsed =
+                parse_source_file(file.relative_path.clone(), &source).map_err(|source| {
+                    ProjectAnalysisError::Parse {
+                        path: absolute_path.clone(),
+                        source,
+                    }
+                })?;
+            Ok((file.relative_path.clone(), source, parsed))
+        })
+        .collect::<Result<Vec<_>, ProjectAnalysisError>>()?;
     let mut semantic_graph = SemanticGraph::default();
     let mut parsed_sources = Vec::new();
-    for file in &scan.files {
-        if !is_supported_source_file(&file.relative_path) {
-            continue;
-        }
-        trace(&format!("parse start {}", file.relative_path.display()));
-        let absolute_path = root.join(&file.relative_path);
-        let source = fs::read_to_string(&absolute_path).map_err(|source| {
-            ProjectAnalysisError::ReadFile {
-                path: absolute_path.clone(),
-                source,
-            }
-        })?;
-        let parsed = parse_source_file(file.relative_path.clone(), &source).map_err(|source| {
-            ProjectAnalysisError::Parse {
-                path: absolute_path.clone(),
-                source,
-            }
-        })?;
+    for (relative_path, source, parsed) in parsed_results {
         merge_semantic_graph(&mut semantic_graph, parsed);
-        parsed_sources.push((file.relative_path.clone(), source));
-        trace(&format!("parse done {}", file.relative_path.display()));
+        parsed_sources.push((relative_path, source));
     }
     let parse_elapsed = parse_started.elapsed().as_millis();
     trace(&format!(

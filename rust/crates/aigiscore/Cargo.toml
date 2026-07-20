@@ -13,6 +13,7 @@ globset.workspace = true
 notify.workspace = true
 notify-debouncer-full.workspace = true
 petgraph.workspace = true
+rayon.workspace = true
 reqwest.workspace = true
 regex.workspace = true
 rmcp.workspace = true
