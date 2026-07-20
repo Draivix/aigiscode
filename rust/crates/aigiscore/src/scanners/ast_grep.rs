@@ -3,6 +3,7 @@ use crate::scanners::framework_catalogs::{
 };
 use ast_grep_core::Pattern;
 use ast_grep_language::{LanguageExt, SupportLang};
+use rayon::prelude::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeSet, HashMap};
@@ -702,314 +703,304 @@ fn trace_slow_pattern(path: &Path, rule_id: &str, pattern: &str, matches: usize,
     }
 }
 
+/// Per-file scan result, merged in file order by the driver. Dedup keys are
+/// file-scoped and the final findings list is sorted, so scanning files in
+/// parallel and merging sequentially yields byte-identical output.
+#[derive(Default)]
+struct AstGrepFileOutcome {
+    findings: Vec<AstGrepFinding>,
+    skipped: Option<AstGrepSkippedFile>,
+    matched: bool,
+    scanned: bool,
+    rule_ids: BTreeSet<String>,
+}
+
 pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanResult {
     let scan_started = Instant::now();
     trace(&format!(
         "ast_grep.scan start files={}",
         parsed_sources.len()
     ));
+    let outcomes = parsed_sources
+        .par_iter()
+        .map(|(path, source)| scan_one_file(path, source))
+        .collect::<Vec<_>>();
     let mut findings = Vec::new();
     let mut rule_ids = BTreeSet::new();
-    let mut matched_files = BTreeSet::new();
-    let mut seen = BTreeSet::<String>::new();
+    let mut matched_files = 0usize;
     let mut scanned_files = 0usize;
     let mut skipped_files = Vec::new();
+    for outcome in outcomes {
+        findings.extend(outcome.findings);
+        rule_ids.extend(outcome.rule_ids);
+        matched_files += usize::from(outcome.matched);
+        scanned_files += usize::from(outcome.scanned);
+        if let Some(skipped) = outcome.skipped {
+            skipped_files.push(skipped);
+        }
+    }
 
-    for (path, source) in parsed_sources {
-        let file_started = Instant::now();
-        let findings_before = findings.len();
+    findings.sort_by(|left, right| {
+        left.file_path
+            .cmp(&right.file_path)
+            .then(left.line.cmp(&right.line))
+            .then(left.rule_id.cmp(&right.rule_id))
+            .then(left.token.cmp(&right.token))
+    });
+
+    let result = AstGrepScanResult {
+        scanner: String::from("ast_grep"),
+        scanned_files,
+        matched_files,
+        rule_ids: rule_ids.into_iter().collect(),
+        skipped_files,
+        findings,
+    };
+    trace(&format!(
+        "ast_grep.scan complete scanned_files={} findings={} elapsed_ms={}",
+        result.scanned_files,
+        result.findings.len(),
+        scan_started.elapsed().as_millis()
+    ));
+    result
+}
+
+fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
+    let file_started = Instant::now();
+    let mut outcome = AstGrepFileOutcome::default();
+    let mut seen = BTreeSet::<String>::new();
+    trace(&format!(
+        "ast_grep.file start path={} bytes={}",
+        path.display(),
+        source.len()
+    ));
+    let Some(language) = support_lang_for_path(path) else {
+        return outcome;
+    };
+    if source.len() > AST_GREP_MAX_FILE_BYTES {
         trace(&format!(
-            "ast_grep.file start path={} bytes={}",
+            "ast_grep.file skip path={} reason=file_too_large bytes={}",
             path.display(),
             source.len()
         ));
-        let Some(language) = support_lang_for_path(path) else {
-            continue;
-        };
-        if source.len() > AST_GREP_MAX_FILE_BYTES {
-            trace(&format!(
-                "ast_grep.file skip path={} reason=file_too_large bytes={}",
-                path.display(),
-                source.len()
-            ));
-            skipped_files.push(AstGrepSkippedFile {
-                file_path: path.clone(),
-                bytes: source.len(),
-                reason: String::from("file_too_large_for_secondary_scan"),
-            });
-            continue;
-        }
-        let prefilter = lexical_family_prefilter(path, source);
-        if !prefilter.any() {
-            trace(&format!(
-                "ast_grep.file skip path={} reason=no_family_prefilter_hit bytes={}",
-                path.display(),
-                source.len()
-            ));
-            skipped_files.push(AstGrepSkippedFile {
-                file_path: path.clone(),
-                bytes: source.len(),
-                reason: String::from("no_family_prefilter_hit"),
-            });
-            continue;
-        }
-        scanned_files += 1;
+        outcome.skipped = Some(AstGrepSkippedFile {
+            file_path: path.to_path_buf(),
+            bytes: source.len(),
+            reason: String::from("file_too_large_for_secondary_scan"),
+        });
+        return outcome;
+    }
+    let prefilter = lexical_family_prefilter(path, source);
+    if !prefilter.any() {
         trace(&format!(
-            "ast_grep.file parse start path={}",
-            path.display()
+            "ast_grep.file skip path={} reason=no_family_prefilter_hit bytes={}",
+            path.display(),
+            source.len()
         ));
-        let ast = language.ast_grep(source);
-        trace(&format!("ast_grep.file parse done path={}", path.display()));
-        let root = ast.root();
+        outcome.skipped = Some(AstGrepSkippedFile {
+            file_path: path.to_path_buf(),
+            bytes: source.len(),
+            reason: String::from("no_family_prefilter_hit"),
+        });
+        return outcome;
+    }
+    outcome.scanned = true;
+    trace(&format!(
+        "ast_grep.file parse start path={}",
+        path.display()
+    ));
+    let ast = language.ast_grep(source);
+    trace(&format!("ast_grep.file parse done path={}", path.display()));
+    let root = ast.root();
 
-        if prefilter.complexity {
-            if let Some(rule_set) = complexity_rule_set_for_path(path) {
-                let loop_patterns = rule_set
-                    .loop_patterns
-                    .iter()
-                    .map(|loop_pattern| compiled_pattern(language, loop_pattern))
-                    .collect::<Vec<_>>();
-                for rule in rule_set.rules {
-                    for pattern in rule.patterns {
-                        let pattern_started = Instant::now();
-                        let mut pattern_matches = 0usize;
-                        let literal_anchor = pattern_literal_anchor(pattern);
-                        for matched in root.find_all(compiled_pattern(language, pattern)) {
-                            pattern_matches += 1;
-                            if literal_anchor
-                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
-                            {
-                                continue;
-                            }
-                            if !loop_patterns
-                                .iter()
-                                .any(|loop_pattern| matched.inside(*loop_pattern))
-                            {
-                                continue;
-                            }
-                            let line = matched.start_pos().line() + 1;
-                            let token = compact_snippet(&matched.text());
-                            let key = format!(
-                                "complexity|{}|{}|{}|{}",
-                                path.display(),
-                                rule.rule_id,
-                                line,
-                                token
-                            );
-                            if !seen.insert(key) {
-                                continue;
-                            }
-                            matched_files.insert(path.clone());
-                            rule_ids.insert(String::from(rule.rule_id));
-                            findings.push(AstGrepFinding {
-                                rule_id: String::from(rule.rule_id),
-                                family: String::from(rule.family),
-                                language: String::from(rule_set.language_label),
-                                provenance: String::from("ast_grep.pattern"),
-                                file_path: path.clone(),
-                                line,
-                                token: token.clone(),
-                                message: String::from(rule.message),
-                                matched_text: token,
-                                kind: AstGrepFindingKind::AlgorithmicComplexity {
-                                    subtype: rule.subtype,
-                                    loop_family: String::from(rule_set.loop_family),
-                                },
-                            });
-                        }
-                        trace_slow_pattern(
-                            path,
-                            rule.rule_id,
-                            pattern,
-                            pattern_matches,
-                            pattern_started,
-                        );
-                    }
-                }
-            }
-            for catalog in framework_complexity_catalogs_for_file(path, source) {
-                let loop_patterns = rule_set_loop_patterns_for_catalog(catalog)
-                    .iter()
-                    .map(|loop_pattern| compiled_pattern(language, loop_pattern))
-                    .collect::<Vec<_>>();
-                for rule in catalog.rules {
-                    for pattern in rule.patterns {
-                        let pattern_started = Instant::now();
-                        let mut pattern_matches = 0usize;
-                        let literal_anchor = pattern_literal_anchor(pattern);
-                        for matched in root.find_all(compiled_pattern(language, pattern)) {
-                            pattern_matches += 1;
-                            if literal_anchor
-                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
-                            {
-                                continue;
-                            }
-                            if !loop_patterns
-                                .iter()
-                                .any(|loop_pattern| matched.inside(*loop_pattern))
-                            {
-                                continue;
-                            }
-                            let line = matched.start_pos().line() + 1;
-                            let token = compact_snippet(&matched.text());
-                            let key = format!(
-                                "complexity|{}|{}|{}|{}",
-                                path.display(),
-                                rule.rule_id,
-                                line,
-                                token
-                            );
-                            if !seen.insert(key) {
-                                continue;
-                            }
-                            matched_files.insert(path.clone());
-                            rule_ids.insert(String::from(rule.rule_id));
-                            findings.push(AstGrepFinding {
-                                rule_id: String::from(rule.rule_id),
-                                family: String::from(rule.family),
-                                language: String::from(catalog.language_label),
-                                provenance: format!("ast_grep.pattern.{}", catalog.framework_id),
-                                file_path: path.clone(),
-                                line,
-                                token: token.clone(),
-                                message: String::from(rule.message),
-                                matched_text: token,
-                                kind: AstGrepFindingKind::AlgorithmicComplexity {
-                                    subtype: rule.subtype,
-                                    loop_family: String::from(loop_family_for_catalog(catalog)),
-                                },
-                            });
-                        }
-                        trace_slow_pattern(
-                            path,
-                            rule.rule_id,
-                            pattern,
-                            pattern_matches,
-                            pattern_started,
-                        );
-                    }
-                }
-            }
-        }
-
-        if prefilter.security {
-            if let Some(security_rule_set) = security_rule_set_for_path(path) {
-                for rule in security_rule_set.rules {
-                    for pattern in rule.patterns {
-                        let pattern_started = Instant::now();
-                        let mut pattern_matches = 0usize;
-                        let literal_anchor = pattern_literal_anchor(pattern);
-                        for matched in root.find_all(compiled_pattern(language, pattern)) {
-                            pattern_matches += 1;
-                            if literal_anchor
-                                .is_some_and(|anchor| !matched.text().starts_with(anchor))
-                            {
-                                continue;
-                            }
-                            let line = matched.start_pos().line() + 1;
-                            let token = compact_snippet(&matched.text());
-                            let key = format!(
-                                "security|{}|{}|{}|{}",
-                                path.display(),
-                                rule.rule_id,
-                                line,
-                                token
-                            );
-                            if !seen.insert(key) {
-                                continue;
-                            }
-                            matched_files.insert(path.clone());
-                            rule_ids.insert(String::from(rule.rule_id));
-                            findings.push(AstGrepFinding {
-                                rule_id: String::from(rule.rule_id),
-                                family: String::from(rule.family),
-                                language: String::from(security_rule_set.language_label),
-                                provenance: String::from("ast_grep.pattern"),
-                                file_path: path.clone(),
-                                line,
-                                token: token.clone(),
-                                message: String::from(rule.message),
-                                matched_text: token,
-                                kind: AstGrepFindingKind::SecurityDangerousApi {
-                                    category: rule.category,
-                                    api_name: String::from(rule.api_name),
-                                },
-                            });
-                        }
-                        trace_slow_pattern(
-                            path,
-                            rule.rule_id,
-                            pattern,
-                            pattern_matches,
-                            pattern_started,
-                        );
-                    }
-                }
-            }
-        }
-
-        if prefilter.framework_misuse {
-            let framework_catalogs = framework_misuse_catalogs_for_file(path, source);
-            if framework_catalogs.is_empty() {
-                if let Some(framework_rule_set) = framework_misuse_rule_set_for_path(path) {
-                    for rule in framework_rule_set.rules {
-                        if is_within_sanctioned_boundary(rule.subtype, path) {
+    if prefilter.complexity {
+        if let Some(rule_set) = complexity_rule_set_for_path(path) {
+            let loop_patterns = rule_set
+                .loop_patterns
+                .iter()
+                .map(|loop_pattern| compiled_pattern(language, loop_pattern))
+                .collect::<Vec<_>>();
+            for rule in rule_set.rules {
+                for pattern in rule.patterns {
+                    let pattern_started = Instant::now();
+                    let mut pattern_matches = 0usize;
+                    let literal_anchor = pattern_literal_anchor(pattern);
+                    for matched in root.find_all(compiled_pattern(language, pattern)) {
+                        pattern_matches += 1;
+                        if literal_anchor.is_some_and(|anchor| !matched.text().starts_with(anchor))
+                        {
                             continue;
                         }
-                        for pattern in rule.patterns {
-                            let pattern_started = Instant::now();
-                            let mut pattern_matches = 0usize;
-                            let literal_anchor = pattern_literal_anchor(pattern);
-                            for matched in root.find_all(compiled_pattern(language, pattern)) {
-                                pattern_matches += 1;
-                                if literal_anchor
-                                    .is_some_and(|anchor| !matched.text().starts_with(anchor))
-                                {
-                                    continue;
-                                }
-                                let line = matched.start_pos().line() + 1;
-                                let token = compact_snippet(&matched.text());
-                                let key = format!(
-                                    "framework|{}|{}|{}|{}",
-                                    path.display(),
-                                    rule.rule_id,
-                                    line,
-                                    token
-                                );
-                                if !seen.insert(key) {
-                                    continue;
-                                }
-                                matched_files.insert(path.clone());
-                                rule_ids.insert(String::from(rule.rule_id));
-                                findings.push(AstGrepFinding {
-                                    rule_id: String::from(rule.rule_id),
-                                    family: String::from(rule.family),
-                                    language: String::from(framework_rule_set.language_label),
-                                    provenance: String::from("ast_grep.pattern"),
-                                    file_path: path.clone(),
-                                    line,
-                                    token: token.clone(),
-                                    message: String::from(rule.message),
-                                    matched_text: token,
-                                    kind: AstGrepFindingKind::FrameworkMisuse {
-                                        subtype: rule.subtype,
-                                    },
-                                });
-                            }
-                            trace_slow_pattern(
-                                path,
-                                rule.rule_id,
-                                pattern,
-                                pattern_matches,
-                                pattern_started,
-                            );
+                        if !loop_patterns
+                            .iter()
+                            .any(|loop_pattern| matched.inside(*loop_pattern))
+                        {
+                            continue;
                         }
+                        let line = matched.start_pos().line() + 1;
+                        let token = compact_snippet(&matched.text());
+                        let key = format!(
+                            "complexity|{}|{}|{}|{}",
+                            path.display(),
+                            rule.rule_id,
+                            line,
+                            token
+                        );
+                        if !seen.insert(key) {
+                            continue;
+                        }
+                        outcome.matched = true;
+                        outcome.rule_ids.insert(String::from(rule.rule_id));
+                        outcome.findings.push(AstGrepFinding {
+                            rule_id: String::from(rule.rule_id),
+                            family: String::from(rule.family),
+                            language: String::from(rule_set.language_label),
+                            provenance: String::from("ast_grep.pattern"),
+                            file_path: path.to_path_buf(),
+                            line,
+                            token: token.clone(),
+                            message: String::from(rule.message),
+                            matched_text: token,
+                            kind: AstGrepFindingKind::AlgorithmicComplexity {
+                                subtype: rule.subtype,
+                                loop_family: String::from(rule_set.loop_family),
+                            },
+                        });
                     }
+                    trace_slow_pattern(
+                        path,
+                        rule.rule_id,
+                        pattern,
+                        pattern_matches,
+                        pattern_started,
+                    );
                 }
             }
+        }
+        for catalog in framework_complexity_catalogs_for_file(path, source) {
+            let loop_patterns = rule_set_loop_patterns_for_catalog(catalog)
+                .iter()
+                .map(|loop_pattern| compiled_pattern(language, loop_pattern))
+                .collect::<Vec<_>>();
+            for rule in catalog.rules {
+                for pattern in rule.patterns {
+                    let pattern_started = Instant::now();
+                    let mut pattern_matches = 0usize;
+                    let literal_anchor = pattern_literal_anchor(pattern);
+                    for matched in root.find_all(compiled_pattern(language, pattern)) {
+                        pattern_matches += 1;
+                        if literal_anchor.is_some_and(|anchor| !matched.text().starts_with(anchor))
+                        {
+                            continue;
+                        }
+                        if !loop_patterns
+                            .iter()
+                            .any(|loop_pattern| matched.inside(*loop_pattern))
+                        {
+                            continue;
+                        }
+                        let line = matched.start_pos().line() + 1;
+                        let token = compact_snippet(&matched.text());
+                        let key = format!(
+                            "complexity|{}|{}|{}|{}",
+                            path.display(),
+                            rule.rule_id,
+                            line,
+                            token
+                        );
+                        if !seen.insert(key) {
+                            continue;
+                        }
+                        outcome.matched = true;
+                        outcome.rule_ids.insert(String::from(rule.rule_id));
+                        outcome.findings.push(AstGrepFinding {
+                            rule_id: String::from(rule.rule_id),
+                            family: String::from(rule.family),
+                            language: String::from(catalog.language_label),
+                            provenance: format!("ast_grep.pattern.{}", catalog.framework_id),
+                            file_path: path.to_path_buf(),
+                            line,
+                            token: token.clone(),
+                            message: String::from(rule.message),
+                            matched_text: token,
+                            kind: AstGrepFindingKind::AlgorithmicComplexity {
+                                subtype: rule.subtype,
+                                loop_family: String::from(loop_family_for_catalog(catalog)),
+                            },
+                        });
+                    }
+                    trace_slow_pattern(
+                        path,
+                        rule.rule_id,
+                        pattern,
+                        pattern_matches,
+                        pattern_started,
+                    );
+                }
+            }
+        }
+    }
 
-            for catalog in framework_catalogs {
-                for rule in catalog.rules {
+    if prefilter.security {
+        if let Some(security_rule_set) = security_rule_set_for_path(path) {
+            for rule in security_rule_set.rules {
+                for pattern in rule.patterns {
+                    let pattern_started = Instant::now();
+                    let mut pattern_matches = 0usize;
+                    let literal_anchor = pattern_literal_anchor(pattern);
+                    for matched in root.find_all(compiled_pattern(language, pattern)) {
+                        pattern_matches += 1;
+                        if literal_anchor.is_some_and(|anchor| !matched.text().starts_with(anchor))
+                        {
+                            continue;
+                        }
+                        let line = matched.start_pos().line() + 1;
+                        let token = compact_snippet(&matched.text());
+                        let key = format!(
+                            "security|{}|{}|{}|{}",
+                            path.display(),
+                            rule.rule_id,
+                            line,
+                            token
+                        );
+                        if !seen.insert(key) {
+                            continue;
+                        }
+                        outcome.matched = true;
+                        outcome.rule_ids.insert(String::from(rule.rule_id));
+                        outcome.findings.push(AstGrepFinding {
+                            rule_id: String::from(rule.rule_id),
+                            family: String::from(rule.family),
+                            language: String::from(security_rule_set.language_label),
+                            provenance: String::from("ast_grep.pattern"),
+                            file_path: path.to_path_buf(),
+                            line,
+                            token: token.clone(),
+                            message: String::from(rule.message),
+                            matched_text: token,
+                            kind: AstGrepFindingKind::SecurityDangerousApi {
+                                category: rule.category,
+                                api_name: String::from(rule.api_name),
+                            },
+                        });
+                    }
+                    trace_slow_pattern(
+                        path,
+                        rule.rule_id,
+                        pattern,
+                        pattern_matches,
+                        pattern_started,
+                    );
+                }
+            }
+        }
+    }
+
+    if prefilter.framework_misuse {
+        let framework_catalogs = framework_misuse_catalogs_for_file(path, source);
+        if framework_catalogs.is_empty() {
+            if let Some(framework_rule_set) = framework_misuse_rule_set_for_path(path) {
+                for rule in framework_rule_set.rules {
                     if is_within_sanctioned_boundary(rule.subtype, path) {
                         continue;
                     }
@@ -1036,14 +1027,14 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                             if !seen.insert(key) {
                                 continue;
                             }
-                            matched_files.insert(path.clone());
-                            rule_ids.insert(String::from(rule.rule_id));
-                            findings.push(AstGrepFinding {
+                            outcome.matched = true;
+                            outcome.rule_ids.insert(String::from(rule.rule_id));
+                            outcome.findings.push(AstGrepFinding {
                                 rule_id: String::from(rule.rule_id),
                                 family: String::from(rule.family),
-                                language: String::from(catalog.language_label),
-                                provenance: format!("ast_grep.pattern.{}", catalog.framework_id),
-                                file_path: path.clone(),
+                                language: String::from(framework_rule_set.language_label),
+                                provenance: String::from("ast_grep.pattern"),
+                                file_path: path.to_path_buf(),
                                 line,
                                 token: token.clone(),
                                 message: String::from(rule.message),
@@ -1064,38 +1055,69 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
                 }
             }
         }
-        trace(&format!(
-            "ast_grep.file path={} added_findings={} total_findings={} elapsed_ms={}",
-            path.display(),
-            findings.len().saturating_sub(findings_before),
-            findings.len(),
-            file_started.elapsed().as_millis()
-        ));
+
+        for catalog in framework_catalogs {
+            for rule in catalog.rules {
+                if is_within_sanctioned_boundary(rule.subtype, path) {
+                    continue;
+                }
+                for pattern in rule.patterns {
+                    let pattern_started = Instant::now();
+                    let mut pattern_matches = 0usize;
+                    let literal_anchor = pattern_literal_anchor(pattern);
+                    for matched in root.find_all(compiled_pattern(language, pattern)) {
+                        pattern_matches += 1;
+                        if literal_anchor.is_some_and(|anchor| !matched.text().starts_with(anchor))
+                        {
+                            continue;
+                        }
+                        let line = matched.start_pos().line() + 1;
+                        let token = compact_snippet(&matched.text());
+                        let key = format!(
+                            "framework|{}|{}|{}|{}",
+                            path.display(),
+                            rule.rule_id,
+                            line,
+                            token
+                        );
+                        if !seen.insert(key) {
+                            continue;
+                        }
+                        outcome.matched = true;
+                        outcome.rule_ids.insert(String::from(rule.rule_id));
+                        outcome.findings.push(AstGrepFinding {
+                            rule_id: String::from(rule.rule_id),
+                            family: String::from(rule.family),
+                            language: String::from(catalog.language_label),
+                            provenance: format!("ast_grep.pattern.{}", catalog.framework_id),
+                            file_path: path.to_path_buf(),
+                            line,
+                            token: token.clone(),
+                            message: String::from(rule.message),
+                            matched_text: token,
+                            kind: AstGrepFindingKind::FrameworkMisuse {
+                                subtype: rule.subtype,
+                            },
+                        });
+                    }
+                    trace_slow_pattern(
+                        path,
+                        rule.rule_id,
+                        pattern,
+                        pattern_matches,
+                        pattern_started,
+                    );
+                }
+            }
+        }
     }
-
-    findings.sort_by(|left, right| {
-        left.file_path
-            .cmp(&right.file_path)
-            .then(left.line.cmp(&right.line))
-            .then(left.rule_id.cmp(&right.rule_id))
-            .then(left.token.cmp(&right.token))
-    });
-
-    let result = AstGrepScanResult {
-        scanner: String::from("ast_grep"),
-        scanned_files,
-        matched_files: matched_files.len(),
-        rule_ids: rule_ids.into_iter().collect(),
-        skipped_files,
-        findings,
-    };
     trace(&format!(
-        "ast_grep.scan complete scanned_files={} findings={} elapsed_ms={}",
-        result.scanned_files,
-        result.findings.len(),
-        scan_started.elapsed().as_millis()
+        "ast_grep.file path={} total_findings={} elapsed_ms={}",
+        path.display(),
+        outcome.findings.len(),
+        file_started.elapsed().as_millis()
     ));
-    result
+    outcome
 }
 
 fn trace(message: &str) {
