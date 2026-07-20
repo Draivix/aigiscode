@@ -688,6 +688,11 @@ fn infer_member_receiver_type(
 ) -> Option<String> {
     let mut active_receivers = HashSet::new();
     let mut active_calls = HashSet::new();
+    // `$this->prop->method()`: the type lives on the class property, not on
+    // any local binding — check it before the generic fallbacks.
+    if let Some(property_type) = infer_this_property_type(receiver_node, scope_node, context) {
+        return Some(property_type);
+    }
     match receiver_node.kind() {
         "variable_name" if context.text(receiver_node) == "$this" => {
             container_type_name.map(str::to_owned)
@@ -781,6 +786,88 @@ fn collect_receiver_type(
 
 fn is_php_parameter_node(node: Node<'_>) -> bool {
     node.child_by_field_name("name").is_some() && node.kind().contains("parameter")
+}
+
+/// `$this->prop` receiver: the type is the enclosing class property's
+/// declared, promoted, or `@var`-documented type. Constructor promotion
+/// (`private readonly Foo $foo`) is the dominant Laravel service pattern.
+fn infer_this_property_type(
+    receiver_node: Node<'_>,
+    scope_node: Node<'_>,
+    context: &PhpContext<'_>,
+) -> Option<String> {
+    if receiver_node.kind() != "member_access_expression" {
+        return None;
+    }
+    let object = receiver_node.child_by_field_name("object")?;
+    if context.text(object) != "$this" {
+        return None;
+    }
+    let property_name = receiver_node
+        .child_by_field_name("name")
+        .map(|name| context.text(name))?;
+    let property_var = format!("${property_name}");
+
+    let mut class_node = Some(scope_node);
+    while let Some(node) = class_node {
+        if matches!(
+            node.kind(),
+            "class_declaration"
+                | "enum_declaration"
+                | "trait_declaration"
+                | "interface_declaration"
+        ) {
+            break;
+        }
+        class_node = node.parent();
+    }
+    let class_node = class_node?;
+
+    let mut stack = vec![class_node];
+    while let Some(current) = stack.pop() {
+        match current.kind() {
+            "property_declaration" => {
+                let declares_property = current
+                    .children(&mut current.walk())
+                    .filter(|child| child.kind() == "property_element")
+                    .any(|element| {
+                        element
+                            .children(&mut element.walk())
+                            .filter(|part| part.kind() == "variable_name")
+                            .any(|name| context.text(name) == property_var)
+                    });
+                if declares_property {
+                    if let Some(type_node) = current.child_by_field_name("type") {
+                        return Some(context.text(type_node));
+                    }
+                    return docblock_type_for_assignment(current, &property_var, context);
+                }
+            }
+            _ if is_php_parameter_node(current) => {
+                // Promoted constructor property: visibility/readonly marker
+                // distinguishes it from an ordinary parameter.
+                let text = context.text(current);
+                let promoted = ["private ", "protected ", "public ", "readonly "]
+                    .iter()
+                    .any(|marker| text.contains(marker));
+                let name = current
+                    .child_by_field_name("name")
+                    .map(|child| context.text(child));
+                if promoted && name.as_deref() == Some(property_var.as_str()) {
+                    return current
+                        .child_by_field_name("type")
+                        .map(|type_node| context.text(type_node));
+                }
+            }
+            _ => {}
+        }
+        for idx in (0..current.child_count()).rev() {
+            if let Some(child) = current.child(idx as u32) {
+                stack.push(child);
+            }
+        }
+    }
+    None
 }
 
 /// Type declared by a `/** @var Foo $x */` docblock immediately above an
@@ -958,6 +1045,47 @@ mod tests {
     use super::parse_php_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn this_property_receivers_resolve_via_promoted_declared_and_docblock_types() {
+        let graph = parse_php_to_graph(
+            PathBuf::from("app/Services/EmailService.php"),
+            r#"<?php
+namespace App\Services;
+
+class EmailService
+{
+    /** @var LegacySyncManager */
+    private $legacy;
+
+    public function __construct(
+        private readonly EmailSyncManager $syncManager,
+        private AccountRepository $accounts,
+    ) {}
+
+    public function sync(): void
+    {
+        $this->syncManager->queueFullSync($account);
+        $this->accounts->findActive();
+        $this->legacy->runLegacy();
+        $this->dynamic->anything();
+    }
+}
+"#,
+        )
+        .unwrap();
+        let type_of = |target: &str| {
+            graph
+                .references
+                .iter()
+                .find(|reference| reference.target_name == target)
+                .and_then(|reference| reference.receiver_type_name.as_deref())
+        };
+        assert_eq!(type_of("queueFullSync"), Some("EmailSyncManager"));
+        assert_eq!(type_of("findActive"), Some("AccountRepository"));
+        assert_eq!(type_of("runLegacy"), Some("LegacySyncManager"));
+        assert_eq!(type_of("anything"), None, "dynamic property stays unknown");
+    }
 
     #[test]
     fn var_docblocks_bind_receiver_types_above_assignments() {
