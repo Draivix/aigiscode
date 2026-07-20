@@ -744,21 +744,28 @@ fn collect_receiver_type(
                     .child_by_field_name("left")
                     .map(|child| context.text(child));
                 if left.as_deref() == Some(receiver_name) {
-                    return current.child_by_field_name("right").and_then(|right| {
-                        if right.kind() == "object_creation_expression" {
-                            return right.children(&mut right.walk()).find_map(|child| {
-                                matches!(child.kind(), "name" | "qualified_name")
-                                    .then_some(context.text(child))
-                            });
-                        }
-                        infer_call_result_type(
-                            right,
-                            call_node_owner(current),
-                            context,
-                            active_receivers,
-                            active_calls,
-                        )
-                    });
+                    // An explicit `/** @var Foo $x */` docblock is human-stated
+                    // intent and wins over inference; when it is absent (or
+                    // names a different variable) inference still applies.
+                    return docblock_type_for_assignment(current, receiver_name, context).or_else(
+                        || {
+                            current.child_by_field_name("right").and_then(|right| {
+                                if right.kind() == "object_creation_expression" {
+                                    return right.children(&mut right.walk()).find_map(|child| {
+                                        matches!(child.kind(), "name" | "qualified_name")
+                                            .then_some(context.text(child))
+                                    });
+                                }
+                                infer_call_result_type(
+                                    right,
+                                    call_node_owner(current),
+                                    context,
+                                    active_receivers,
+                                    active_calls,
+                                )
+                            })
+                        },
+                    );
                 }
             }
             _ => {}
@@ -774,6 +781,56 @@ fn collect_receiver_type(
 
 fn is_php_parameter_node(node: Node<'_>) -> bool {
     node.child_by_field_name("name").is_some() && node.kind().contains("parameter")
+}
+
+/// Type declared by a `/** @var Foo $x */` docblock immediately above an
+/// assignment. The docblock hangs on the wrapping expression statement (or,
+/// grammar-dependent, on the assignment itself); only the immediate previous
+/// sibling counts — anything looser would guess at human intent.
+fn docblock_type_for_assignment(
+    assignment: Node<'_>,
+    receiver_name: &str,
+    context: &PhpContext<'_>,
+) -> Option<String> {
+    let comment = assignment
+        .prev_named_sibling()
+        .filter(|sibling| sibling.kind() == "comment")
+        .or_else(|| {
+            assignment
+                .parent()
+                .and_then(|parent| parent.prev_named_sibling())
+                .filter(|sibling| sibling.kind() == "comment")
+        })?;
+    parse_var_docblock(&context.text(comment), receiver_name)
+}
+
+/// Parse `@var <type> [$name]` from a doc comment. A named variable must match
+/// the receiver, otherwise the docblock does not apply (inference still runs).
+/// Nullable and union shapes collapse to the first concrete class; array
+/// shapes (`Foo[]`) bind nothing — element calls are not member calls on Foo.
+fn parse_var_docblock(comment: &str, receiver_name: &str) -> Option<String> {
+    let after_var = comment.split_once("@var")?.1;
+    let mut tokens = after_var.split_whitespace();
+    let raw_type = tokens.next()?;
+    let type_name = raw_type
+        .trim_start_matches('?')
+        .split('|')
+        .next()?
+        .trim_start_matches('\\');
+    if type_name.is_empty()
+        || type_name.ends_with("[]")
+        || !type_name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '\\')
+    {
+        return None;
+    }
+    if let Some(variable) = tokens.next().filter(|token| token.starts_with('$')) {
+        if variable != receiver_name {
+            return None;
+        }
+    }
+    Some(type_name.to_string())
 }
 
 fn function_return_type(node: Node<'_>, context: &PhpContext<'_>) -> Option<String> {
@@ -901,6 +958,58 @@ mod tests {
     use super::parse_php_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn var_docblocks_bind_receiver_types_above_assignments() {
+        let graph = parse_php_to_graph(
+            PathBuf::from("app/Console/SyncCommand.php"),
+            r#"<?php
+namespace App\Console;
+
+class SyncCommand
+{
+    public function handle($repository, $factory, $id): void
+    {
+        /** @var EmailAccount $account */
+        $account = $repository->findAccount($id);
+        $account->getEmailAddress();
+
+        /** @var EmailSyncManager */
+        $manager = $factory->make();
+        $manager->queueFullSync($account);
+
+        /** @var Ignored $notX */
+        $x = $repository->findAccount($id);
+        $x->getName();
+
+        /** @var EmailAccount[] $accounts */
+        $accounts = $repository->all();
+        $accounts->count();
+    }
+}
+"#,
+        )
+        .unwrap();
+        let type_of = |target: &str| {
+            graph
+                .references
+                .iter()
+                .find(|reference| reference.target_name == target)
+                .and_then(|reference| reference.receiver_type_name.as_deref())
+        };
+        assert_eq!(type_of("getEmailAddress"), Some("EmailAccount"));
+        assert_eq!(type_of("queueFullSync"), Some("EmailSyncManager"));
+        assert_eq!(
+            type_of("getName"),
+            None,
+            "docblock naming $notX must not bind $x"
+        );
+        assert_eq!(
+            type_of("count"),
+            None,
+            "array shape Foo[] binds no member type"
+        );
+    }
 
     #[test]
     fn container_helper_assignments_type_the_receiver_as_the_resolved_class() {
