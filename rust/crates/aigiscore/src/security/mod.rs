@@ -1151,7 +1151,12 @@ fn reachability_paths_via_graph(
         });
     }
 
-    let mut best_scores = roots
+    // Same determinism rule as the assessment reachability BFS: exemplar
+    // paths are picked by discovery order, so roots enter sorted — HashSet
+    // iteration is process-random and would make fingerprints run-dependent.
+    let mut sorted_roots = roots.iter().cloned().collect::<Vec<_>>();
+    sorted_roots.sort();
+    let mut best_scores = sorted_roots
         .iter()
         .cloned()
         .map(|path| (path, PathScore::root()))
@@ -1169,9 +1174,8 @@ fn reachability_paths_via_graph(
             false
         };
 
-    let mut queue = roots
-        .iter()
-        .cloned()
+    let mut queue = sorted_roots
+        .into_iter()
         .map(|path| (path, 0usize))
         .collect::<VecDeque<_>>();
 

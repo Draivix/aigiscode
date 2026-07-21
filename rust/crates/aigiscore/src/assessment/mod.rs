@@ -263,6 +263,11 @@ pub fn build_architectural_assessment_full(
             .cmp(&left.severity_millis)
             .then(left.file_path.cmp(&right.file_path))
             .then(left.kind.cmp(&right.kind))
+            // Two findings can tie on every key above; without a total order
+            // their position leaks HashMap iteration order (process-random)
+            // into the artifact. Fingerprints are content-stable, so they are
+            // the final tiebreak everywhere output order matters.
+            .then(left.fingerprint.cmp(&right.fingerprint))
     });
     ArchitecturalAssessment { findings }
 }
@@ -432,10 +437,14 @@ fn graph_reachability_paths_for_hotspots(
         });
     }
 
-    let mut visited = roots.iter().cloned().collect::<HashSet<_>>();
-    let mut queue = roots
-        .iter()
-        .cloned()
+    // BFS discovery order decides which entry path becomes the exemplar, so
+    // roots must enter in sorted order — HashSet iteration is process-random
+    // and would make the exemplar (and its fingerprint) run-dependent.
+    let mut sorted_roots = roots.iter().cloned().collect::<Vec<_>>();
+    sorted_roots.sort();
+    let mut visited = sorted_roots.iter().cloned().collect::<HashSet<_>>();
+    let mut queue = sorted_roots
+        .into_iter()
         .map(|path| (path, 0usize))
         .collect::<VecDeque<_>>();
 
@@ -2134,6 +2143,7 @@ fn detect_split_identity_models(
             .severity_millis
             .cmp(&left.severity_millis)
             .then(left.file_path.cmp(&right.file_path))
+            .then(left.related_identifiers.cmp(&right.related_identifiers))
     });
     findings
 }
@@ -6205,6 +6215,51 @@ export function run(items: string[][]) {
             Some("sort_in_loop")
         );
         assert_eq!(finding.expensive_operation_flow[2].line, Some(4));
+    }
+
+    #[test]
+    fn reachability_exemplar_is_deterministic_regardless_of_root_hash_order() {
+        use crate::graph::{
+            EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, ResolutionTier, ResolvedEdge,
+        };
+        let mut graph = SemanticGraph::default();
+        let edge = |source: &str, target: &str, line: usize| ResolvedEdge {
+            source_file_path: PathBuf::from(source),
+            source_symbol_id: None,
+            target_file_path: PathBuf::from(target),
+            target_symbol_id: String::from("fn:target"),
+            reference_target_name: None,
+            kind: ReferenceKind::Call,
+            relation_kind: RelationKind::Call,
+            layer: GraphLayer::Structural,
+            strength: EdgeStrength::Hard,
+            origin: EdgeOrigin::Resolver,
+            resolution_tier: ResolutionTier::ImportScoped,
+            confidence_millis: 900,
+            reason: String::from("test"),
+            line,
+            occurrence_index: 0,
+        };
+        // Two roots reach the same hotspot directly: the lexicographically
+        // first root must win on every run, not whichever the HashSet
+        // iteration happens to visit first.
+        graph
+            .resolved_edges
+            .push(edge("src/zeta.ts", "src/hot.ts", 3));
+        graph
+            .resolved_edges
+            .push(edge("src/alpha.ts", "src/hot.ts", 7));
+        let roots = std::collections::HashSet::from([
+            PathBuf::from("src/zeta.ts"),
+            PathBuf::from("src/alpha.ts"),
+        ]);
+
+        let paths = super::graph_reachability_paths_for_hotspots(&graph, &roots);
+        let chain = paths
+            .get(&PathBuf::from("src/hot.ts"))
+            .expect("hotspot must be reachable");
+        assert_eq!(chain[0].file_path, PathBuf::from("src/alpha.ts"));
+        assert_eq!(chain[0].line, Some(7));
     }
 
     #[test]
