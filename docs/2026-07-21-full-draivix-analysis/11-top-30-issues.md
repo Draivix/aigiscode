@@ -1,5 +1,10 @@
 # 11 — Top 30 Shit Issues (ranked)
 
+> **CORRECTED 2026-07-21 — read `12-verified-priority-list.md` first.** Independent re-verification
+> against the live tree: #24 dropped (no shared logic to extract), #29 had one ALIVE class listed as
+> dead (AutomaticInvoiceRecalculationService — convention-dispatched), #26 "0 instance" false
+> (26 DI sites), #20 shim is load-bearing runtime + 23 commands not 2.
+
 Ranked by impact × confidence, everything source-verified in docs 01–08.
 Action codes: **D** delete · **C** config/mechanical · **S** suppress (honest) · **R** restructure · **O** owner decision
 
@@ -24,16 +29,16 @@ Action codes: **D** delete · **C** config/mechanical · **S** suppress (honest)
 | 17 | `SatelliteService ⇄ ServerSshKeyDeployment ⇄ SshKeyVaultMirror` cycle | `Modules/ServerManager/` | R |
 | 18 | `AttachmentService ⇄ ThumbnailService` cycle | `Services/Attachment/` | R |
 | 19 | `MigrationImportDataCommand` — 4,804 lines of migration-era command | `Console/Commands/` | O — archive with EspoMigration unit |
-| 20 | EspoMigration shim layer in limbo — 807 lines + config + 2 migration commands | `Support/EspoMigration/` | O — set archive date or keep documented |
+| 20 | EspoMigration shim layer in limbo — 807 lines + config + **23** commands; **load-bearing in live runtime** (`HookAwareMapper`, `NotificationService`, `EntityUiConfigService`) | `Support/EspoMigration/` | O — decouple runtime deps BEFORE any archive date |
 | 21 | `Email.php` god entity — 114 public methods, 128 dependents (accessor-discounted out of findings, width still real) | `Entities/Email/` | R — split read-model accessors from behavior |
 | 22 | `PermissionChecker` — 27 real methods, 170 dependents | `Services/_Core/` | R — known extraction target |
 | 23 | `MattermostClient` — 45 methods accreting domains | `Modules/Mattermost/` | R — channel/message/call/files split |
-| 24 | `EmailViewStatePreferenceNormalizer` — 292 lines vs sibling's 32 for the same interface | `Modules/Email/Services/` | R — extract shared preference logic |
+| 24 | ~~`EmailViewStatePreferenceNormalizer` — 292 lines vs sibling's 32~~ **DROPPED**: zero shared logic (bespoke email schema migration vs pageSize normalizer); nothing extractable | `Modules/Email/Services/` | — |
 | 25 | XLSX dual path — dead shared `XlsxExportWriter` while 8+ exporters hand-roll PhpSpreadsheet | `Services/Spreadsheet/` + 8 files | D the dead writer + O on a rich shared writer |
-| 26 | `ModuleRegistry` dual API — 160 static call sites, 0 instance; docblocks claim "backward compatibility" | `Modules/ModuleRegistry.php` | C — bless the static API or migrate; fix lying comments either way |
+| 26 | `ModuleRegistry` dual API — 160 static call sites, **26 instance DI sites** (not 0); docblocks claim "backward compatibility" | `Modules/ModuleRegistry.php` | C — both APIs live; pick direction; fix lying comments either way |
 | 27 | `DashletFieldAliasNormalizer` vs `ReportFieldAliasNormalizer` — same algorithm, two vocabularies | Dashboard/Advanced `Support/` | C — extract shared walk (~100 lines) |
 | 28 | Pohoda provider clone cluster — 10 dead copy-paste methods | `Modules/Pohoda/.../Providers/` | D — all verified zero-call |
-| 29 | Dead weight: `XlsxExportWriter`, `AutomaticInvoiceRecalculationService`, `ResourceBookingService::confirm()`, `FIELD_YES/NO/READONLY` constants, `VacationRequestController::getUserRoleIds`, `ShipmentWorkflowService::tableColumns/toFloat` | various | D — all verified |
+| 29 | Dead weight: `XlsxExportWriter`, ~~`AutomaticInvoiceRecalculationService`~~ (**ALIVE — convention-dispatched by `accounting:recompute-aggregates`, do NOT delete**), `ResourceBookingService::confirm()`, `FIELD_YES/NO/READONLY` constants, `VacationRequestController::getUserRoleIds`, `ShipmentWorkflowService::tableColumns/toFloat` | various | D — rest verified dead |
 | 30 | `scan.json` excludes `Commands/` — 1,241 boundary-truncated findings (49% of all findings are config echo) and console commands invisible | `.aigiscode/scan.json` | C/O — drop the exclusion when console coverage wanted |
 
 Not on the list (checked, not shit): ProviderFolderMapper and
