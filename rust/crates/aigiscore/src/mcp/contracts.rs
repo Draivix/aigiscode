@@ -2245,6 +2245,37 @@ pub struct UnresolvedBreakdownOutput {
     pub top_same_repo_names: Vec<UnresolvedNameCountOutput>,
 }
 
+/// Honest scan-scope line: the effective include prefixes and ignored dirs
+/// from `.aigiscode/scan.json`, so aggregate counts are never read as
+/// repo-wide when the analysis covers only a slice.
+fn scan_scope_note(root: &str) -> Option<String> {
+    let path = std::path::Path::new(root).join(".aigiscode/scan.json");
+    let raw = std::fs::read_to_string(path).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    let strings = |key: &str| {
+        value
+            .get(key)
+            .and_then(|v| v.as_array())
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str())
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default()
+    };
+    let includes = strings("include_path_prefixes");
+    let ignored = strings("ignored_dir_names");
+    if includes.is_empty() && ignored.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "Scan scope (counts cover the analyzed slice, not the whole repo): include prefixes [{}]; ignored dirs [{}].",
+        includes.join(", "),
+        ignored.join(", ")
+    ))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct UnresolvedKindCountOutput {
     pub kind: String,
@@ -2383,6 +2414,11 @@ impl CoverageReportOutput {
         notes.push(String::from(
             "Detector coverage is currently strongest for graph analysis, unused imports/private functions, and first-pass hardwiring heuristics.",
         ));
+        // Scan-scope honesty: aggregate counts cover the analyzed slice, not
+        // the repo — say so next to every count when the repo pins the slice.
+        if let Some(scope_note) = scan_scope_note(root) {
+            notes.push(scope_note);
+        }
         Self {
             root: String::from(root),
             scanned_files: surface.overview.scanned_files,

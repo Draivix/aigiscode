@@ -600,6 +600,20 @@ fn detect_backend_orphan_modules(
         .collect::<HashSet<_>>();
 
     let mut candidates: Vec<(PathBuf, String, Vec<&str>)> = Vec::new();
+    // Dynamic class-string dispatch: convention factories build class names at
+    // runtime (`'…Services\'.$type.'RecalculationService'` + class_exists()/app()).
+    // A container whose name ends with a suffix built this way is reachable by
+    // convention and invisible to static references. Suppression-only like the
+    // rest of this stack: it can veto a finding, never create one. Suffixes are
+    // collected from the analyzed slice AND excluded dirs (commands/bootstrap),
+    // because factories routinely live outside the analyzed slice.
+    let out_of_slice = collect_out_of_slice_sources(repo_root, parsed_sources);
+    let dispatch_suffixes = collect_dynamic_dispatch_suffixes(
+        parsed_sources
+            .iter()
+            .map(|(_, source)| source.as_str())
+            .chain(out_of_slice.iter().map(String::as_str)),
+    );
     for (path, _) in parsed_sources {
         let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
             continue;
@@ -637,6 +651,13 @@ fn detect_backend_orphan_modules(
             // `files` autoload can run it unconditionally. Never flag.
             continue;
         };
+        if containers.iter().any(|name| {
+            dispatch_suffixes
+                .iter()
+                .any(|suffix| name.ends_with(suffix.as_str()))
+        }) {
+            continue;
+        }
         let mentioned = containers.iter().any(|name| {
             // Names too short to be discriminating suppress the finding —
             // suppression-only looseness cannot fabricate an orphan.
@@ -652,7 +673,7 @@ fn detect_backend_orphan_modules(
     // command dirs, bootstrap wiring, composer manifests): a scoped analysis
     // must not accuse a file that excluded code still points at. Reading
     // excluded files is safe here because it can only remove findings.
-    let out_of_slice = collect_out_of_slice_sources(repo_root, parsed_sources);
+    // (Collected earlier — the dynamic-dispatch suffix sweep uses it too.)
     let mut findings = Vec::new();
     for (path, stem, containers) in candidates {
         let mentioned_outside = containers.iter().any(|name| {
@@ -694,6 +715,90 @@ fn detect_backend_orphan_modules(
 /// excluded directories, bootstrap wiring, manifests. Used exclusively for
 /// suppression. Bounded: code/config extensions, files <= 1 MiB, vendored and
 /// generated trees skipped.
+/// Class-name suffixes a convention factory can instantiate. A dynamic-
+/// dispatch site is a call to one of the dynamic-resolution builtins whose
+/// arguments concatenate a variable with a quoted UpperCamel literal —
+/// `'…Services\\'.$type.'RecalculationService'` inside `class_exists()`/`app()`/
+/// `resolve()`/`make()`/`is_a()`/`is_subclass_of()`/`call_user_func()`/`new $…`.
+/// The quoted literal is the family suffix (`RecalculationService`); anything
+/// ending in it must be treated as reachable. Namespace-looking literals
+/// (containing `\\` or `/`) are prefixes, not suffixes, and are ignored.
+/// Suppression-only: over-matching here silences maybe-findings, it can never
+/// invent one — the safe direction for a heuristic-tier detector.
+fn collect_dynamic_dispatch_suffixes<'a>(
+    sources: impl Iterator<Item = &'a str>,
+) -> HashSet<String> {
+    let mut suffixes = HashSet::new();
+    for source in sources {
+        for site in dynamic_dispatch_site_pattern().captures_iter(source) {
+            let Some(args) = site.get(1).map(|m| m.as_str()) else {
+                continue;
+            };
+            // A variable plus concatenation is what makes the call dynamic;
+            // plain `app('literal')` is a static reference other channels cover.
+            if !args.contains('$') || !args.contains('.') {
+                continue;
+            }
+            for literal in quoted_upper_camel_literal_pattern().captures_iter(args) {
+                let Some(value) = literal.get(1).map(|m| m.as_str()) else {
+                    continue;
+                };
+                if value.len() >= 4 && !value.contains(['\\', '/']) {
+                    suffixes.insert(value.to_string());
+                }
+            }
+        }
+        // Assign-then-dispatch: `$class = '…'.$var.'Suffix'; class_exists($class)`.
+        // The variable-arg dynamic call proves this file resolves classes
+        // dynamically, so every concatenated UpperCamel literal here is a built
+        // family suffix — this is the common factory shape.
+        if variable_arg_dynamic_call_pattern().is_match(source) {
+            for literal in concat_upper_camel_literal_pattern().captures_iter(source) {
+                let Some(value) = literal.get(1).map(|m| m.as_str()) else {
+                    continue;
+                };
+                if value.len() >= 4 && !value.contains(['\\', '/']) {
+                    suffixes.insert(value.to_string());
+                }
+            }
+        }
+    }
+    suffixes
+}
+
+fn dynamic_dispatch_site_pattern() -> &'static regex::Regex {
+    static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    PATTERN.get_or_init(|| {
+        regex::Regex::new(
+            r#"\b(?:class_exists|interface_exists|trait_exists|is_a|is_subclass_of|app|resolve|make|call_user_func|call_user_func_array|new)\s*\(([^;]{0,400})"#,
+        )
+        .unwrap()
+    })
+}
+
+fn variable_arg_dynamic_call_pattern() -> &'static regex::Regex {
+    static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    PATTERN.get_or_init(|| {
+        regex::Regex::new(
+            r#"\b(?:class_exists|interface_exists|trait_exists|is_a|is_subclass_of|app|resolve|make|call_user_func|call_user_func_array|new)\s*\(\s*\$"#,
+        )
+        .unwrap()
+    })
+}
+
+fn concat_upper_camel_literal_pattern() -> &'static regex::Regex {
+    static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    PATTERN.get_or_init(|| {
+        regex::Regex::new(r#"\.\s*(?:\w+\s*\([^)]*\)\s*\.\s*)?['"]([A-Z][A-Za-z0-9]+)['"]"#)
+            .unwrap()
+    })
+}
+
+fn quoted_upper_camel_literal_pattern() -> &'static regex::Regex {
+    static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    PATTERN.get_or_init(|| regex::Regex::new(r#"['"]([A-Z][A-Za-z0-9]+)['"]"#).unwrap())
+}
+
 fn collect_out_of_slice_sources(
     repo_root: &Path,
     parsed_sources: &[(PathBuf, String)],
@@ -809,6 +914,9 @@ fn is_backend_orphan_exempt_path(path: &Path) -> bool {
         || has_segment("storage")
         || has_segment("stubs")
         || has_segment("bin")
+        // CLI command dirs are wired by the framework's command discovery
+        // (Artisan/Symfony Console conventions), not by code references.
+        || has_segment("commands")
     {
         return true;
     }
@@ -1628,6 +1736,64 @@ export { helper } from '@/utils/reExported'
             vec!["DeadService"],
             "inbound-edge, contract-location, ::class-string, convention-suffix, \
              and no-container channels must all suppress: {orphans:?}"
+        );
+    }
+
+    #[test]
+    fn dynamic_class_string_dispatch_suppresses_convention_reached_orphans() {
+        let sources = vec![
+            // The convention factory: builds
+            // 'App\Modules\Accounting\Services\'.$type.'RecalculationService'
+            // and app()s it — invisible to static references.
+            (
+                PathBuf::from("app/Modules/Accounting/Services/RecomputeOrchestrator.php"),
+                String::from(
+                    "<?php\nclass RecomputeOrchestrator {\n    public function resolve(string $entityType): mixed {\n        $serviceClass = 'App\\\\Modules\\\\Accounting\\\\Services\\\\'.trim($entityType).'RecalculationService';\n        if (! class_exists($serviceClass)) { return null; }\n        return app($serviceClass);\n    }\n}\n",
+                ),
+            ),
+            (
+                PathBuf::from(
+                    "app/Modules/Accounting/Services/AutomaticInvoiceRecalculationService.php",
+                ),
+                String::from(
+                    "<?php\nclass AutomaticInvoiceRecalculationService { public function recompute(): void {} }\n",
+                ),
+            ),
+            (
+                // Same shape but nothing builds its suffix: still flagged.
+                PathBuf::from("app/Modules/Accounting/Services/TrulyDeadReporter.php"),
+                String::from("<?php\nclass TrulyDeadReporter { public function never(): void {} }\n"),
+            ),
+        ];
+        let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
+        for (path, source) in &sources[1..] {
+            let parsed = parse_php_to_graph(path.clone(), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+
+        let result = analyze_dead_code(
+            &graph,
+            &sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
+        let orphans: Vec<&str> = result
+            .findings
+            .iter()
+            .filter(|f| f.category == DeadCodeCategory::OrphanModule)
+            .map(|f| f.name.as_str())
+            .collect();
+
+        assert!(
+            !orphans.contains(&"AutomaticInvoiceRecalculationService"),
+            "convention-built suffix must suppress the orphan verdict: {orphans:?}"
+        );
+        assert!(
+            orphans.contains(&"TrulyDeadReporter"),
+            "suffix built nowhere must stay flagged: {orphans:?}"
         );
     }
 
