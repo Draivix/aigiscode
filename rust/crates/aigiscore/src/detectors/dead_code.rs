@@ -3,6 +3,7 @@ use crate::graph::{
     ReferenceKind, ResolvedEdge, SemanticGraph, SymbolKind, SymbolNode, Visibility,
 };
 use crate::identity::{normalized_path, stable_fingerprint};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -76,8 +77,9 @@ pub fn analyze_dead_code(
 
     let mut findings = graph
         .symbols
-        .iter()
-        .filter(|symbol| {
+        .par_iter()
+        .enumerate()
+        .filter(|(_, symbol)| {
             matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
                 && symbol.visibility == Visibility::Private
                 && symbol.name != "main"
@@ -87,21 +89,33 @@ pub fn analyze_dead_code(
                 && !called_symbols.contains(&symbol.id)
                 && !private_function_used_lexically_in_file(symbol, &sources_by_path)
         })
-        .map(|symbol| DeadCodeFinding {
-            category: DeadCodeCategory::UnusedPrivateFunction,
-            symbol_id: symbol.id.clone(),
-            file_path: symbol.file_path.clone(),
-            name: symbol.name.clone(),
-            line: symbol.start_line,
-            proof_tier: dead_code_proof_tier_for_symbol(symbol),
-            fingerprint: dead_code_fingerprint(
-                DeadCodeCategory::UnusedPrivateFunction,
-                &symbol.file_path,
-                &symbol.name,
-            ),
-            delete_verdict: String::new(),
-            delete_evidence: Vec::new(),
+        .map(|(index, symbol)| {
+            (
+                index,
+                DeadCodeFinding {
+                    category: DeadCodeCategory::UnusedPrivateFunction,
+                    symbol_id: symbol.id.clone(),
+                    file_path: symbol.file_path.clone(),
+                    name: symbol.name.clone(),
+                    line: symbol.start_line,
+                    proof_tier: dead_code_proof_tier_for_symbol(symbol),
+                    fingerprint: dead_code_fingerprint(
+                        DeadCodeCategory::UnusedPrivateFunction,
+                        &symbol.file_path,
+                        &symbol.name,
+                    ),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
+                },
+            )
         })
+        .collect::<Vec<_>>();
+    // rayon collect after filter is not order-stable; restore scan order so
+    // output stays byte-identical to the sequential pass.
+    findings.sort_by_key(|(index, _)| *index);
+    let mut findings = findings
+        .into_iter()
+        .map(|(_, finding)| finding)
         .collect::<Vec<_>>();
 
     suppress_inherited_dispatch_methods(&mut findings, graph, parsed_sources);
@@ -164,124 +178,140 @@ pub fn analyze_dead_code(
             .extend(matching_targets);
     }
 
-    for reference in graph
+    let unused_import_findings = graph
         .references
-        .iter()
-        .filter(|reference| reference.kind == ReferenceKind::Import)
-    {
-        if is_package_export_surface(reference.file_path.as_path()) {
-            continue;
-        }
-        // Imports that bind no local name cannot be "unused" — there is no
-        // binding to leave unread. In JavaScript/TypeScript these are the
-        // side-effect form (`import './x'`) and the dynamic form
-        // (`import('./x')` / `require('./x')`), whose target is a module
-        // specifier, not a symbol. Falling back to `leaf_symbol_name` here
-        // would fabricate a binding from the path (e.g. `./X.vue` -> `vue`,
-        // `zone.js` -> `js`) and flag a phantom import. Python and PHP always
-        // record an explicit binding name, so this only skips the JS
-        // bindingless forms.
-        if reference.binding_name.is_none() {
-            continue;
-        }
-        let candidate_edges = edges_by_location
-            .get(&(reference.file_path.as_path(), reference.line))
-            .map(|edges| {
-                edges
-                    .iter()
-                    .filter(|edge| edge.kind == ReferenceKind::Import)
-                    .copied()
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        let resolved_import = candidate_edges
-            .iter()
-            .find(|edge| {
-                symbols_by_id
-                    .get(&edge.target_symbol_id)
-                    .map(|(name, _, _)| name == &leaf_symbol_name(&reference.target_name))
-                    .unwrap_or(false)
-            })
-            .copied()
-            .or_else(|| {
-                reference.binding_name.as_ref().and_then(|binding_name| {
+        .par_iter()
+        .enumerate()
+        .filter(|(_, reference)| reference.kind == ReferenceKind::Import)
+        .filter_map(|(index, reference)| {
+            if is_package_export_surface(reference.file_path.as_path()) {
+                return None;
+            }
+            // Imports that bind no local name cannot be "unused" — there is no
+            // binding to leave unread. In JavaScript/TypeScript these are the
+            // side-effect form (`import './x'`) and the dynamic form
+            // (`import('./x')` / `require('./x')`), whose target is a module
+            // specifier, not a symbol. Falling back to `leaf_symbol_name` here
+            // would fabricate a binding from the path (e.g. `./X.vue` -> `vue`,
+            // `zone.js` -> `js`) and flag a phantom import. Python and PHP always
+            // record an explicit binding name, so this only skips the JS
+            // bindingless forms.
+            if reference.binding_name.is_none() {
+                return None;
+            }
+            let candidate_edges = edges_by_location
+                .get(&(reference.file_path.as_path(), reference.line))
+                .map(|edges| {
+                    edges
+                        .iter()
+                        .filter(|edge| edge.kind == ReferenceKind::Import)
+                        .copied()
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default();
+            let resolved_import = candidate_edges
+                .iter()
+                .find(|edge| {
+                    symbols_by_id
+                        .get(&edge.target_symbol_id)
+                        .map(|(name, _, _)| name == &leaf_symbol_name(&reference.target_name))
+                        .unwrap_or(false)
+                })
+                .copied()
+                .or_else(|| {
+                    reference.binding_name.as_ref().and_then(|binding_name| {
+                        candidate_edges
+                            .iter()
+                            .find(|edge| {
+                                symbols_by_id
+                                    .get(&edge.target_symbol_id)
+                                    .map(|(name, _, _)| name == binding_name)
+                                    .unwrap_or(false)
+                            })
+                            .copied()
+                    })
+                })
+                .or_else(|| {
                     candidate_edges
                         .iter()
                         .find(|edge| {
                             symbols_by_id
                                 .get(&edge.target_symbol_id)
-                                .map(|(name, _, _)| name == binding_name)
+                                .map(|(_, kind, _)| *kind == SymbolKind::Module)
                                 .unwrap_or(false)
                         })
                         .copied()
+                });
+            let Some(resolved_import) = resolved_import else {
+                return None;
+            };
+            let imported_symbol_name = symbols_by_id
+                .get(&resolved_import.target_symbol_id)
+                .map(|(name, _, _)| name.clone());
+            let binding_name = reference
+                .binding_name
+                .clone()
+                .unwrap_or_else(|| leaf_symbol_name(&reference.target_name));
+            if used_import_targets.contains(&(
+                reference.file_path.clone(),
+                resolved_import.target_symbol_id.clone(),
+            )) {
+                return None;
+            }
+            if imported_symbol_name
+                .as_ref()
+                .is_some_and(|imported_symbol_name| {
+                    receiver_targets_by_binding
+                        .get(&(reference.file_path.clone(), binding_name.clone()))
+                        .is_some_and(|targets| targets.contains(imported_symbol_name))
                 })
-            })
-            .or_else(|| {
-                candidate_edges
-                    .iter()
-                    .find(|edge| {
-                        symbols_by_id
-                            .get(&edge.target_symbol_id)
-                            .map(|(_, kind, _)| *kind == SymbolKind::Module)
-                            .unwrap_or(false)
-                    })
-                    .copied()
-            });
-        let Some(resolved_import) = resolved_import else {
-            continue;
-        };
-        let imported_symbol_name = symbols_by_id
-            .get(&resolved_import.target_symbol_id)
-            .map(|(name, _, _)| name.clone());
-        let binding_name = reference
-            .binding_name
-            .clone()
-            .unwrap_or_else(|| leaf_symbol_name(&reference.target_name));
-        if used_import_targets.contains(&(
-            reference.file_path.clone(),
-            resolved_import.target_symbol_id.clone(),
-        )) {
-            continue;
-        }
-        if imported_symbol_name
-            .as_ref()
-            .is_some_and(|imported_symbol_name| {
-                receiver_targets_by_binding
-                    .get(&(reference.file_path.clone(), binding_name.clone()))
-                    .is_some_and(|targets| targets.contains(imported_symbol_name))
-            })
-        {
-            continue;
-        }
-        // Framework facades, attributes, `instanceof` checks, and type
-        // positions often never resolve to graph edges, so a missing resolved
-        // edge is not proof an import is unused. Any mention of the binding
-        // name outside import-like lines suppresses the finding.
-        if sources_by_path
-            .get(reference.file_path.as_path())
-            .is_some_and(|source| import_name_used_lexically(source, reference.line, &binding_name))
-        {
-            continue;
-        }
-        findings.push(DeadCodeFinding {
-            category: DeadCodeCategory::UnusedImport,
-            symbol_id: resolved_import.target_symbol_id.clone(),
-            file_path: reference.file_path.clone(),
-            name: binding_name,
-            line: reference.line,
-            proof_tier: dead_code_proof_tier(DeadCodeCategory::UnusedImport),
-            fingerprint: dead_code_fingerprint(
-                DeadCodeCategory::UnusedImport,
-                &reference.file_path,
-                &reference
-                    .binding_name
-                    .clone()
-                    .unwrap_or_else(|| leaf_symbol_name(&reference.target_name)),
-            ),
-            delete_verdict: String::new(),
-            delete_evidence: Vec::new(),
-        });
-    }
+            {
+                return None;
+            }
+            // Framework facades, attributes, `instanceof` checks, and type
+            // positions often never resolve to graph edges, so a missing resolved
+            // edge is not proof an import is unused. Any mention of the binding
+            // name outside import-like lines suppresses the finding.
+            if sources_by_path
+                .get(reference.file_path.as_path())
+                .is_some_and(|source| {
+                    import_name_used_lexically(source, reference.line, &binding_name)
+                })
+            {
+                return None;
+            }
+            Some((
+                index,
+                DeadCodeFinding {
+                    category: DeadCodeCategory::UnusedImport,
+                    symbol_id: resolved_import.target_symbol_id.clone(),
+                    file_path: reference.file_path.clone(),
+                    name: binding_name,
+                    line: reference.line,
+                    proof_tier: dead_code_proof_tier(DeadCodeCategory::UnusedImport),
+                    fingerprint: dead_code_fingerprint(
+                        DeadCodeCategory::UnusedImport,
+                        &reference.file_path,
+                        &reference
+                            .binding_name
+                            .clone()
+                            .unwrap_or_else(|| leaf_symbol_name(&reference.target_name)),
+                    ),
+                    delete_verdict: String::new(),
+                    delete_evidence: Vec::new(),
+                },
+            ))
+        })
+        .collect::<Vec<_>>();
+    // Same order-stability rule as above: collect after filter is unordered,
+    // so restore scan order before extending.
+    let mut unused_import_findings = unused_import_findings;
+    unused_import_findings.sort_by_key(|(index, _)| *index);
+    findings.extend(
+        unused_import_findings
+            .into_iter()
+            .map(|(_, finding)| finding),
+    );
 
     findings.extend(detect_orphan_modules(graph, parsed_sources));
     findings.extend(detect_backend_orphan_modules(
@@ -350,27 +380,32 @@ fn detect_orphan_modules(
     // specifiers the parser misses. Any quoted relative/alias path literal in
     // frontend source contributes its tail. Suppression-only, so the looseness
     // of a lexical scan cannot fabricate a finding.
-    for (path, source) in parsed_sources {
-        let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
-            continue;
-        };
-        if !FRONTEND_MODULE_EXTENSIONS.contains(&extension) {
-            continue;
-        }
-        for captures in path_literal_pattern().captures_iter(source) {
-            let Some(literal) = captures.get(1).map(|m| m.as_str()) else {
-                continue;
-            };
-            let tail = literal
-                .trim_end_matches('/')
-                .rsplit('/')
-                .next()
-                .unwrap_or_default()
-                .trim();
-            if !tail.is_empty() {
-                import_tails.insert(strip_frontend_extension(tail).to_ascii_lowercase());
-            }
-        }
+    let literal_tails = parsed_sources
+        .par_iter()
+        .filter(|(path, _)| {
+            path.extension()
+                .and_then(|value| value.to_str())
+                .is_some_and(|extension| FRONTEND_MODULE_EXTENSIONS.contains(&extension))
+        })
+        .map(|(_, source)| {
+            path_literal_pattern()
+                .captures_iter(source)
+                .filter_map(|captures| {
+                    let tail = captures
+                        .get(1)
+                        .map(|m| m.as_str())?
+                        .trim_end_matches('/')
+                        .rsplit('/')
+                        .next()
+                        .unwrap_or_default()
+                        .trim();
+                    (!tail.is_empty()).then(|| strip_frontend_extension(tail).to_ascii_lowercase())
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    for tail in literal_tails.into_iter().flatten() {
+        import_tails.insert(tail);
     }
 
     // Files under a static `import.meta.glob('...')` prefix are lazily loaded
@@ -498,19 +533,26 @@ fn detect_backend_orphan_modules(
     // Quoted path literal tails across the whole corpus: `require 'Legacy.php'`,
     // template/module manifests naming PHP files.
     let mut path_tails = HashSet::new();
-    for (_, source) in parsed_sources {
-        for captures in path_literal_pattern().captures_iter(source) {
-            if let Some(literal) = captures.get(1).map(|m| m.as_str()) {
-                let tail = literal
-                    .trim_end_matches('/')
-                    .rsplit('/')
-                    .next()
-                    .unwrap_or_default();
-                if !tail.is_empty() {
-                    path_tails.insert(tail.to_ascii_lowercase());
-                }
-            }
-        }
+    let collected_tails = parsed_sources
+        .par_iter()
+        .map(|(_, source)| {
+            path_literal_pattern()
+                .captures_iter(source)
+                .filter_map(|captures| {
+                    let tail = captures
+                        .get(1)
+                        .map(|m| m.as_str())?
+                        .trim_end_matches('/')
+                        .rsplit('/')
+                        .next()
+                        .unwrap_or_default();
+                    (!tail.is_empty()).then(|| tail.to_ascii_lowercase())
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+    for tail in collected_tails.into_iter().flatten() {
+        path_tails.insert(tail);
     }
 
     // Top-level containers per file.
