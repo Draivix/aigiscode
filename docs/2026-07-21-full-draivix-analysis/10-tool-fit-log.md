@@ -68,3 +68,42 @@ axis-driven mining with **100% source verification on every removal
 candidate** (A-section of `09`) and family-level judgment on the rest. Where
 judgment could be wrong, the doc says so (suppressible families are marked as
 such, not silently dropped).
+
+## Retrospective (post-review, same day)
+
+The top-30 list (`11`) was independently double-checked (see
+`12-verified-priority-list.md`): **17/30 clean, 11 right-thesis-wrong-numbers,
+2 recommendations that would have caused damage.** Re-verified the reviewer's
+counter-evidence myself; it holds. The failures, honestly owned:
+
+1. **"Zero refs" is not a dead-code proof.** `AutomaticInvoiceRecalculationService`
+   was called verified-dead — it is alive via convention dispatch
+   (`AccountingRecomputeAggregatesCommand.php:283` builds
+   `'…Services\'.$entityType.'RecalculationService'` and `app()`s it; entity
+   list comes from `HasAggregates` convention discovery). My grep checked
+   *literal references only*. The correct checklist for "dead": literal refs +
+   **class-string construction, `app($var)`, `call_user_func`, scandir/
+   convention discovery, module manifests, hook wiring**. Draivix's own
+   `ErpAnalyzeDeadCodeCommand.php:319` encodes exactly this convention — I
+   never found it. The tool's orphan heuristic made the same miss first
+   (heuristic tier, no dynamic-dispatch channel); my human check rubber-stamped
+   it. Tool backlog: generic dynamic-dispatch evidence as a dead-code
+   *suppression* channel (suppression-only, cannot fabricate findings).
+2. **Slice-scoped numbers presented as repo-wide.** Every dependent count I
+   published was undercounted by the analyzed slice (EntityManager 643 vs 789,
+   EmailService 52/24 vs 111/~30, Microsoft URLs ×5 vs ×35). Rule now: every
+   aggregate carries its scope and method, or it does not get published.
+3. **"Duplicate" verdicts need body diffs, not size contrast.**
+   `EmailViewStatePreferenceNormalizer` (292 lines of bespoke schema migration)
+   vs the 32-line sibling: zero shared logic. Dropped from the list.
+4. **Check the carrier is alive before designing its config home.**
+   `getTrackingLink()` had zero consumers — the right action was delete, not
+   `config/carriers.php` (which also violated their platform layering law).
+5. **Unreproducible aggregates need methodology attached** — and prior repo
+   docs cited. The knot's "18 files / 848 edges" sits next to the repo's own
+   `docs/old` analysis showing an earlier SCC inflated 151→3 under per-edge
+   verification; both belong in the same sentence.
+
+Reviewer verdict on the rest: 17/30 fully confirmed. The corrected,
+re-prioritized list is `12-verified-priority-list.md` — it supersedes `11`.
+
