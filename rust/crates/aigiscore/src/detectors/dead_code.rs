@@ -40,10 +40,10 @@ pub struct DeadCodeFinding {
     pub proof_tier: DeadCodeProofTier,
     #[serde(default)]
     pub fingerprint: String,
-    /// Deletion confidence for orphan findings: safe_delete (explicit import
-    /// graph, every channel checked) | probably_delete (autoload world —
-    /// dynamic construction from strings outside the repo stays possible).
-    /// Empty for non-orphan categories.
+    /// Heuristic deletion candidate (`probably_delete`), never a deletion
+    /// proof: excluded callers and dynamic loading remain possible in every
+    /// language. Empty for non-orphan categories. Older artifacts may contain
+    /// `safe_delete` for frontend modules.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub delete_verdict: String,
     /// The suppression channels that came back silent — the positive evidence
@@ -335,8 +335,8 @@ const FRONTEND_MODULE_EXTENSIONS: &[&str] = &["vue", "ts", "tsx", "js", "jsx", "
 
 /// Frontend modules that nothing references. Backend files are exempt because
 /// server frameworks autoload by convention (PSR-4, Rails constants), so a
-/// missing inbound edge proves nothing there; the frontend import graph is
-/// explicit, which makes "no importer anywhere" meaningful evidence.
+/// missing inbound edge proves nothing there. Frontend imports and launcher
+/// paths provide candidate evidence, not proof of whole-repository deadness.
 fn detect_orphan_modules(
     graph: &SemanticGraph,
     parsed_sources: &[(PathBuf, String)],
@@ -377,16 +377,11 @@ fn detect_orphan_modules(
     // Modules are also loaded through plain string paths that never surface as
     // import references: `new Worker(new URL('./renderWorker.ts', ...))`,
     // `audioWorklet.addModule('../worklets/processor.js')`, re-export
-    // specifiers the parser misses. Any quoted relative/alias path literal in
-    // frontend source contributes its tail. Suppression-only, so the looseness
-    // of a lexical scan cannot fabricate a finding.
+    // specifiers the parser misses. Launchers in other languages also name
+    // scripts by path (e.g. Rust Command::arg("tools/worker.mjs")). Scan every
+    // source language. Suppression-only: path mentions cannot create findings.
     let literal_tails = parsed_sources
         .par_iter()
-        .filter(|(path, _)| {
-            path.extension()
-                .and_then(|value| value.to_str())
-                .is_some_and(|extension| FRONTEND_MODULE_EXTENSIONS.contains(&extension))
-        })
         .map(|(_, source)| {
             path_literal_pattern()
                 .captures_iter(source)
@@ -449,13 +444,16 @@ fn detect_orphan_modules(
             line: 1,
             proof_tier: dead_code_proof_tier(DeadCodeCategory::OrphanModule),
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, path, stem),
-            delete_verdict: String::from("safe_delete"),
+            delete_verdict: String::from("probably_delete"),
             delete_evidence: vec![
                 String::from("no inbound resolved edge anywhere in the corpus"),
                 String::from("no import specifier tail matches the module stem"),
                 String::from("no quoted path literal (worker URL, addModule, re-export) names it"),
                 String::from("not covered by any import.meta.glob prefix"),
                 String::from("not a framework convention path (pages/routes/config/entry stems)"),
+                String::from(
+                    "residual risk: excluded callers, external entrypoints, and computed paths are not ruled out",
+                ),
             ],
         });
     }
@@ -1044,13 +1042,13 @@ fn collect_import_meta_glob_prefixes(parsed_sources: &[(PathBuf, String)]) -> Ve
     prefixes
 }
 
-/// A quoted relative or alias module path (`'./x'`, `'../y/z.ts'`, `'@/a/b'`).
+/// A quoted module path (`'./x'`, `'../y/z.ts'`, `'@/a/b'`, `'tools/worker.mjs'`).
 /// Matched per occurrence with a path-safe charset, so prose apostrophes in
 /// surrounding markup cannot desync the scan.
 fn path_literal_pattern() -> &'static regex::Regex {
     static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     PATTERN.get_or_init(|| {
-        regex::Regex::new(r#"['"`]((?:\.{1,2}|@)/[A-Za-z0-9_@$./\-]+)['"`]"#)
+        regex::Regex::new(r#"['"`]([A-Za-z0-9_@$.\-]*/[A-Za-z0-9_@$./\-]+)['"`]"#)
             .expect("valid path literal pattern")
     })
 }
@@ -1554,6 +1552,63 @@ export { helper } from '@/utils/reExported'
             "only the truly unreferenced module is an orphan; import, glob, \
              worker-URL, re-export, and index-stem channels all suppress: {orphans:?}"
         );
+    }
+
+    #[test]
+    fn frontend_orphans_respect_launch_paths_from_other_languages() {
+        let sources = vec![
+            (
+                PathBuf::from("src/launcher.rs"),
+                String::from(
+                    r#"pub fn launch() {
+    let _ = std::process::Command::new("node").arg("tools/worker.mjs").status();
+}"#,
+                ),
+            ),
+            (
+                PathBuf::from("app/launcher.php"),
+                String::from("<?php passthru('node ' . './tools/render.cjs');"),
+            ),
+            (
+                PathBuf::from("tools/worker.mjs"),
+                String::from("console.log('worker');"),
+            ),
+            (
+                PathBuf::from("tools/render.cjs"),
+                String::from("console.log('renderer');"),
+            ),
+            (
+                PathBuf::from("tools/unused.mjs"),
+                String::from("console.log('unused');"),
+            ),
+        ];
+        let mut graph = crate::graph::SemanticGraph::default();
+        for (path, source) in &sources {
+            let parsed = crate::parsing::parse_source_file(path.clone(), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+        let result = analyze_dead_code(
+            &graph,
+            &sources,
+            &ContractInventory::default(),
+            Path::new(""),
+        );
+        let orphans = result
+            .findings
+            .iter()
+            .filter(|finding| finding.category == DeadCodeCategory::OrphanModule)
+            .collect::<Vec<_>>();
+        assert_eq!(orphans.len(), 1, "launch paths must keep scripts live");
+        assert_eq!(orphans[0].file_path, Path::new("tools/unused.mjs"));
+        assert_eq!(orphans[0].proof_tier, DeadCodeProofTier::Heuristic);
+        assert_eq!(orphans[0].delete_verdict, "probably_delete");
+        assert!(orphans[0]
+            .delete_evidence
+            .iter()
+            .any(|evidence| evidence.contains("excluded callers")));
     }
 
     #[test]

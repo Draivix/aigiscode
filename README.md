@@ -333,6 +333,13 @@ cat /tmp/my-repo-aigis/aigiscode-report.md
 
 ### Prepare AI review context
 
+Orphan findings are review candidates, not deletion proofs. Their
+`delete_verdict` is `probably_delete`, including frontend modules (older
+artifacts used `safe_delete`). A missing importer cannot rule out excluded
+callers, external entrypoints, or computed paths. Quoted script paths from
+other analyzed languages also count as reachability evidence, so a Rust or
+PHP launcher can keep a JavaScript helper out of the orphan list.
+
 ```bash
 aigiscode agent . --output-dir /tmp/my-repo-aigis
 cat /tmp/my-repo-aigis/agentic-review.json
