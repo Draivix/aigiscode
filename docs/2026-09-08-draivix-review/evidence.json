@@ -1,0 +1,291 @@
+{
+  "date": "2026-09-08",
+  "target_head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+  "target_includes_uncommitted_changes": true,
+  "analyzer_commits": [
+    "23a1832",
+    "648fb3d"
+  ],
+  "analyzer_binary_sha256": "2a8381aeb9fe7eb15dadaa2bc6e11f9273e3cad9d2cda4025df8116c80865d8d",
+  "automated_tests_executed": false,
+  "gitlab_ci_verified": false,
+  "integrity": {
+    "source_files_compared": 17748,
+    "changed_paths": [],
+    "original_head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+    "scoped_manifest_sha256": "f3914a3984927db413c03d9c6a32e3136abde3931b01953e7210d54d16659dfc",
+    "full_manifest_sha256": "8e8a761eb2b46959cdd6cb248e14f56ddb5042897d8255bba2a70b42319a6c70",
+    "git_status_before_sha256": "fa7e035936efd722e434b5cab80d0e1baef138ca3f6d8b544892f3cfa0ce1c8d",
+    "git_status_final_sha256": "fa7e035936efd722e434b5cab80d0e1baef138ca3f6d8b544892f3cfa0ce1c8d"
+  },
+  "comparison": {
+    "full_sources": 17748,
+    "full_edges": 343663,
+    "full_dead_before": 162,
+    "full_dead_after": 181,
+    "full_orphans_before": 55,
+    "full_orphans_after": 74,
+    "scoped_candidates_recovered": [
+      "app/Modules/Accounting/Services/TaskInvoiceDraftService.php",
+      "app/Modules/Accounting/Support/InvoiceLifecycleStatusGroups.php",
+      "app/Modules/EspoIntegration/Services/RecordChangeClassifier.php",
+      "app/Services/Action/ActionActorResolver.php",
+      "app/Services/Filter/EntitySortTargetResolver.php",
+      "app/Services/View/ViewColumnSliceResolverInterface.php",
+      "app/Services/_Core/Filter/EffectiveFilterTypeResolver.php",
+      "app/Services/_Core/Permission/AclMembershipWriter.php",
+      "app/Services/_Core/StateMachine/OutboxTransitionReplayResolver.php",
+      "app/Support/ActorContext.php",
+      "resources/js/Components/Dashboard/configurators/ChartConfig.vue",
+      "resources/js/Components/Dashboard/widgets/ChartWidget.vue",
+      "resources/js/composables/useActiveCurrencyOptions.ts",
+      "resources/js/composables/useEntityOptions.ts"
+    ],
+    "scoped_candidates_still_absent": [
+      "app/Modules/Accounting/Http/Controllers/Api/AccountingBudgetController.php",
+      "app/Modules/Accounting/Http/Controllers/Api/AccountingBusinessUnitController.php",
+      "app/Modules/AccountingCompliance/Services/ArchiveHashChainService.php",
+      "app/Modules/AiChat/Support/PromptTesting/AiChatVoiceSmokeScenarioCatalog.php",
+      "app/Modules/ETL/Services/SourceContractFingerprint.php",
+      "app/Modules/Planning/Services/DemandCoverageReadModel.php",
+      "app/Modules/Pohoda/Tools/Pohoda/Providers/PaymentOrderProvider.php",
+      "app/Modules/Pohoda/Tools/Pohoda/Providers/ProductCategoryProvider.php",
+      "app/Modules/Pohoda/Tools/Pohoda/Providers/SupplierQuoteProvider.php"
+    ]
+  },
+  "configured_scan": {
+    "parsed_sources": 9662,
+    "dead_code_candidates": 32,
+    "orphan_candidates": 28,
+    "unused_private_methods": 1,
+    "unused_imports": 3
+  },
+  "source_witnesses": [
+    {
+      "path": "app/Entities/_Core/Authoring/FileOperation.php",
+      "sha256": "e2f22b7f9adaf4cd3eebaea28565c9cf54d465293b8a4635fac684d1460a1448"
+    },
+    {
+      "path": "app/Entities/_Core/Authoring/StructureApplier.php",
+      "sha256": "4613588ce5ddd07142281906fc46e20cb183aca636ea25f692ded432a5cc3fda"
+    },
+    {
+      "path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+      "sha256": "d5a16dd1dbf9f017dfccaaafa425747e8848b685be4bd8b7e64d9b22c0aa2294"
+    },
+    {
+      "path": "app/Entities/_Core/EntityDeleteSideEffects.php",
+      "sha256": "d8ebfc6e7b156e8c354b6169f303159f8a371869fccc39beb67a5c098e21c819"
+    },
+    {
+      "path": "app/Http/Controllers/Entity/Handlers/EntityViewHandler.php",
+      "sha256": "97f9004b98bf0a26fd10d23fbffd3f2cbedbbfca77c545c290a3296e1e472d13"
+    },
+    {
+      "path": "app/Modules/Accounting/Http/Controllers/Api/AccountingBudgetController.php",
+      "sha256": "86ae6c6ef7f194a685fcab406855975b24a7b7d34759eb09bfaaa64c1aab3fc9"
+    },
+    {
+      "path": "app/Modules/Accounting/Http/Controllers/Api/AccountingBusinessUnitController.php",
+      "sha256": "58fe217208ba9bea12cc71bbf7dee0fd8547a18c7d95e5b9cf142a64c3c6cc89"
+    },
+    {
+      "path": "app/Modules/Accounting/Services/TaskInvoiceDraftService.php",
+      "sha256": "f8519262c8eecddf5da93e1e36defce61b87b5016d0f93edbde0a48b8f2c6bc2"
+    },
+    {
+      "path": "app/Modules/Accounting/Support/InvoiceLifecycleStatusGroups.php",
+      "sha256": "f39a8f850d80f39e68a79abbbfab442bfcd1333fa67cb76c44d1ce0f3e141358"
+    },
+    {
+      "path": "app/Modules/Accounting/Tests/Unit/AccountingWriteActionsContractTest.php",
+      "sha256": "62ed7bd4028741826369e05dd20d87dc47cc77fbdab6a1c0285d1f1b7dabf065"
+    },
+    {
+      "path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+      "sha256": "26a56a072de707ee8403b3f785a832f4e537a0298a893bbeae8df4b604a280e6"
+    },
+    {
+      "path": "app/Modules/AccountingCompliance/Services/ArchiveHashChainService.php",
+      "sha256": "1c1c5d693f4f61773039c326f4d35c3d861e77e6664ba801c63ea9724008da82"
+    },
+    {
+      "path": "app/Modules/AiChat/Services/ChatService.php",
+      "sha256": "a7fe971d1122c494c39f63bf0c5a9d65d7d34f4053fa85cd90e6acb80a302083"
+    },
+    {
+      "path": "app/Modules/AiChat/Support/PromptTesting/AiChatVoiceSmokeScenarioCatalog.php",
+      "sha256": "bdf87625d96952b2d97a39aaf98597c096143f8807b22ca55d492311917c6e09"
+    },
+    {
+      "path": "app/Modules/ETL/Services/SourceContractFingerprint.php",
+      "sha256": "941d322427877a71ecd77db7fb01d52c30b66fe58f45d9e2ee660910dc17ce5d"
+    },
+    {
+      "path": "app/Modules/ETL/Support/ImportRunProgressStep.php",
+      "sha256": "8ff76e6c59d47ed2481a576a28b1e35d763af01660e56c7a75e00bcb20f795e6"
+    },
+    {
+      "path": "app/Modules/EspoIntegration/Services/RecordChangeClassifier.php",
+      "sha256": "a83ea2bacdf0c43468d308e0033fe3fc54ad0d4154b88165e028aa42a40049bc"
+    },
+    {
+      "path": "app/Modules/Planning/Services/DemandCoverageReadModel.php",
+      "sha256": "7db4d5cf7cf899b1e73084912aa87c93a483ca2d0a70372408c80f15d35cf91f"
+    },
+    {
+      "path": "app/Modules/Pohoda/Tools/Pohoda/Providers/PaymentOrderProvider.php",
+      "sha256": "dc7d938f403e00e25eedb35e88931d8d09ab9c3baf286bcc2717c2aa8f68e7e1"
+    },
+    {
+      "path": "app/Modules/Pohoda/Tools/Pohoda/Providers/ProductCategoryProvider.php",
+      "sha256": "6a47f75c5240b664174c095a31284717b1981f8b0e16269ae587bff0bed35dab"
+    },
+    {
+      "path": "app/Modules/Pohoda/Tools/Pohoda/Providers/SupplierQuoteProvider.php",
+      "sha256": "5ba6c4971a5f82a799ea7d51cdfa8dbe280ac42662f6af71101535ae711ef65a"
+    },
+    {
+      "path": "app/Modules/Pohoda/config/pohoda.php",
+      "sha256": "4f3aadce6bf429c7f6c65bd73f2fcd4e26eb8750e191d95f35cc9f4f863adb5b"
+    },
+    {
+      "path": "app/Modules/ProjectManagement/Entities/Project/Project.fields.php",
+      "sha256": "7a36f9745a31637bf73e2246e3ce8d680f25459cd08bfe268d93d0d0d38de57a"
+    },
+    {
+      "path": "app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php",
+      "sha256": "54ee61182559959e911b096a6773c71fde860a90a9f0a58ed03837d1b0a9215a"
+    },
+    {
+      "path": "app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php",
+      "sha256": "07b78e63799f056ae6f65dadb40b5a44253a4f3d8576b01c66f13b5f64c42084"
+    },
+    {
+      "path": "app/Services/Action/ActionActorResolver.php",
+      "sha256": "0614beb8113e9f8e143c2fb8972e1faf75d78e9d412cb2b482b7907a6f20b7cb"
+    },
+    {
+      "path": "app/Services/Email/EmailService.php",
+      "sha256": "0025060ce4e84ead17178794eeff5ae1c07ac82debdfac26943f52718ad90f8e"
+    },
+    {
+      "path": "app/Services/Filter/EntitySortTargetResolver.php",
+      "sha256": "fea6f1a4826e2965f6a218a7850e730425281299a6c345f6274a5f2bb3611064"
+    },
+    {
+      "path": "app/Services/I18n/LocaleFileWriter.php",
+      "sha256": "1a476de7258adfba4e0149f80daa16c66a78e870ec068abfa1d52f5becc54263"
+    },
+    {
+      "path": "app/Services/Notifications/AssignmentNotificationService.php",
+      "sha256": "abb13201185547737c0d5b8cddde371bf11b8fa5810c6febe4100176024dca12"
+    },
+    {
+      "path": "app/Services/View/ViewColumnSliceResolverInterface.php",
+      "sha256": "32132b90900ce7d8ceeeecbf85526acf9a9e9da5f2a1874afb8d1ab9c4a8787d"
+    },
+    {
+      "path": "app/Services/_Core/Filter/EffectiveFilterTypeResolver.php",
+      "sha256": "19057f4440880aa011de229f96d49be7df77022af6ed99ee94d410c128d54e34"
+    },
+    {
+      "path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+      "sha256": "976303c574abf8bdd540cc736cec7ea8868bd04bf017ccd49157fa5ee69301f7"
+    },
+    {
+      "path": "app/Services/_Core/Permission/UserContext.php",
+      "sha256": "ac013dc916a49946cb438c9cd5fb5cce94822d1686f7336c431236d652cc6120"
+    },
+    {
+      "path": "app/Services/_Core/Realtime/EntityBroadcaster.php",
+      "sha256": "ea52ca76dffb567cffaf0003e9ab49e6c056da47fcbd6ae36af8e39c828f62e7"
+    },
+    {
+      "path": "app/Services/_Core/StateMachine/OutboxTransitionReplayResolver.php",
+      "sha256": "56522f602f99be5429bc2489b949fd6aa4297019b0e89ed4c5e5bf42584a864c"
+    },
+    {
+      "path": "app/Services/_Core/StateMachine/StatusTransitionPublisher.php",
+      "sha256": "8c192b865afd5c7a954651e3d311e9063170cac22fbc532984b0f901dd890274"
+    },
+    {
+      "path": "app/Support/ActorContext.php",
+      "sha256": "61a614f7989226d9e3559ee03ed93ebd60291dac2a9a6fc595cb7684966d5558"
+    },
+    {
+      "path": "bootstrap/app.php",
+      "sha256": "42a092c5cb93c80d03345bae634acab50c2adc047e9d6a9641e69a822041e087"
+    },
+    {
+      "path": "resources/js/Components/Dashboard/configurators/ChartConfig.vue",
+      "sha256": "a133135d4ada072d628c5add5edba6ddf81d41909988005cd55f7b6f139b008e"
+    },
+    {
+      "path": "resources/js/Components/Dashboard/widgets/ChartWidget.vue",
+      "sha256": "56cada73e263c40401a7355bd1e42aeaca0c32e72e07fcd007b9e3f4af7e8de1"
+    },
+    {
+      "path": "resources/js/Components/Email/EmailPreview.vue",
+      "sha256": "5c2b4ecc33d1274a6c60bf8a0b45684a499dbcb3260755862bd58af124b590fd"
+    },
+    {
+      "path": "resources/js/Components/Entity/EntityWorkspaceInlineTable.vue",
+      "sha256": "ab89d116e9ec2d8ad83ae6b121c6811c09fc13734493fc82f78fb6dabe66ef79"
+    },
+    {
+      "path": "resources/js/Components/Entity/workspaceInlineEditing.ts",
+      "sha256": "c43e4dde6217ed7dfd8389c27aba914efd04c2e2a5586947fa17f9eef9a6d295"
+    },
+    {
+      "path": "resources/js/Pages/Email/Index.vue",
+      "sha256": "054f7cf6dd5423cf75bc1f37ee666b95978af406766ffa1dc8a0452bef3d79f1"
+    },
+    {
+      "path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+      "sha256": "352ad0aa5a35a237c2fec160194d0e597d837a805467310e70ad6acdbf1465ab"
+    },
+    {
+      "path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+      "sha256": "75d9a553b010927daff3c801be75489d6da2bc3d6c4e3cd38f9701c8d0e4464d"
+    },
+    {
+      "path": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+      "sha256": "4edf14d18ce77e15fa98781c84a105cf1a3e6dd339376063050319270c42b61e"
+    },
+    {
+      "path": "resources/js/composables/useActiveCurrencyOptions.ts",
+      "sha256": "0e31ed63a3ce1c7fc0dafc18133c93a997526ee7b7c0496287657f5b17a7d53e"
+    },
+    {
+      "path": "resources/js/composables/useAuthContextKey.ts",
+      "sha256": "2b001d62a57229ef32e718a24b5aaf9987e3e0011777c71591fe4d3d24a018af"
+    },
+    {
+      "path": "resources/js/composables/useEntityOptions.ts",
+      "sha256": "a98958d19e2b36ce29fa3f99e4f69e3ef151d5cb3c7758345aaf568b570edace"
+    },
+    {
+      "path": "resources/js/contracts/entity/actionCapabilities.ts",
+      "sha256": "42c243babbbecb4534cc3d700725b263c0a305a89f07960f1a25302e6733b92f"
+    }
+  ],
+  "target_source_edits_performed": false,
+  "final_broad_corpus": {
+    "parsed_sources": 17013,
+    "resolved_edges": 343619,
+    "dead_code_candidates": 198,
+    "orphan_candidates": 91,
+    "all_configured_candidates_retained": true,
+    "source_sha256_mismatches": [],
+    "manifest_sha256": "a2e8f51f9c375e81fdd778be6257ad6e1205b2bca6fb73106db5bd61156bcad5",
+    "snapshot_exclusion_profile": {
+      "ignored_path_prefixes": [
+        "phpstan/cache",
+        "phpstan/resultCache.php",
+        "android/app/src/main/assets/public"
+      ]
+    },
+    "generated_copies_isolated_outside_source_root": true
+  }
+}
