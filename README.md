@@ -331,7 +331,7 @@ aigiscode analyze . --output-dir /tmp/my-repo-aigis
 cat /tmp/my-repo-aigis/aigiscode-report.md
 ```
 
-### Prepare AI review context
+### Review orphan candidates
 
 Orphan findings are review candidates, not deletion proofs. Their
 `delete_verdict` is `probably_delete`, including frontend modules (older
@@ -339,6 +339,12 @@ artifacts used `safe_delete`). A missing importer cannot rule out excluded
 callers, external entrypoints, or computed paths. Quoted script paths from
 other analyzed languages also count as reachability evidence, so a Rust or
 PHP launcher can keep a JavaScript helper out of the orphan list.
+For orphan analysis, imports, path literals, globs, and convention factories
+in test files do not establish production reachability. Including tests in
+the scan should not hide otherwise unwired production modules. Their tests
+still need review before any deletion; test-only code can be unfinished wiring.
+
+### Prepare AI review context
 
 ```bash
 aigiscode agent . --output-dir /tmp/my-repo-aigis

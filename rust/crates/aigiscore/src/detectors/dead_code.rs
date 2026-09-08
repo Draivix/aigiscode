@@ -1,3 +1,4 @@
+use super::is_test_source_path;
 use crate::contracts::ContractInventory;
 use crate::graph::{
     ReferenceKind, ResolvedEdge, SemanticGraph, SymbolKind, SymbolNode, Visibility,
@@ -341,11 +342,12 @@ fn detect_orphan_modules(
     graph: &SemanticGraph,
     parsed_sources: &[(PathBuf, String)],
 ) -> Vec<DeadCodeFinding> {
-    // Any cross-file resolved edge into a file proves it is alive.
+    // Test consumers do not prove production reachability.
     let inbound_files = graph
         .resolved_edges
         .iter()
         .filter(|edge| edge.source_file_path != edge.target_file_path)
+        .filter(|edge| !is_test_source_path(&edge.source_file_path))
         .map(|edge| edge.target_file_path.as_path())
         .collect::<HashSet<_>>();
 
@@ -357,6 +359,7 @@ fn detect_orphan_modules(
         .references
         .iter()
         .filter(|reference| reference.kind == ReferenceKind::Import)
+        .filter(|reference| !is_test_source_path(&reference.file_path))
     {
         let module_specifier = reference
             .target_name
@@ -382,6 +385,7 @@ fn detect_orphan_modules(
     // source language. Suppression-only: path mentions cannot create findings.
     let literal_tails = parsed_sources
         .par_iter()
+        .filter(|(path, _)| !is_test_source_path(path))
         .map(|(_, source)| {
             path_literal_pattern()
                 .captures_iter(source)
@@ -415,7 +419,7 @@ fn detect_orphan_modules(
         if !FRONTEND_MODULE_EXTENSIONS.contains(&extension) {
             continue;
         }
-        if is_orphan_exempt_path(path) {
+        if is_test_source_path(path) || is_orphan_exempt_path(path) {
             continue;
         }
         if inbound_files.contains(path.as_path()) {
@@ -446,14 +450,15 @@ fn detect_orphan_modules(
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, path, stem),
             delete_verdict: String::from("probably_delete"),
             delete_evidence: vec![
-                String::from("no inbound resolved edge anywhere in the corpus"),
-                String::from("no import specifier tail matches the module stem"),
-                String::from("no quoted path literal (worker URL, addModule, re-export) names it"),
-                String::from("not covered by any import.meta.glob prefix"),
+                String::from("no inbound resolved edge from non-test sources"),
+                String::from("no non-test import specifier tail matches the module stem"),
+                String::from("no non-test quoted path literal (launcher, worker URL, re-export) names it"),
+                String::from("not covered by any non-test import.meta.glob prefix"),
                 String::from("not a framework convention path (pages/routes/config/entry stems)"),
                 String::from(
                     "residual risk: excluded callers, external entrypoints, and computed paths are not ruled out",
                 ),
+                String::from("test callers do not establish production reachability; review them before deleting"),
             ],
         });
     }
@@ -484,6 +489,7 @@ fn detect_backend_orphan_modules(
         .resolved_edges
         .iter()
         .filter(|edge| edge.source_file_path != edge.target_file_path)
+        .filter(|edge| !is_test_source_path(&edge.source_file_path))
         .map(|edge| edge.target_file_path.as_path())
         .collect::<HashSet<_>>();
 
@@ -507,7 +513,10 @@ fn detect_backend_orphan_modules(
     // orphan shape. Derived from the corpus itself — no
     // framework vocabulary.
     let mut suffix_files: HashMap<String, HashSet<&Path>> = HashMap::new();
-    for (path, _) in parsed_sources {
+    for (path, _) in parsed_sources
+        .iter()
+        .filter(|(path, _)| !is_test_source_path(path))
+    {
         let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
             continue;
         };
@@ -533,6 +542,7 @@ fn detect_backend_orphan_modules(
     let mut path_tails = HashSet::new();
     let collected_tails = parsed_sources
         .par_iter()
+        .filter(|(path, _)| !is_test_source_path(path))
         .map(|(_, source)| {
             path_literal_pattern()
                 .captures_iter(source)
@@ -586,7 +596,10 @@ fn detect_backend_orphan_modules(
         let suffix = stem.strip_prefix(dir_name)?;
         (!suffix.is_empty()).then(|| suffix.to_ascii_lowercase())
     };
-    for (path, _) in parsed_sources {
+    for (path, _) in parsed_sources
+        .iter()
+        .filter(|(path, _)| !is_test_source_path(path))
+    {
         if let (Some(suffix), Some(dir)) = (convention_stem_suffix(path), path.parent()) {
             stem_suffix_dirs.entry(suffix).or_default().insert(dir);
         }
@@ -609,6 +622,7 @@ fn detect_backend_orphan_modules(
     let dispatch_suffixes = collect_dynamic_dispatch_suffixes(
         parsed_sources
             .iter()
+            .filter(|(path, _)| !is_test_source_path(path))
             .map(|(_, source)| source.as_str())
             .chain(out_of_slice.iter().map(String::as_str)),
     );
@@ -619,7 +633,7 @@ fn detect_backend_orphan_modules(
         if !BACKEND_ORPHAN_EXTENSIONS.contains(&extension) {
             continue;
         }
-        if is_backend_orphan_exempt_path(path) {
+        if is_test_source_path(path) || is_backend_orphan_exempt_path(path) {
             continue;
         }
         if convention_stem_suffix(path)
@@ -693,16 +707,17 @@ fn detect_backend_orphan_modules(
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, &path, &stem),
             delete_verdict: String::from("probably_delete"),
             delete_evidence: vec![
-                String::from("no inbound resolved edge anywhere in the corpus"),
+                String::from("no inbound resolved edge from non-test sources"),
                 String::from("declares no framework contract (route/hook/registration)"),
-                String::from("no quoted path literal names the file"),
+                String::from("no non-test quoted path literal names the file"),
                 String::from("not a corpus convention shape (multi-dot suffix or directory-derived stem)"),
                 String::from(
-                    "container names unmentioned corpus-wide, including out-of-slice non-test files",
+                    "container names unmentioned in non-test sources, including out-of-slice files",
                 ),
                 String::from(
                     "residual risk: runtime can still build the class name from strings that do not appear in the repo",
                 ),
+                String::from("test callers do not establish production reachability; review them before deleting"),
             ],
         });
     }
@@ -845,7 +860,7 @@ fn collect_out_of_slice_sources(
                 stack.push(path);
                 continue;
             }
-            if name.contains(".spec.") || name.contains(".test.") || name.ends_with("Test.php") {
+            if is_test_source_path(&path) {
                 continue;
             }
             let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
@@ -939,6 +954,7 @@ fn identifier_mentioned_in_other_files(
 ) -> bool {
     parsed_sources
         .iter()
+        .filter(|(path, _)| !is_test_source_path(path))
         .any(|(path, source)| path != origin && identifier_mentioned(name, source))
 }
 
@@ -994,7 +1010,7 @@ fn strip_frontend_extension(name: &str) -> &str {
 fn collect_import_meta_glob_prefixes(parsed_sources: &[(PathBuf, String)]) -> Vec<String> {
     let mut prefixes = Vec::new();
     for (path, source) in parsed_sources {
-        if !source.contains("import.meta.glob") {
+        if is_test_source_path(path) || !source.contains("import.meta.glob") {
             continue;
         }
         for segment in source.split("import.meta.glob").skip(1) {
@@ -1609,6 +1625,69 @@ export { helper } from '@/utils/reExported'
             .delete_evidence
             .iter()
             .any(|evidence| evidence.contains("excluded callers")));
+    }
+
+    #[test]
+    fn including_tests_does_not_hide_production_orphans() {
+        let sources = [
+            ("src/index.ts", "import './LiveWidget';"),
+            ("src/LiveWidget.ts", "export const live = 1;"),
+            ("src/TestOnlyWidget.ts", "export const tested = 1;"),
+            ("src/GlobOnlyWidget.ts", "export const lazy = 1;"),
+            ("app/entry.php", "<?php new \\App\\Services\\LiveService();"),
+            ("app/Services/LiveService.php", "<?php namespace App\\Services; class LiveService {}"),
+            ("app/Services/TestOnlyService.php", "<?php namespace App\\Services; class TestOnlyService {}"),
+            ("app/Services/InvoiceFactoryTarget.php", "<?php namespace App\\Services; class InvoiceFactoryTarget {}"),
+            ("tests/widgets.spec.ts", "import '../src/TestOnlyWidget'; const widgets = import.meta.glob('../src/*.ts');"),
+            ("tests/ServiceTest.php", "<?php use App\\Services\\TestOnlyService; new TestOnlyService(); app($kind . 'FactoryTarget');"),
+        ]
+        .into_iter()
+        .map(|(path, source)| (PathBuf::from(path), String::from(source)))
+        .collect::<Vec<_>>();
+
+        for include_tests in [false, true] {
+            let selected = sources
+                .iter()
+                .filter(|(path, _)| include_tests || !super::is_test_source_path(path))
+                .cloned()
+                .collect::<Vec<_>>();
+            let mut graph = crate::graph::SemanticGraph::default();
+            for (path, source) in &selected {
+                let parsed = crate::parsing::parse_source_file(path.clone(), source).unwrap();
+                graph.files.extend(parsed.files);
+                graph.symbols.extend(parsed.symbols);
+                graph.references.extend(parsed.references);
+            }
+            resolve_graph(&mut graph);
+            if include_tests {
+                assert!(graph.resolved_edges.iter().any(|edge| {
+                    edge.source_file_path == Path::new("tests/ServiceTest.php")
+                        && edge.target_file_path == Path::new("app/Services/TestOnlyService.php")
+                }));
+            }
+            let result = analyze_dead_code(
+                &graph,
+                &selected,
+                &ContractInventory::default(),
+                Path::new(""),
+            );
+            let orphans = result
+                .findings
+                .iter()
+                .filter(|finding| finding.category == DeadCodeCategory::OrphanModule)
+                .map(|finding| finding.file_path.to_string_lossy().into_owned())
+                .collect::<Vec<_>>();
+            assert_eq!(
+                orphans,
+                vec![
+                    "app/Services/InvoiceFactoryTarget.php",
+                    "app/Services/TestOnlyService.php",
+                    "src/GlobOnlyWidget.ts",
+                    "src/TestOnlyWidget.ts",
+                ],
+                "test-only imports, globs, and factories must not establish production reachability (include_tests={include_tests})"
+            );
+        }
     }
 
     #[test]

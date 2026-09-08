@@ -1,3 +1,4 @@
+use super::is_test_source_path;
 use crate::contracts::ContractLookup;
 use crate::identity::{normalized_path, stable_fingerprint};
 use regex::Regex;
@@ -223,31 +224,6 @@ fn is_config_like_path(path: &Path) -> bool {
 
 fn is_vue_sfc(path: &Path) -> bool {
     path.extension().and_then(|e| e.to_str()) == Some("vue")
-}
-
-// A file whose path marks it as test/spec code across the common ecosystems.
-// Its string literals are fixtures, not architectural configuration.
-fn is_test_source_path(path: &Path) -> bool {
-    let normalized = path.to_string_lossy().replace('\\', "/").to_lowercase();
-    if normalized
-        .split('/')
-        .any(|segment| matches!(segment, "tests" | "test" | "spec" | "__tests__"))
-    {
-        return true;
-    }
-    let file_name = match path.file_name().and_then(|n| n.to_str()) {
-        Some(name) => name.to_lowercase(),
-        None => return false,
-    };
-    file_name.ends_with("_test.rs")
-        || file_name.ends_with("_test.go")
-        || file_name.ends_with("_test.py")
-        || file_name.starts_with("test_")
-        || file_name.ends_with("test.php")
-        || file_name.ends_with("spec.php")
-        || [".test.", ".spec."]
-            .iter()
-            .any(|marker| file_name.contains(marker))
 }
 
 // Line ranges (1-based, inclusive) covered by inline Rust `#[cfg(test)]`
