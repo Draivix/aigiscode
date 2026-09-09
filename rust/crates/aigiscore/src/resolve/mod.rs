@@ -66,6 +66,7 @@ pub struct ResolutionContext {
     import_map: HashMap<PathBuf, HashSet<PathBuf>>,
     named_import_map: HashMap<(PathBuf, String), (PathBuf, String)>,
     module_index: HashMap<PathBuf, SymbolDefinition>,
+    declared_module_bindings: HashMap<(PathBuf, String), PathBuf>,
     reference_import_map: HashMap<(PathBuf, usize, String), Vec<PathBuf>>,
     language_map: HashMap<PathBuf, Language>,
 }
@@ -181,6 +182,24 @@ impl ResolutionContext {
             // `types/index.ts` on the next.
             let mut import_targets_vec = import_targets.iter().cloned().collect::<Vec<_>>();
             import_targets_vec.sort();
+            // Rust `mod child;` has a parser-owned `self::child` import fact.
+            // Its local name can differ from the file's crate-root identity
+            // (notably `mod lib;` in a binary beside `src/lib.rs`).
+            if context.language_map.get(&reference.file_path) == Some(&Language::Rust)
+                && reference.binding_name.is_none()
+                && import_targets_vec.len() == 1
+            {
+                if let Some(name) = reference
+                    .target_name
+                    .strip_prefix("self::")
+                    .filter(|name| !name.contains("::") && *name != "*")
+                {
+                    context.declared_module_bindings.insert(
+                        (reference.file_path.clone(), name.to_owned()),
+                        import_targets_vec[0].clone(),
+                    );
+                }
+            }
             context.reference_import_map.insert(
                 (
                     reference.file_path.clone(),
@@ -812,6 +831,13 @@ fn is_rust_module_function_candidate(
     let Some(receiver) = reference.receiver_name.as_deref() else {
         return false;
     };
+    if context
+        .declared_module_bindings
+        .get(&(reference.file_path.clone(), receiver.to_owned()))
+        == Some(&candidate.file_path)
+    {
+        return true;
+    }
     if reference.file_path != candidate.file_path
         && !context
             .import_map
