@@ -192,9 +192,10 @@ pub fn analyze_project(
 pub fn analyze_project_fast_load(
     root: impl Into<PathBuf>,
     scan_config: &ScanConfig,
+    output_dir: Option<&Path>,
 ) -> Result<Option<ProjectAnalysis>, ProjectAnalysisError> {
     let root = root.into();
-    let Some(graph_project) = try_fast_load_graph_project(&root, scan_config)? else {
+    let Some(graph_project) = try_fast_load_graph_project(&root, scan_config, output_dir)? else {
         return Ok(None);
     };
     Ok(Some(finish_project_analysis(graph_project)?))
@@ -203,9 +204,12 @@ pub fn analyze_project_fast_load(
 fn try_fast_load_graph_project(
     root: &Path,
     scan_config: &ScanConfig,
+    output_dir: Option<&Path>,
 ) -> Result<Option<SemanticGraphProject>, ProjectAnalysisError> {
     let scan_started = Instant::now();
-    let output_dir = root.join(crate::artifacts::DEFAULT_OUTPUT_DIR_NAME);
+    let output_dir = output_dir
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| root.join(crate::artifacts::DEFAULT_OUTPUT_DIR_NAME));
     let manifest: crate::artifacts::ScanManifest =
         match fs::read_to_string(output_dir.join(crate::artifacts::SCAN_MANIFEST_FILE))
             .ok()
@@ -694,7 +698,7 @@ mod tests {
         crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
 
         // Unchanged tree: fast load succeeds and carries the same graph.
-        let loaded = super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+        let loaded = super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
             .unwrap()
             .expect("unchanged tree must fast-load");
         assert_eq!(
@@ -714,7 +718,7 @@ mod tests {
         unrelated["symbols"] = serde_json::json!([]);
         fs::write(&graph_path, serde_json::to_vec(&unrelated).unwrap()).unwrap();
         assert!(
-            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
                 .unwrap()
                 .is_none()
         );
@@ -730,7 +734,7 @@ mod tests {
             .remove("semantic_revision");
         fs::write(&manifest_path, serde_json::to_vec(&old_manifest).unwrap()).unwrap();
         assert!(
-            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
                 .unwrap()
                 .is_none()
         );
@@ -738,7 +742,7 @@ mod tests {
             serde_json::json!(crate::artifacts::SEMANTIC_REVISION + 1);
         fs::write(&manifest_path, serde_json::to_vec(&old_manifest).unwrap()).unwrap();
         assert!(
-            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
                 .unwrap()
                 .is_none()
         );
@@ -747,7 +751,7 @@ mod tests {
         // Any content change must decline, never serve the stale graph.
         fs::write(fixture.join("src/main.rs"), b"fn main() { changed(); }\n").unwrap();
         assert!(
-            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
                 .unwrap()
                 .is_none()
         );
@@ -755,10 +759,41 @@ mod tests {
         // A deleted manifest also declines cleanly.
         let _ = fs::remove_file(fixture.join(".aigiscode/scan-manifest.json"));
         assert!(
-            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn fast_load_uses_only_the_selected_artifact_directory() {
+        let fixture = create_fixture();
+        fs::write(fixture.join("main.rs"), "fn main() {}\n").unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let output = fixture.join(".custom-artifacts");
+        crate::artifacts::write_project_analysis_artifacts(&analysis, Some(&output)).unwrap();
+
+        let loaded = super::analyze_project_fast_load(
+            &fixture,
+            &ScanConfig::default(),
+            Some(&output),
+        )
+        .unwrap()
+        .expect("custom artifact directory must fast-load");
+        assert_eq!(loaded.semantic_graph, analysis.semantic_graph);
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
+            .unwrap()
+            .is_none());
+
+        crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
+        fs::remove_file(output.join("scan-manifest.json")).unwrap();
+        assert!(super::analyze_project_fast_load(
+            &fixture,
+            &ScanConfig::default(),
+            Some(&output),
+        )
+        .unwrap()
+        .is_none(), "missing custom cache must not silently select the default cache");
     }
 
     #[test]

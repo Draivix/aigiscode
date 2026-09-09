@@ -1,0 +1,1944 @@
+{
+  "observed_at": "2026-09-09T12:59:32.115Z",
+  "analyzer": {
+    "commit": "f1cbaf0",
+    "binary_path": "target/reliability-2026-09-09/aigiscode-f1cbaf0",
+    "binary_sha256": "768c08e21a909aee8506797ebff87ac0bc4e72af23a2c724aea39c8f1f9e878e",
+    "engine_fingerprint": "11937782ece2d943"
+  },
+  "source": {
+    "original_root": "/home/david/Work/Programming/draivix",
+    "original_head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+    "snapshot": "target/reliability-2026-09-09/draivix-full-source",
+    "file_inventory_sha256": "641e95edcc61e43807f7e5dc2648bdb23ea8d87f610f17a7c562ace317518e68",
+    "copied_files": 23166,
+    "copied_bytes": 288471246,
+    "source_edits": false,
+    "original_scoped_config_used": false,
+    "generated_path_prefixes": [
+      "phpstan/cache",
+      "phpstan/resultCache.php",
+      "android/app/src/main/assets/public"
+    ],
+    "copy_integrity": {
+      "verified_at": "2026-09-09T12:52:42.315Z",
+      "files_compared": 23166,
+      "original_changes": [],
+      "snapshot_mismatches": []
+    },
+    "supported_sources_changed_since_september_8": 0,
+    "source_anchors": [
+      {
+        "path": "app/Console/Commands/ErpDevResetCommand.php",
+        "bytes": 8283,
+        "sha256": "5366eba9ef7b1ad887064c5c77c5e2b58dedec5587728aba891c26d1b93f0a08"
+      },
+      {
+        "path": "app/Console/Commands/ErpLintEntityCommand.php",
+        "bytes": 31259,
+        "sha256": "e7079dedafa16a0c9a5cea47cc24591c644c9c31fa3dd88a787a2adb9c954e6b"
+      },
+      {
+        "path": "app/Entities/_Core/Authoring/StructureApplier.php",
+        "bytes": 31729,
+        "sha256": "4613588ce5ddd07142281906fc46e20cb183aca636ea25f692ded432a5cc3fda"
+      },
+      {
+        "path": "app/Entities/_Core/ConversionLoader.php",
+        "bytes": 38083,
+        "sha256": "4393b52650dc203b1660c55ccfea7710386ba26b80fe34949d2f2a97e1f45e85"
+      },
+      {
+        "path": "app/Modules/CRMFoundation/CRMFoundationServiceProvider.php",
+        "bytes": 4916,
+        "sha256": "1a4b9c51b8847928c075833fb023d775e7be5c45883b2e33c43de46fd2912ff3"
+      },
+      {
+        "path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php",
+        "bytes": 1152,
+        "sha256": "2158a21d3faeac63dd34c10ff33669e0c1f1f94a3647c0027971b54a07d03d48"
+      },
+      {
+        "path": "app/Services/Notifications/AssignmentNotificationService.php",
+        "bytes": 6125,
+        "sha256": "abb13201185547737c0d5b8cddde371bf11b8fa5810c6febe4100176024dca12"
+      },
+      {
+        "path": "app/Services/_Core/Realtime/EntityBroadcaster.php",
+        "bytes": 8268,
+        "sha256": "ea52ca76dffb567cffaf0003e9ab49e6c056da47fcbd6ae36af8e39c828f62e7"
+      },
+      {
+        "path": "app/Support/ActorContext.php",
+        "bytes": 912,
+        "sha256": "61a614f7989226d9e3559ee03ed93ebd60291dac2a9a6fc595cb7684966d5558"
+      },
+      {
+        "path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+        "bytes": 2745,
+        "sha256": "352ad0aa5a35a237c2fec160194d0e597d837a805467310e70ad6acdbf1465ab"
+      },
+      {
+        "path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+        "bytes": 5400,
+        "sha256": "75d9a553b010927daff3c801be75489d6da2bc3d6c4e3cd38f9701c8d0e4464d"
+      },
+      {
+        "path": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+        "bytes": 7420,
+        "sha256": "4edf14d18ce77e15fa98781c84a105cf1a3e6dd339376063050319270c42b61e"
+      },
+      {
+        "path": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+        "bytes": 7927,
+        "sha256": "5872db20a93268791939047c28ffc842f1c573f14097dff3076ff61ef308c7ef"
+      }
+    ],
+    "final_original_integrity": {
+      "verified_at": "2026-09-09T13:02:33.787Z",
+      "head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+      "files": 23166,
+      "changed": []
+    }
+  },
+  "measurement": {
+    "wall_seconds": 83.31,
+    "peak_rss_kib": 3446044,
+    "exit_code": 1,
+    "artifact_bytes": 1660448436,
+    "phases": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 233
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 256
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 7290
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 18741
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 30185
+      }
+    ],
+    "not_a_controlled_benchmark": true
+  },
+  "summary": {
+    "input_coverage": {
+      "status": "incomplete",
+      "supported_source_files": 17013,
+      "parsed_source_files": 17013,
+      "recovered_source_files": 81,
+      "scope_limited_files": 792,
+      "files_without_parse_evidence": 0,
+      "unsupported_source_files": 146,
+      "other_input_files": 6007,
+      "diagnostic_count": 811,
+      "parse_issues_preview": [
+        {
+          "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+          "parser": "tree-sitter-php",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 3,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 386,
+              "start_column": 20,
+              "end_line": 389,
+              "end_column": 1
+            },
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 409,
+              "start_column": 20,
+              "end_line": 409,
+              "end_column": 24
+            },
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 411,
+              "start_column": 6,
+              "end_line": 453,
+              "end_column": 2
+            }
+          ],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+          "parser": "tree-sitter-php",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 52,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 266,
+              "start_column": 16,
+              "end_line": 276,
+              "end_column": 1
+            },
+            {
+              "kind": "missing_node",
+              "node_kind": ";",
+              "start_line": 288,
+              "start_column": 6,
+              "end_line": 288,
+              "end_column": 6
+            },
+            {
+              "kind": "missing_node",
+              "node_kind": ";",
+              "start_line": 288,
+              "start_column": 19,
+              "end_line": 288,
+              "end_column": 19
+            }
+          ],
+          "diagnostics_truncated": true
+        },
+        {
+          "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+          "parser": "tree-sitter-typescript",
+          "scope": "vue_script_only",
+          "required_recovery": false,
+          "diagnostic_count": 0,
+          "diagnostics": [],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+          "parser": "tree-sitter-typescript",
+          "scope": "vue_script_only",
+          "required_recovery": false,
+          "diagnostic_count": 0,
+          "diagnostics": [],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+          "parser": "tree-sitter-typescript",
+          "scope": "vue_script_only",
+          "required_recovery": false,
+          "diagnostic_count": 0,
+          "diagnostics": [],
+          "diagnostics_truncated": false
+        }
+      ],
+      "unsupported_sources_preview": [
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+          "extension": "go"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+          "extension": "go"
+        },
+        {
+          "file_path": "ci/overlay/baseline-guard.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/bump.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/frontend.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/gates.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/legacy-view-config.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/lib.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/mount.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/tests.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_order_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_product_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_production_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_role_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_user_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+          "extension": "sh"
+        }
+      ],
+      "deferred_checks": [
+        "unused_imports",
+        "unused_private_functions",
+        "orphan_modules",
+        "confirmed_orphan_files"
+      ]
+    },
+    "scanned_files": 23166,
+    "analyzed_files": 17013,
+    "symbols": 129454,
+    "references": 1086615,
+    "resolved_edges": 325573,
+    "strong_cycle_count": 19,
+    "total_cycle_count": 29,
+    "architectural_smell_count": 4,
+    "warning_heavy_hotspot_count": 0,
+    "split_identity_model_count": 20,
+    "compatibility_scar_count": 10,
+    "duplicate_mechanism_count": 22,
+    "hand_rolled_parsing_count": 19,
+    "abstraction_sprawl_count": 25,
+    "algorithmic_complexity_hotspot_count": 1534,
+    "ast_grep_finding_count": 9446,
+    "ast_grep_algorithmic_complexity_count": 2462,
+    "ast_grep_security_dangerous_api_count": 248,
+    "ast_grep_framework_misuse_count": 6736,
+    "ast_grep_skipped_file_count": 8076,
+    "ast_grep_skipped_bytes": 27084989,
+    "ast_grep_skipped_files_preview": [
+      {
+        "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+        "bytes": 962,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+        "bytes": 1116,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+        "bytes": 1793,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+        "bytes": 854,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+        "bytes": 600,
+        "reason": "no_family_prefilter_hit"
+      }
+    ],
+    "dead_code_count": 0,
+    "hardwiring_count": 1319,
+    "security_finding_count": 65,
+    "external_tool_count": 0,
+    "external_checks": {
+      "status": "not_requested",
+      "requested": 0,
+      "completed": 0,
+      "failed": 0,
+      "unavailable": 0
+    },
+    "external_finding_count": 0
+  },
+  "baseline": {
+    "availability": "missing",
+    "comparison": "initial_snapshot",
+    "current": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "11937782ece2d943",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "previous": null,
+    "reasons": [
+      "no_baseline",
+      "current_inputs_incomplete"
+    ]
+  },
+  "convergence": {
+    "current_findings": 3218,
+    "previous_findings": null,
+    "first_observed_findings": 3218,
+    "not_compared_findings": 0,
+    "new_findings": 0,
+    "worsened_findings": 0,
+    "improved_findings": 0,
+    "unchanged_findings": 0,
+    "resolved_findings": 0
+  },
+  "graph_delta": null,
+  "contract_delta": null,
+  "guard": {
+    "verdict": "Block",
+    "summary": "Block: native input coverage is incomplete; this is missing evidence, not proof of a code defect.",
+    "pressure": {
+      "comparison_available": false,
+      "new_findings": 0,
+      "worsened_findings": 0,
+      "attention_items": 10,
+      "exact_or_modeled_attention_items": 0,
+      "heuristic_attention_items": 10,
+      "required_radius_anchor_files": 72,
+      "required_radius_one_hop_files": 50,
+      "visible_finding_delta": 0,
+      "contract_delta_count": 0,
+      "high_severity_security_regressions": 0,
+      "cycle_regression": false,
+      "bottleneck_regression": false,
+      "architectural_smell_regression": false,
+      "warning_heavy_hotspot_regression": false,
+      "split_identity_model_regression": false,
+      "compatibility_scar_regression": false,
+      "duplicate_mechanism_regression": false,
+      "sanctioned_path_bypass_regression": false,
+      "hand_rolled_parsing_regression": false,
+      "abstraction_sprawl_regression": false,
+      "algorithmic_complexity_hotspot_regression": false
+    }
+  },
+  "secondary_scanner": {
+    "scanned_files": 8127,
+    "prefilter_skips": 8058,
+    "large_file_gaps": [
+      {
+        "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+        "bytes": 173379,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+        "bytes": 377578,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+        "bytes": 411550,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+        "bytes": 397091,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerSuiteHealthCommandTest.php",
+        "bytes": 190999,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AiChat/Services/ChatService.php",
+        "bytes": 175734,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/BankingAccounting/Tests/Integration/BankTransactionInvoiceAssignmentIntegrationTest.php",
+        "bytes": 185695,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/__tests__/useMattermost.spec.ts",
+        "bytes": 151513,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/__tests__/useMattermostWs.spec.ts",
+        "bytes": 155630,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "clients/mitel/tools/walkthrough.py",
+        "bytes": 159435,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+        "bytes": 176380,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "clients/trido/Services/PortalDataService.php",
+        "bytes": 328210,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "clients/vyroba/Services/RazBoardsShowcaseFixtureService.php",
+        "bytes": 254961,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "database/migrations/tenant/2026_01_04_111646_update_entity_schema.php",
+        "bytes": 232712,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "resources/js/chat/__tests__/ChatVoiceComposer.test.ts",
+        "bytes": 181028,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "resources/js/types/entities.d.ts",
+        "bytes": 2597200,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "tests/Fast/AccountingProductionGateFilterVerificationTest.php",
+        "bytes": 186906,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "tests/Unit/Services/AiChat/ChatServiceTest.php",
+        "bytes": 296258,
+        "reason": "file_too_large_for_secondary_scan"
+      }
+    ]
+  },
+  "reviewed_edges": [
+    {
+      "from": "file:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+      "to": "function:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:normalizeEntityCreateSubmitModule",
+      "type_name": "IMPORT",
+      "reference_kind": "IMPORT",
+      "relation_kind": "import",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "import:import-scoped",
+      "line": 4,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts"
+    },
+    {
+      "from": "file:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+      "to": "interface:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:EntityCreateSubmitExtension",
+      "type_name": "TYPEUSE",
+      "reference_kind": "TYPEIMPORT",
+      "relation_kind": "typeuse",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "type-import:import-scoped",
+      "line": 3,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts"
+    },
+    {
+      "from": "file:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+      "to": "function:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts:loadClientEntityCreateSubmitExtensions",
+      "type_name": "IMPORT",
+      "reference_kind": "IMPORT",
+      "relation_kind": "import",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "import:import-scoped",
+      "line": 2,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts"
+    },
+    {
+      "from": "file:resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+      "to": "interface:resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts:EntityFormExtension",
+      "type_name": "TYPEUSE",
+      "reference_kind": "TYPEIMPORT",
+      "relation_kind": "typeuse",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "type-import:import-scoped",
+      "line": 2,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts"
+    },
+    {
+      "from": "file:resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+      "to": "file:resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+      "type_name": "TYPEUSE",
+      "reference_kind": "TYPEIMPORT",
+      "relation_kind": "typeuse",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "type-import:import-scoped",
+      "line": 11,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts"
+    },
+    {
+      "from": "file:resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+      "to": "function:resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts:getPreloadedEntityFormClientExtensions",
+      "type_name": "IMPORT",
+      "reference_kind": "IMPORT",
+      "relation_kind": "import",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "import:import-scoped",
+      "line": 10,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts"
+    },
+    {
+      "from": "function:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:runEntityCreateSubmitExtensions",
+      "to": "function:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts:loadClientEntityCreateSubmitExtensions",
+      "type_name": "CALL",
+      "reference_kind": "CALL",
+      "relation_kind": "call",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "call:import-scoped",
+      "line": 121,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts"
+    },
+    {
+      "from": "function:resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts:resolveActiveExtensions",
+      "to": "function:resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts:getPreloadedEntityFormClientExtensions",
+      "type_name": "CALL",
+      "reference_kind": "CALL",
+      "relation_kind": "call",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "call:import-scoped",
+      "line": 127,
+      "occurrence_count": 1,
+      "source_file": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+      "target_file": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts"
+    },
+    {
+      "from": "method:app/Entities/_Core/Authoring/StructureApplier.php:class:app/Entities/_Core/Authoring/StructureApplier.php:StructureApplier:planLocales",
+      "to": "method:app/Services/I18n/LocaleFileWriter.php:class:app/Services/I18n/LocaleFileWriter.php:LocaleFileWriter:isNoop",
+      "type_name": "CALL",
+      "reference_kind": "CALL",
+      "relation_kind": "call",
+      "layer": "structural",
+      "strength": "hard",
+      "origin": "resolver",
+      "resolution_tier": "import_scoped",
+      "confidence_millis": 900,
+      "reason": "call:import-scoped",
+      "line": 328,
+      "occurrence_count": 2,
+      "source_file": "app/Entities/_Core/Authoring/StructureApplier.php",
+      "target_file": "app/Services/I18n/LocaleFileWriter.php"
+    }
+  ],
+  "reviewed_cycles": {
+    "cycle_findings": [
+      {
+        "files": [
+          "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+          "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts"
+        ],
+        "directed_witness": [
+          {
+            "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+            "target_symbol_id": "interface:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:EntityCreateSubmitExtension",
+            "reference_target_name": "./entityCreateSubmitRegistry::EntityCreateSubmitExtension",
+            "kind": "TypeImport",
+            "relation_kind": "TypeUse",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "type-import:import-scoped",
+            "line": 3,
+            "occurrence_index": 0
+          },
+          {
+            "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+            "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts:loadClientEntityCreateSubmitExtensions",
+            "reference_target_name": "./entityCreateSubmitClientLoader::loadClientEntityCreateSubmitExtensions",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 2,
+            "occurrence_index": 0
+          }
+        ],
+        "cycle_class": "Structural",
+        "layers": [
+          "Structural"
+        ],
+        "dominant_relations": [
+          "Import",
+          "Call",
+          "TypeUse"
+        ],
+        "edge_count": 4,
+        "fingerprint": "graph|cycle|structural|resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts|resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts|structural|call|import|type-use|4"
+      },
+      {
+        "files": [
+          "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+          "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts"
+        ],
+        "directed_witness": [
+          {
+            "source_file_path": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+            "target_symbol_id": "interface:resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts:EntityFormExtension",
+            "reference_target_name": "./entityFormExtensionRegistry::EntityFormExtension",
+            "kind": "TypeImport",
+            "relation_kind": "TypeUse",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "type-import:import-scoped",
+            "line": 2,
+            "occurrence_index": 0
+          },
+          {
+            "source_file_path": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+            "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts:getPreloadedEntityFormClientExtensions",
+            "reference_target_name": "./entityFormClientExtensionLoader::getPreloadedEntityFormClientExtensions",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 10,
+            "occurrence_index": 0
+          }
+        ],
+        "cycle_class": "Structural",
+        "layers": [
+          "Structural"
+        ],
+        "dominant_relations": [
+          "TypeUse",
+          "Import",
+          "Call"
+        ],
+        "edge_count": 4,
+        "fingerprint": "graph|cycle|structural|resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts|resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts|structural|call|import|type-use|4"
+      }
+    ],
+    "strong_cycle_findings": [
+      {
+        "files": [
+          "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+          "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts"
+        ],
+        "directed_witness": [
+          {
+            "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+            "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:normalizeEntityCreateSubmitModule",
+            "reference_target_name": "./entityCreateSubmitRegistry::normalizeEntityCreateSubmitModule",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 4,
+            "occurrence_index": 0
+          },
+          {
+            "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+            "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts:loadClientEntityCreateSubmitExtensions",
+            "reference_target_name": "./entityCreateSubmitClientLoader::loadClientEntityCreateSubmitExtensions",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 2,
+            "occurrence_index": 0
+          }
+        ],
+        "cycle_class": "Structural",
+        "layers": [
+          "Structural"
+        ],
+        "dominant_relations": [
+          "Import",
+          "Call"
+        ],
+        "edge_count": 3,
+        "fingerprint": "graph|cycle|structural|resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts|resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts|structural|call|import|3"
+      }
+    ]
+  },
+  "cycle_inspection": {
+    "full_components": 29,
+    "strong_components": 19,
+    "witness_steps": 116,
+    "missing_projection_edges": [
+      {
+        "family": "cycle_findings",
+        "fingerprint": "graph|cycle|structural|app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php|app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php|structural|call|type-use|3",
+        "edge": {
+          "source_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php",
+          "source_symbol_id": "method:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:class:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:DataBoxClient:__construct",
+          "target_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php",
+          "target_symbol_id": "class:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:DataBoxApi",
+          "reference_target_name": "DataBoxApi",
+          "kind": "Call",
+          "relation_kind": "Call",
+          "layer": "Structural",
+          "strength": "Inferred",
+          "origin": "Resolver",
+          "resolution_tier": "Global",
+          "confidence_millis": 500,
+          "reason": "call:global",
+          "line": 40,
+          "occurrence_index": 0
+        }
+      }
+    ],
+    "open_witnesses": [],
+    "weak_strong_witness_edges": []
+  },
+  "inferred_witness_evidence": [
+    {
+      "id": "app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:40:CALL:class:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:DataBoxApi:69661",
+      "from": "method:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:class:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:DataBoxClient:__construct",
+      "to": "class:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:DataBoxApi",
+      "source_symbol_id": "method:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:class:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:DataBoxClient:__construct",
+      "target_symbol_id": "class:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:DataBoxApi",
+      "source_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php",
+      "target_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php",
+      "type_name": "CALL",
+      "reference_kind": "CALL",
+      "relation_kind": "call",
+      "layer": "structural",
+      "strength": "inferred",
+      "origin": "resolver",
+      "resolution_tier": "global",
+      "confidence_millis": 500,
+      "reason": "call:global",
+      "line": 40
+    }
+  ],
+  "mcp": {
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 78342.534314,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 9.408162999999998,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30011.512857,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788958614541,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 61013.581242,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788958614541,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 76809.149768,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "show_cycles",
+          "elapsed_ms": 76811.27861200001,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 76811.681964,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 76811.973012,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "responses_meta": [
+      {
+        "id": 2,
+        "meta": {
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788958691339,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 3,
+        "meta": {
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788958691339,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 4,
+        "meta": {
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788958691339,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 5,
+        "meta": {
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788958691339,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      }
+    ],
+    "cache_reused": false,
+    "cache_limitation": "MCP ignored custom output_dir when selecting the fast-load cache; this run built the graph from source.",
+    "quality_summary": "Partial evidence: 3698 visible findings across 6 dimensions; 3698 remain unreviewed.",
+    "dead_code_dimension": {
+      "count": 0,
+      "key": "dead_code",
+      "label": "Dead Code",
+      "severity": "unknown",
+      "summary": "Input coverage is incomplete; a zero count does not establish absence of defects.",
+      "supporting_files": []
+    },
+    "initial_client_error": "The preceding client used unknown quality_assessment and closed after coverage. Its raw response/error log is preserved separately; the corrected session uses quality_evaluation and retries retryable indexing responses in the same process."
+  },
+  "artifacts": [
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/agentic-review.json",
+      "bytes": 267166,
+      "sha256": "f4c61fafbaca2bd0c0e5458c46edb80853fdba68efbe9ca991a3177e1e100988"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/aigiscode-handoff.json",
+      "bytes": 52955,
+      "sha256": "120d6373f4964c44349e0d5c5a137178fe79871ac3a26e71c7c4920a17e4efe6"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/aigiscode-report.json",
+      "bytes": 54720150,
+      "sha256": "0716aaae5674df0b1390d047002aa0965b333d4a5b3dec2f490e7abbc07b2dc4"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/aigiscode-report.md",
+      "bytes": 19012,
+      "sha256": "12f6a3f4a0396cc72a3d91a8095b40e5e930eac5f99352be7d58691c8e4aa7f2"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/architecture-surface.json",
+      "bytes": 37046936,
+      "sha256": "3b42b90aafd60b21c2791dc130c17b2595e336c2ba2c6bbc3b55c34843ab2dc5"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/ast-grep-scan.json",
+      "bytes": 7615821,
+      "sha256": "aa8a954a45832a88a5129e9b2819d6270c886b969a9f7643ddc2d8ef1a1dd6bc"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/contract-inventory.json",
+      "bytes": 143773,
+      "sha256": "a73a674fd2912c87d5deef1023a4ca758b29c594779974013fe055c6f1b8a012"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/convergence-history.json",
+      "bytes": 3175565,
+      "sha256": "4abfcb3aec4d33ce55f92c1d4d3748ca3620843e8f63a05b0a26554405a05f17"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/dependency-graph.json",
+      "bytes": 215197231,
+      "sha256": "1193c6fc1c4ae6429d2092d4f921fc7f7bd4cb3245ce5494462f4b94f98f6a76"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/deterministic-analysis.json",
+      "bytes": 54720150,
+      "sha256": "0716aaae5674df0b1390d047002aa0965b333d4a5b3dec2f490e7abbc07b2dc4"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/deterministic-findings.json",
+      "bytes": 10874692,
+      "sha256": "0b5bc37f640db426dcc23a0aeff7d6e082ee62a49a5237357e68282058a80fef"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/doctrine-registry.json",
+      "bytes": 24056,
+      "sha256": "21b24baadd51b49e519d367c06965b94771cc7a3e4eefec9c618e5b589babe3e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/evidence-graph.json",
+      "bytes": 476299576,
+      "sha256": "76dc16c641f9cfdd50904b0282e31357b643587bf27396bbb0751351a98f279e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/external-analysis.json",
+      "bytes": 68,
+      "sha256": "ab93513ddc68ad82b9a15a4ac05de20864155ac0e0109a27e7dc43ea34fee768"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/graph-packets.json",
+      "bytes": 199548,
+      "sha256": "a46f94f20f911bec44a15a31c7c18b9cee134d951cb05677bf975a46b323fae4"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/guard-decision.json",
+      "bytes": 55787,
+      "sha256": "943fa88f3f3083fc2f61285f29f5def144e2cadb7285fb3409efb0b7e28ff606"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/repository-topology.json",
+      "bytes": 947998,
+      "sha256": "5452a4448f7a88a0ad0cf6558ffeabbbed4d8c515b54dc3719136ad41016a703"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/review-surface.json",
+      "bytes": 8713009,
+      "sha256": "981446209ce0900008d78f93120dccac5ecd6fca289663a4c9062aff05e4c1a6"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/scan-manifest.json",
+      "bytes": 2241922,
+      "sha256": "47e969bbdb1fcaec6301ee74f7eb7dadebe489825dfd40aee27152f5d2bfdf14"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-full/semantic-graph.json",
+      "bytes": 788133021,
+      "sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478"
+    }
+  ],
+  "verification": {
+    "production_cli_audit": true,
+    "real_mcp_queries": true,
+    "automated_tests_run": false,
+    "ci_run": false,
+    "external_scanners_requested": false,
+    "all_findings_independently_validated": false
+  },
+  "custom_output_cache_fix": {
+    "engine_fingerprint": "b552b2988ce88f06",
+    "binary_path": "target/reliability-2026-09-09/aigiscode-custom-cache",
+    "binary_sha256": "30661ec415e4a53246680db58b83397f913104acc7a524d8e7f79a8915951685",
+    "build": "release production binary completed in 48.38 seconds without warnings; automated regressions not executed",
+    "cold_audit": {
+      "wall_seconds": 79.73,
+      "peak_rss_kib": 3465192,
+      "exit_code": 1,
+      "summary_identical_to_initial_audit": true,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "manifest_sha256": "3d437b9cd970d180bd7d02573be9afb3cb2b377c29bc97e11ab50249e81db57a"
+    },
+    "mcp": {
+      "timings": {
+        "exit_code": 0,
+        "signal": null,
+        "elapsed_ms": 44843.510705999994,
+        "timings": [
+          {
+            "id": 1,
+            "tool": "initialize",
+            "elapsed_ms": 8.630283000000002,
+            "error": null,
+            "is_error": false
+          },
+          {
+            "id": 2,
+            "tool": "repo_overview",
+            "elapsed_ms": 30010.595135,
+            "error": {
+              "code": -32603,
+              "message": "Initial index is still building; retry when ready",
+              "data": {
+                "freshness": {
+                  "consistency_satisfied": false,
+                  "dirty_path_count": 0,
+                  "dirty_paths": [],
+                  "generated_at_unix_ms": 1788958976566,
+                  "indexed_revision": 0,
+                  "is_stale": true,
+                  "observed_revision": 1,
+                  "rebuilding": true,
+                  "revision": 0,
+                  "watcher": "disabled"
+                },
+                "index_state": "indexing",
+                "retryable": true
+              }
+            },
+            "is_error": false
+          },
+          {
+            "id": 2,
+            "tool": "repo_overview",
+            "elapsed_ms": 43721.760129999995,
+            "error": null,
+            "is_error": false
+          },
+          {
+            "id": 3,
+            "tool": "show_cycles",
+            "elapsed_ms": 43723.782499999994,
+            "error": null,
+            "is_error": false
+          },
+          {
+            "id": 4,
+            "tool": "quality_evaluation",
+            "elapsed_ms": 43724.283011,
+            "error": null,
+            "is_error": false
+          },
+          {
+            "id": 5,
+            "tool": "coverage_report",
+            "elapsed_ms": 43724.586183,
+            "error": null,
+            "is_error": false
+          }
+        ]
+      },
+      "peak_rss_kib": 3267316,
+      "fast_load_confirmed": true,
+      "overview": {
+        "abstraction_sprawl_count": 25,
+        "algorithmic_complexity_hotspot_count": 1534,
+        "analyzed_files": 17013,
+        "architectural_smell_count": 4,
+        "ast_grep_algorithmic_complexity_count": 2462,
+        "ast_grep_finding_count": 9446,
+        "ast_grep_framework_misuse_count": 6736,
+        "ast_grep_security_dangerous_api_count": 248,
+        "ast_grep_skipped_bytes": 27084989,
+        "ast_grep_skipped_file_count": 8076,
+        "ast_grep_skipped_files_preview": [
+          {
+            "bytes": 962,
+            "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "bytes": 1116,
+            "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "bytes": 1793,
+            "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "bytes": 854,
+            "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "bytes": 600,
+            "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+            "reason": "no_family_prefilter_hit"
+          }
+        ],
+        "bottleneck_count": 20,
+        "boundary_reasons": [],
+        "boundary_truncated_count": 0,
+        "boundary_truth": "complete_repository",
+        "compatibility_scar_count": 10,
+        "config_key_count": 343,
+        "dead_code_count": 0,
+        "duplicate_mechanism_count": 22,
+        "env_key_count": 546,
+        "external_checks": {
+          "completed": 0,
+          "failed": 0,
+          "requested": 0,
+          "status": "not_requested",
+          "unavailable": 0
+        },
+        "external_finding_count": 0,
+        "external_tool_run_count": 0,
+        "generated_path_prefixes": [
+          "phpstan/cache",
+          "phpstan/resultCache.php",
+          "android/app/src/main/assets/public"
+        ],
+        "hand_rolled_parsing_count": 19,
+        "hardwiring_count": 1319,
+        "hook_contract_count": 26,
+        "hub_like_dependency_count": 1,
+        "input_coverage": {
+          "deferred_checks": [
+            "unused_imports",
+            "unused_private_functions",
+            "orphan_modules",
+            "confirmed_orphan_files"
+          ],
+          "diagnostic_count": 811,
+          "files_without_parse_evidence": 0,
+          "other_input_files": 6007,
+          "parse_issues_preview": [
+            {
+              "diagnostic_count": 3,
+              "diagnostics": [
+                {
+                  "end_column": 1,
+                  "end_line": 389,
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_column": 20,
+                  "start_line": 386
+                },
+                {
+                  "end_column": 24,
+                  "end_line": 409,
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_column": 20,
+                  "start_line": 409
+                },
+                {
+                  "end_column": 2,
+                  "end_line": 453,
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_column": 6,
+                  "start_line": 411
+                }
+              ],
+              "diagnostics_truncated": false,
+              "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+              "parser": "tree-sitter-php",
+              "required_recovery": true,
+              "scope": "source"
+            },
+            {
+              "diagnostic_count": 52,
+              "diagnostics": [
+                {
+                  "end_column": 1,
+                  "end_line": 276,
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_column": 16,
+                  "start_line": 266
+                },
+                {
+                  "end_column": 6,
+                  "end_line": 288,
+                  "kind": "missing_node",
+                  "node_kind": ";",
+                  "start_column": 6,
+                  "start_line": 288
+                },
+                {
+                  "end_column": 19,
+                  "end_line": 288,
+                  "kind": "missing_node",
+                  "node_kind": ";",
+                  "start_column": 19,
+                  "start_line": 288
+                }
+              ],
+              "diagnostics_truncated": true,
+              "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+              "parser": "tree-sitter-php",
+              "required_recovery": true,
+              "scope": "source"
+            },
+            {
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false,
+              "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "required_recovery": false,
+              "scope": "vue_script_only"
+            },
+            {
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false,
+              "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "required_recovery": false,
+              "scope": "vue_script_only"
+            },
+            {
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false,
+              "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "required_recovery": false,
+              "scope": "vue_script_only"
+            }
+          ],
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "unsupported_source_files": 146,
+          "unsupported_sources_preview": [
+            {
+              "extension": "java",
+              "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java"
+            },
+            {
+              "extension": "java",
+              "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java"
+            },
+            {
+              "extension": "go",
+              "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go"
+            },
+            {
+              "extension": "go",
+              "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/baseline-guard.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/bump.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/frontend.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/gates.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/legacy-view-config.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/lib.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/mount.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "ci/overlay/tests.sh"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_calculation_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_calendar_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_field_gap_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_invoice_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_lead_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_opportunity_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_order_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_org_asset_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_price_list_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_product_category_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_product_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_production_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_role_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_user_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_warehouse_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_worktime_export.sql"
+            },
+            {
+              "extension": "sql",
+              "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql"
+            },
+            {
+              "extension": "sh",
+              "file_path": "clients/trido/scripts/export_all_model_snapshots.sh"
+            },
+            {
+              "extension": "sh",
+              "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh"
+            }
+          ]
+        },
+        "orphan_count": 0,
+        "override_edge_count": 2544,
+        "references": 1086615,
+        "registered_key_count": 13,
+        "resolved_edges": 325573,
+        "route_contract_count": 521,
+        "runtime_entry_count": 2289,
+        "sanctioned_path_bypass_count": 262,
+        "scanned_files": 23166,
+        "security_finding_count": 65,
+        "split_identity_model_count": 20,
+        "strong_cycle_count": 19,
+        "symbolic_literal_count": 1072,
+        "symbols": 129454,
+        "total_cycle_count": 29,
+        "unresolved_reference_sites": 688508,
+        "unstable_dependency_count": 3,
+        "warning_heavy_hotspot_count": 0
+      },
+      "coverage_identical_to_before": true,
+      "cycle_results_identical_to_before": true,
+      "quality_results_identical_to_before": true,
+      "response_meta": [
+        {
+          "id": 2,
+          "meta": {
+            "aigiscode/freshness": {
+              "consistency_satisfied": true,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788959020280,
+              "indexed_revision": 1,
+              "is_stale": false,
+              "observed_revision": 1,
+              "rebuilding": false,
+              "revision": 1,
+              "watcher": "disabled"
+            },
+            "aigiscode/input_coverage": {
+              "files_without_parse_evidence": 0,
+              "recovered_source_files": 81,
+              "scope_limited_files": 792,
+              "status": "incomplete",
+              "unsupported_source_files": 146
+            }
+          }
+        },
+        {
+          "id": 3,
+          "meta": {
+            "aigiscode/freshness": {
+              "consistency_satisfied": true,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788959020280,
+              "indexed_revision": 1,
+              "is_stale": false,
+              "observed_revision": 1,
+              "rebuilding": false,
+              "revision": 1,
+              "watcher": "disabled"
+            },
+            "aigiscode/input_coverage": {
+              "files_without_parse_evidence": 0,
+              "recovered_source_files": 81,
+              "scope_limited_files": 792,
+              "status": "incomplete",
+              "unsupported_source_files": 146
+            }
+          }
+        },
+        {
+          "id": 4,
+          "meta": {
+            "aigiscode/freshness": {
+              "consistency_satisfied": true,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788959020280,
+              "indexed_revision": 1,
+              "is_stale": false,
+              "observed_revision": 1,
+              "rebuilding": false,
+              "revision": 1,
+              "watcher": "disabled"
+            },
+            "aigiscode/input_coverage": {
+              "files_without_parse_evidence": 0,
+              "recovered_source_files": 81,
+              "scope_limited_files": 792,
+              "status": "incomplete",
+              "unsupported_source_files": 146
+            }
+          }
+        },
+        {
+          "id": 5,
+          "meta": {
+            "aigiscode/freshness": {
+              "consistency_satisfied": true,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788959020280,
+              "indexed_revision": 1,
+              "is_stale": false,
+              "observed_revision": 1,
+              "rebuilding": false,
+              "revision": 1,
+              "watcher": "disabled"
+            },
+            "aigiscode/input_coverage": {
+              "files_without_parse_evidence": 0,
+              "recovered_source_files": 81,
+              "scope_limited_files": 792,
+              "status": "incomplete",
+              "unsupported_source_files": 146
+            }
+          }
+        }
+      ],
+      "stderr_path": "target/reliability-2026-09-09/draivix-mcp-cache-fixed-stderr.txt",
+      "responses_path": "target/reliability-2026-09-09/draivix-mcp-cache-fixed-responses.jsonl"
+    },
+    "comparison_limit": "One sequential observation before/after the cache-selection fix, warm filesystem caches on a shared host. Cold/full computation is compared with verified cache reuse; this is not an incremental-rebuild or statistical benchmark."
+  }
+}

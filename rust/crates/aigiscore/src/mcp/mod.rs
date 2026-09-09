@@ -293,8 +293,11 @@ fn build_mcp_state(
 ) -> Result<McpState, McpServerError> {
     let mut fast_analysis = None;
     if std::env::var_os("AIGISCORE_FAST_LOAD").is_some() {
-        fast_analysis =
-            crate::ingestion::pipeline::analyze_project_fast_load(root, &ScanConfig::default())?;
+        fast_analysis = crate::ingestion::pipeline::analyze_project_fast_load(
+            root,
+            &ScanConfig::default(),
+            output_dir,
+        )?;
     }
     let analysis = match fast_analysis {
         Some(analysis) => {
