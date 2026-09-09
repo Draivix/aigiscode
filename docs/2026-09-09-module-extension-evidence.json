@@ -1,0 +1,574 @@
+{
+  "observed_at": "2026-09-09T13:28:01.779Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-module-extensions",
+    "sha256": "790b63411a42a5245259247b90ba0e2b3f8b037345d717a09ac2a798e7550652",
+    "engine_fingerprint": "3a31fead915540ae",
+    "build_seconds": 45.73
+  },
+  "source": {
+    "snapshot": "target/reliability-2026-09-09/draivix-full-source",
+    "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+    "source_edits": false,
+    "source_receipt": "2026-09-09-draivix-revalidation-evidence.json",
+    "final_original_integrity": {
+      "verified_at": "2026-09-09T13:30:36.450Z",
+      "files": 23166,
+      "added": [],
+      "removed": [],
+      "changed": []
+    }
+  },
+  "measurement": {
+    "wall_seconds": 78.56,
+    "peak_rss_kib": 3535208,
+    "exit_code": 1
+  },
+  "before": {
+    "status": "incomplete",
+    "input_files": 17013,
+    "scanned_files": 8127,
+    "prefiltered_files": 8058,
+    "oversized_files": 18,
+    "unsupported_files": 810,
+    "other_gap_files": 0,
+    "gap_bytes": 19569283,
+    "gap_files_preview": [
+      {
+        "file_path": "resources/js/types/entities.d.ts",
+        "bytes": 2597200,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+        "bytes": 411550,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+        "bytes": 397091,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+        "bytes": 377578,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "clients/trido/Services/PortalDataService.php",
+        "bytes": 328210,
+        "reason": "file_too_large_for_secondary_scan"
+      }
+    ]
+  },
+  "after": {
+    "status": "incomplete",
+    "input_files": 17013,
+    "scanned_files": 8139,
+    "prefiltered_files": 8064,
+    "oversized_files": 18,
+    "unsupported_files": 792,
+    "other_gap_files": 0,
+    "gap_bytes": 19450827,
+    "gap_files_preview": [
+      {
+        "file_path": "resources/js/types/entities.d.ts",
+        "bytes": 2597200,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+        "bytes": 411550,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+        "bytes": 397091,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+        "bytes": 377578,
+        "reason": "file_too_large_for_secondary_scan"
+      },
+      {
+        "file_path": "clients/trido/Services/PortalDataService.php",
+        "bytes": 328210,
+        "reason": "file_too_large_for_secondary_scan"
+      }
+    ]
+  },
+  "findings": {
+    "previous": 9446,
+    "current": 9497,
+    "added": 51,
+    "previous_findings_retained": true,
+    "new_files": [
+      "hocuspocus-server.mjs",
+      "scripts/build-native-shell.mjs",
+      "scripts/mattermost-e2ee-browser-proof.mjs",
+      "scripts/mattermost-ws-proxy.mjs",
+      "scripts/perf/aichat-voice-nightly.mjs",
+      "scripts/perf/email-open-perf.mjs",
+      "scripts/perf/home-to-email-perf.mjs"
+    ],
+    "all_new_sites_are_mjs": true,
+    "all_new_sites_are_raw_env": false,
+    "examples": [
+      {
+        "rule_id": "framework_misuse/javascript/raw_env_outside_config",
+        "family": "framework_misuse",
+        "language": "javascript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "hocuspocus-server.mjs",
+        "line": 10,
+        "token": "process.env.APP_KEY",
+        "message": "Raw environment access should stay inside a config/bootstrap boundary.",
+        "matched_text": "process.env.APP_KEY",
+        "kind": {
+          "kind": "framework_misuse",
+          "subtype": "raw_env_outside_config"
+        }
+      },
+      {
+        "rule_id": "framework_misuse/javascript/raw_env_outside_config",
+        "family": "framework_misuse",
+        "language": "javascript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "hocuspocus-server.mjs",
+        "line": 20,
+        "token": "process.env.APP_KEY",
+        "message": "Raw environment access should stay inside a config/bootstrap boundary.",
+        "matched_text": "process.env.APP_KEY",
+        "kind": {
+          "kind": "framework_misuse",
+          "subtype": "raw_env_outside_config"
+        }
+      },
+      {
+        "rule_id": "framework_misuse/javascript/raw_env_outside_config",
+        "family": "framework_misuse",
+        "language": "javascript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "hocuspocus-server.mjs",
+        "line": 83,
+        "token": "process.env.HOCUSPOCUS_HOST",
+        "message": "Raw environment access should stay inside a config/bootstrap boundary.",
+        "matched_text": "process.env.HOCUSPOCUS_HOST",
+        "kind": {
+          "kind": "framework_misuse",
+          "subtype": "raw_env_outside_config"
+        }
+      },
+      {
+        "rule_id": "framework_misuse/javascript/raw_env_outside_config",
+        "family": "framework_misuse",
+        "language": "javascript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "hocuspocus-server.mjs",
+        "line": 84,
+        "token": "process.env.HOCUSPOCUS_PORT",
+        "message": "Raw environment access should stay inside a config/bootstrap boundary.",
+        "matched_text": "process.env.HOCUSPOCUS_PORT",
+        "kind": {
+          "kind": "framework_misuse",
+          "subtype": "raw_env_outside_config"
+        }
+      }
+    ]
+  },
+  "retained_analysis": {
+    "semantic_graph_fingerprint_equal": true,
+    "semantic_graph_xxh3": "9197261aa25d71fe",
+    "graph_analysis_equal": true,
+    "native_security_equal": true,
+    "architectural_assessment_equal": true
+  },
+  "negative_case": {
+    "path": "apps/desktop/src/config.mjs",
+    "no_secondary_findings": true,
+    "no_backend_or_prefilter_skip": true,
+    "meaning": "File enters rule scanning; its explicit environment parameter adapter does not match direct process.env member-access rules."
+  },
+  "baseline": {
+    "availability": "verified",
+    "comparison": "not_compared",
+    "current": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "3a31fead915540ae",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "previous": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "0f898eb949dbadaa",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "reasons": [
+      "current_inputs_incomplete",
+      "current_secondary_checks_incomplete",
+      "previous_secondary_checks_incomplete",
+      "previous_inputs_incomplete",
+      "different_engine"
+    ]
+  },
+  "convergence": {
+    "current_findings": 3218,
+    "previous_findings": 3218,
+    "first_observed_findings": 0,
+    "not_compared_findings": 3218,
+    "new_findings": 0,
+    "worsened_findings": 0,
+    "improved_findings": 0,
+    "unchanged_findings": 0,
+    "resolved_findings": 0
+  },
+  "artifacts": [
+    {
+      "path": "target/reliability-2026-09-09/draivix-module-extensions/ast-grep-scan.json",
+      "sha256": "74cdf13b00b31cdc9b335b8781971e6218203e7e18cd6fc5d8bfe3d8af0ffd81"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-module-extensions/scan-manifest.json",
+      "sha256": "a289c091d1cb987384cde6c5a4204e8c197f50b2b2a9a1ffd1db9aa123cbe381"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-module-extensions/convergence-history.json",
+      "sha256": "821803b28adfae793ca578095eadf36e8479b9538b190919ff23f95900668da7"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-module-extensions/guard-decision.json",
+      "sha256": "f511b08342aa50d043e8a0ee561f20bef93293f64326c10108701024e066c2c9"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-module-extensions/aigiscode-report.md",
+      "sha256": "65046145f2c7f3167a1334e1c6728b94a99ee0988ed8b680a92168c09fa3be19"
+    }
+  ],
+  "verification": {
+    "production_build_passed": true,
+    "full_draivix_audit": true,
+    "automated_tests_run": false,
+    "ci_run": false,
+    "cjs_mts_cts_uppercase_tsx_runtime_cases_run": false
+  },
+  "mcp": {
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 46511.877861,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 10.180919000000003,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30012.116052,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788960401589,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 45455.061633000005,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "show_cycles",
+          "elapsed_ms": 45457.110553,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 45457.638979,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 45457.935341000004,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "fast_load_confirmed": true,
+    "results": [
+      {
+        "id": 2,
+        "coverage": {
+          "gap_bytes": 19450827,
+          "gap_files_preview": [
+            {
+              "bytes": 2597200,
+              "file_path": "resources/js/types/entities.d.ts",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 411550,
+              "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 397091,
+              "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 377578,
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 328210,
+              "file_path": "clients/trido/Services/PortalDataService.php",
+              "reason": "file_too_large_for_secondary_scan"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 18,
+          "prefiltered_files": 8064,
+          "scanned_files": 8139,
+          "status": "incomplete",
+          "unsupported_files": 792
+        },
+        "coverage_matches_scanner": true,
+        "meta": {
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788960447036,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 3,
+        "coverage_matches_scanner": null,
+        "meta": {
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788960447036,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 4,
+        "coverage": {
+          "gap_bytes": 19450827,
+          "gap_files_preview": [
+            {
+              "bytes": 2597200,
+              "file_path": "resources/js/types/entities.d.ts",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 411550,
+              "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 397091,
+              "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 377578,
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 328210,
+              "file_path": "clients/trido/Services/PortalDataService.php",
+              "reason": "file_too_large_for_secondary_scan"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 18,
+          "prefiltered_files": 8064,
+          "scanned_files": 8139,
+          "status": "incomplete",
+          "unsupported_files": 792
+        },
+        "coverage_matches_scanner": true,
+        "meta": {
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788960447036,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 5,
+        "coverage": {
+          "gap_bytes": 19450827,
+          "gap_files_preview": [
+            {
+              "bytes": 2597200,
+              "file_path": "resources/js/types/entities.d.ts",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 411550,
+              "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 397091,
+              "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 377578,
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "reason": "file_too_large_for_secondary_scan"
+            },
+            {
+              "bytes": 328210,
+              "file_path": "clients/trido/Services/PortalDataService.php",
+              "reason": "file_too_large_for_secondary_scan"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 18,
+          "prefiltered_files": 8064,
+          "scanned_files": 8139,
+          "status": "incomplete",
+          "unsupported_files": 792
+        },
+        "coverage_matches_scanner": true,
+        "meta": {
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788960447036,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      }
+    ]
+  }
+}

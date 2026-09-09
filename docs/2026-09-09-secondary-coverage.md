@@ -49,8 +49,8 @@ otherwise-zero affected quality dimensions become unknown when evidence is missi
 
 The [contract](SECONDARY_COVERAGE_CONTRACT.md) distinguishes rule execution from
 semantic or security soundness. The 150,000-byte limit remains; this change does
-not add large-file scanning or a Vue backend. The `.mjs` omissions identify a
-concrete remaining language-alias gap. Q12 still includes separating oversized
+not add large-file scanning or a Vue backend. The `.mjs` omissions identified a
+language-alias gap, subsequently [repaired on the same corpus](2026-09-09-module-extension-coverage.md). Q12 still includes separating oversized
 implementation responsibilities and removing the optional Node runtime path.
 The broader architecture-priority and incremental-processing work also remains open.
 

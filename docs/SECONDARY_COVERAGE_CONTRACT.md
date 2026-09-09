@@ -45,3 +45,7 @@ the coverage caveat in its recommendations.
 The existing 150,000-byte secondary file limit remains in place. This contract
 exposes that limitation; it does not implement chunking, enable Vue scanning,
 or claim to finish the broader Q12 ownership and native-runtime work.
+
+Backend, prefilter and built-in rule-family selection share one language mapping.
+JavaScript includes `.js`, `.jsx`, `.mjs` and `.cjs`; TypeScript includes `.ts`,
+`.mts` and `.cts`, with `.tsx` using its TSX parser. Extensions are case-insensitive.

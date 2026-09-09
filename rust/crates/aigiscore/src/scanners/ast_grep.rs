@@ -1135,11 +1135,12 @@ fn trace(message: &str) {
 }
 
 fn support_lang_for_path(path: &Path) -> Option<SupportLang> {
-    match path.extension().and_then(|extension| extension.to_str()) {
+    let extension = path.extension().and_then(|extension| extension.to_str()).map(str::to_ascii_lowercase);
+    match extension.as_deref() {
         Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => Some(SupportLang::Php),
         Some("py") => Some(SupportLang::Python),
-        Some("js" | "jsx") => Some(SupportLang::JavaScript),
-        Some("ts") => Some(SupportLang::TypeScript),
+        Some("js" | "jsx" | "mjs" | "cjs") => Some(SupportLang::JavaScript),
+        Some("ts" | "mts" | "cts") => Some(SupportLang::TypeScript),
         Some("tsx") => Some(SupportLang::Tsx),
         Some("rb" | "rake") => Some(SupportLang::Ruby),
         Some("rs") => Some(SupportLang::Rust),
@@ -1148,8 +1149,8 @@ fn support_lang_for_path(path: &Path) -> Option<SupportLang> {
 }
 
 fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => AstGrepFamilyPrefilter {
+    match support_lang_for_path(path) {
+        Some(SupportLang::Php) => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for", "foreach", "while"])
                 && has_any(
                     source,
@@ -1187,7 +1188,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
                 &["env(", "getenv(", "$_ENV", "app(", "resolve(", "make("],
             ),
         },
-        Some("py") => AstGrepFamilyPrefilter {
+        Some(SupportLang::Python) => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "while "])
                 && has_any(
                     source,
@@ -1223,7 +1224,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
             ),
             framework_misuse: has_any(source, &["os.environ", "os.getenv"]),
         },
-        Some("js" | "jsx" | "ts" | "tsx") => AstGrepFamilyPrefilter {
+        Some(SupportLang::JavaScript | SupportLang::TypeScript | SupportLang::Tsx) => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "for(", "while ", "while("])
                 && has_any(
                     source,
@@ -1251,7 +1252,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
             ),
             framework_misuse: has_any(source, &["process.env"]),
         },
-        Some("rb" | "rake") => AstGrepFamilyPrefilter {
+        Some(SupportLang::Ruby) => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "while "])
                 && has_any(
                     source,
@@ -1281,7 +1282,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
             ),
             framework_misuse: has_any(source, &["ENV[", "ENV.fetch"]),
         },
-        Some("rs") => AstGrepFamilyPrefilter {
+        Some(SupportLang::Rust) => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "for(", "while ", "while("])
                 && has_any(
                     source,
@@ -1358,24 +1359,24 @@ fn rule_set_loop_patterns_for_catalog(
 }
 
 fn complexity_rule_set_for_path(path: &Path) -> Option<&'static AstGrepRuleSet> {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => Some(&PHP_RULE_SET),
-        Some("py") => Some(&PYTHON_RULE_SET),
-        Some("js" | "jsx") => Some(&JAVASCRIPT_RULE_SET),
-        Some("ts" | "tsx") => Some(&TYPESCRIPT_RULE_SET),
-        Some("rs") => Some(&RUST_RULE_SET),
+    match support_lang_for_path(path) {
+        Some(SupportLang::Php) => Some(&PHP_RULE_SET),
+        Some(SupportLang::Python) => Some(&PYTHON_RULE_SET),
+        Some(SupportLang::JavaScript) => Some(&JAVASCRIPT_RULE_SET),
+        Some(SupportLang::TypeScript | SupportLang::Tsx) => Some(&TYPESCRIPT_RULE_SET),
+        Some(SupportLang::Rust) => Some(&RUST_RULE_SET),
         _ => None,
     }
 }
 
 fn security_rule_set_for_path(path: &Path) -> Option<&'static AstGrepSecurityRuleSet> {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => Some(&PHP_SECURITY_RULE_SET),
-        Some("py") => Some(&PYTHON_SECURITY_RULE_SET),
-        Some("js" | "jsx") => Some(&JAVASCRIPT_SECURITY_RULE_SET),
-        Some("ts" | "tsx") => Some(&TYPESCRIPT_SECURITY_RULE_SET),
-        Some("rb" | "rake") => Some(&RUBY_SECURITY_RULE_SET),
-        Some("rs") => Some(&RUST_SECURITY_RULE_SET),
+    match support_lang_for_path(path) {
+        Some(SupportLang::Php) => Some(&PHP_SECURITY_RULE_SET),
+        Some(SupportLang::Python) => Some(&PYTHON_SECURITY_RULE_SET),
+        Some(SupportLang::JavaScript) => Some(&JAVASCRIPT_SECURITY_RULE_SET),
+        Some(SupportLang::TypeScript | SupportLang::Tsx) => Some(&TYPESCRIPT_SECURITY_RULE_SET),
+        Some(SupportLang::Ruby) => Some(&RUBY_SECURITY_RULE_SET),
+        Some(SupportLang::Rust) => Some(&RUST_SECURITY_RULE_SET),
         _ => None,
     }
 }
@@ -1432,15 +1433,15 @@ pub fn is_dependency_boundary_path(path: &Path) -> bool {
 fn framework_misuse_rule_set_for_path(
     path: &Path,
 ) -> Option<&'static AstGrepFrameworkMisuseRuleSet> {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => {
+    match support_lang_for_path(path) {
+        Some(SupportLang::Php) => {
             Some(&PHP_FRAMEWORK_MISUSE_RULE_SET)
         }
-        Some("py") => Some(&PYTHON_FRAMEWORK_MISUSE_RULE_SET),
-        Some("js" | "jsx") => Some(&JAVASCRIPT_FRAMEWORK_MISUSE_RULE_SET),
-        Some("ts" | "tsx") => Some(&TYPESCRIPT_FRAMEWORK_MISUSE_RULE_SET),
-        Some("rb" | "rake") => Some(&RUBY_FRAMEWORK_MISUSE_RULE_SET),
-        Some("rs") => Some(&RUST_FRAMEWORK_MISUSE_RULE_SET),
+        Some(SupportLang::Python) => Some(&PYTHON_FRAMEWORK_MISUSE_RULE_SET),
+        Some(SupportLang::JavaScript) => Some(&JAVASCRIPT_FRAMEWORK_MISUSE_RULE_SET),
+        Some(SupportLang::TypeScript | SupportLang::Tsx) => Some(&TYPESCRIPT_FRAMEWORK_MISUSE_RULE_SET),
+        Some(SupportLang::Ruby) => Some(&RUBY_FRAMEWORK_MISUSE_RULE_SET),
+        Some(SupportLang::Rust) => Some(&RUST_FRAMEWORK_MISUSE_RULE_SET),
         _ => None,
     }
 }
@@ -1920,6 +1921,23 @@ eval(payload)
         assert!(!result.coverage.is_complete());
         assert_eq!(result.coverage.gap_files_preview[0].file_path, PathBuf::from("src/Page.vue"));
         assert!(!result.findings.is_empty());
+    }
+
+    #[test]
+    fn scans_module_extensions_with_the_existing_language_rules() {
+        for extension in ["js", "mjs", "cjs", "MJS", "ts", "mts", "cts", "tsx"] {
+            let path = PathBuf::from(format!("src/worker.{extension}"));
+            let result = run_ast_grep_scan(&[(path.clone(), String::from(
+                "for (const item of items) { JSON.parse(item); }\neval(input);\nconst mode = process.env.APP_MODE;\n",
+            ))]);
+            assert!(result.coverage.is_complete(), "{extension}");
+            assert_eq!(result.coverage.scanned_files, 1, "{extension}");
+            let counts = result.family_counts();
+            assert!(counts.algorithmic_complexity > 0, "{extension}");
+            assert!(counts.security_dangerous_api > 0, "{extension}");
+            assert!(counts.framework_misuse > 0, "{extension}");
+            assert!(result.findings.iter().all(|finding| finding.file_path == path));
+        }
     }
 
     #[test]
