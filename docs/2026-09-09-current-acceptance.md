@@ -9,6 +9,12 @@ Tento dokument aktualizuje stav [původních podmínek](2026-09-09-quality-reaud
 nemění jejich rozsah. Podrobnosti a otisky zachycuje
 [strojový doklad](2026-09-09-current-acceptance-evidence.json).
 
+[Kontrola identity capture z 10. září](2026-09-10-capture-identity.md) doplňuje
+shodu parsovaných bajtů se scanem, přísnější klíč fast-load a explicitní chyby
+čtení prostředí. Reálná změna JSON vstupu na kopii Draivixu cache odmítla;
+sémantický graf a scanner na stabilním korpusu zůstaly shodné. Pozdní čtení
+pluginů, celková stabilita capture a schválené CI jsou nadále otevřené.
+
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto
 revizi a zveřejňuje skutečný stav baseline. Reálný MCP běh potvrdil chování při

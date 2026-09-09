@@ -6,7 +6,7 @@ use crate::doctrine::{load_doctrine_registry, DoctrineLoadError, DoctrineRegistr
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::{analyze_semantic_graph, GraphAnalysis};
 use crate::graph::SemanticGraph;
-use crate::ingestion::scan::{scan_repository, ScanConfig, ScanError, ScanResult};
+use crate::ingestion::scan::{scan_repository, ScanConfig, ScanError, ScanResult, ScannedFile};
 use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
@@ -126,6 +126,8 @@ impl ProjectAnalysis {
 
 #[derive(Debug, Error)]
 pub enum ProjectAnalysisError {
+    #[error("analysis input changed during capture: {path}; retry on stable inputs")]
+    InputChanged { path: PathBuf },
     #[error("failed to pin analysis artifacts: {0}")]
     Artifacts(std::io::Error),
     #[error(transparent)]
@@ -261,6 +263,8 @@ fn try_fast_load_graph_project(
         identity.scope_fingerprint != scan.scope_fingerprint
             || identity.root != scan.root.display().to_string()
             || identity.engine_fingerprint != env!("AIGISCODE_ENGINE_FINGERPRINT")
+            || identity.input_inventory_fingerprint != scan.input_fingerprint()
+            || identity.semantic_env_fingerprint != format!("{:032x}", scan.semantic_env.fingerprint.0)
     }) {
         return Ok(None);
     }
@@ -297,13 +301,7 @@ fn try_fast_load_graph_project(
             let Some(expected_hash) = expected.get(display.as_str()) else {
                 return Ok(FastLoadFile::Mismatch);
             };
-            let absolute_path = root.join(&file.relative_path);
-            let source = fs::read_to_string(&absolute_path).map_err(|source| {
-                ProjectAnalysisError::ReadFile {
-                    path: absolute_path.clone(),
-                    source,
-                }
-            })?;
+            let source = read_scanned_source(root, file)?;
             if format!("{:016x}", xxhash_rust::xxh3::xxh3_64(source.as_bytes())) != *expected_hash {
                 return Ok(FastLoadFile::Mismatch);
             }
@@ -540,12 +538,7 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
         .par_iter()
         .map(|file| {
             let absolute_path = root.join(&file.relative_path);
-            let source = fs::read_to_string(&absolute_path).map_err(|source| {
-                ProjectAnalysisError::ReadFile {
-                    path: absolute_path.clone(),
-                    source,
-                }
-            })?;
+            let source = read_scanned_source(&root, file)?;
             let parsed =
                 parse_source_file(file.relative_path.clone(), &source).map_err(|source| {
                     ProjectAnalysisError::Parse {
@@ -627,6 +620,23 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
     })
 }
 
+fn read_scanned_source(root: &Path, file: &ScannedFile) -> Result<String, ProjectAnalysisError> {
+    let path = root.join(&file.relative_path);
+    let source = fs::read_to_string(&path).map_err(|source| {
+        if source.kind() == std::io::ErrorKind::NotFound {
+            ProjectAnalysisError::InputChanged { path: path.clone() }
+        } else {
+            ProjectAnalysisError::ReadFile { path: path.clone(), source }
+        }
+    })?;
+    if source.len() as u64 != file.size_bytes
+        || crate::ingestion::hash::hash_bytes_xxh3(source.as_bytes()) != file.content_hash
+    {
+        return Err(ProjectAnalysisError::InputChanged { path });
+    }
+    Ok(source)
+}
+
 fn update_input_inventory(graph: &mut SemanticGraph, scan: &ScanResult) {
     graph.unsupported_sources = scan.files.iter()
         .filter(|file| !is_supported_source_file(&file.relative_path))
@@ -659,6 +669,44 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn source_reads_reject_changes_since_scan_including_same_size_edits_and_removal() {
+        let fixture = create_fixture();
+        let path = fixture.join("main.rs");
+        fs::write(&path, "fn main() { aa(); }\n").unwrap();
+        let scan = crate::ingestion::scan::scan_repository(&fixture, &ScanConfig::default()).unwrap();
+        let file = scan.files.iter().find(|file| file.relative_path == Path::new("main.rs")).unwrap();
+        assert!(super::read_scanned_source(&fixture, file).is_ok());
+        fs::write(&path, "fn main() { bb(); }\n").unwrap();
+        assert!(matches!(super::read_scanned_source(&fixture, file), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        fs::remove_file(&path).unwrap();
+        assert!(matches!(super::read_scanned_source(&fixture, file), Err(super::ProjectAnalysisError::InputChanged { .. })));
+    }
+
+    #[test]
+    fn fast_load_requires_data_inventory_and_hidden_semantic_environment_identity() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".cargo")).unwrap();
+        fs::write(fixture.join(".cargo/config.toml"), "[build]\nincremental = true\n").unwrap();
+        fs::write(fixture.join("main.rs"), "fn main() {}\n").unwrap();
+        fs::write(fixture.join("data.json"), "{\"value\":1}\n").unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().is_some());
+        fs::write(fixture.join("data.json"), "{\"value\":2}\n").unwrap();
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().is_none());
+        fs::write(fixture.join("data.json"), "{\"value\":1}\n").unwrap();
+        fs::write(fixture.join("new.json"), "{}\n").unwrap();
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().is_none());
+        fs::remove_file(fixture.join("new.json")).unwrap();
+        fs::remove_file(fixture.join("data.json")).unwrap();
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().is_none());
+        fs::write(fixture.join("data.json"), "{\"value\":1}\n").unwrap();
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().is_some());
+        fs::write(fixture.join(".cargo/config.toml"), "[build]\nincremental = false\n").unwrap();
+        assert!(super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().is_none());
+    }
 
     #[test]
     fn external_evidence_preserves_captured_layer_contracts() {

@@ -26,6 +26,8 @@ pub struct SnapshotIdentity {
     pub source_fingerprint: String,
     #[serde(default)]
     pub input_inventory_fingerprint: String,
+    #[serde(default)]
+    pub semantic_env_fingerprint: String,
     pub scope_fingerprint: String,
     pub resolve_config_fingerprint: String,
     #[serde(default)]
@@ -36,11 +38,6 @@ pub struct SnapshotIdentity {
 
 impl SnapshotIdentity {
     pub fn capture(analysis: &ProjectAnalysis) -> Self {
-        let mut inventory = std::collections::hash_map::DefaultHasher::new();
-        for file in &analysis.scan.files {
-            file.relative_path.hash(&mut inventory);
-            file.content_hash.0.hash(&mut inventory);
-        }
         let mut assessment_config = std::collections::hash_map::DefaultHasher::new();
         analysis.policy_bundle().fingerprint().hash(&mut assessment_config);
         analysis.doctrine_registry().hash(&mut assessment_config);
@@ -57,7 +54,8 @@ impl SnapshotIdentity {
             engine_version: env!("CARGO_PKG_VERSION").to_owned(),
             engine_fingerprint: env!("AIGISCODE_ENGINE_FINGERPRINT").to_owned(),
             semantic_revision: SEMANTIC_REVISION,
-            input_inventory_fingerprint: format!("{:016x}", inventory.finish()),
+            input_inventory_fingerprint: analysis.scan.input_fingerprint(),
+            semantic_env_fingerprint: format!("{:032x}", analysis.scan.semantic_env.fingerprint.0),
             source_fingerprint: source_fingerprint(
                 &analysis
                     .parsed_sources

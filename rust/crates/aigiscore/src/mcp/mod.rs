@@ -4164,6 +4164,8 @@ fn helper() {}"#,
     async fn watcher_observes_a_real_file_change_and_republishes() {
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::create_dir_all(fixture.join(".cargo")).unwrap();
+        fs::write(fixture.join(".cargo/config.toml"), "[build]\nincremental = true\n").unwrap();
         fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
         let server = AigiscodeMcpServer::load(fixture.clone(), None, false, false).unwrap();
 
@@ -4200,5 +4202,20 @@ fn helper() {}"#,
             indexed > before_edit && fresh,
             "watcher should observe the edit and publish a rebuilt snapshot (indexed={indexed})"
         );
+
+        let before_environment_edit = server.live.observed();
+        let old_environment = server.live.load().snapshot.as_ref().unwrap()
+            .guard_decision.baseline.current.semantic_env_fingerprint.clone();
+        fs::write(fixture.join(".cargo/config.toml"), "[build]\nincremental = false\n").unwrap();
+        for _ in 0..120 {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            if server.live.load().revision > before_environment_edit && !server.live.freshness(true).is_stale {
+                break;
+            }
+        }
+        assert!(server.live.load().revision > before_environment_edit);
+        assert!(!server.live.freshness(true).is_stale);
+        assert_ne!(server.live.load().snapshot.as_ref().unwrap()
+            .guard_decision.baseline.current.semantic_env_fingerprint, old_environment);
     }
 }

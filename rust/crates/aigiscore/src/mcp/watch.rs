@@ -13,7 +13,7 @@ use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use super::contracts::WatcherStatus;
 use super::live::{DirtyKind, LiveState};
 use super::McpState;
-use crate::ingestion::scan::{watch_directories, ScanConfig};
+use crate::ingestion::scan::{watch_directories, ScanConfig, SEMANTIC_ENV_CANDIDATES};
 use crate::resolve::load_resolve_config;
 
 const DEBOUNCE: Duration = Duration::from_millis(300);
@@ -161,8 +161,11 @@ impl InputWatcher {
             directory.strip_prefix(root).ok().map(|directory| directory.join("tsconfig.json"))
         }).collect::<Vec<_>>();
         let config = load_resolve_config(root, &config_candidates).map_err(|error| error.to_string())?;
-        *config_inputs.write().unwrap() = config.input_paths.iter().cloned().collect();
-        for input in config.input_paths {
+        let input_paths = config.input_paths.into_iter()
+            .chain(SEMANTIC_ENV_CANDIDATES.iter().map(|path| root.join(path)))
+            .collect::<HashSet<_>>();
+        *config_inputs.write().unwrap() = input_paths.clone();
+        for input in input_paths {
             // Extended/package configuration may sit in an excluded tree or
             // outside the repo. Watch its nearest existing parent, including
             // absence so later directory/file creation is observed.
@@ -268,7 +271,12 @@ pub(super) fn start_indexer(
                     initial && write_kuzu,
                     build_resolver.as_mut(),
                     build_scanner.as_mut(),
-                ).map_err(|error| error.to_string());
+                ).map_err(|error| {
+                    let input_changed = matches!(&error, super::McpServerError::Analysis(
+                        crate::ingestion::pipeline::ProjectAnalysisError::InputChanged { .. }
+                    ));
+                    (input_changed, error.to_string())
+                });
                 (result, build_resolver, build_scanner)
             })
             .await;
@@ -288,11 +296,19 @@ pub(super) fn start_indexer(
                     live.publish(Some(state), target);
                     eprintln!("aigiscode mcp: published revision {target}");
                 }
-                Ok((Err(message), updated_resolver, updated_scanner)) => {
+                Ok((Err((input_changed, message)), updated_resolver, updated_scanner)) => {
                     resolver = updated_resolver;
                     scanner = updated_scanner;
+                    if input_changed {
+                        // The reader itself witnessed an edit, even if its filesystem
+                        // event has not arrived. Schedule a coalesced fresh capture.
+                        live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
+                    }
                     eprintln!("aigiscode mcp: {message}");
                     live.record_error(message);
+                    if input_changed {
+                        tokio::time::sleep(DEBOUNCE).await;
+                    }
                 }
                 Err(error) => {
                     // The failed worker owned the cache; start fresh after a panic.

@@ -141,6 +141,13 @@ that correction.
    `semantic_env_revision` fingerprint of the build/workspace configuration
    separately.
 
+   The pipeline now rejects supported-source bytes that differ from their scan
+   identity, and fast loading requires the complete admitted inventory plus the
+   declared semantic-environment fingerprint. Semantic configuration read failures
+   propagate and hidden environment parents are watched. See the
+   [capture contract](INPUT_CAPTURE_CONTRACT.md). Fact-level provenance threading
+   and whole-capture stability remain open; this is not an atomic snapshot claim.
+
 3. **Filesystem watcher as a hint stream, not a transaction log.** Raw `notify`
    events populate a dirty-path set immediately. An append-only change journal
    remains planned — nothing parses directly from a watcher callback. Publish

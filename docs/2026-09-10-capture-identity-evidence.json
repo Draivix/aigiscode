@@ -1,0 +1,1233 @@
+{
+  "recorded_at": "2026-09-09T23:08:02.493Z",
+  "base_commit": "b9a017fda094e416ed19a26073338b8ec2565c6f",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-capture-identity",
+    "bytes": 94737424,
+    "sha256": "a710a79864610380a6eca0fa5ad48f9c7a2e2bbfdd70816d54d0b9ec62b9f864"
+  },
+  "source_files": [
+    {
+      "path": "rust/crates/aigiscore/src/ingestion/scan.rs",
+      "bytes": 29452,
+      "sha256": "58a5c4f401a8c60225d9d4ac5db3f129191899136e78a4ab2c819ce558f001e6"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+      "bytes": 48914,
+      "sha256": "3e6f5f14f2ec47eaad9f3c527b57e37abac9d88d39f6edc0ad0efa2b2ef382d4"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/artifacts/baseline.rs",
+      "bytes": 13058,
+      "sha256": "898b1917d0f8c8b7161127b4f499cbbecaedd4e436a66adc2badf56913b02ebc"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/watch.rs",
+      "bytes": 15308,
+      "sha256": "63fef65483ed8568f01823975369d3b3baa92791dfe773705ccdf4b339648b2e"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/mod.rs",
+      "bytes": 166966,
+      "sha256": "0c36cdd49461b6c00ffbdb7e86b179f4be333049cb092f84c26d2c5a5fd48dae"
+    }
+  ],
+  "build": {
+    "production_release_succeeded": true,
+    "elapsed_seconds": 47.82,
+    "log": {
+      "path": "target/reliability-2026-09-09/capture-identity-build.txt",
+      "bytes": 156,
+      "sha256": "e0a94ff66a888e13e44f7f45e8dc663e333bdb69410528fa915cccef72b4c84b"
+    }
+  },
+  "regressions": {
+    "added": 3,
+    "extended_watcher_regression": true,
+    "semantic_environment_test_adapted": true,
+    "tests_run": false,
+    "ci_run": false
+  },
+  "capture": {
+    "created_at": "2026-09-09T22:44:08.438Z",
+    "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+    "files": 23296,
+    "mismatches": [],
+    "changed": {
+      "path": "clients/mitel/i18n/cs_CZ/Task.json",
+      "initial_sha256": "b43bbc37359b2b8f041c0393d5822a972287094d9369073ed7360f83c1a2d2a5",
+      "current_sha256": "abf4b94364fe660faf59489c8879f3816336fef16bad4237f2db344324e7a719"
+    },
+    "scope": "Preserved fresh capture except one older captured translation file. Original Draivix and preserved captures are read only."
+  },
+  "integrity": {
+    "completed_at": "2026-09-09T23:02:48.571Z",
+    "results": [
+      {
+        "name": "draivix-capture-identity-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      },
+      {
+        "name": "draivix-fresh-source-1",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ]
+  },
+  "cli": {
+    "wall_seconds": 81.42,
+    "peak_rss_kib": 3499704,
+    "exit_code": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 130081,
+      "references": 1092834,
+      "resolved_edges": 328144,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 29,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "phases": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 272
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 363
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6162
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 11611
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 38373
+      }
+    ],
+    "manifest": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "c908a45b8fa60d87",
+      "semantic_revision": 11,
+      "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+      "input_inventory_fingerprint": "0e4f0147b5e7f76c",
+      "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "9afcc2b4046f9940",
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "receipts": [
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-cli-result.json",
+        "bytes": 16592,
+        "sha256": "360f02db74be505da8e456b200a4f0a5e66d11f9826c2376fdb0c51be7c3737f"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-cli-time.txt",
+        "bytes": 972,
+        "sha256": "c6cac802d77fa1e1bd6acbff62664b0332e5dde28c135ea155a40af16ae19787"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-cli-trace.txt",
+        "bytes": 10967161,
+        "sha256": "189e12f3943a4197e9a955556db1c02a7370c41e902a781553205181a83b5a10"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-artifacts/semantic-graph.json",
+        "bytes": 793166985,
+        "sha256": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-artifacts/scan-manifest.json",
+        "bytes": 2248705,
+        "sha256": "54395cf5842390147bd1bbccaaf28936bfa61aedb76d3ec7eaf7499211ad56aa"
+      }
+    ]
+  },
+  "mcp": {
+    "process": {
+      "pid": 2980708,
+      "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-capture-identity",
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+      "started_at": "2026-09-09T22:48:16.515Z"
+    },
+    "environment": {
+      "AIGISCORE_FAST_LOAD": "1",
+      "AIGISCORE_INCREMENTAL_SCAN": "1",
+      "AIGISCORE_INCREMENTAL_RESOLVE": null,
+      "AIGISCORE_TRACE": "1"
+    },
+    "requests": [
+      {
+        "id": 1,
+        "label": "initialize",
+        "sent_ms": 5.143231,
+        "received_ms": 9.367863,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 2,
+        "label": "initial-overview",
+        "sent_ms": 9.637577,
+        "received_ms": 44563.564034,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 3,
+        "label": "initial-findings",
+        "sent_ms": 44564.457435,
+        "received_ms": 44605.824745,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 4,
+        "label": "initial-coverage",
+        "sent_ms": 44621.981636,
+        "received_ms": 44622.701243999996,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 5,
+        "label": "initial-quality",
+        "sent_ms": 44623.025329,
+        "received_ms": 44623.346069,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 6,
+        "label": "initial-guard",
+        "sent_ms": 44623.692815,
+        "received_ms": 44624.16472,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 7,
+        "label": "initial-convergence",
+        "sent_ms": 44624.519052999996,
+        "received_ms": 44654.616195,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 8,
+        "label": "changed-input-receipt",
+        "sent_ms": 44671.306236,
+        "received_ms": 44671.676870999996,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 9,
+        "label": "changed-overview-0",
+        "sent_ms": 44671.82941,
+        "received_ms": 98450.870161,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 10,
+        "label": "changed-findings",
+        "sent_ms": 98451.538207,
+        "received_ms": 98486.651451,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 11,
+        "label": "changed-coverage",
+        "sent_ms": 98501.495251,
+        "received_ms": 98502.192201,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 12,
+        "label": "changed-quality",
+        "sent_ms": 98502.460997,
+        "received_ms": 98503.285308,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 13,
+        "label": "changed-guard",
+        "sent_ms": 98503.468997,
+        "received_ms": 98504.135938,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 14,
+        "label": "changed-convergence",
+        "sent_ms": 98504.445781,
+        "received_ms": 98535.147446,
+        "error": null,
+        "is_error": false
+      }
+    ],
+    "initial_metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/capture-identity-artifacts/.generations/18d3c8980a2a8c05-2d5957-0",
+        "generation": "18d3c8980a2a8c05-2d5957-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788994141071,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "watching"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    "changed_metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/capture-identity-artifacts/.generations/18d3c8980a2a8c05-2d5957-0",
+        "generation": "18d3c8980a2a8c05-2d5957-0",
+        "inputs_match_index": false
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788994194644,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    "mutation": {
+      "path": "clients/mitel/i18n/cs_CZ/Task.json",
+      "save_started_ms": 44671.077467,
+      "receipt": {
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/i18n/cs_CZ/Task.json"
+          ],
+          "generated_at_unix_ms": 1788994141071,
+          "indexed_revision": 1,
+          "is_stale": true,
+          "observed_revision": 2,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "watching"
+        },
+        "min_revision": 2,
+        "paths": [
+          "clients/mitel/i18n/cs_CZ/Task.json"
+        ]
+      }
+    },
+    "first_overview_ms": 44563.7846,
+    "refresh_ms": 53779.987954,
+    "fast_load_count": 1,
+    "full_parse_count": 1,
+    "exit": {
+      "code": 0,
+      "signal": null,
+      "elapsed_ms": 99308.039364
+    },
+    "raw_files": [
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/1.json",
+        "bytes": 523,
+        "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/10.json",
+        "bytes": 3261842,
+        "sha256": "c4f1f1690493de7eb6d833d944c58d4a89d18277767739c0d8e5b9e97d6cb631"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/11.json",
+        "bytes": 15950,
+        "sha256": "880b40a7c230ae0e2b04e30bb18dc134ab45b6d3c4fa83e11d0343d28a90fb46"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/12.json",
+        "bytes": 19584,
+        "sha256": "74db3b5374642bae7cdcedcef4d8fcf474ddddef0b4f9becf7f42f1bd657c482"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/13.json",
+        "bytes": 60283,
+        "sha256": "eb3423f20498e02fd1290df93ec820245f167a0572e53a653c99b6642be69211"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/14.json",
+        "bytes": 3946489,
+        "sha256": "b3181548928539e8245e21aa11d54cdb5ac3aea81e939de9db931589ce43d454"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/2.json",
+        "bytes": 292293,
+        "sha256": "0d352c83b32e79cbb177a0615059e1099f26be99c49a3812e49b011837d90de3"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/3.json",
+        "bytes": 3261840,
+        "sha256": "990d870c1a797713f1c1537cdeb9e2853e132254f2a0a8dcf5b5d8a45039cc82"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/4.json",
+        "bytes": 15948,
+        "sha256": "4af1dc3e3281302b90f4fbdba75f04d574742ec6ec5fa30106c1e8875ad16997"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/5.json",
+        "bytes": 19582,
+        "sha256": "4234b0496f4ceca1c00da8e6b97e0e47fba89ddc6498b816e14a6771465503b2"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/6.json",
+        "bytes": 60281,
+        "sha256": "aa59221a608a4256cfe50d77fd1c099b845ee0a0847297193e8d17f2f6a1b3e1"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/7.json",
+        "bytes": 3946487,
+        "sha256": "46694b2d3b12a76608fb64d8d767f1769df44ecface351ce820dbc0736eb80fc"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/8.json",
+        "bytes": 1652,
+        "sha256": "ab16cd027d043507c9e1c425cfed8bca7662496c390454c39b6555aec5742513"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/9.json",
+        "bytes": 292294,
+        "sha256": "532b61d21bca3bb2c9c6f395156f266ceeb3830ef8128f6d52f3d89ab2be76ed"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-convergence.json",
+        "bytes": 3254865,
+        "sha256": "ad053e6690e16b19530dd67cc26611d3abf19bfe394d6dbdf360f908145257a0"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-coverage.json",
+        "bytes": 9560,
+        "sha256": "17b1e149fb0e8da233c8e3ce3647148045e04996cb3d593f8b0e519f2292ab4d"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-findings.json",
+        "bytes": 2513767,
+        "sha256": "c7804eb27f18cd44448f85c3b6cbc58addddb827b4492e425b49f1f2b6d7e267"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-guard.json",
+        "bytes": 51490,
+        "sha256": "7fe63a525b53056f9acf888a6979939542e5cc19595dedbbe40fbbebdf9b6121"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-meta.json",
+        "bytes": 804,
+        "sha256": "652a44c23a4e81a6b9992dfbd9152640c4853f3d58023b3e62523a172dfe3e5b"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-overview.json",
+        "bytes": 141310,
+        "sha256": "6a0ac599fd547aa686d387845eea3316f350464bae45a1c8fe086d0c0d8643ab"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/changed-quality.json",
+        "bytes": 12697,
+        "sha256": "cabb000eaca55fc4a894847ce3f037ca1650ca7c5795e9f41de6fcff1266613c"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/exit.json",
+        "bytes": 50,
+        "sha256": "b1641ae8c644a788451066b659159e648875334bac9c275361c4edf5d547926a"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-convergence.json",
+        "bytes": 3254865,
+        "sha256": "689c5902221d4aa8198d2b4b2ff0ce13af4d08c427c01e05e6c7a4db0038d5a1"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-coverage.json",
+        "bytes": 9560,
+        "sha256": "17b1e149fb0e8da233c8e3ce3647148045e04996cb3d593f8b0e519f2292ab4d"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-findings.json",
+        "bytes": 2513767,
+        "sha256": "c7804eb27f18cd44448f85c3b6cbc58addddb827b4492e425b49f1f2b6d7e267"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-guard.json",
+        "bytes": 51490,
+        "sha256": "46b97729312acc7a2e61ac914f3d852963ea72af1b7cab2649dd1c3696e06529"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-meta.json",
+        "bytes": 803,
+        "sha256": "a4538f846aad8074d601ef243170299573becaf1af7f6c6f361d3a58812bda37"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-overview.json",
+        "bytes": 141310,
+        "sha256": "a06f2a1f86ab97816a39fbcaa5807c62ee0713e9790c223007364dca1593bd85"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/initial-quality.json",
+        "bytes": 12697,
+        "sha256": "cabb000eaca55fc4a894847ce3f037ca1650ca7c5795e9f41de6fcff1266613c"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/mutation.json",
+        "bytes": 418,
+        "sha256": "0589462ffba67f0e1edaac1dbee1b0b4cdb8f9363f8d73608f4d0cda904a3655"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/process.json",
+        "bytes": 272,
+        "sha256": "3fbd3f0bb3dfdcec1f15843b669dc5574e49361e54b9b6811e7b60d2008aa529"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/requests.json",
+        "bytes": 2222,
+        "sha256": "747ec0d5b70f469443649faf390fdb0b7d9b7187f899ee0635ba566bd03cffbe"
+      },
+      {
+        "path": "target/reliability-2026-09-09/capture-identity-mcp/stderr.txt",
+        "bytes": 11591238,
+        "sha256": "a6f9a0acda1107c844fab7896fa33c14e92663c8dc0694af90ce5c63ef4ba8b6"
+      }
+    ]
+  },
+  "comparison": {
+    "comparisons": [
+      {
+        "name": "semantic-graph.json",
+        "prior": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde",
+        "current": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde",
+        "equal": true
+      },
+      {
+        "name": "ast-grep-scan.json",
+        "prior": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246",
+        "current": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246",
+        "equal": true
+      }
+    ],
+    "views": [
+      {
+        "name": "findings",
+        "equal": true,
+        "initial_sha256": "c7804eb27f18cd44448f85c3b6cbc58addddb827b4492e425b49f1f2b6d7e267",
+        "changed_sha256": "c7804eb27f18cd44448f85c3b6cbc58addddb827b4492e425b49f1f2b6d7e267"
+      },
+      {
+        "name": "coverage",
+        "equal": true,
+        "initial_sha256": "17b1e149fb0e8da233c8e3ce3647148045e04996cb3d593f8b0e519f2292ab4d",
+        "changed_sha256": "17b1e149fb0e8da233c8e3ce3647148045e04996cb3d593f8b0e519f2292ab4d"
+      },
+      {
+        "name": "quality",
+        "equal": true,
+        "initial_sha256": "cabb000eaca55fc4a894847ce3f037ca1650ca7c5795e9f41de6fcff1266613c",
+        "changed_sha256": "cabb000eaca55fc4a894847ce3f037ca1650ca7c5795e9f41de6fcff1266613c"
+      }
+    ],
+    "initial_identity": {
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "engine_fingerprint": "c908a45b8fa60d87",
+      "engine_version": "0.1.0",
+      "external_checks_complete": true,
+      "external_tools": [],
+      "input_inventory_fingerprint": "0e4f0147b5e7f76c",
+      "resolve_config_fingerprint": "9afcc2b4046f9940",
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+      "semantic_revision": 11,
+      "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f"
+    },
+    "changed_identity": {
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "engine_fingerprint": "c908a45b8fa60d87",
+      "engine_version": "0.1.0",
+      "external_checks_complete": true,
+      "external_tools": [],
+      "input_inventory_fingerprint": "cfca57f2dc4e058e",
+      "resolve_config_fingerprint": "9afcc2b4046f9940",
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+      "semantic_revision": 11,
+      "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f"
+    },
+    "initial_work": {
+      "bytes_processed": 123142927,
+      "bytes_reused": 0,
+      "files_processed": 17067,
+      "files_reused": 0
+    },
+    "changed_work": {
+      "bytes_processed": 0,
+      "bytes_reused": 123142927,
+      "files_processed": 0,
+      "files_reused": 17067
+    }
+  },
+  "self_audit": {
+    "wall_seconds": 2.94,
+    "peak_rss_kib": 160584,
+    "exit_code": 1,
+    "analyzed_files": 119,
+    "secondary_coverage": {
+      "status": "complete",
+      "input_files": 119,
+      "scanned_files": 57,
+      "prefiltered_files": 62,
+      "oversized_files": 0,
+      "unsupported_files": 0,
+      "other_gap_files": 0,
+      "scope_limited_files": 0,
+      "gap_bytes": 0,
+      "gap_files_preview": []
+    },
+    "input_coverage": {
+      "status": "incomplete",
+      "supported_source_files": 119,
+      "parsed_source_files": 119,
+      "recovered_source_files": 2,
+      "scope_limited_files": 0,
+      "files_without_parse_evidence": 0,
+      "unsupported_source_files": 2,
+      "other_input_files": 126,
+      "diagnostic_count": 2,
+      "parse_issues_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+          "parser": "tree-sitter-rust",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 1,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 249,
+              "start_column": 50,
+              "end_line": 249,
+              "end_column": 54
+            }
+          ],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+          "parser": "tree-sitter-rust",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 1,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 2357,
+              "start_column": 57,
+              "end_line": 2357,
+              "end_column": 61
+            }
+          ],
+          "diagnostics_truncated": false
+        }
+      ],
+      "unsupported_sources_preview": [
+        {
+          "file_path": "install.ps1",
+          "extension": "ps1"
+        },
+        {
+          "file_path": "install.sh",
+          "extension": "sh"
+        }
+      ],
+      "deferred_checks": [
+        "unused_imports",
+        "unused_private_functions",
+        "orphan_modules",
+        "confirmed_orphan_files"
+      ]
+    },
+    "receipts": [
+      {
+        "path": "target/reliability-2026-09-09/self-capture-identity-result.json",
+        "bytes": 7195,
+        "sha256": "b1eaa50e0a92718b25b6a819fc3e93ef9480f9233c2077702e6d885aef42b005"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-capture-identity-time.txt",
+        "bytes": 898,
+        "sha256": "99382ddc7786589b4658e2225de00d32e4faafd4e2fc5dea673858234a026a26"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-capture-identity-trace.txt",
+        "bytes": 55249,
+        "sha256": "0d156c383390c6e9383c9b00d342490dff3fb200e01a9cfebdfd714843f3dc1b"
+      }
+    ]
+  },
+  "evidence_files": [
+    {
+      "path": "target/reliability-2026-09-09/capture-identity-source.json",
+      "bytes": 585,
+      "sha256": "d39d95ef47f3fe9e717225bf75c17173006bd527e7aea27f8dea39c4167dcc5c"
+    },
+    {
+      "path": "target/reliability-2026-09-09/capture-identity-client.cjs",
+      "bytes": 4433,
+      "sha256": "2b0bb28bda54e827df1ffd1a2e6b24e1c3b6bbfe09359849273fdebf27e74c67"
+    },
+    {
+      "path": "target/reliability-2026-09-09/capture-identity-comparison.json",
+      "bytes": 2855,
+      "sha256": "ee19f8449e856aaaeb1b26c9c7b1ce6e6acbf9c1c44b45b2bb1b353322ac8b2e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/capture-identity-integrity.cjs",
+      "bytes": 3038,
+      "sha256": "c5724eab83ae9c54d4ed99a7345e1b2197669233e17e9074823d9fe88e6a74f6"
+    },
+    {
+      "path": "target/reliability-2026-09-09/capture-identity-integrity.json",
+      "bytes": 1831,
+      "sha256": "5f65a8eab194ceca5892cd598e4b50b61ffa2a4cd05e0b4684aa848af6ebc1cb"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-attempt-1-inventory.json",
+      "bytes": 4653554,
+      "sha256": "7a952b3daba1463b91c4fe743de0ee797c0e1ec5d95a1d1f33882f59cfb1cbd3"
+    }
+  ],
+  "limitations": [
+    "The real change is a captured translation JSON update; unchanged graph/findings demonstrate that conservative inventory invalidation does not imply the older engine resolved this translation incorrectly.",
+    "New pre-parse byte checks do not establish whole-capture atomicity or freeze later plugin/configuration reads.",
+    "Automatic retries of witnessed capture changes, unreadable/non-file configuration and hidden-parent watch behavior have written regressions but were not dynamically fault-injected under the test stop.",
+    "This invocation used a preserved 23,296-file capture and only changed its isolated copy; original Draivix and preserved captures were read only.",
+    "CLI exit1 and Block reflect incomplete coverage; successful cache validation does not certify code quality or security.",
+    "Timings are individual shared-host observations, not statistical speedup or concurrent-load measurements.",
+    "Full approved CI and overall Q01-Q12 acceptance remain open."
+  ]
+}

@@ -75,10 +75,12 @@ the delta as completed verification. See `docs/MCP_EDIT_RECEIPTS.md`.
 - `.aigiscode/scan-manifest.json`
 
 `scan-manifest.json` is the fast-load fingerprint: with `AIGISCORE_FAST_LOAD=1`,
-`aigiscode mcp` verifies it (version, resolver-config hash, per-file content
-hashes) and skips Parse+Resolve when everything matches, declining to a full
-analysis on source/configuration/engine mismatch. A damaged committed artifact
-generation is an explicit integrity error.
+`aigiscode mcp` verifies engine/scope, the admitted input inventory, declared
+semantic environment, resolver configuration, source hashes and graph checksum.
+It skips Parse+Resolve only when these match, otherwise performing a full analysis.
+A damaged committed generation is an explicit integrity error. Source bytes must
+also agree with the scan before parsing or fast loading; see
+`docs/INPUT_CAPTURE_CONTRACT.md` for the remaining capture limits.
 
 Full analyses publish the 20 analytical artifacts in an immutable
 `.aigiscode/.generations/<id>/` directory and atomically select it with

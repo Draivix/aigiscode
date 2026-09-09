@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::collections::HashSet;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use thiserror::Error;
@@ -152,8 +153,22 @@ pub struct ScanResult {
     pub semantic_env: SemanticEnvSnapshot,
 }
 
+impl ScanResult {
+    /// Identity of every admitted input, including data files, without mtimes.
+    pub fn input_fingerprint(&self) -> String {
+        let mut hash = std::collections::hash_map::DefaultHasher::new();
+        for file in &self.files {
+            file.relative_path.hash(&mut hash);
+            file.content_hash.0.hash(&mut hash);
+        }
+        format!("{:016x}", hash.finish())
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum ScanError {
+    #[error("failed to read semantic configuration {path}: {source}")]
+    SemanticConfig { path: PathBuf, #[source] source: std::io::Error },
     #[error("failed to resolve analysis root {path}: {source}")]
     Canonicalize { path: PathBuf, #[source] source: std::io::Error },
     #[error("invalid generated path prefix {0}: expected a nonempty repository-relative path without parent components")]
@@ -265,7 +280,7 @@ pub fn scan_repository(
         skipped_hidden_dirs: skipped_hidden_dirs.get(),
     };
     let scope = build_analysis_scope(&root, &effective_config);
-    let semantic_env = compute_semantic_env(&root);
+    let semantic_env = compute_semantic_env(&root)?;
 
     Ok(ScanResult {
         root,
@@ -299,7 +314,7 @@ fn scan_scope_fingerprint(config: &ScanConfig) -> String {
 
 /// Config files whose change can alter code meaning without altering source text. Scanned
 /// at the analysis root; conservative and language-agnostic for Phase 1.
-const SEMANTIC_ENV_CANDIDATES: &[&str] = &[
+pub(crate) const SEMANTIC_ENV_CANDIDATES: &[&str] = &[
     "Cargo.toml",
     "Cargo.lock",
     "rust-toolchain.toml",
@@ -326,7 +341,7 @@ const SEMANTIC_ENV_CANDIDATES: &[&str] = &[
 /// Fingerprint the semantic environment: for each candidate config file, fold its path,
 /// existence, size, and content hash into one xxh3-128 digest. Deterministic and ordered;
 /// mtimes are deliberately excluded (they are not identity).
-pub fn compute_semantic_env(root: &Path) -> SemanticEnvSnapshot {
+pub fn compute_semantic_env(root: &Path) -> Result<SemanticEnvSnapshot, ScanError> {
     let mut hasher = Xxh3::new();
     let mut inputs = Vec::with_capacity(SEMANTIC_ENV_CANDIDATES.len());
     for rel in SEMANTIC_ENV_CANDIDATES {
@@ -334,7 +349,9 @@ pub fn compute_semantic_env(root: &Path) -> SemanticEnvSnapshot {
         hasher.update(rel.as_bytes());
         match fs::metadata(&abs) {
             Ok(meta) if meta.is_file() => {
-                let hash = hash_file_xxh3(&abs).unwrap_or(ContentHash(0));
+                let hash = hash_file_xxh3(&abs).map_err(|source| ScanError::SemanticConfig {
+                    path: abs.clone(), source,
+                })?;
                 hasher.update(&[1]);
                 hasher.update(&meta.len().to_le_bytes());
                 hasher.update(&hash.0.to_le_bytes());
@@ -345,7 +362,7 @@ pub fn compute_semantic_env(root: &Path) -> SemanticEnvSnapshot {
                     content_hash: Some(hash),
                 });
             }
-            _ => {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 hasher.update(&[0]);
                 inputs.push(SemanticEnvInput {
                     relative_path: PathBuf::from(rel),
@@ -354,12 +371,22 @@ pub fn compute_semantic_env(root: &Path) -> SemanticEnvSnapshot {
                     content_hash: None,
                 });
             }
+            result => return Err(ScanError::SemanticConfig {
+                path: abs,
+                source: match result {
+                    Err(error) => error,
+                    Ok(_) => std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "semantic configuration is not a regular file",
+                    ),
+                },
+            }),
         }
     }
-    SemanticEnvSnapshot {
+    Ok(SemanticEnvSnapshot {
         fingerprint: SemanticEnvFingerprint(hasher.digest128()),
         inputs,
-    }
+    })
 }
 
 fn build_analysis_scope(root: &Path, config: &ScanConfig) -> AnalysisScope {
@@ -599,7 +626,7 @@ fn overlaps_include_prefixes(path: &Path, include_path_prefixes: &[PathBuf]) -> 
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_semantic_env, scan_repository, AnalysisBoundaryTruth, ScanConfig};
+    use super::{compute_semantic_env, scan_repository, AnalysisBoundaryTruth, ScanConfig, ScanError};
     use crate::revision::ContentHash;
     use std::collections::HashSet;
     use std::fs;
@@ -657,22 +684,30 @@ mod tests {
     }
 
     #[test]
+    fn semantic_configuration_directories_are_errors_not_missing_inputs() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".cargo/config.toml")).unwrap();
+        assert!(matches!(compute_semantic_env(&fixture), Err(ScanError::SemanticConfig { .. })));
+        assert!(matches!(scan_repository(&fixture, &ScanConfig::default()), Err(ScanError::SemanticConfig { .. })));
+    }
+
+    #[test]
     fn semantic_env_fingerprint_tracks_config_not_source() {
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src")).unwrap();
         fs::write(fixture.join("Cargo.toml"), b"[package]\nname = \"x\"\n").unwrap();
         fs::write(fixture.join("src/main.rs"), b"fn main() {}").unwrap();
 
-        let base = compute_semantic_env(&fixture);
+        let base = compute_semantic_env(&fixture).unwrap();
         assert_ne!(base.fingerprint, Default::default());
 
         // Changing a source file must NOT move the semantic-env fingerprint.
         fs::write(fixture.join("src/main.rs"), b"fn main() { let _ = 1; }").unwrap();
-        assert_eq!(compute_semantic_env(&fixture).fingerprint, base.fingerprint);
+        assert_eq!(compute_semantic_env(&fixture).unwrap().fingerprint, base.fingerprint);
 
         // Changing Cargo.toml MUST move it.
         fs::write(fixture.join("Cargo.toml"), b"[package]\nname = \"y\"\n").unwrap();
-        assert_ne!(compute_semantic_env(&fixture).fingerprint, base.fingerprint);
+        assert_ne!(compute_semantic_env(&fixture).unwrap().fingerprint, base.fingerprint);
     }
 
     #[test]
