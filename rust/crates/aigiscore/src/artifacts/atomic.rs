@@ -14,6 +14,9 @@ pub(super) fn write<T>(
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
+    if parent.join(super::publication::SEAL).try_exists()? {
+        return Err(io::Error::new(io::ErrorKind::PermissionDenied, "published artifact generations are immutable"));
+    }
     let mut temporary = None;
     for _ in 0..128 {
         let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);

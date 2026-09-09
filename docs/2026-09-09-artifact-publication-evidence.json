@@ -1,0 +1,922 @@
+{
+  "observed_at": "2026-09-09T15:31:30.898Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-publication",
+    "sha256": "1d04c7538b09c8c9a609d00e79e3e5c3b4f95c28f13186a1ae93c3c54f382af0",
+    "engine_fingerprint": "bd2b98e570b1956c",
+    "build_seconds": 46.18
+  },
+  "source": {
+    "snapshot": "target/reliability-2026-09-09/draivix-full-source",
+    "identity": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "bd2b98e570b1956c",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "input_inventory_fingerprint": "55327d3f0dae4cc7",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "source_edits": false,
+    "scope_receipt": "2026-09-09-draivix-revalidation-evidence.json",
+    "final_original_integrity": {
+      "verified_at": "2026-09-09T15:33:13.913Z",
+      "files": 23166,
+      "added": [],
+      "removed": [],
+      "changed": []
+    }
+  },
+  "runs": [
+    {
+      "name": "legacy_migration",
+      "wall_seconds": 78.8,
+      "peak_rss_kib": 3490740,
+      "exit_code": 1,
+      "output": "target/reliability-2026-09-09/draivix-publication/.generations/18d3af6d49062253-9ec90-0"
+    },
+    {
+      "name": "next_generation",
+      "wall_seconds": 81.62,
+      "peak_rss_kib": 3509088,
+      "exit_code": 1,
+      "output": "target/reliability-2026-09-09/draivix-publication/.generations/18d3b03843535f43-af819-0"
+    }
+  ],
+  "summary_identical": true,
+  "summary": {
+    "ast_grep_coverage": {
+      "status": "incomplete",
+      "input_files": 17013,
+      "scanned_files": 8139,
+      "prefiltered_files": 8064,
+      "oversized_files": 18,
+      "unsupported_files": 792,
+      "other_gap_files": 0,
+      "gap_bytes": 19450827,
+      "gap_files_preview": [
+        {
+          "file_path": "resources/js/types/entities.d.ts",
+          "bytes": 2597200,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+          "bytes": 411550,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+          "bytes": 397091,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+          "bytes": 377578,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "clients/trido/Services/PortalDataService.php",
+          "bytes": 328210,
+          "reason": "file_too_large_for_secondary_scan"
+        }
+      ]
+    },
+    "input_coverage": {
+      "status": "incomplete",
+      "supported_source_files": 17013,
+      "parsed_source_files": 17013,
+      "recovered_source_files": 81,
+      "scope_limited_files": 792,
+      "files_without_parse_evidence": 0,
+      "unsupported_source_files": 146,
+      "other_input_files": 6007,
+      "diagnostic_count": 811,
+      "parse_issues_preview": [
+        {
+          "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+          "parser": "tree-sitter-php",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 3,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 386,
+              "start_column": 20,
+              "end_line": 389,
+              "end_column": 1
+            },
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 409,
+              "start_column": 20,
+              "end_line": 409,
+              "end_column": 24
+            },
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 411,
+              "start_column": 6,
+              "end_line": 453,
+              "end_column": 2
+            }
+          ],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+          "parser": "tree-sitter-php",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 52,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 266,
+              "start_column": 16,
+              "end_line": 276,
+              "end_column": 1
+            },
+            {
+              "kind": "missing_node",
+              "node_kind": ";",
+              "start_line": 288,
+              "start_column": 6,
+              "end_line": 288,
+              "end_column": 6
+            },
+            {
+              "kind": "missing_node",
+              "node_kind": ";",
+              "start_line": 288,
+              "start_column": 19,
+              "end_line": 288,
+              "end_column": 19
+            }
+          ],
+          "diagnostics_truncated": true
+        },
+        {
+          "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+          "parser": "tree-sitter-typescript",
+          "scope": "vue_script_only",
+          "required_recovery": false,
+          "diagnostic_count": 0,
+          "diagnostics": [],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+          "parser": "tree-sitter-typescript",
+          "scope": "vue_script_only",
+          "required_recovery": false,
+          "diagnostic_count": 0,
+          "diagnostics": [],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+          "parser": "tree-sitter-typescript",
+          "scope": "vue_script_only",
+          "required_recovery": false,
+          "diagnostic_count": 0,
+          "diagnostics": [],
+          "diagnostics_truncated": false
+        }
+      ],
+      "unsupported_sources_preview": [
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+          "extension": "java"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+          "extension": "go"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+          "extension": "go"
+        },
+        {
+          "file_path": "ci/overlay/baseline-guard.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/bump.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/frontend.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/gates.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/legacy-view-config.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/lib.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/mount.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "ci/overlay/tests.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_order_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_product_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_production_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_role_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_user_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+          "extension": "sql"
+        },
+        {
+          "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+          "extension": "sh"
+        },
+        {
+          "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+          "extension": "sh"
+        }
+      ],
+      "deferred_checks": [
+        "unused_imports",
+        "unused_private_functions",
+        "orphan_modules",
+        "confirmed_orphan_files"
+      ]
+    },
+    "scanned_files": 23166,
+    "analyzed_files": 17013,
+    "symbols": 129454,
+    "references": 1086615,
+    "resolved_edges": 325573,
+    "strong_cycle_count": 19,
+    "total_cycle_count": 29,
+    "architectural_smell_count": 4,
+    "warning_heavy_hotspot_count": 0,
+    "split_identity_model_count": 20,
+    "compatibility_scar_count": 10,
+    "duplicate_mechanism_count": 22,
+    "hand_rolled_parsing_count": 19,
+    "abstraction_sprawl_count": 25,
+    "algorithmic_complexity_hotspot_count": 1534,
+    "ast_grep_finding_count": 9497,
+    "ast_grep_algorithmic_complexity_count": 2469,
+    "ast_grep_security_dangerous_api_count": 248,
+    "ast_grep_framework_misuse_count": 6780,
+    "ast_grep_skipped_file_count": 8874,
+    "ast_grep_skipped_bytes": 39912445,
+    "ast_grep_skipped_files_preview": [
+      {
+        "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+        "bytes": 962,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+        "bytes": 1116,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+        "bytes": 1793,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+        "bytes": 854,
+        "reason": "no_family_prefilter_hit"
+      },
+      {
+        "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+        "bytes": 600,
+        "reason": "no_family_prefilter_hit"
+      }
+    ],
+    "dead_code_count": 0,
+    "hardwiring_count": 1319,
+    "security_finding_count": 65,
+    "external_tool_count": 0,
+    "external_checks": {
+      "status": "not_requested",
+      "requested": 0,
+      "completed": 0,
+      "failed": 0,
+      "unavailable": 0
+    },
+    "external_finding_count": 0
+  },
+  "retention": {
+    "first_generation": "18d3af6d49062253-9ec90-0",
+    "second_generation": "18d3b03843535f43-af819-0",
+    "first_directory": "target/reliability-2026-09-09/draivix-publication/.generations/18d3af6d49062253-9ec90-0",
+    "second_directory": "target/reliability-2026-09-09/draivix-publication/.generations/18d3b03843535f43-af819-0",
+    "old_pin_selects_first": true,
+    "old_seal_unchanged": true,
+    "new_marker_directory_matches": true,
+    "generation_count": 2,
+    "generation_bytes": 1662106082,
+    "first_generation_bytes": 1662106063,
+    "members": [
+      {
+        "name": "agentic-review.json",
+        "sha256": "00227625a9cba919abd0f49fa0006f975ec62e493722a10f126ad2b04c92f10c",
+        "compatibility_matches": true
+      },
+      {
+        "name": "aigiscode-handoff.json",
+        "sha256": "12fe7eda7594b3343c12e5b29c81e1d352fe5edfc9c27ce781e5cf4978d308ef",
+        "compatibility_matches": true
+      },
+      {
+        "name": "aigiscode-report.json",
+        "sha256": "f5d9a413941b3183220281efa3dca72ff0a8eec376ed6c02ab58416850c79b1c",
+        "compatibility_matches": true
+      },
+      {
+        "name": "aigiscode-report.md",
+        "sha256": "2b6ef2d7f022cf70b1c318b224eaad58869158edc1aeb587a08154a47738f142",
+        "compatibility_matches": true
+      },
+      {
+        "name": "architecture-surface.json",
+        "sha256": "dd5a8f766b932d811e5d7e16e24b76b7fb7ada4eeb7f2055b8cd9d1349006394",
+        "compatibility_matches": true
+      },
+      {
+        "name": "ast-grep-scan.json",
+        "sha256": "74cdf13b00b31cdc9b335b8781971e6218203e7e18cd6fc5d8bfe3d8af0ffd81",
+        "compatibility_matches": true
+      },
+      {
+        "name": "contract-inventory.json",
+        "sha256": "a73a674fd2912c87d5deef1023a4ca758b29c594779974013fe055c6f1b8a012",
+        "compatibility_matches": true
+      },
+      {
+        "name": "convergence-history.json",
+        "sha256": "eeafd31ec94842aeac8883628ef34bafeb4c4dd54b0e1d5032b8a0db1e56746a",
+        "compatibility_matches": true
+      },
+      {
+        "name": "dependency-graph.json",
+        "sha256": "1193c6fc1c4ae6429d2092d4f921fc7f7bd4cb3245ce5494462f4b94f98f6a76",
+        "compatibility_matches": true
+      },
+      {
+        "name": "deterministic-analysis.json",
+        "sha256": "f5d9a413941b3183220281efa3dca72ff0a8eec376ed6c02ab58416850c79b1c",
+        "compatibility_matches": true
+      },
+      {
+        "name": "deterministic-findings.json",
+        "sha256": "3d0fbfa5e3c31f6e735e22272455b90d4ebcd32050f531813f033a70265ca8ff",
+        "compatibility_matches": true
+      },
+      {
+        "name": "doctrine-registry.json",
+        "sha256": "21b24baadd51b49e519d367c06965b94771cc7a3e4eefec9c618e5b589babe3e",
+        "compatibility_matches": true
+      },
+      {
+        "name": "evidence-graph.json",
+        "sha256": "76dc16c641f9cfdd50904b0282e31357b643587bf27396bbb0751351a98f279e",
+        "compatibility_matches": true
+      },
+      {
+        "name": "external-analysis.json",
+        "sha256": "ab93513ddc68ad82b9a15a4ac05de20864155ac0e0109a27e7dc43ea34fee768",
+        "compatibility_matches": true
+      },
+      {
+        "name": "graph-packets.json",
+        "sha256": "e6ec4ed6dfa9acabd5321b3eebd5f56963642a863e741fafff59687b397e4219",
+        "compatibility_matches": true
+      },
+      {
+        "name": "guard-decision.json",
+        "sha256": "8b7b18f23d676f7b482a013b67f8d2d79f963bb910551c6179ca35bdfbb4a16f",
+        "compatibility_matches": true
+      },
+      {
+        "name": "repository-topology.json",
+        "sha256": "e391dbb63e804cdd021dbffa2919b592a8398503593047a5a8900e98100048b9",
+        "compatibility_matches": true
+      },
+      {
+        "name": "review-surface.json",
+        "sha256": "837fcc537a5e42b5c3a926823e42d6fdc38b627b587115ec15f5971d1687fd55",
+        "compatibility_matches": true
+      },
+      {
+        "name": "scan-manifest.json",
+        "sha256": "c60c6abc4a2bcdaa726f471413c8972f144f956116dc1035276e45f5f3c4d46b",
+        "compatibility_matches": true
+      },
+      {
+        "name": "semantic-graph.json",
+        "sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478",
+        "compatibility_matches": true
+      }
+    ]
+  },
+  "logical_member_storage_bytes": 4986318227,
+  "baseline": {
+    "availability": "verified",
+    "comparison": "not_compared",
+    "current": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "bd2b98e570b1956c",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "input_inventory_fingerprint": "55327d3f0dae4cc7",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "previous": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "bd2b98e570b1956c",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "input_inventory_fingerprint": "55327d3f0dae4cc7",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "reasons": [
+      "current_inputs_incomplete",
+      "current_secondary_checks_incomplete",
+      "previous_secondary_checks_incomplete",
+      "previous_inputs_incomplete"
+    ]
+  },
+  "convergence": {
+    "current_findings": 3218,
+    "previous_findings": 3218,
+    "first_observed_findings": 0,
+    "not_compared_findings": 3218,
+    "new_findings": 0,
+    "worsened_findings": 0,
+    "improved_findings": 0,
+    "unchanged_findings": 0,
+    "resolved_findings": 0
+  },
+  "graph_delta": null,
+  "contract_delta": null,
+  "semantic_graph_hash_unchanged_from_previous_revision": true,
+  "mcp": {
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 43521.090263000006,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 7.265355,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30008.580019999998,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788966760600,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 42459.404344,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "repository_topology",
+          "elapsed_ms": 42479.525755,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 42480.396462000004,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 42480.781413000004,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "fast_load_confirmed": true,
+    "generation_metadata": [
+      {
+        "id": 2,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/draivix-publication/.generations/18d3af6d49062253-9ec90-0",
+          "generation": "18d3af6d49062253-9ec90-0",
+          "inputs_match_index": true
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966803052,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      },
+      {
+        "id": 3,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/draivix-publication/.generations/18d3af6d49062253-9ec90-0",
+          "generation": "18d3af6d49062253-9ec90-0",
+          "inputs_match_index": true
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966803052,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      },
+      {
+        "id": 4,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/draivix-publication/.generations/18d3af6d49062253-9ec90-0",
+          "generation": "18d3af6d49062253-9ec90-0",
+          "inputs_match_index": true
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966803052,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      },
+      {
+        "id": 5,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/draivix-publication/.generations/18d3af6d49062253-9ec90-0",
+          "generation": "18d3af6d49062253-9ec90-0",
+          "inputs_match_index": true
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966803052,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      }
+    ]
+  },
+  "newer_self_index_with_old_disk_generation": {
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 2144.5687850000004,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 7.073302999999999,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 2117.901393,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "repository_topology",
+          "elapsed_ms": 2120.051532,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 2120.4573720000003,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 2120.7257560000003,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "metadata": [
+      {
+        "id": 2,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/self-generation/.generations/18d3ae1ae23429b1-80df7-0",
+          "generation": "18d3ae1ae23429b1-80df7-0",
+          "inputs_match_index": false
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966197538,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      },
+      {
+        "id": 3,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/self-generation/.generations/18d3ae1ae23429b1-80df7-0",
+          "generation": "18d3ae1ae23429b1-80df7-0",
+          "inputs_match_index": false
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966197538,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      },
+      {
+        "id": 4,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/self-generation/.generations/18d3ae1ae23429b1-80df7-0",
+          "generation": "18d3ae1ae23429b1-80df7-0",
+          "inputs_match_index": false
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966197538,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      },
+      {
+        "id": 5,
+        "publication": {
+          "directory": "target/reliability-2026-09-09/self-generation/.generations/18d3ae1ae23429b1-80df7-0",
+          "generation": "18d3ae1ae23429b1-80df7-0",
+          "inputs_match_index": false
+        },
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788966197538,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        }
+      }
+    ]
+  },
+  "verification": {
+    "production_build_passed": true,
+    "actual_draivix_publications": 2,
+    "old_generation_native_info_after_new_commit": true,
+    "flat_compatibility_copies_match_current": true,
+    "real_mcp_requests": true,
+    "automated_tests_run": false,
+    "ci_run": false,
+    "fault_injection_or_process_kill_run": false,
+    "simultaneous_publishers_run": false,
+    "windows_run": false
+  }
+}

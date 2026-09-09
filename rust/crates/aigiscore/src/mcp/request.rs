@@ -81,6 +81,8 @@ impl AigiscodeMcpServer {
         let secondary = snapshot.map(|snapshot| &snapshot.repo_overview.overview.ast_grep_coverage);
         Ok(Meta(serde_json::Map::from_iter([
             (String::from("aigiscode/freshness"), value),
+            (String::from("aigiscode/artifact_generation"), serde_json::to_value(snapshot.map(|snapshot| &snapshot.artifact_generation))
+                .map_err(|error| McpError::internal_error(error.to_string(), None))?),
             (String::from("aigiscode/ast_grep_coverage"), serde_json::json!({
                 "status": secondary.map_or(crate::scanners::coverage::SecondaryCoverageStatus::Unknown, |coverage| coverage.status),
                 "oversized_files": secondary.map(|coverage| coverage.oversized_files),

@@ -9,12 +9,7 @@ use crate::artifacts::{
     write_dependency_graph_artifact, write_evidence_graph_artifact,
     write_project_analysis_artifacts, write_project_analysis_artifacts_with_context,
     write_semantic_graph_artifact, ArtifactPaths, BaselineSnapshot,
-    AGENTIC_REVIEW_FILE, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
-    ARCHITECTURE_SURFACE_FILE, AST_GREP_SCAN_FILE, CONTRACT_INVENTORY_FILE,
-    CONVERGENCE_HISTORY_FILE, DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE,
-    DETERMINISTIC_FINDINGS_FILE, DOCTRINE_REGISTRY_FILE, EVIDENCE_GRAPH_FILE,
-    EXTERNAL_ANALYSIS_FILE, GRAPH_PACKETS_FILE, GUARD_DECISION_FILE, REPOSITORY_TOPOLOGY_FILE,
-    REVIEW_SURFACE_FILE, SCAN_MANIFEST_FILE, SEMANTIC_GRAPH_FILE,
+
 };
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
@@ -1333,7 +1328,11 @@ fn build_plugins_command_output() -> PluginsCommandOutput {
 }
 
 fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<JsonValue, String> {
-    let artifact_paths = expected_artifact_paths(root, output_dir);
+    let requested_paths = expected_artifact_paths(root, output_dir);
+    let snapshot = crate::artifacts::ArtifactSnapshot::pin(&requested_paths.output_dir)
+        .map_err(|error| format!("failed to pin analysis artifacts: {error}"))?
+        .ok_or_else(|| format!("no analysis artifacts found under {}", requested_paths.output_dir.display()))?;
+    let artifact_paths = ArtifactPaths::in_directory(snapshot.directory.clone());
     let kuzu_graph = default_kuzu_path(root, output_dir);
     let report = read_json_if_exists(&artifact_paths.aigiscode_report)?;
     let surface = read_json_if_exists(&artifact_paths.architecture_surface)?;
@@ -1372,6 +1371,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
 
     let output = json!({
         "root": root,
+        "artifact_generation": snapshot.generation,
         "output_dir": artifact_paths.output_dir,
         "artifacts": InfoArtifactPresence {
             deterministic_analysis: artifact_paths.deterministic_analysis.exists(),
@@ -1437,32 +1437,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
 }
 
 fn expected_artifact_paths(root: &Path, output_dir: Option<&Path>) -> ArtifactPaths {
-    let output_dir = output_dir
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| default_output_dir(root));
-    ArtifactPaths {
-        output_dir: output_dir.clone(),
-        deterministic_analysis: output_dir.join(DETERMINISTIC_ANALYSIS_FILE),
-        semantic_graph: output_dir.join(SEMANTIC_GRAPH_FILE),
-        dependency_graph: output_dir.join(DEPENDENCY_GRAPH_FILE),
-        evidence_graph: output_dir.join(EVIDENCE_GRAPH_FILE),
-        contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
-        doctrine_registry: output_dir.join(DOCTRINE_REGISTRY_FILE),
-        deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
-        ast_grep_scan: output_dir.join(AST_GREP_SCAN_FILE),
-        external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
-        architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
-        review_surface: output_dir.join(REVIEW_SURFACE_FILE),
-        convergence_history: output_dir.join(CONVERGENCE_HISTORY_FILE),
-        guard_decision: output_dir.join(GUARD_DECISION_FILE),
-        agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
-        agentic_review: output_dir.join(AGENTIC_REVIEW_FILE),
-        graph_packets: output_dir.join(GRAPH_PACKETS_FILE),
-        repository_topology: output_dir.join(REPOSITORY_TOPOLOGY_FILE),
-        aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
-        aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
-        scan_manifest: output_dir.join(SCAN_MANIFEST_FILE),
-    }
+    ArtifactPaths::in_directory(output_dir.map(Path::to_path_buf).unwrap_or_else(|| default_output_dir(root)))
 }
 
 fn read_json_if_exists(path: &Path) -> Result<Option<JsonValue>, String> {

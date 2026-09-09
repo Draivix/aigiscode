@@ -8,6 +8,7 @@ use globset::{Glob, GlobMatcher};
 use serde::Deserialize;
 use serde_json::Value;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -53,6 +54,7 @@ pub enum SuppressionReason {
 
 #[derive(Debug, Clone, Default)]
 pub struct PolicyBundle {
+    fingerprint: u64,
     graph_orphan_entry_patterns: Vec<GlobMatcher>,
     dead_code_abandoned_entry_patterns: Vec<GlobMatcher>,
     hardwiring_skip_path_patterns: Vec<GlobMatcher>,
@@ -67,13 +69,19 @@ pub struct PolicyBundle {
 }
 
 impl PolicyBundle {
+    pub(crate) fn fingerprint(&self) -> u64 { self.fingerprint }
+
     pub fn load(root: &Path) -> Result<Self, PolicyLoadError> {
         let policy_path = root.join(POLICY_FILE);
         let rules_path = root.join(RULES_FILE);
         let policy = load_optional_json::<PolicyFile>(&policy_path)?;
         let rules = load_optional_rules(&rules_path)?;
+        let mut fingerprint = std::collections::hash_map::DefaultHasher::new();
+        policy.hash(&mut fingerprint);
+        rules.hash(&mut fingerprint);
 
         Ok(Self {
+            fingerprint: fingerprint.finish(),
             graph_orphan_entry_patterns: compile_patterns(
                 &policy_path,
                 &policy.graph.orphan_entry_patterns,
@@ -210,7 +218,7 @@ impl PolicyBundle {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Hash)]
 struct PolicyFile {
     #[serde(default)]
     graph: GraphPolicy,
@@ -224,19 +232,19 @@ struct PolicyFile {
     external: ExternalPolicy,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Hash)]
 struct GraphPolicy {
     #[serde(default)]
     orphan_entry_patterns: Vec<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Hash)]
 struct DeadCodePolicy {
     #[serde(default)]
     abandoned_entry_patterns: Vec<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Hash)]
 struct HardwiringPolicy {
     #[serde(default)]
     repeated_literal_min_occurrences: Option<usize>,
@@ -246,7 +254,7 @@ struct HardwiringPolicy {
     allowed_literals: Vec<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Hash)]
 struct SecurityPolicy {
     #[serde(default)]
     skip_path_patterns: Vec<String>,
@@ -254,7 +262,7 @@ struct SecurityPolicy {
     allowed_categories: Vec<String>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Hash)]
 struct ExternalPolicy {
     #[serde(default)]
     skip_tools: Vec<String>,
@@ -278,7 +286,7 @@ struct LegacyRulesFile {
     rules: Vec<Value>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Hash)]
 struct ExclusionRule {
     #[serde(alias = "type", alias = "kind", alias = "findingType")]
     finding_type: String,

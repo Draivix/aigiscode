@@ -33,6 +33,8 @@ use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 mod atomic;
+mod publication;
+pub use publication::{ArtifactSnapshot, PublishedArtifactStatus};
 mod triage;
 pub use triage::RepositoryTopologyPriorityBasis;
 use triage::{build_topology_focus_clusters, build_topology_recommended_start, build_topology_zone_triage_step_objects, build_topology_zone_triage_steps};
@@ -148,6 +150,60 @@ pub struct ArtifactPaths {
     pub aigiscode_report_markdown: PathBuf,
     pub scan_manifest: PathBuf,
 }
+
+impl ArtifactPaths {
+    pub fn in_directory(output_dir: PathBuf) -> Self {
+        Self {
+            output_dir: output_dir.clone(),
+            deterministic_analysis: output_dir.join(DETERMINISTIC_ANALYSIS_FILE),
+            semantic_graph: output_dir.join(SEMANTIC_GRAPH_FILE),
+            dependency_graph: output_dir.join(DEPENDENCY_GRAPH_FILE),
+            evidence_graph: output_dir.join(EVIDENCE_GRAPH_FILE),
+            contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
+            doctrine_registry: output_dir.join(DOCTRINE_REGISTRY_FILE),
+            deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
+            ast_grep_scan: output_dir.join(AST_GREP_SCAN_FILE),
+            external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
+            architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
+            review_surface: output_dir.join(REVIEW_SURFACE_FILE),
+            convergence_history: output_dir.join(CONVERGENCE_HISTORY_FILE),
+            guard_decision: output_dir.join(GUARD_DECISION_FILE),
+            agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
+            agentic_review: output_dir.join(AGENTIC_REVIEW_FILE),
+            graph_packets: output_dir.join(GRAPH_PACKETS_FILE),
+            repository_topology: output_dir.join(REPOSITORY_TOPOLOGY_FILE),
+            aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
+            aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
+            scan_manifest: output_dir.join(SCAN_MANIFEST_FILE),
+        }
+    }
+
+    pub(crate) fn members(&self) -> [&Path; 20] {
+        [
+            &self.deterministic_analysis,
+            &self.semantic_graph,
+            &self.dependency_graph,
+            &self.evidence_graph,
+            &self.contract_inventory,
+            &self.doctrine_registry,
+            &self.deterministic_findings,
+            &self.ast_grep_scan,
+            &self.external_analysis,
+            &self.architecture_surface,
+            &self.review_surface,
+            &self.convergence_history,
+            &self.guard_decision,
+            &self.agent_handoff,
+            &self.agentic_review,
+            &self.graph_packets,
+            &self.repository_topology,
+            &self.aigiscode_report,
+            &self.aigiscode_report_markdown,
+            &self.scan_manifest,
+        ]
+    }
+}
+
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgentRunPaths {
@@ -938,32 +994,10 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let output_dir = output_dir
         .map(Path::to_path_buf)
         .unwrap_or_else(|| default_output_dir(&analysis.root));
-    fs::create_dir_all(&output_dir)?;
+    let publication = publication::Publication::begin(&output_dir)?;
+    let baseline = BaselineSnapshot::load_pinned(&publication.baseline_directory)?;
+    let paths = ArtifactPaths::in_directory(publication.directory.clone());
     trace_artifact_step("write.output_dir_ready", 0);
-
-    let paths = ArtifactPaths {
-        deterministic_analysis: output_dir.join(DETERMINISTIC_ANALYSIS_FILE),
-        semantic_graph: output_dir.join(SEMANTIC_GRAPH_FILE),
-        dependency_graph: output_dir.join(DEPENDENCY_GRAPH_FILE),
-        evidence_graph: output_dir.join(EVIDENCE_GRAPH_FILE),
-        contract_inventory: output_dir.join(CONTRACT_INVENTORY_FILE),
-        doctrine_registry: output_dir.join(DOCTRINE_REGISTRY_FILE),
-        deterministic_findings: output_dir.join(DETERMINISTIC_FINDINGS_FILE),
-        ast_grep_scan: output_dir.join(AST_GREP_SCAN_FILE),
-        external_analysis: output_dir.join(EXTERNAL_ANALYSIS_FILE),
-        architecture_surface: output_dir.join(ARCHITECTURE_SURFACE_FILE),
-        review_surface: output_dir.join(REVIEW_SURFACE_FILE),
-        convergence_history: output_dir.join(CONVERGENCE_HISTORY_FILE),
-        guard_decision: output_dir.join(GUARD_DECISION_FILE),
-        agent_handoff: output_dir.join(AGENT_HANDOFF_FILE),
-        agentic_review: output_dir.join(AGENTIC_REVIEW_FILE),
-        graph_packets: output_dir.join(GRAPH_PACKETS_FILE),
-        repository_topology: output_dir.join(REPOSITORY_TOPOLOGY_FILE),
-        aigiscode_report: output_dir.join(AIGISCODE_REPORT_FILE),
-        aigiscode_report_markdown: output_dir.join(AIGISCODE_REPORT_MARKDOWN_FILE),
-        scan_manifest: output_dir.join(SCAN_MANIFEST_FILE),
-        output_dir,
-    };
 
     let findings = DeterministicFindingsArtifact {
         root: &analysis.root,
@@ -996,7 +1030,6 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         root: &analysis.root,
         evidence_graph: build_evidence_graph_artifact(&analysis.semantic_graph),
     };
-    let baseline = BaselineSnapshot::load(&paths.output_dir)?;
     let policy_bundle = analysis.policy_bundle();
     let doctrine_registry = analysis.doctrine_registry();
     let review_started = Instant::now();
@@ -1259,6 +1292,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         contract_inventory: contract_inventory_xxh3,
     });
     write_json("scan_manifest", &paths.scan_manifest, &manifest)?;
+    publication.publish(&paths)?;
 
     Ok((
         paths,
@@ -7574,7 +7608,8 @@ fn main() {
         let output_dir = fixture.join("artifacts");
         let paths = write_project_analysis_artifacts(&analysis, Some(&output_dir)).unwrap();
 
-        assert_eq!(paths.output_dir, output_dir);
+        assert!(paths.output_dir.starts_with(output_dir.join(".generations")));
+        assert_eq!(super::ArtifactSnapshot::pin(&output_dir).unwrap().unwrap().directory, paths.output_dir);
         assert!(paths
             .deterministic_analysis
             .ends_with(DETERMINISTIC_ANALYSIS_FILE));

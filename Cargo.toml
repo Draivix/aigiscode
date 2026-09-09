@@ -11,6 +11,7 @@ authors = ["AigisCode"]
 rust-version = "1.88"
 
 [workspace.dependencies]
+fs4 = { version = "1.1", default-features = false, features = ["sync"] }
 arc-swap = "1.7"
 ast-grep-core = "0.42.0"
 ast-grep-language = "0.42.0"

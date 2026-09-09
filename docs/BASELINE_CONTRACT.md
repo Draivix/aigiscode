@@ -29,7 +29,8 @@ The fingerprint describes the captured build inputs; it is not a binary signatur
 
 ## Manifest seal
 
-The artifact writer publishes `scan-manifest.json` last. Its `snapshot_identity`
+The artifact writer seals `scan-manifest.json` after writing the analytical
+members in a new generation. Its `snapshot_identity`
 and `baseline_hashes` bind the architecture surface, review surface and contract
 inventory to one capture. The reader hashes the same streams it deserializes and
 checks the manifest again after reading the three members. Missing members or a
@@ -37,9 +38,10 @@ changed/mismatched seal make the baseline unavailable for comparison. Malformed
 JSON and reachable read failures remain explicit errors rather than empty data.
 
 These non-cryptographic hashes detect local inconsistency; they do not authenticate
-an adversarial author. The seal also does not make publication of the entire
-artifact family atomic. Readers of other artifact combinations still need the
-family-publication work tracked separately.
+an adversarial author. The three-member seal alone is not a family transaction.
+Native readers now pin the separately committed generation and verify its complete
+20-member inventory before reading this baseline; legacy flat input retains the
+older guarantees. See [artifact publication](ARTIFACT_PUBLICATION_CONTRACT.md).
 
 The semantic revision is 11. Fast-load requires the current engine fingerprint,
 canonical root and scope as well as the source/configuration/graph hashes. An old

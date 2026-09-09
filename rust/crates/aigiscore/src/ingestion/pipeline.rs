@@ -120,6 +120,8 @@ impl ProjectAnalysis {
 
 #[derive(Debug, Error)]
 pub enum ProjectAnalysisError {
+    #[error("failed to pin analysis artifacts: {0}")]
+    Artifacts(std::io::Error),
     #[error(transparent)]
     Scan(#[from] ScanError),
     #[error(transparent)]
@@ -195,7 +197,21 @@ pub fn analyze_project_fast_load(
     output_dir: Option<&Path>,
 ) -> Result<Option<ProjectAnalysis>, ProjectAnalysisError> {
     let root = root.into();
-    let Some(graph_project) = try_fast_load_graph_project(&root, scan_config, output_dir)? else {
+    let output_dir = output_dir.map(Path::to_path_buf)
+        .unwrap_or_else(|| root.join(crate::artifacts::DEFAULT_OUTPUT_DIR_NAME));
+    let Some(snapshot) = crate::artifacts::ArtifactSnapshot::pin(&output_dir)
+        .map_err(ProjectAnalysisError::Artifacts)? else {
+        return Ok(None);
+    };
+    analyze_project_fast_load_pinned(&root, scan_config, &snapshot.directory)
+}
+
+pub(crate) fn analyze_project_fast_load_pinned(
+    root: &Path,
+    scan_config: &ScanConfig,
+    output_dir: &Path,
+) -> Result<Option<ProjectAnalysis>, ProjectAnalysisError> {
+    let Some(graph_project) = try_fast_load_graph_project(root, scan_config, Some(output_dir))? else {
         return Ok(None);
     };
     Ok(Some(finish_project_analysis(graph_project)?))
@@ -696,6 +712,9 @@ mod tests {
 
         let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
         crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
+        // Keep the legacy-flat cache contract covered alongside publication tests.
+        fs::remove_file(fixture.join(".aigiscode/current-generation.json")).unwrap();
+        fs::remove_dir_all(fixture.join(".aigiscode/.generations")).unwrap();
 
         // Unchanged tree: fast load succeeds and carries the same graph.
         let loaded = super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None)
@@ -786,7 +805,7 @@ mod tests {
             .is_none());
 
         crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
-        fs::remove_file(output.join("scan-manifest.json")).unwrap();
+        fs::remove_dir_all(&output).unwrap();
         assert!(super::analyze_project_fast_load(
             &fixture,
             &ScanConfig::default(),

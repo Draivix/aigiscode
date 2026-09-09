@@ -6,6 +6,8 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# Cross-platform OS locks on Rust 1.88; serialize publishers and release on process exit.
+fs4.workspace = true
 arc-swap.workspace = true
 ast-grep-core.workspace = true
 ast-grep-language.workspace = true

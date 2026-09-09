@@ -12,6 +12,7 @@ use crate::surface::ArchitectureSurface;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::{self, BufReader};
 use std::path::Path;
 
@@ -23,14 +24,26 @@ pub struct SnapshotIdentity {
     pub engine_fingerprint: String,
     pub semantic_revision: u32,
     pub source_fingerprint: String,
+    #[serde(default)]
+    pub input_inventory_fingerprint: String,
     pub scope_fingerprint: String,
     pub resolve_config_fingerprint: String,
+    #[serde(default)]
+    pub assessment_config_fingerprint: String,
     pub external_tools: Vec<String>,
     pub external_checks_complete: bool,
 }
 
 impl SnapshotIdentity {
     pub fn capture(analysis: &ProjectAnalysis) -> Self {
+        let mut inventory = std::collections::hash_map::DefaultHasher::new();
+        for file in &analysis.scan.files {
+            file.relative_path.hash(&mut inventory);
+            file.content_hash.0.hash(&mut inventory);
+        }
+        let mut assessment_config = std::collections::hash_map::DefaultHasher::new();
+        analysis.policy_bundle().fingerprint().hash(&mut assessment_config);
+        analysis.doctrine_registry().hash(&mut assessment_config);
         let mut external_tools = analysis
             .external_analysis
             .tool_runs
@@ -44,6 +57,7 @@ impl SnapshotIdentity {
             engine_version: env!("CARGO_PKG_VERSION").to_owned(),
             engine_fingerprint: env!("AIGISCODE_ENGINE_FINGERPRINT").to_owned(),
             semantic_revision: SEMANTIC_REVISION,
+            input_inventory_fingerprint: format!("{:016x}", inventory.finish()),
             source_fingerprint: source_fingerprint(
                 &analysis
                     .parsed_sources
@@ -56,6 +70,7 @@ impl SnapshotIdentity {
             ),
             scope_fingerprint: analysis.scan.scope_fingerprint.clone(),
             resolve_config_fingerprint: analysis.resolve_config_xxh3.clone(),
+            assessment_config_fingerprint: format!("{:016x}", assessment_config.finish()),
             external_tools,
             external_checks_complete: analysis.external_analysis.is_complete(),
         }
@@ -160,6 +175,13 @@ impl BaselineSnapshot {
     }
 
     pub fn load(output_dir: &Path) -> io::Result<Self> {
+        let Some(snapshot) = super::ArtifactSnapshot::pin(output_dir)? else {
+            return Ok(Self::empty());
+        };
+        Self::load_pinned(&snapshot.directory)
+    }
+
+    pub(crate) fn load_pinned(output_dir: &Path) -> io::Result<Self> {
         let manifest_path = output_dir.join(SCAN_MANIFEST_FILE);
         let manifest = read_json_artifact_if_exists::<ScanManifest>(&manifest_path)?;
         let architecture =

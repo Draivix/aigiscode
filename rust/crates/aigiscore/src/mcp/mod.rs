@@ -291,13 +291,25 @@ fn build_mcp_state(
     write_artifacts: bool,
     write_kuzu: bool,
 ) -> Result<McpState, McpServerError> {
+    let output_root = output_dir.map(Path::to_path_buf).unwrap_or_else(|| crate::artifacts::default_output_dir(root));
+    let snapshot = match crate::artifacts::ArtifactSnapshot::pin(&output_root) {
+        Ok(snapshot) => snapshot,
+        Err(error) if write_artifacts && error.kind() == std::io::ErrorKind::WouldBlock => None,
+        Err(error) => return Err(McpServerError::ReadArtifacts(error)),
+    };
+    let baseline = if write_artifacts { None } else {
+        Some(match &snapshot {
+            Some(snapshot) => BaselineSnapshot::load_pinned(&snapshot.directory).map_err(McpServerError::ReadArtifacts)?,
+            None => BaselineSnapshot::empty(),
+        })
+    };
     let mut fast_analysis = None;
     if std::env::var_os("AIGISCORE_FAST_LOAD").is_some() {
-        fast_analysis = crate::ingestion::pipeline::analyze_project_fast_load(
-            root,
-            &ScanConfig::default(),
-            output_dir,
-        )?;
+        if let Some(snapshot) = &snapshot {
+            fast_analysis = crate::ingestion::pipeline::analyze_project_fast_load_pinned(
+                root, &ScanConfig::default(), &snapshot.directory,
+            )?;
+        }
     }
     let analysis = match fast_analysis {
         Some(analysis) => {
@@ -310,37 +322,17 @@ fn build_mcp_state(
         }
         None => analyze_project(root.to_path_buf(), &ScanConfig::default())?,
     };
+    let disk_generation = snapshot.as_ref().and_then(|snapshot| snapshot.generation.clone());
+    let disk_identity = snapshot.as_ref().and_then(|snapshot| snapshot.identity.clone());
+    let index_identity = crate::artifacts::SnapshotIdentity::capture(&analysis);
     let (artifact_paths, prepared_context) = if write_artifacts {
+        drop(snapshot);
         let (paths, context) = write_project_analysis_artifacts_with_context(&analysis, output_dir)
             .map_err(McpServerError::WriteArtifacts)?;
         (paths, Some(context))
     } else {
-        let output_dir = output_dir
-            .map(Path::to_path_buf)
-            .unwrap_or_else(|| analysis.root.join(".aigiscode"));
-        (ArtifactPaths {
-            deterministic_analysis: output_dir.join("deterministic-analysis.json"),
-            semantic_graph: output_dir.join("semantic-graph.json"),
-            dependency_graph: output_dir.join("dependency-graph.json"),
-            evidence_graph: output_dir.join("evidence-graph.json"),
-            contract_inventory: output_dir.join("contract-inventory.json"),
-            doctrine_registry: output_dir.join("doctrine-registry.json"),
-            deterministic_findings: output_dir.join("deterministic-findings.json"),
-            ast_grep_scan: output_dir.join("ast-grep-scan.json"),
-            external_analysis: output_dir.join("external-analysis.json"),
-            architecture_surface: output_dir.join("architecture-surface.json"),
-            review_surface: output_dir.join("review-surface.json"),
-            convergence_history: output_dir.join("convergence-history.json"),
-            guard_decision: output_dir.join("guard-decision.json"),
-            agent_handoff: output_dir.join("aigiscode-handoff.json"),
-            agentic_review: output_dir.join("agentic-review.json"),
-            graph_packets: output_dir.join("graph-packets.json"),
-            repository_topology: output_dir.join("repository-topology.json"),
-            aigiscode_report: output_dir.join("aigiscode-report.json"),
-            aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
-            scan_manifest: output_dir.join("scan-manifest.json"),
-            output_dir,
-        }, None)
+        let directory = snapshot.as_ref().map(|snapshot| snapshot.directory.clone()).unwrap_or(output_root);
+        (ArtifactPaths::in_directory(directory), None)
     };
     let kuzu_path = if write_kuzu {
         Some(write_semantic_graph_kuzu_artifact(
@@ -352,7 +344,16 @@ fn build_mcp_state(
         // A database left by another revision cannot represent this snapshot.
         None
     };
-    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context)
+    let artifact_generation = crate::artifacts::PublishedArtifactStatus {
+        directory: artifact_paths.output_dir.clone(),
+        generation: if write_artifacts {
+            artifact_paths.output_dir.file_name().map(|name| name.to_string_lossy().into_owned())
+        } else { disk_generation.clone() },
+        inputs_match_index: if write_artifacts { Some(true) } else {
+            disk_generation.map(|_| disk_identity.as_ref() == Some(&index_identity))
+        },
+    };
+    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context, baseline, artifact_generation)
 }
 
 impl AigiscodeMcpServer {
@@ -1919,6 +1920,7 @@ fn leaf_reference_name(target: &str) -> &str {
 
 #[derive(Debug, Clone)]
 struct McpState {
+    artifact_generation: crate::artifacts::PublishedArtifactStatus,
     root: String,
     semantic_graph: crate::graph::SemanticGraph,
     kuzu_path: Option<PathBuf>,
@@ -1954,6 +1956,8 @@ impl McpState {
         artifact_paths: ArtifactPaths,
         kuzu_path: Option<PathBuf>,
         prepared_context: Option<ArtifactContext>,
+        baseline: Option<BaselineSnapshot>,
+        artifact_generation: crate::artifacts::PublishedArtifactStatus,
     ) -> Result<Self, McpServerError> {
         let surface = analysis.architecture_surface();
         let layers = analysis.doctrine_registry().layers.clone();
@@ -2037,8 +2041,7 @@ impl McpState {
         } = match prepared_context {
                 Some(context) => context,
                 None => {
-                    let baseline = BaselineSnapshot::load(&artifact_paths.output_dir)
-                        .map_err(McpServerError::ReadArtifacts)?;
+                    let baseline = baseline.ok_or_else(|| McpServerError::ReadArtifacts(std::io::Error::other("missing pinned baseline context")))?;
                     let convergence = crate::artifacts::build_convergence_history_artifact(
                         &analysis,
                         &baseline,
@@ -2083,6 +2086,7 @@ impl McpState {
         );
 
         Ok(Self {
+            artifact_generation,
             root,
             semantic_graph: analysis.semantic_graph,
             kuzu_path,

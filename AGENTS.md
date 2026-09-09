@@ -71,7 +71,17 @@ silently served a stale graph. See `docs/ONLINE_CODE_GRAPH_ARCHITECTURE.md`.
 `scan-manifest.json` is the fast-load fingerprint: with `AIGISCORE_FAST_LOAD=1`,
 `aigiscode mcp` verifies it (version, resolver-config hash, per-file content
 hashes) and skips Parse+Resolve when everything matches, declining to a full
-analysis on any mismatch.
+analysis on source/configuration/engine mismatch. A damaged committed artifact
+generation is an explicit integrity error.
+
+Full analyses publish the 20 analytical artifacts in an immutable
+`.aigiscode/.generations/<id>/` directory and atomically select it with
+`.aigiscode/current-generation.json`. The paths returned by `analyze` and `info`
+identify the selected generation. Pin that directory when reading multiple files;
+the flat paths listed above remain compatibility copies and are not a multi-file
+transaction. Policy, rules and scan/doctrine configuration remain under
+`<project>/.aigiscode/`, independently of `--output-dir`.
+See `docs/ARTIFACT_PUBLICATION_CONTRACT.md`.
 
 ## Recommended Agent Workflow
 

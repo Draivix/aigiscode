@@ -7,7 +7,7 @@ use thiserror::Error;
 
 const DOCTRINE_FILE: &str = ".aigiscode/doctrine.json";
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DoctrineRegistry {
     pub version: String,
     pub clauses: Vec<DoctrineClause>,
@@ -22,7 +22,7 @@ pub struct DoctrineRegistry {
 /// names of layers its code may depend on. Depending on the same layer is
 /// always allowed; anything else — including depending on an undeclared
 /// direction — is a violation.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct LayerContract {
     pub name: String,
     pub path_prefixes: Vec<String>,
@@ -30,7 +30,7 @@ pub struct LayerContract {
     pub may_depend_on: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct DoctrineClause {
     pub id: String,
     pub title: String,
@@ -43,7 +43,7 @@ pub struct DoctrineClause {
     pub guidance: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum DoctrineCategory {
     Architecture,
     ChangeGovernance,
@@ -53,7 +53,7 @@ pub enum DoctrineCategory {
     Security,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum DoctrineDisposition {
     Inform,
     Warn,
