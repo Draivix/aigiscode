@@ -1,0 +1,500 @@
+{
+  "observed_at": "2026-09-09T14:05:31.893Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-triage-ranked",
+    "sha256": "9caa214a670571ba892ce10bc627a460f875a24aeda12038cea91a90853fc74f",
+    "engine_fingerprint": "00a6f2728cd0199e",
+    "build_seconds": 48.09
+  },
+  "source": {
+    "snapshot": "target/reliability-2026-09-09/draivix-full-source",
+    "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+    "source_edits": false,
+    "scope_receipt": "2026-09-09-draivix-revalidation-evidence.json",
+    "final_original_integrity": {
+      "verified_at": "2026-09-09T14:10:35.024Z",
+      "files": 23166,
+      "added": [],
+      "removed": [],
+      "changed": []
+    }
+  },
+  "measurement": {
+    "wall_seconds": 77.2,
+    "peak_rss_kib": 3510828,
+    "exit_code": 1
+  },
+  "inspection": {
+    "before": {
+      "zone_path": "app",
+      "target_file": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php",
+      "label": "abstraction sprawl",
+      "priority": "high",
+      "reason": "Start here because zone `app` is the strongest current triage surface, and its lead cluster `abstraction sprawl` in `app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php` carries 1 visible finding(s), 1 guardian packet(s), and strongest cross-zone pressure of 32635 relations.",
+      "supporting_zone_count": 5
+    },
+    "after": {
+      "priority_basis": {
+        "evidence_id": "architecture:layer-contract-violation:app/Entities/Email/Email.actions.php:app/Services/Email/EmailActionHandler.php",
+        "priority": "high",
+        "precision": "certain"
+      },
+      "zone_path": "app",
+      "target_file": "app/Entities/Email/Email.actions.php",
+      "label": "Layer contract violation",
+      "priority": "high",
+      "reason": "Review `app/Entities/Email/Email.actions.php`: signal `architecture:layer-contract-violation:app/Entities/Email/Email.actions.php:app/Services/Email/EmailActionHandler.php` carries high review priority and certain detector precision. Validate the source and owning contract before changing code; zone-wide counts do not determine this priority.",
+      "supporting_zone_count": 5
+    },
+    "missing_priority_evidence": [],
+    "foreign_primary_targets": [],
+    "budget_violations": [],
+    "role_candidates": {
+      "before": 25,
+      "after": 25,
+      "ids_unchanged": true,
+      "severities": [
+        "Low"
+      ]
+    },
+    "native_graph_analysis_unchanged": true,
+    "raw_assessment_unchanged": true,
+    "security_unchanged": true,
+    "app_steps": [
+      {
+        "priority_basis": {
+          "evidence_id": "architecture:layer-contract-violation:app/Entities/Email/Email.actions.php:app/Services/Email/EmailActionHandler.php",
+          "priority": "high",
+          "precision": "certain"
+        },
+        "action": "Review `Layer contract violation` in `app/Entities/Email/Email.actions.php` using `architecture:layer-contract-violation:app/Entities/Email/Email.actions.php:app/Services/Email/EmailActionHandler.php` (high priority, certain detector precision). Validate the source and owning contract before choosing a change.",
+        "priority": "high",
+        "target_file": "app/Entities/Email/Email.actions.php",
+        "step_kind": "visible_finding",
+        "freshness": "not_compared",
+        "finding_status_summary": {
+          "first_observed_count": 0,
+          "not_compared_count": 1,
+          "new_count": 0,
+          "worsened_count": 0,
+          "improved_count": 0,
+          "unchanged_count": 0,
+          "resolved_count": 0
+        },
+        "finding_id": "architecture:layer-contract-violation:app/Entities/Email/Email.actions.php:app/Services/Email/EmailActionHandler.php",
+        "artifact_refs": [
+          "review-surface.json",
+          "architecture-surface.json"
+        ],
+        "semantic_state_flow_proof_summary": {
+          "exact_resolved_count": 0,
+          "receiver_typed_count": 0,
+          "heuristic_count": 0
+        }
+      },
+      {
+        "priority_basis": {
+          "evidence_id": "architecture:layer-contract-violation:app/Entities/Email/Email.php:app/Services/Email/EmailAuditRecordEnricher.php",
+          "priority": "high",
+          "precision": "certain"
+        },
+        "action": "Review `Layer contract violation` in `app/Entities/Email/Email.php` using `architecture:layer-contract-violation:app/Entities/Email/Email.php:app/Services/Email/EmailAuditRecordEnricher.php` (high priority, certain detector precision). Validate the source and owning contract before choosing a change.",
+        "priority": "high",
+        "target_file": "app/Entities/Email/Email.php",
+        "step_kind": "visible_finding",
+        "freshness": "not_compared",
+        "finding_status_summary": {
+          "first_observed_count": 0,
+          "not_compared_count": 2,
+          "new_count": 0,
+          "worsened_count": 0,
+          "improved_count": 0,
+          "unchanged_count": 0,
+          "resolved_count": 0
+        },
+        "finding_id": "architecture:layer-contract-violation:app/Entities/Email/Email.php:app/Services/Email/EmailAuditRecordEnricher.php",
+        "artifact_refs": [
+          "review-surface.json",
+          "architecture-surface.json"
+        ],
+        "semantic_state_flow_proof_summary": {
+          "exact_resolved_count": 0,
+          "receiver_typed_count": 0,
+          "heuristic_count": 0
+        }
+      },
+      {
+        "priority_basis": {
+          "evidence_id": "architecture:layer-contract-violation:app/Entities/EmailFilter/EmailFilter.hooks.php:app/Services/Email/EmailFilterService.php",
+          "priority": "high",
+          "precision": "certain"
+        },
+        "action": "Review `Layer contract violation` in `app/Entities/EmailFilter/EmailFilter.hooks.php` using `architecture:layer-contract-violation:app/Entities/EmailFilter/EmailFilter.hooks.php:app/Services/Email/EmailFilterService.php` (high priority, certain detector precision). Validate the source and owning contract before choosing a change.",
+        "priority": "high",
+        "target_file": "app/Entities/EmailFilter/EmailFilter.hooks.php",
+        "step_kind": "visible_finding",
+        "freshness": "not_compared",
+        "finding_status_summary": {
+          "first_observed_count": 0,
+          "not_compared_count": 1,
+          "new_count": 0,
+          "worsened_count": 0,
+          "improved_count": 0,
+          "unchanged_count": 0,
+          "resolved_count": 0
+        },
+        "finding_id": "architecture:layer-contract-violation:app/Entities/EmailFilter/EmailFilter.hooks.php:app/Services/Email/EmailFilterService.php",
+        "artifact_refs": [
+          "review-surface.json",
+          "architecture-surface.json"
+        ],
+        "semantic_state_flow_proof_summary": {
+          "exact_resolved_count": 0,
+          "receiver_typed_count": 0,
+          "heuristic_count": 0
+        }
+      }
+    ],
+    "selected_finding_was_outside_alphabetical_first_ten": true,
+    "selected_finding_alphabetical_index": 1111
+  },
+  "registry_candidate": {
+    "id": "architecture:abstraction-sprawl:app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php:concept:activity+concept:artifacts+role:adapter+role:executor+role:factory+role:handler+role:loader+role:policy+role:registry+role:resolver+role:service",
+    "fingerprint": "architecture|abstraction-sprawl|app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php|app/Contracts/ActivityHistoryRedactionPolicy.php|app/Entities/_Core/ActivityHistoryLoader.php|app/Modules/CRMFoundation/Actions/ActivityActionProposal/ActivityActionProposalActionHandler.php|app/Modules/CRMFoundation/Http/Controllers/ActivityRecordingWebhookPayloadFactory.php|app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolver.php|app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactReadAccessPolicy.php|app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactVisibilityService.php|app/Modules/CRMFoundation/Services/Activity/Artifacts/MeetingSummaryEmailService.php|app/Modules/CRMFoundation/Services/Activity/Artifacts/VideoRecordingActivityArtifactWebhookHandler.php|app/Modules/CRMFoundation/Services/Activity/Calls/ActivityCallProviderRegistry.php|concept:activity|concept:artifacts|role:adapter|role:executor|role:factory|role:handler|role:loader|role:policy|role:registry|role:resolver|role:service|abstraction_role:adapter|abstraction_role:executor|abstraction_role:factory|abstraction_role:handler|abstraction_role:loader|abstraction_role:policy|abstraction_role:provider|abstraction_role:registry|abstraction_role:resolver|abstraction_role:service",
+    "family": "Graph",
+    "phase": "architecture",
+    "severity": "Low",
+    "precision": "heuristic",
+    "confidence_millis": 860,
+    "title": "Abstraction-role naming candidate",
+    "summary": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php belongs to a naming-based group with abstraction roles (abstraction_role:adapter, abstraction_role:executor, abstraction_role:factory, abstraction_role:handler, abstraction_role:loader, abstraction_role:policy, abstraction_role:provider, abstraction_role:registry, abstraction_role:resolver, abstraction_role:service). Names alone do not establish duplicated behavior or a faulty boundary.",
+    "file_paths": [
+      "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php",
+      "app/Contracts/ActivityHistoryRedactionPolicy.php",
+      "app/Entities/_Core/ActivityHistoryLoader.php",
+      "app/Modules/CRMFoundation/Actions/ActivityActionProposal/ActivityActionProposalActionHandler.php",
+      "app/Modules/CRMFoundation/Http/Controllers/ActivityRecordingWebhookPayloadFactory.php",
+      "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolver.php",
+      "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactReadAccessPolicy.php",
+      "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactVisibilityService.php",
+      "app/Modules/CRMFoundation/Services/Activity/Artifacts/MeetingSummaryEmailService.php",
+      "app/Modules/CRMFoundation/Services/Activity/Artifacts/VideoRecordingActivityArtifactWebhookHandler.php",
+      "app/Modules/CRMFoundation/Services/Activity/Calls/ActivityCallProviderRegistry.php"
+    ],
+    "line": 5,
+    "primary_anchor": {
+      "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php",
+      "line": 5,
+      "label": "primary"
+    },
+    "evidence_anchors": [
+      {
+        "file_path": "app/Contracts/ActivityHistoryRedactionPolicy.php",
+        "line": 15,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Entities/_Core/ActivityHistoryLoader.php",
+        "line": 14,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Actions/ActivityActionProposal/ActivityActionProposalActionHandler.php",
+        "line": 16,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Http/Controllers/ActivityRecordingWebhookPayloadFactory.php",
+        "line": 11,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolver.php",
+        "line": 16,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactReadAccessPolicy.php",
+        "line": 11,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactVisibilityService.php",
+        "line": 10,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/MeetingSummaryEmailService.php",
+        "line": 21,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/VideoRecordingActivityArtifactWebhookHandler.php",
+        "line": 17,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Calls/ActivityCallProviderRegistry.php",
+        "line": 9,
+        "label": "supporting"
+      }
+    ],
+    "locations": [
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolverRegistry.php",
+        "line": 5,
+        "label": "primary"
+      },
+      {
+        "file_path": "app/Contracts/ActivityHistoryRedactionPolicy.php",
+        "line": 15,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Entities/_Core/ActivityHistoryLoader.php",
+        "line": 14,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Actions/ActivityActionProposal/ActivityActionProposalActionHandler.php",
+        "line": 16,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Http/Controllers/ActivityRecordingWebhookPayloadFactory.php",
+        "line": 11,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactMetadataResolver.php",
+        "line": 16,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactReadAccessPolicy.php",
+        "line": 11,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/ActivityArtifactVisibilityService.php",
+        "line": 10,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/MeetingSummaryEmailService.php",
+        "line": 21,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Artifacts/VideoRecordingActivityArtifactWebhookHandler.php",
+        "line": 17,
+        "label": "supporting"
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/Services/Activity/Calls/ActivityCallProviderRegistry.php",
+        "line": 9,
+        "label": "supporting"
+      }
+    ],
+    "provenance": [
+      "architectural_assessment",
+      "parsed_sources",
+      "graph_analysis"
+    ],
+    "doctrine_refs": [
+      "mechanism.coherence",
+      "guardian.minimal-mechanism",
+      "guardian.overengineering"
+    ],
+    "review_status": "Unreviewed",
+    "policy_status": "None",
+    "is_visible": true
+  },
+  "baseline": {
+    "availability": "verified",
+    "comparison": "not_compared",
+    "current": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "00a6f2728cd0199e",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "previous": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "3a31fead915540ae",
+      "semantic_revision": 11,
+      "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "50854948b7f43ebe",
+      "external_tools": [],
+      "external_checks_complete": true
+    },
+    "reasons": [
+      "current_inputs_incomplete",
+      "current_secondary_checks_incomplete",
+      "previous_secondary_checks_incomplete",
+      "previous_inputs_incomplete",
+      "different_engine"
+    ]
+  },
+  "convergence": {
+    "current_findings": 3218,
+    "previous_findings": 3218,
+    "first_observed_findings": 0,
+    "not_compared_findings": 3218,
+    "new_findings": 0,
+    "worsened_findings": 0,
+    "improved_findings": 0,
+    "unchanged_findings": 0,
+    "resolved_findings": 0
+  },
+  "graph_delta": null,
+  "contract_delta": null,
+  "mcp": {
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 45111.010777,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 7.171324000000002,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30009.591855,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788962547461,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 44029.689507,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "repository_topology",
+          "elapsed_ms": 44049.205407,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 44049.921478000004,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 44050.260913000006,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "fast_load_confirmed": true,
+    "recommended_start_matches": true,
+    "app_steps_match": true,
+    "metadata": {
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 18,
+        "status": "incomplete",
+        "unsupported_files": 792
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788962591482,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "path": "target/reliability-2026-09-09/draivix-triage-ranked/repository-topology.json",
+      "sha256": "8b3cd26a2ba74d2cb8a4e10b7cbf324dc8c37b4d3af3ec7e104a807c333ff23f"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-triage-ranked/review-surface.json",
+      "sha256": "837fcc537a5e42b5c3a926823e42d6fdc38b627b587115ec15f5971d1687fd55"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-triage-ranked/scan-manifest.json",
+      "sha256": "c5c20f09e38e106dfb52893bf0023ef3322d348bd7504bfee0b90d47f7403b6d"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-triage-ranked/convergence-history.json",
+      "sha256": "de70e61a58c43d508f39ef00e6537eebd0cce1bca3bba77c99339265d3359697"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-triage-ranked/guard-decision.json",
+      "sha256": "d77354f8c4127d8ceea42d2aff9abfad26a3ee801119488759cfb2ce73f9776b"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-triage-ranked/aigiscode-handoff.json",
+      "sha256": "12fe7eda7594b3343c12e5b29c81e1d352fe5edfc9c27ce781e5cf4978d308ef"
+    }
+  ],
+  "verification": {
+    "production_build_passed": true,
+    "full_draivix_audit": true,
+    "real_mcp_queries": true,
+    "automated_tests_run": false,
+    "ci_run": false,
+    "all_priorities_validated_as_code_defects": false
+  },
+  "self_audit": {
+    "artifact_dir": "target/reliability-2026-09-09/self-triage-ranked",
+    "supported_sources": 114,
+    "wall_seconds": 2.35,
+    "peak_rss_kib": 150860,
+    "exit_code": 1
+  }
+}

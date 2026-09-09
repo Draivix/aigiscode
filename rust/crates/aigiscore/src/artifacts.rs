@@ -33,6 +33,9 @@ use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 mod atomic;
+mod triage;
+pub use triage::RepositoryTopologyPriorityBasis;
+use triage::{build_topology_focus_clusters, build_topology_recommended_start, build_topology_zone_triage_step_objects, build_topology_zone_triage_steps};
 mod baseline;
 pub use baseline::{BaselineAssessment, BaselineAvailability, BaselineComparison, BaselineHashes,
     BaselineReason, BaselineSnapshot, SnapshotIdentity};
@@ -378,6 +381,8 @@ pub struct RepositoryTopologyOwnerHintBasis {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct RepositoryTopologyFindingPreview {
+    #[serde(default)]
+    pub precision: String,
     pub id: String,
     pub severity: String,
     pub family: String,
@@ -392,6 +397,8 @@ pub struct RepositoryTopologyFindingPreview {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct RepositoryTopologyPacketPreview {
+    #[serde(default)]
+    pub precision: String,
     pub id: String,
     pub priority: String,
     pub focus: String,
@@ -462,6 +469,8 @@ pub struct RepositoryTopologyLinkedZone {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct RepositoryTopologyRecommendedSlice {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority_basis: Option<RepositoryTopologyPriorityBasis>,
     pub zone_path: String,
     pub target_file: String,
     pub label: String,
@@ -485,6 +494,8 @@ pub struct RepositoryTopologyStatusSummary {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct RepositoryTopologyTriageStep {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority_basis: Option<RepositoryTopologyPriorityBasis>,
     pub action: String,
     pub priority: String,
     pub target_file: String,
@@ -510,6 +521,8 @@ pub struct RepositoryTopologyTriageStep {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct RepositoryTopologyFocusCluster {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority_basis: Option<RepositoryTopologyPriorityBasis>,
     pub id: String,
     pub label: String,
     pub primary_target_file: String,
@@ -1525,13 +1538,11 @@ pub fn build_repository_topology_artifact(
             let visible_finding_ids = zone
                 .visible_finding_ids
                 .iter()
-                .take(10)
                 .cloned()
                 .collect::<Vec<_>>();
             let guardian_packet_ids = zone
                 .guardian_packet_ids
                 .iter()
-                .take(10)
                 .cloned()
                 .collect::<Vec<_>>();
             let mut visible_finding_previews = visible_finding_ids
@@ -1540,6 +1551,7 @@ pub fn build_repository_topology_artifact(
                 .map(|finding| RepositoryTopologyFindingPreview {
                     id: finding.id.clone(),
                     severity: review_severity_label(finding.severity),
+                    precision: finding.precision.clone(),
                     family: review_family_label(finding.family).to_string(),
                     title: finding.title.clone(),
                     summary: finding.summary.clone(),
@@ -1554,6 +1566,7 @@ pub fn build_repository_topology_artifact(
             visible_finding_previews.sort_by(|left, right| {
                 preview_severity_rank(&right.severity)
                     .cmp(&preview_severity_rank(&left.severity))
+                    .then(triage::precision_rank(&right.precision).cmp(&triage::precision_rank(&left.precision)))
                     .then(left.id.cmp(&right.id))
             });
             let mut guardian_packet_previews = guardian_packet_ids
@@ -1562,6 +1575,7 @@ pub fn build_repository_topology_artifact(
                 .map(|packet| RepositoryTopologyPacketPreview {
                     id: packet.id.clone(),
                     priority: packet.priority.clone(),
+                    precision: packet.precision.clone(),
                     focus: packet.focus.clone(),
                     summary: packet.summary.clone(),
                     primary_target_file: packet.primary_target_file.clone(),
@@ -1579,6 +1593,7 @@ pub fn build_repository_topology_artifact(
             guardian_packet_previews.sort_by(|left, right| {
                 packet_priority_rank(&right.priority)
                     .cmp(&packet_priority_rank(&left.priority))
+                    .then(triage::precision_rank(&right.precision).cmp(&triage::precision_rank(&left.precision)))
                     .then(packet_focus_rank(&right.focus).cmp(&packet_focus_rank(&left.focus)))
                     .then(left.id.cmp(&right.id))
             });
@@ -1586,6 +1601,7 @@ pub fn build_repository_topology_artifact(
             let (owner_hints, owner_hint_confidence, owner_hint_basis) =
                 build_topology_owner_hints(&analysis.root, &example_files, &mut owner_hint_cache);
             let focus_clusters = build_topology_focus_clusters(
+                &path,
                 &guardian_packet_previews,
                 &visible_finding_previews,
                 &convergence_finding_status_lookup,
@@ -1643,17 +1659,14 @@ pub fn build_repository_topology_artifact(
                 .into_iter()
                 .take(6)
                 .collect::<Vec<_>>();
-            let triage_next_steps = build_topology_zone_triage_steps(
-                &guardian_packet_previews,
-                &visible_finding_previews,
-                &semantic_state_flow_previews,
-            );
             let triage_steps = build_topology_zone_triage_step_objects(
+                &focus_clusters,
                 &guardian_packet_previews,
                 &visible_finding_previews,
-                &convergence_finding_status_lookup,
-                &convergence_file_status_lookup,
-                &semantic_state_flow_lookup,
+            );
+            let triage_next_steps = build_topology_zone_triage_steps(
+                &triage_steps,
+                &semantic_state_flow_previews,
             );
             let triage_summary = build_topology_zone_triage_summary(
                 &path,
@@ -1664,6 +1677,20 @@ pub fn build_repository_topology_artifact(
             );
             let finding_status_summary =
                 build_topology_zone_status_summary(&path, &convergence_status_lookup);
+            let highest_visible_finding_severity = visible_finding_previews.first().map(|preview| preview.severity.clone());
+            let highest_guardian_packet_priority = guardian_packet_previews.first().map(|preview| preview.priority.clone());
+            // Select from the whole zone before bounding presentation, and retain
+            // the exact evidence supporting the selected local targets.
+            let selected_ids = focus_clusters.iter()
+                .filter_map(|cluster| cluster.priority_basis.as_ref())
+                .map(|basis| basis.evidence_id.as_str())
+                .collect::<BTreeSet<_>>();
+            visible_finding_previews.sort_by_key(|preview| !selected_ids.contains(preview.id.as_str()));
+            guardian_packet_previews.sort_by_key(|preview| !selected_ids.contains(preview.id.as_str()));
+            visible_finding_previews.truncate(10);
+            guardian_packet_previews.truncate(10);
+            let visible_finding_ids = visible_finding_previews.iter().map(|preview| preview.id.clone()).collect();
+            let guardian_packet_ids = guardian_packet_previews.iter().map(|preview| preview.id.clone()).collect();
             RepositoryTopologyZone {
                 labels: classify_topology_zone_labels(
                     &path,
@@ -1696,12 +1723,8 @@ pub fn build_repository_topology_artifact(
                 outbound_cross_zone_link_count: 0,
                 inbound_cross_zone_relation_count: 0,
                 outbound_cross_zone_relation_count: 0,
-                highest_visible_finding_severity: visible_finding_previews
-                    .first()
-                    .map(|preview| preview.severity.clone()),
-                highest_guardian_packet_priority: guardian_packet_previews
-                    .first()
-                    .map(|preview| preview.priority.clone()),
+                highest_visible_finding_severity,
+                highest_guardian_packet_priority,
                 visible_finding_ids,
                 guardian_packet_ids,
                 triage_summary,
@@ -2444,13 +2467,13 @@ fn build_topology_zone_triage_summary(
     }
     if let Some(packet) = guardian_packet_previews.first() {
         return format!(
-            "Start triage in `{}` with `{}` on `{}`.{}",
+            "Zone `{}` links to `{}` on `{}` for context.{}",
             zone_path, packet.focus, packet.primary_target_file, semantic_state_suffix
         );
     }
     if let Some(finding) = visible_finding_previews.first() {
         return format!(
-            "Start triage in `{}` with `{}` on `{}`.{}",
+            "Zone `{}` links to `{}` on `{}` for context.{}",
             zone_path,
             finding.title,
             finding
@@ -2473,59 +2496,6 @@ fn build_topology_zone_triage_summary(
         );
     }
     format!("No linked triage targets are currently attached to `{zone_path}`.")
-}
-
-fn build_topology_zone_triage_steps(
-    guardian_packet_previews: &[RepositoryTopologyPacketPreview],
-    visible_finding_previews: &[RepositoryTopologyFindingPreview],
-    semantic_state_flow_previews: &[RepositoryTopologyStateFlowPreview],
-) -> Vec<String> {
-    let mut steps = guardian_packet_previews
-        .iter()
-        .take(3)
-        .map(|packet| {
-            let mechanism = packet
-                .preferred_mechanism
-                .as_deref()
-                .unwrap_or("the sanctioned mechanism");
-            format!(
-                "Address `{}` in `{}` first and route the slice through `{}`.",
-                packet.focus, packet.primary_target_file, mechanism
-            )
-        })
-        .collect::<Vec<_>>();
-    if steps.len() < 3 {
-        for finding in visible_finding_previews.iter().take(3) {
-            if steps.len() >= 3 {
-                break;
-            }
-            let file_hint = finding
-                .file_paths
-                .first()
-                .cloned()
-                .unwrap_or_else(|| String::from("unknown"));
-            steps.push(format!(
-                "Review `{}` in `{}` because the zone still carries a `{}` finding.",
-                finding.title, file_hint, finding.severity
-            ));
-        }
-    }
-    if steps.len() < 3 {
-        for flow in semantic_state_flow_previews.iter().take(3) {
-            if steps.len() >= 3 {
-                break;
-            }
-            steps.push(format!(
-                "Trace semantic state `{}` from `{}` to `{}` (`{}` / `{}` proof).",
-                flow.label,
-                flow.writer_file,
-                flow.reader_file,
-                topology_semantic_state_kind_label(flow.kind),
-                topology_semantic_state_proof_label(flow.proof_tier)
-            ));
-        }
-    }
-    steps
 }
 
 fn topology_link_direction(
@@ -2867,63 +2837,6 @@ fn topology_spillover_observation(
     String::from("quiet")
 }
 
-fn build_topology_recommended_start(
-    zones: &[RepositoryTopologyZone],
-) -> Option<RepositoryTopologyRecommendedSlice> {
-    zones.iter()
-        .filter_map(|zone| {
-            let cluster = zone.focus_clusters.first()?;
-            let strongest_relation_count = zone
-                .linked_zones
-                .first()
-                .map(|linked_zone| linked_zone.relation_count)
-                .unwrap_or(0);
-            let score = usize::from(packet_priority_rank(
-                zone.highest_guardian_packet_priority
-                    .as_deref()
-                    .unwrap_or("low"),
-            )) * 1_000
-                + usize::from(preview_severity_rank(
-                    zone.highest_visible_finding_severity
-                        .as_deref()
-                        .unwrap_or("low"),
-                )) * 100
-                + zone.guardian_packet_count * 10
-                + zone.visible_finding_count
-                + strongest_relation_count;
-            let priority = cluster
-                .highest_guardian_packet_priority
-                .clone()
-                .or_else(|| cluster.highest_visible_finding_severity.clone())
-                .unwrap_or_else(|| String::from("low"));
-            Some((
-                score,
-                RepositoryTopologyRecommendedSlice {
-                    zone_path: zone.path.clone(),
-                    target_file: cluster.primary_target_file.clone(),
-                    label: cluster.label.clone(),
-                    priority,
-                    reason: format!(
-                        "Start here because zone `{}` is the strongest current triage surface, and its lead cluster `{}` in `{}` carries {} visible finding(s), {} guardian packet(s), and strongest cross-zone pressure of {} relations.",
-                        zone.path,
-                        cluster.label,
-                        cluster.primary_target_file,
-                        cluster.visible_finding_ids.len(),
-                        cluster.guardian_packet_ids.len(),
-                        strongest_relation_count
-                    ),
-                    supporting_zone_count: zone.linked_zones.len(),
-                },
-            ))
-        })
-        .max_by(|left, right| {
-            left.0
-                .cmp(&right.0)
-                .then(left.1.target_file.cmp(&right.1.target_file))
-        })
-        .map(|(_, slice)| slice)
-}
-
 fn build_topology_cross_zone_support_paths(
     graph_context: &GraphQueryContext<'_>,
     trace_cache: &mut TopologyTraceCache,
@@ -3006,287 +2919,6 @@ fn build_topology_cross_zone_support_paths(
             }
         }
     }
-}
-
-fn build_topology_zone_triage_step_objects(
-    guardian_packet_previews: &[RepositoryTopologyPacketPreview],
-    visible_finding_previews: &[RepositoryTopologyFindingPreview],
-    finding_status_lookup: &HashMap<String, ConvergenceStatus>,
-    file_status_lookup: &HashMap<String, Vec<ConvergenceStatus>>,
-    semantic_state_flow_lookup: &HashMap<String, Vec<RepositoryTopologyStateFlowPreview>>,
-) -> Vec<RepositoryTopologyTriageStep> {
-    let mut steps = guardian_packet_previews
-        .iter()
-        .take(3)
-        .map(|packet| {
-            let semantic_state_flows_for_target = semantic_state_flow_lookup
-                .get(&packet.primary_target_file)
-                .cloned()
-                .unwrap_or_default();
-            let semantic_state_flow_proof_summary =
-                build_semantic_state_proof_summary(&semantic_state_flows_for_target);
-            let finding_status_summary = build_status_summary_from_finding_ids_or_file(
-                &packet.finding_ids,
-                Some(packet.primary_target_file.as_str()),
-                finding_status_lookup,
-                file_status_lookup,
-            );
-            RepositoryTopologyTriageStep {
-                action: format!(
-                    "Start with `{}` in `{}` and follow the sanctioned path `{}`.{}",
-                    packet.focus,
-                    packet.primary_target_file,
-                    packet
-                        .preferred_mechanism
-                        .as_deref()
-                        .unwrap_or("the sanctioned mechanism"),
-                    topology_semantic_state_proof_summary_suffix(
-                        &semantic_state_flow_proof_summary
-                    )
-                ),
-                priority: packet.priority.clone(),
-                target_file: packet.primary_target_file.clone(),
-                step_kind: String::from("guardian_packet"),
-                freshness: topology_freshness_label(&finding_status_summary),
-                finding_status_summary,
-                packet_id: Some(packet.id.clone()),
-                finding_id: None,
-                artifact_refs: packet.artifact_refs.clone(),
-                doctrine_refs: packet.doctrine_refs.clone(),
-                semantic_state_flow_labels: semantic_state_flows_for_target
-                    .iter()
-                    .take(3)
-                    .map(|flow| flow.label.clone())
-                    .collect(),
-                semantic_state_flow_refs: build_topology_state_flow_refs(
-                    &semantic_state_flows_for_target,
-                    3,
-                ),
-                semantic_state_flow_proof_summary,
-                causal_bridges: Vec::new(),
-            }
-        })
-        .collect::<Vec<_>>();
-    if steps.len() < 3 {
-        for finding in visible_finding_previews.iter().take(3) {
-            if steps.len() >= 3 {
-                break;
-            }
-            let target_file = finding
-                .file_paths
-                .first()
-                .cloned()
-                .unwrap_or_else(|| String::from("unknown"));
-            let finding_status_summary = build_status_summary_from_finding_ids_or_file(
-                std::slice::from_ref(&finding.id),
-                Some(target_file.as_str()),
-                finding_status_lookup,
-                file_status_lookup,
-            );
-            let semantic_state_flows_for_target = semantic_state_flow_lookup
-                .get(&target_file)
-                .cloned()
-                .unwrap_or_default();
-            let semantic_state_flow_proof_summary =
-                build_semantic_state_proof_summary(&semantic_state_flows_for_target);
-            steps.push(RepositoryTopologyTriageStep {
-                action: format!(
-                    "Inspect `{}` in `{}` because this zone still carries a `{}` finding.{}",
-                    finding.title,
-                    target_file,
-                    finding.severity,
-                    topology_semantic_state_proof_summary_suffix(
-                        &semantic_state_flow_proof_summary
-                    )
-                ),
-                priority: finding.severity.clone(),
-                target_file: target_file.clone(),
-                step_kind: String::from("visible_finding"),
-                freshness: topology_freshness_label(&finding_status_summary),
-                finding_status_summary,
-                packet_id: None,
-                finding_id: Some(finding.id.clone()),
-                artifact_refs: finding.artifact_refs.clone(),
-                doctrine_refs: Vec::new(),
-                semantic_state_flow_labels: semantic_state_flows_for_target
-                    .iter()
-                    .take(3)
-                    .map(|flow| flow.label.clone())
-                    .collect(),
-                semantic_state_flow_refs: build_topology_state_flow_refs(
-                    &semantic_state_flows_for_target,
-                    3,
-                ),
-                semantic_state_flow_proof_summary,
-                causal_bridges: Vec::new(),
-            });
-        }
-    }
-    steps
-}
-
-fn build_topology_focus_clusters(
-    guardian_packet_previews: &[RepositoryTopologyPacketPreview],
-    visible_finding_previews: &[RepositoryTopologyFindingPreview],
-    finding_status_lookup: &HashMap<String, ConvergenceStatus>,
-    file_status_lookup: &HashMap<String, Vec<ConvergenceStatus>>,
-    semantic_state_flow_lookup: &HashMap<String, Vec<RepositoryTopologyStateFlowPreview>>,
-) -> Vec<RepositoryTopologyFocusCluster> {
-    #[derive(Default)]
-    struct FocusAccumulator {
-        label: String,
-        visible_finding_ids: BTreeSet<String>,
-        guardian_packet_ids: BTreeSet<String>,
-        example_files: BTreeSet<String>,
-        highest_visible_finding_severity: Option<String>,
-        highest_guardian_packet_priority: Option<String>,
-        triage_summary: Option<String>,
-    }
-
-    let mut clusters = BTreeMap::<String, FocusAccumulator>::new();
-    for packet in guardian_packet_previews {
-        let key = packet.primary_target_file.clone();
-        let cluster = clusters.entry(key.clone()).or_default();
-        cluster.label = packet.focus.replace('_', " ");
-        cluster.guardian_packet_ids.insert(packet.id.clone());
-        cluster
-            .example_files
-            .insert(packet.primary_target_file.clone());
-        cluster.highest_guardian_packet_priority = Some(
-            cluster
-                .highest_guardian_packet_priority
-                .as_deref()
-                .map(|existing| {
-                    if packet_priority_rank(&packet.priority) > packet_priority_rank(existing) {
-                        packet.priority.as_str()
-                    } else {
-                        existing
-                    }
-                })
-                .unwrap_or(packet.priority.as_str())
-                .to_string(),
-        );
-        cluster.triage_summary = Some(packet.summary.clone());
-        for finding_id in &packet.finding_ids {
-            cluster.visible_finding_ids.insert(finding_id.clone());
-        }
-    }
-    for finding in visible_finding_previews {
-        let key = finding
-            .file_paths
-            .first()
-            .cloned()
-            .unwrap_or_else(|| String::from("unknown"));
-        let cluster = clusters.entry(key.clone()).or_default();
-        if cluster.label.is_empty() {
-            cluster.label = finding.title.clone();
-        }
-        cluster.visible_finding_ids.insert(finding.id.clone());
-        for file in &finding.file_paths {
-            cluster.example_files.insert(file.clone());
-        }
-        cluster.highest_visible_finding_severity = Some(
-            cluster
-                .highest_visible_finding_severity
-                .as_deref()
-                .map(|existing| {
-                    if preview_severity_rank(&finding.severity) > preview_severity_rank(existing) {
-                        finding.severity.as_str()
-                    } else {
-                        existing
-                    }
-                })
-                .unwrap_or(finding.severity.as_str())
-                .to_string(),
-        );
-        if cluster.triage_summary.is_none() {
-            cluster.triage_summary = Some(finding.summary.clone());
-        }
-    }
-
-    let mut result = clusters
-        .into_iter()
-        .map(|(primary_target_file, cluster)| {
-            let semantic_state_flows_for_target = semantic_state_flow_lookup
-                .get(&primary_target_file)
-                .cloned()
-                .unwrap_or_default();
-            let semantic_state_flow_proof_summary =
-                build_semantic_state_proof_summary(&semantic_state_flows_for_target);
-            let visible_finding_ids = cluster
-                .visible_finding_ids
-                .into_iter()
-                .take(8)
-                .collect::<Vec<_>>();
-            let finding_status_summary = build_status_summary_from_finding_ids_or_file(
-                &visible_finding_ids,
-                Some(primary_target_file.as_str()),
-                finding_status_lookup,
-                file_status_lookup,
-            );
-            RepositoryTopologyFocusCluster {
-                id: format!("cluster:{primary_target_file}"),
-                label: cluster.label,
-                primary_target_file: primary_target_file.clone(),
-                freshness: topology_freshness_label(&finding_status_summary),
-                finding_status_summary,
-                highest_visible_finding_severity: cluster.highest_visible_finding_severity,
-                highest_guardian_packet_priority: cluster.highest_guardian_packet_priority,
-                visible_finding_ids,
-                guardian_packet_ids: cluster.guardian_packet_ids.into_iter().take(8).collect(),
-                example_files: cluster.example_files.into_iter().take(5).collect(),
-                triage_summary: format!(
-                    "{}{}",
-                    cluster
-                        .triage_summary
-                        .unwrap_or_else(|| String::from("No triage summary available.")),
-                    topology_semantic_state_proof_summary_suffix(
-                        &semantic_state_flow_proof_summary
-                    )
-                ),
-                semantic_state_flow_labels: semantic_state_flows_for_target
-                    .iter()
-                    .take(3)
-                    .map(|flow| flow.label.clone())
-                    .collect(),
-                semantic_state_flow_refs: build_topology_state_flow_refs(
-                    &semantic_state_flows_for_target,
-                    3,
-                ),
-                semantic_state_flow_proof_summary,
-                causal_bridges: Vec::new(),
-            }
-        })
-        .collect::<Vec<_>>();
-    result.sort_by(|left, right| {
-        packet_priority_rank(
-            right
-                .highest_guardian_packet_priority
-                .as_deref()
-                .unwrap_or("low"),
-        )
-        .cmp(&packet_priority_rank(
-            left.highest_guardian_packet_priority
-                .as_deref()
-                .unwrap_or("low"),
-        ))
-        .then(
-            preview_severity_rank(
-                right
-                    .highest_visible_finding_severity
-                    .as_deref()
-                    .unwrap_or("low"),
-            )
-            .cmp(&preview_severity_rank(
-                left.highest_visible_finding_severity
-                    .as_deref()
-                    .unwrap_or("low"),
-            )),
-        )
-        .then(left.primary_target_file.cmp(&right.primary_target_file))
-    });
-    result.truncate(5);
-    result
 }
 
 fn build_topology_status_lookup(
@@ -5761,17 +5393,13 @@ fn build_guardian_packets(
                         "guardian:abstraction-sprawl:{}",
                         finding.file_path.display()
                     ),
-                    priority: if finding.severity_millis >= 700 || target_files.len() >= 3 {
-                        String::from("high")
-                    } else {
-                        String::from("medium")
-                    },
+                    priority: String::from("low"),
                     focus: String::from("abstraction_sprawl"),
                     primary_target_file: finding.file_path.display().to_string(),
                     precision: String::from("heuristic"),
                     confidence_millis: finding.severity_millis,
                     summary: format!(
-                        "{} spreads one concern across too many abstraction roles. Collapse the indirection until one primary boundary remains.",
+                        "{} is a naming-based abstraction-role candidate. Inspect the actual responsibilities and callers; retain distinct boundaries unless redundant behavior is demonstrated.",
                         finding.file_path.display()
                     ),
                     target_files,
@@ -6681,16 +6309,16 @@ fn guardian_packet_obligations(
         "abstraction_sprawl" => vec![
             GuardianObligation {
                 action: format!(
-                    "Collapse the helper/service/factory/registry indirection around `{primary_file}` until `{}` owns the concern.",
+                    "Trace the actual responsibilities and callers around `{primary_file}` before deciding whether `{}` should own any duplicated behavior.",
                     preferred_mechanism.unwrap_or("one primary boundary")
                 ),
                 acceptance: String::from(
-                    "The concern no longer requires multiple abstraction roles to understand or change one flow.",
+                    "Source-backed review identifies duplicated behavior or explains why the named roles protect distinct boundaries.",
                 ),
             },
             GuardianObligation {
                 action: String::from(
-                    "Retire decorative abstractions that only rename or forward behavior without protecting a real boundary.",
+                    "Only retire an abstraction if its callers and implementation demonstrate redundant behavior; preserve registrations and distinct tenant, access or lifecycle boundaries.",
                 ),
                 acceptance: String::from(
                     "The remaining abstraction layers each own a distinct boundary or capability instead of stacking incidental wrappers.",

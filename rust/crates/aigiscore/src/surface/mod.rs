@@ -1379,12 +1379,12 @@ fn surface_finding_from_architectural_assessment(
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
                 phase: SurfaceFindingPhase::Architecture,
-                severity: SurfaceFindingSeverity::High,
+                severity: SurfaceFindingSeverity::Low,
                 precision: String::from("heuristic"),
                 confidence_millis: finding.severity_millis,
-                title: String::from("Abstraction sprawl"),
+                title: String::from("Abstraction-role naming candidate"),
                 summary: format!(
-                    "{} spreads one concern across too many abstraction roles ({})",
+                    "{} belongs to a naming-based group with abstraction roles ({}). Names alone do not establish duplicated behavior or a faulty boundary.",
                     finding.file_path.display(),
                     finding.warning_families.join(", ")
                 ),
