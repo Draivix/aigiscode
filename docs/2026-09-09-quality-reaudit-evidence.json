@@ -1,0 +1,855 @@
+{
+  "analyzed_revision": "717c2e751f40d82ac47397225b3efa93319d9432",
+  "date": "2026-09-09",
+  "analyzer_binary_sha256": "68aec02f125be83c4a4890ae63ccbb2d283e248248b59196ef5eb2ba87c4282c",
+  "source_manifest_sha256": "0d4415aa6c9e0dcbb3fe9b384ed91f19fa59e659415ff1a2c386f2a08d8d7bbf",
+  "self_audit": {
+    "summary": {
+      "scanned_files": 192,
+      "analyzed_files": 105,
+      "symbols": 2419,
+      "references": 30680,
+      "resolved_edges": 5586,
+      "strong_cycle_count": 0,
+      "total_cycle_count": 2,
+      "architectural_smell_count": 0,
+      "hub_like_dependency_count": 0,
+      "unstable_dependency_count": 0,
+      "warning_heavy_hotspot_count": 13,
+      "split_identity_model_count": 1,
+      "compatibility_scar_count": 1,
+      "duplicate_mechanism_count": 0,
+      "sanctioned_path_bypass_count": 10,
+      "hand_rolled_parsing_count": 0,
+      "abstraction_sprawl_count": 0,
+      "algorithmic_complexity_hotspot_count": 62,
+      "ast_grep_finding_count": 21,
+      "ast_grep_algorithmic_complexity_count": 6,
+      "ast_grep_security_dangerous_api_count": 1,
+      "ast_grep_framework_misuse_count": 14,
+      "ast_grep_skipped_file_count": 65,
+      "ast_grep_skipped_bytes": 3188958,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/agentic.rs",
+          "bytes": 201810,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2539,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+          "bytes": 369155,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+          "bytes": 263490,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 1,
+      "hardwiring_count": 738,
+      "security_finding_count": 0,
+      "declared_route_count": 8,
+      "declared_hook_count": 8,
+      "declared_registered_key_count": 0,
+      "declared_symbolic_literal_count": 41,
+      "declared_env_key_count": 17,
+      "declared_config_key_count": 9,
+      "external_tool_count": 0,
+      "external_finding_count": 0,
+      "visible_findings": 841,
+      "accepted_by_policy": 0,
+      "suppressed_by_rule": 0,
+      "new_findings": 642,
+      "worsened_findings": 0,
+      "improved_findings": 0,
+      "resolved_findings": 0
+    },
+    "overview": {
+      "scanned_files": 192,
+      "analyzed_files": 105,
+      "symbols": 2419,
+      "references": 30680,
+      "resolved_edges": 5586,
+      "unresolved_reference_sites": 23463,
+      "strong_cycle_count": 0,
+      "total_cycle_count": 2,
+      "bottleneck_count": 20,
+      "orphan_count": 5,
+      "boundary_truncated_count": 0,
+      "runtime_entry_count": 10,
+      "boundary_truth": "complete_repository",
+      "dead_code_count": 1,
+      "hardwiring_count": 738,
+      "security_finding_count": 0,
+      "external_finding_count": 0,
+      "external_tool_run_count": 0,
+      "override_edge_count": 0,
+      "architectural_smell_count": 0,
+      "hub_like_dependency_count": 0,
+      "unstable_dependency_count": 0,
+      "warning_heavy_hotspot_count": 13,
+      "split_identity_model_count": 1,
+      "compatibility_scar_count": 1,
+      "duplicate_mechanism_count": 0,
+      "sanctioned_path_bypass_count": 10,
+      "hand_rolled_parsing_count": 0,
+      "abstraction_sprawl_count": 0,
+      "algorithmic_complexity_hotspot_count": 62,
+      "ast_grep_finding_count": 21,
+      "ast_grep_algorithmic_complexity_count": 6,
+      "ast_grep_security_dangerous_api_count": 1,
+      "ast_grep_framework_misuse_count": 14,
+      "ast_grep_skipped_file_count": 65,
+      "ast_grep_skipped_bytes": 3188958,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/agentic.rs",
+          "bytes": 201810,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2539,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+          "bytes": 369155,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+          "bytes": 263490,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "route_contract_count": 8,
+      "hook_contract_count": 8,
+      "registered_key_count": 0,
+      "symbolic_literal_count": 41,
+      "env_key_count": 17,
+      "config_key_count": 9
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 4
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 0
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 553
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 86
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 1314
+      }
+    ],
+    "time_log": "\tCommand being timed: \"target/audit-trust-2026-09-09/candidate-delivery-aigiscode analyze /home/david/Work/Programming/aigiscode --output-dir /home/david/Work/Programming/aigiscode/target/quality-reaudit-2026-09-09/self\"\n\tUser time (seconds): 4.88\n\tSystem time (seconds): 0.18\n\tPercent of CPU this job got: 209%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 0:02.41\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 145464\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 0\n\tMinor (reclaiming a frame) page faults: 46637\n\tVoluntary context switches: 794\n\tInvoluntary context switches: 3838\n\tSwaps: 0\n\tFile system inputs: 1240\n\tFile system outputs: 67592\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n",
+    "artifact_bytes": 34562140,
+    "cross_language_edges": [
+      {
+        "source_file_path": "website/src/pages/LanguagePage.tsx",
+        "source_symbol_id": null,
+        "target_file_path": "rust/crates/aigiscore/src/graph/mod.rs",
+        "target_symbol_id": "enum:rust/crates/aigiscore/src/graph/mod.rs:Language",
+        "reference_target_name": "@/content/languages::Language",
+        "kind": "TypeImport",
+        "relation_kind": "TypeUse",
+        "layer": "Structural",
+        "strength": "Inferred",
+        "origin": "Resolver",
+        "resolution_tier": "Global",
+        "confidence_millis": 500,
+        "reason": "type-import:global",
+        "line": 21,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "website/src/pages/LanguagesPage.tsx",
+        "source_symbol_id": null,
+        "target_file_path": "rust/crates/aigiscore/src/graph/mod.rs",
+        "target_symbol_id": "enum:rust/crates/aigiscore/src/graph/mod.rs:Language",
+        "reference_target_name": "@/content/languages::Language",
+        "kind": "TypeImport",
+        "relation_kind": "TypeUse",
+        "layer": "Structural",
+        "strength": "Inferred",
+        "origin": "Resolver",
+        "resolution_tier": "Global",
+        "confidence_millis": 500,
+        "reason": "type-import:global",
+        "line": 18,
+        "occurrence_index": 0
+      }
+    ],
+    "fixture_false_positives": [
+      {
+        "id": "architecture:compatibility-scar:rust/crates/aigiscore/src/artifacts.rs:assignedUser+assignedUserId+assigned_user_id+getAssignedUserId+setAssignedUserId",
+        "fingerprint": "architecture|compatibility-scar|rust/crates/aigiscore/src/artifacts.rs|rust/crates/aigiscore/src/assessment/mod.rs|assignedUser|assignedUserId|assigned_user_id|getAssignedUserId|setAssignedUserId|compatibility_keywords:50|concept:assigned_user|split_identity",
+        "family": "Graph",
+        "phase": "architecture",
+        "severity": "High",
+        "precision": "heuristic",
+        "confidence_millis": 622,
+        "title": "Compatibility scar",
+        "summary": "rust/crates/aigiscore/src/artifacts.rs centralizes translation or compatibility glue for competing representations (identifiers: assignedUser, assignedUserId, assigned_user_id, getAssignedUserId, setAssignedUserId)",
+        "file_paths": [
+          "rust/crates/aigiscore/src/artifacts.rs",
+          "rust/crates/aigiscore/src/assessment/mod.rs"
+        ],
+        "line": 232,
+        "primary_anchor": {
+          "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+          "line": 232,
+          "label": "primary"
+        },
+        "evidence_anchors": [
+          {
+            "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+            "line": 24,
+            "label": "supporting"
+          }
+        ],
+        "locations": [
+          {
+            "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+            "line": 232,
+            "label": "primary"
+          },
+          {
+            "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+            "line": 24,
+            "label": "supporting"
+          }
+        ],
+        "provenance": [
+          "architectural_assessment",
+          "parsed_sources",
+          "graph_analysis"
+        ],
+        "doctrine_refs": [
+          "pattern.coherence",
+          "guardian.single-canonical-representation",
+          "guardian.translation-hotspot"
+        ],
+        "review_status": "Unreviewed",
+        "policy_status": "None",
+        "is_visible": true
+      },
+      {
+        "id": "architecture:split-identity:rust/crates/aigiscore/src/artifacts.rs:assignedUserId+assigned_user_id+assignedUser+getAssignedUserId+setAssignedUserId",
+        "fingerprint": "architecture|split-identity-model|rust/crates/aigiscore/src/artifacts.rs|rust/crates/aigiscore/src/assessment/mod.rs|assignedUser|assignedUserId|assigned_user_id|getAssignedUserId|setAssignedUserId|concept:assigned_user",
+        "family": "Graph",
+        "phase": "architecture",
+        "severity": "Medium",
+        "precision": "heuristic",
+        "confidence_millis": 816,
+        "title": "Split identity model",
+        "summary": "rust/crates/aigiscore/src/artifacts.rs mixes object-like and scalar identity forms for the same concept (identifiers: assignedUserId, assigned_user_id, assignedUser, getAssignedUserId, setAssignedUserId)",
+        "file_paths": [
+          "rust/crates/aigiscore/src/artifacts.rs",
+          "rust/crates/aigiscore/src/assessment/mod.rs"
+        ],
+        "line": 8593,
+        "primary_anchor": {
+          "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+          "line": 8593,
+          "label": "primary"
+        },
+        "evidence_anchors": [
+          {
+            "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+            "line": 24,
+            "label": "supporting"
+          }
+        ],
+        "locations": [
+          {
+            "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+            "line": 8593,
+            "label": "primary"
+          },
+          {
+            "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+            "line": 24,
+            "label": "supporting"
+          }
+        ],
+        "provenance": [
+          "architectural_assessment",
+          "parsed_sources"
+        ],
+        "doctrine_refs": [
+          "pattern.coherence",
+          "guardian.single-canonical-representation"
+        ],
+        "review_status": "Unreviewed",
+        "policy_status": "None",
+        "is_visible": true
+      }
+    ],
+    "initial_guard": {
+      "verdict": "Warn",
+      "summary": "Warn: the current diff state includes modeled/exact guard pressure that needs focused review.",
+      "reasons": [
+        "10 doctrine-backed attention item(s) need review.",
+        "83 contract inventory change(s) were detected in routes/hooks/keys/config surfaces.",
+        "Bottleneck concentration increased relative to the previous run.",
+        "Warning-heavy hotspot count increased relative to the previous run.",
+        "Split identity model pressure increased relative to the previous run.",
+        "Compatibility-scar pressure increased relative to the previous run.",
+        "Sanctioned-path bypass pressure increased relative to the previous run.",
+        "Algorithmic-complexity hotspot pressure increased relative to the previous run.",
+        "Visible finding pressure increased by 841."
+      ]
+    },
+    "initial_convergence": {
+      "current_findings": 841,
+      "previous_findings": 0,
+      "new_findings": 642,
+      "worsened_findings": 0,
+      "improved_findings": 0,
+      "unchanged_findings": 0,
+      "resolved_findings": 0
+    },
+    "secondary_scan": {
+      "scanner": "ast_grep",
+      "scanned_files": 39,
+      "matched_files": 16,
+      "rule_ids": [
+        "complexity/rust/filesystem_read_in_loop",
+        "complexity/rust/sort_in_loop",
+        "framework_misuse/rust/raw_env_outside_config",
+        "security/javascript/html_output"
+      ],
+      "skipped_files": [
+        {
+          "file_path": "rust/crates/aigiscore/src/agentic.rs",
+          "bytes": 201810,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2539,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts.rs",
+          "bytes": 369155,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/assessment/mod.rs",
+          "bytes": 263490,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscore.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/detectors/mod.rs",
+          "bytes": 92,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/evidence.rs",
+          "bytes": 336,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/identity.rs",
+          "bytes": 295,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/ingestion/hash.rs",
+          "bytes": 3621,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/ingestion/mod.rs",
+          "bytes": 89,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/ingestion/sources.rs",
+          "bytes": 1737,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/ingestion/structure.rs",
+          "bytes": 5019,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/lexmask.rs",
+          "bytes": 18445,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/lib.rs",
+          "bytes": 465,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/mcp/live.rs",
+          "bytes": 13244,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/mcp/mod.rs",
+          "bytes": 157908,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/parsing/javascript.rs",
+          "bytes": 40844,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/parsing/mod.rs",
+          "bytes": 4380,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/parsing/php/names.rs",
+          "bytes": 5013,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/parsing/ruby.rs",
+          "bytes": 15930,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/parsing/vue.rs",
+          "bytes": 5690,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/plugins/mod.rs",
+          "bytes": 5927,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/plugins/queue.rs",
+          "bytes": 6216,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/revision.rs",
+          "bytes": 5159,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/scanners/mod.rs",
+          "bytes": 46,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/App.tsx",
+          "bytes": 3695,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/AnimatedGradient.tsx",
+          "bytes": 3192,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/BlogCard.tsx",
+          "bytes": 3716,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/Breadcrumbs.tsx",
+          "bytes": 2294,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/ErrorBoundary.tsx",
+          "bytes": 5351,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/FloatingIcons.tsx",
+          "bytes": 6960,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/Footer.tsx",
+          "bytes": 13391,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/LanguageLayout.tsx",
+          "bytes": 2065,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/Layout.tsx",
+          "bytes": 3114,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/PipelineSVG.tsx",
+          "bytes": 2319,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/SEO.tsx",
+          "bytes": 5915,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/ScrollProgress.tsx",
+          "bytes": 3656,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/ShieldBackground.tsx",
+          "bytes": 4497,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/components/UseCaseCard.tsx",
+          "bytes": 3505,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/content/blog-posts.ts",
+          "bytes": 1292627,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "website/src/content/features.ts",
+          "bytes": 241426,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "website/src/content/integrations.ts",
+          "bytes": 162204,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "website/src/content/seo-schema.ts",
+          "bytes": 6840,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/fixtures/architectureSurfaceDemo.ts",
+          "bytes": 11235,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/hooks/useAnime.ts",
+          "bytes": 5122,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/lib/architectureSurface.ts",
+          "bytes": 5765,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/main.tsx",
+          "bytes": 345,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/AboutPage.tsx",
+          "bytes": 49787,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/BlogPostPage.tsx",
+          "bytes": 19887,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/DocsPage.tsx",
+          "bytes": 39658,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/FeaturePage.tsx",
+          "bytes": 17742,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/FeaturesPage.tsx",
+          "bytes": 15427,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/IntegrationPage.tsx",
+          "bytes": 20655,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/IntegrationsPage.tsx",
+          "bytes": 14927,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/LanguagePage.tsx",
+          "bytes": 22505,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/LanguagesPage.tsx",
+          "bytes": 13379,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/NotFoundPage.tsx",
+          "bytes": 2020,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/PlatformFeaturePage.tsx",
+          "bytes": 17732,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/PlatformPage.tsx",
+          "bytes": 11745,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/UseCasePage.tsx",
+          "bytes": 12538,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/pages/UseCasesPage.tsx",
+          "bytes": 10681,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/types/architecture.ts",
+          "bytes": 1837,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/src/vite-env.d.ts",
+          "bytes": 123,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "website/vite.config.ts",
+          "bytes": 1471,
+          "reason": "no_family_prefilter_hit"
+        }
+      ]
+    }
+  },
+  "ci": {
+    "baseline_url": "https://github.com/Draivix/aigiscode/actions/runs/29822587518",
+    "merged_url": "https://github.com/Draivix/aigiscode/actions/runs/34323575769",
+    "website": "passed",
+    "rust_fmt": "passed",
+    "rust_clippy": "failed",
+    "rust_tests": "skipped",
+    "library_errors": 39,
+    "test_target_errors": 41,
+    "current_diagnostics": [
+      {
+        "message": "empty line after doc comment",
+        "file": "rust/crates/aigiscore/src/scanners/framework_catalogs.rs"
+      },
+      {
+        "message": "variable does not need to be mutable",
+        "file": "rust/crates/aigiscore/src/assessment/mod.rs"
+      },
+      {
+        "message": "very complex type used. Consider factoring parts into `type` definitions",
+        "file": "rust/crates/aigiscore/src/agentic.rs"
+      },
+      {
+        "message": "the following explicit lifetimes could be elided: 'a",
+        "file": "rust/crates/aigiscore/src/agentic.rs"
+      },
+      {
+        "message": "returning the result of a `let` binding from a block",
+        "file": "rust/crates/aigiscore/src/agentic.rs"
+      },
+      {
+        "message": "using `map` over `inspect`",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/artifacts.rs"
+      },
+      {
+        "message": "this block may be rewritten with the `?` operator",
+        "file": "rust/crates/aigiscore/src/detectors/dead_code.rs"
+      },
+      {
+        "message": "this `let...else` may be rewritten with the `?` operator",
+        "file": "rust/crates/aigiscore/src/detectors/dead_code.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/graph/analysis.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/graph/analysis.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/graph/analysis.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/mcp/contracts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/mcp/contracts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/mcp/contracts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/mcp/contracts.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/mcp/contracts.rs"
+      },
+      {
+        "message": "this manual char comparison can be written more succinctly",
+        "file": "rust/crates/aigiscore/src/mcp/contracts.rs"
+      },
+      {
+        "message": "this function has too many arguments (11/7)",
+        "file": "rust/crates/aigiscore/src/parsing/php.rs"
+      },
+      {
+        "message": "this `map_or` can be simplified",
+        "file": "rust/crates/aigiscore/src/resolve/mod.rs"
+      },
+      {
+        "message": "this expression creates a reference which is immediately dereferenced by the compiler",
+        "file": "rust/crates/aigiscore/src/resolve/mod.rs"
+      },
+      {
+        "message": "this expression creates a reference which is immediately dereferenced by the compiler",
+        "file": "rust/crates/aigiscore/src/resolve/mod.rs"
+      },
+      {
+        "message": "this expression creates a reference which is immediately dereferenced by the compiler",
+        "file": "rust/crates/aigiscore/src/resolve/mod.rs"
+      },
+      {
+        "message": "this expression creates a reference which is immediately dereferenced by the compiler",
+        "file": "rust/crates/aigiscore/src/resolve/mod.rs"
+      },
+      {
+        "message": "this expression creates a reference which is immediately dereferenced by the compiler",
+        "file": "rust/crates/aigiscore/src/resolve/mod.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/surface/mod.rs"
+      },
+      {
+        "message": "variables can be used directly in the `format!` string",
+        "file": "rust/crates/aigiscore/src/surface/mod.rs"
+      },
+      {
+        "message": "items after a test module",
+        "file": "rust/crates/aigiscore/src/parsing/mod.rs"
+      }
+    ],
+    "diagnostics_not_in_baseline": []
+  }
+}
