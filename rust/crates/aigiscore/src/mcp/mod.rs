@@ -32,12 +32,11 @@ use crate::artifacts::{
     ArtifactPaths, RepositoryTopologyArtifact,
 };
 use crate::doctrine::DoctrineLoadError;
-use crate::ingestion::pipeline::{analyze_project, ProjectAnalysis, ProjectAnalysisError};
+use crate::ingestion::pipeline::{ProjectAnalysis, ProjectAnalysisError};
 use crate::ingestion::scan::ScanConfig;
 use crate::kuzu_index::{
     build_dependency_graph_artifact, build_evidence_graph_artifact, query_kuzu,
-    schema_reference_markdown, write_semantic_graph_kuzu_artifact, DependencyGraphArtifact,
-    EvidenceGraphArtifact, KuzuIndexError,
+    schema_reference_markdown, write_semantic_graph_kuzu_artifact, KuzuIndexError,
 };
 use crate::policy::PolicyLoadError;
 use crate::review::build_review_surface;
@@ -291,6 +290,16 @@ fn build_mcp_state(
     write_artifacts: bool,
     write_kuzu: bool,
 ) -> Result<McpState, McpServerError> {
+    build_mcp_state_with_resolver(root, output_dir, write_artifacts, write_kuzu, None)
+}
+
+fn build_mcp_state_with_resolver(
+    root: &Path,
+    output_dir: Option<&Path>,
+    write_artifacts: bool,
+    write_kuzu: bool,
+    resolver: Option<&mut crate::resolve::ResolutionCache>,
+) -> Result<McpState, McpServerError> {
     let output_root = output_dir.map(Path::to_path_buf).unwrap_or_else(|| crate::artifacts::default_output_dir(root));
     let snapshot = match crate::artifacts::ArtifactSnapshot::pin(&output_root) {
         Ok(snapshot) => snapshot,
@@ -320,7 +329,9 @@ fn build_mcp_state(
             );
             analysis
         }
-        None => analyze_project(root.to_path_buf(), &ScanConfig::default())?,
+        None => crate::ingestion::pipeline::analyze_project_with_resolver(
+            root.to_path_buf(), &ScanConfig::default(), resolver,
+        )?,
     };
     let disk_generation = snapshot.as_ref().and_then(|snapshot| snapshot.generation.clone());
     let disk_identity = snapshot.as_ref().and_then(|snapshot| snapshot.identity.clone());
@@ -1839,14 +1850,20 @@ impl AigiscodeMcpServer {
                 to_json_pretty(&self.state().await.snapshot().coverage)?,
             )),
             GRAPH_SCHEMA_URI => Ok((String::from(uri), schema_reference_markdown())),
-            DEPENDENCY_GRAPH_URI => Ok((
-                String::from(uri),
-                to_json_pretty(&self.state().await.snapshot().dependency_graph)?,
-            )),
-            EVIDENCE_GRAPH_URI => Ok((
-                String::from(uri),
-                to_json_pretty(&self.state().await.snapshot().evidence_graph)?,
-            )),
+            DEPENDENCY_GRAPH_URI | EVIDENCE_GRAPH_URI => {
+                let state = self.state().await;
+                let dependency = uri == DEPENDENCY_GRAPH_URI;
+                let payload = tokio::task::spawn_blocking(move || {
+                    if dependency {
+                        to_json_pretty(&build_dependency_graph_artifact(&state.snapshot().semantic_graph))
+                    } else {
+                        to_json_pretty(&build_evidence_graph_artifact(&state.snapshot().semantic_graph))
+                    }
+                }).await.map_err(|error| McpError::internal_error(
+                    format!("graph resource worker failed: {error}"), None,
+                ))??;
+                Ok((String::from(uri), payload))
+            }
             CONTRACTS_URI => Ok((
                 String::from(uri),
                 to_json_pretty(&self.state().await.snapshot().contract_inventory)?,
@@ -1928,8 +1945,6 @@ struct McpState {
     root: String,
     semantic_graph: crate::graph::SemanticGraph,
     kuzu_path: Option<PathBuf>,
-    dependency_graph: DependencyGraphArtifact,
-    evidence_graph: EvidenceGraphArtifact,
     contract_inventory: ContractInventoryOutput,
     doctrine_registry: DoctrineRegistryOutput,
     handoff: AgentHandoffArtifact,
@@ -2027,8 +2042,6 @@ impl McpState {
             .map(CycleOutput::from_cycle_finding)
             .collect::<Vec<_>>();
         let atlas = AtlasOutput::from_surface(&surface);
-        let dependency_graph = build_dependency_graph_artifact(&analysis.semantic_graph);
-        let evidence_graph = build_evidence_graph_artifact(&analysis.semantic_graph);
         let contract_inventory =
             ContractInventoryOutput::from_inventory(&analysis.contract_inventory);
         let doctrine_registry = DoctrineRegistryOutput::from_registry(analysis.doctrine_registry());
@@ -2073,7 +2086,7 @@ impl McpState {
         );
         let convergence = ConvergenceOutput::from_artifact(&convergence_artifact);
         let guard_decision = GuardDecisionOutput::from_artifact(&guard_decision_artifact);
-        let repo_overview = RepoOverviewOutput::new(
+        let mut repo_overview = RepoOverviewOutput::new(
             &root,
             &surface,
             &review_surface,
@@ -2089,13 +2102,12 @@ impl McpState {
                 .collect(),
         );
 
+        repo_overview.resolution_work = analysis.resolution_work.clone();
         Ok(Self {
             artifact_generation,
             root,
             semantic_graph: analysis.semantic_graph,
             kuzu_path,
-            dependency_graph,
-            evidence_graph,
             contract_inventory,
             doctrine_registry,
             handoff,

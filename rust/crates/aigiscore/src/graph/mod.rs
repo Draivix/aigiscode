@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 pub mod analysis;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Language {
     JavaScript,
     Php,
@@ -19,7 +19,7 @@ pub enum Visibility {
     Private,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SymbolKind {
     Class,
     Function,
@@ -49,7 +49,7 @@ impl ReferenceKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CallForm {
     Free,
     Member,
@@ -186,7 +186,7 @@ pub struct SymbolNode {
     pub end_line: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SemanticReference {
     pub file_path: PathBuf,
     pub enclosing_symbol_id: Option<String>,

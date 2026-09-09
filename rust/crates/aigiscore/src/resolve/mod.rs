@@ -11,8 +11,10 @@ use std::sync::OnceLock;
 
 mod tsconfig;
 pub use tsconfig::ResolveConfigError;
+mod cache;
+pub use cache::{ResolutionCache, ResolutionWork};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SymbolDefinition {
     pub symbol_id: String,
     pub file_path: PathBuf,
@@ -27,8 +29,8 @@ pub struct SymbolDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TieredCandidates {
-    pub candidates: Vec<SymbolDefinition>,
+pub struct TieredCandidates<'a> {
+    pub candidates: Vec<&'a SymbolDefinition>,
     pub tier: ResolutionTier,
 }
 
@@ -171,7 +173,7 @@ impl ResolutionContext {
                     if candidates.len() == 1 {
                         candidates
                             .into_iter()
-                            .map(|candidate| candidate.file_path)
+                            .map(|candidate| candidate.file_path.clone())
                             .collect()
                     } else {
                         HashSet::new()
@@ -243,11 +245,11 @@ impl ResolutionContext {
         context
     }
 
-    pub fn resolve(&self, name: &str, from_file: &Path) -> Option<TieredCandidates> {
+    pub fn resolve(&self, name: &str, from_file: &Path) -> Option<TieredCandidates<'_>> {
         let key = (from_file.to_path_buf(), name.to_owned());
         if let Some(definitions) = self.file_index.get(&key) {
             return Some(TieredCandidates {
-                candidates: definitions.clone(),
+                candidates: definitions.iter().collect(),
                 tier: ResolutionTier::SameFile,
             });
         }
@@ -268,11 +270,10 @@ impl ResolutionContext {
                 .into_iter()
                 .flat_map(|candidates| candidates.iter())
                 .filter(|candidate| &candidate.file_path == source_file)
-                .cloned()
                 .collect::<Vec<_>>();
             if named_candidates.is_empty() {
                 if let Some(module_candidate) = self.module_index.get(source_file) {
-                    named_candidates.push(module_candidate.clone());
+                    named_candidates.push(module_candidate);
                 }
             }
             if !named_candidates.is_empty() {
@@ -286,12 +287,11 @@ impl ResolutionContext {
         if self.declared_imports.contains(&(from_file.to_path_buf(), name.to_owned())) {
             return None;
         }
-        let all_candidates = self.global_index.get(name)?.clone();
+        let all_candidates = self.global_index.get(name)?;
         if let Some(imported_files) = self.import_map.get(from_file) {
             let imported_candidates = all_candidates
                 .iter()
                 .filter(|candidate| imported_files.contains(&candidate.file_path))
-                .cloned()
                 .collect::<Vec<_>>();
             if !imported_candidates.is_empty() {
                 return Some(TieredCandidates {
@@ -302,7 +302,7 @@ impl ResolutionContext {
         }
 
         Some(TieredCandidates {
-            candidates: all_candidates,
+            candidates: all_candidates.iter().collect(),
             tier: ResolutionTier::Global,
         })
     }
@@ -318,20 +318,19 @@ impl ResolutionContext {
             .unwrap_or_default()
     }
 
-    fn php_qualified_candidates(&self, name: &str) -> Vec<SymbolDefinition> {
+    fn php_qualified_candidates(&self, name: &str) -> Vec<&SymbolDefinition> {
         self.qualified_index
             .get(&name.trim_start_matches('\\').to_ascii_lowercase())
             .into_iter()
             .flatten()
             .filter(|candidate| self.language_map.get(&candidate.file_path) == Some(&Language::Php))
-            .cloned()
             .collect()
     }
 
-    fn module_candidates_for_files(&self, files: &[PathBuf]) -> Vec<SymbolDefinition> {
+    fn module_candidates_for_files(&self, files: &[PathBuf]) -> Vec<&SymbolDefinition> {
         files
             .iter()
-            .filter_map(|file| self.module_index.get(file).cloned())
+            .filter_map(|file| self.module_index.get(file))
             .collect()
     }
 }
@@ -364,11 +363,21 @@ pub fn resolve_graph(graph: &mut SemanticGraph) {
 pub fn resolve_graph_with_config(graph: &mut SemanticGraph, config: &ResolveConfig) {
     graph.resolved_edges.clear();
     let context = ResolutionContext::from_graph(graph, config);
+    let resolved = resolve_references(graph.references.iter(), &context);
+    for (_, edge) in resolved {
+        graph.add_resolved_edge(edge);
+    }
+    append_override_edges(graph);
+}
+
+fn resolve_references<'a>(
+    references: impl Iterator<Item = &'a SemanticReference>,
+    context: &ResolutionContext,
+) -> Vec<(usize, ResolvedEdge)> {
     let mut occurrence_counters = HashMap::<(PathBuf, usize, String), usize>::new();
-    let resolved = graph
-        .references
-        .iter()
-        .filter_map(|reference| {
+    references
+        .enumerate()
+        .filter_map(|(index, reference)| {
             let occurrence_key = (
                 reference.file_path.clone(),
                 reference.line,
@@ -378,16 +387,11 @@ pub fn resolve_graph_with_config(graph: &mut SemanticGraph, config: &ResolveConf
                 .entry(occurrence_key)
                 .and_modify(|value| *value += 1)
                 .or_insert(0);
-            resolve_reference(reference, &context).map(|edge| {
-                edge.with_reference_identity(reference.target_name.clone(), occurrence_index)
+            resolve_reference(reference, context).map(|edge| {
+                (index, edge.with_reference_identity(reference.target_name.clone(), occurrence_index))
             })
         })
-        .collect::<Vec<_>>();
-
-    for edge in resolved {
-        graph.add_resolved_edge(edge);
-    }
-    append_override_edges(graph);
+        .collect()
 }
 
 fn resolve_reference(
@@ -453,7 +457,7 @@ fn resolve_import_reference(
         .flat_map(|path| {
             context.file_index.get(&(path.clone(), exported_name.clone()))
                 .or_else(|| context.file_index.get(&(path.clone(), preferred_name.clone())))
-                .into_iter().flatten().cloned()
+                .into_iter().flatten()
         })
         .collect::<Vec<_>>();
     if definitions.is_empty() {
@@ -465,7 +469,7 @@ fn resolve_import_reference(
     })
 }
 
-fn pick_edge(reference: &SemanticReference, candidates: TieredCandidates) -> Option<ResolvedEdge> {
+fn pick_edge(reference: &SemanticReference, candidates: TieredCandidates<'_>) -> Option<ResolvedEdge> {
     if candidates.candidates.is_empty() {
         return None;
     }
@@ -473,12 +477,12 @@ fn pick_edge(reference: &SemanticReference, candidates: TieredCandidates) -> Opt
         return None;
     }
 
-    let target = candidates.candidates.first()?.clone();
+    let target = candidates.candidates.first()?;
     Some(ResolvedEdge::new(
         reference.file_path.clone(),
         reference.enclosing_symbol_id.clone(),
-        target.file_path,
-        target.symbol_id,
+        target.file_path.clone(),
+        target.symbol_id.clone(),
         reference.kind,
         candidates.tier,
         confidence_millis(candidates.tier),
@@ -487,11 +491,11 @@ fn pick_edge(reference: &SemanticReference, candidates: TieredCandidates) -> Opt
     ))
 }
 
-fn filter_candidates(
+fn filter_candidates<'a>(
     reference: &SemanticReference,
-    mut candidates: TieredCandidates,
-    context: &ResolutionContext,
-) -> TieredCandidates {
+    mut candidates: TieredCandidates<'a>,
+    context: &'a ResolutionContext,
+) -> TieredCandidates<'a> {
     // A static reference can never cross a language family: a TS `extends
     // Error` / `new Error()` / `SomeService` type-use must not bind to a PHP
     // class of the same name elsewhere in the repo. Vue SFC scripts parse as
@@ -702,7 +706,7 @@ fn filter_candidates(
                         .candidates
                         .into_iter()
                         .filter(|candidate| candidate.kind == SymbolKind::Module)
-                        .map(|candidate| candidate.file_path)
+                        .map(|candidate| candidate.file_path.clone())
                         .collect::<HashSet<_>>()
                 })
                 .unwrap_or_default();
@@ -887,11 +891,11 @@ fn is_self_receiver_name(receiver_name: &str) -> bool {
     )
 }
 
-fn prefer_same_language_call_candidates(
+fn prefer_same_language_call_candidates<'a>(
     reference: &SemanticReference,
-    mut candidates: TieredCandidates,
-    context: &ResolutionContext,
-) -> TieredCandidates {
+    mut candidates: TieredCandidates<'a>,
+    context: &'a ResolutionContext,
+) -> TieredCandidates<'a> {
     let Some(source_language) = context.language_map.get(&reference.file_path).copied() else {
         return candidates;
     };
@@ -988,11 +992,11 @@ fn collect_receiver_type(
     }
 }
 
-fn resolve_receiver_candidates(
-    context: &ResolutionContext,
+fn resolve_receiver_candidates<'a>(
+    context: &'a ResolutionContext,
     from_file: &Path,
     receiver_type_name: &str,
-) -> Vec<SymbolDefinition> {
+) -> Vec<&'a SymbolDefinition> {
     if let Some((owner, member)) = receiver_type_name
         .split_once("::")
         .filter(|(owner, _)| owner.contains('\\'))
@@ -1009,7 +1013,6 @@ fn resolve_receiver_candidates(
                     .as_ref()
                     .is_some_and(|parent| owners.iter().any(|owner| &owner.symbol_id == parent))
             })
-            .cloned()
             .collect();
     }
     if receiver_type_name.contains('\\') && !receiver_type_name.contains("::") {
@@ -1026,7 +1029,7 @@ fn resolve_receiver_candidates(
             normalized
         };
         if let Some(candidates) = context.qualified_index.get(&normalized) {
-            return candidates.clone();
+            return candidates.iter().collect();
         }
     }
 

@@ -253,7 +253,8 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
   topology changes during registration/build force another reconciliation pass.
   Watcher failure or overflow marks the snapshot stale and triggers re-registration.
   Registration failure retries after two seconds. Rebuilds still run full analysis
-  and do not write artifacts (incremental resolution remains pending).
+  and do not write artifacts. Default resolution remains a full pass; optional
+  per-file native result reuse is described under Phase 2.
 - ✅ Live `ArcSwap`-backed state (`src/mcp/live.rs`, generic `LiveState<S>` so the
   revision logic is unit-testable): replaces the one-shot `McpState` clone. Every
   `repo_overview` response carries a `Freshness` contract
@@ -298,6 +299,14 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
 
 ### Phase 2 — Incremental core
 
+- A first native resolver cache is available behind
+  `AIGISCORE_INCREMENTAL_RESOLVE=1` for `mcp --watch`. It reuses per-file native
+  results when the full symbol/import context and ordered reference inputs agree;
+  context changes invalidate globally. `repo_overview.resolution_work` reports
+  processed/reused reference work. Parsing and later analyses remain full passes.
+  The complete dependency/evidence views on controlled real Draivix refreshes and
+  memory measurements are documented in the [resolver evidence](2026-09-09-incremental-resolution.md).
+  Differential CI remains pending; the feature is not enabled by default.
 - Convert parsing to genuinely incremental where edit ranges are available
   (`Tree::edit` + `changed_ranges()`); full-parse the settled file otherwise
   — intra-file incremental parsing is not the main bottleneck in a

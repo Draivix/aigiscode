@@ -218,6 +218,9 @@ pub(super) fn start_indexer(
                 return;
             }
         };
+        // Experimental until the differential regression gate has been approved.
+        let incremental_resolution = watch && std::env::var("AIGISCORE_INCREMENTAL_RESOLVE").as_deref() == Ok("1");
+        let mut resolver = incremental_resolution.then(crate::resolve::ResolutionCache::default);
         let mut watcher = None::<InputWatcher>;
         let mut immediate = true;
         let mut watch_failed = false;
@@ -257,14 +260,16 @@ pub(super) fn start_indexer(
             let initial = live.load().snapshot.is_none();
             let build_root = root.clone();
             let build_output = output_dir.clone();
+            let mut build_resolver = resolver.take();
             let result = tokio::task::spawn_blocking(move || {
-                super::build_mcp_state(
+                let result = super::build_mcp_state_with_resolver(
                     &build_root,
                     build_output.as_deref(),
                     initial && write_artifacts,
                     initial && write_kuzu,
-                )
-                .map_err(|error| error.to_string())
+                    build_resolver.as_mut(),
+                ).map_err(|error| error.to_string());
+                (result, build_resolver)
             })
             .await;
             // A directory/scope event during registration may have introduced an
@@ -277,15 +282,19 @@ pub(super) fn start_indexer(
                 live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
             }
             match result {
-                Ok(Ok(state)) => {
+                Ok((Ok(state), updated_resolver)) => {
+                    resolver = updated_resolver;
                     live.publish(Some(state), target);
                     eprintln!("aigiscode mcp: published revision {target}");
                 }
-                Ok(Err(message)) => {
+                Ok((Err(message), updated_resolver)) => {
+                    resolver = updated_resolver;
                     eprintln!("aigiscode mcp: {message}");
                     live.record_error(message);
                 }
                 Err(error) => {
+                    // The failed worker owned the cache; start fresh after a panic.
+                    resolver = incremental_resolution.then(crate::resolve::ResolutionCache::default);
                     live.record_error(format!("analysis task failed: {error}"));
                 }
             }

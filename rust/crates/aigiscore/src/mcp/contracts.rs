@@ -329,6 +329,9 @@ pub struct CypherQueryParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct RepoOverviewOutput {
+    /// Work performed by the opt-in resolver cache for this indexed snapshot.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution_work: Option<crate::resolve::ResolutionWork>,
     pub root: String,
     pub artifact_files: ArtifactFileOutput,
     pub overview: OverviewOutput,
@@ -618,6 +621,7 @@ impl RepoOverviewOutput {
         top_findings: Vec<FindingBriefOutput>,
     ) -> Self {
         Self {
+            resolution_work: None,
             root: String::from(root),
             artifact_files: ArtifactFileOutput::from_paths(artifact_paths, kuzu_path),
             overview: OverviewOutput::from_surface(surface),

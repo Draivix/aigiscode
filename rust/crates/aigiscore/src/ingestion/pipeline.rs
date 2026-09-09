@@ -11,7 +11,7 @@ use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::policy::{PolicyBundle, PolicyLoadError};
-use crate::resolve::{load_resolve_config, resolve_graph_with_config, ResolveConfigError};
+use crate::resolve::{load_resolve_config, resolve_graph_with_config, ResolveConfigError, ResolutionCache, ResolutionWork};
 use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
 use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
@@ -57,6 +57,8 @@ pub struct SemanticGraphProject {
     #[serde(default)]
     pub resolve_config_xxh3: String,
     pub timings: Vec<PhaseTiming>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution_work: Option<ResolutionWork>,
     #[serde(skip)]
     pub parsed_sources: Vec<(PathBuf, String)>,
 }
@@ -85,6 +87,8 @@ pub struct ProjectAnalysis {
     #[serde(default, skip_serializing_if = "AstGrepScanResult::is_empty")]
     pub ast_grep_scan: AstGrepScanResult,
     pub timings: Vec<PhaseTiming>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolution_work: Option<ResolutionWork>,
     #[serde(skip)]
     pub parsed_sources: Vec<(PathBuf, String)>,
 }
@@ -182,8 +186,15 @@ pub fn analyze_project(
     root: impl Into<PathBuf>,
     scan_config: &ScanConfig,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
-    let root = root.into();
-    let graph_project = build_semantic_graph_project(&root, scan_config)?;
+    analyze_project_with_resolver(root, scan_config, None)
+}
+
+pub(crate) fn analyze_project_with_resolver(
+    root: impl Into<PathBuf>,
+    scan_config: &ScanConfig,
+    resolver: Option<&mut ResolutionCache>,
+) -> Result<ProjectAnalysis, ProjectAnalysisError> {
+    let graph_project = build_semantic_graph_project_with_resolver(root, scan_config, resolver)?;
     finish_project_analysis(graph_project)
 }
 
@@ -326,6 +337,7 @@ fn try_fast_load_graph_project(
         structure,
         semantic_graph,
         resolve_config_xxh3: resolve_config.fingerprint,
+        resolution_work: None,
         parsed_sources,
         timings: vec![
             PhaseTiming {
@@ -349,6 +361,7 @@ fn finish_project_analysis(
         structure,
         semantic_graph,
         resolve_config_xxh3,
+        resolution_work,
         mut timings,
         parsed_sources,
     } = graph_project;
@@ -461,6 +474,7 @@ fn finish_project_analysis(
         security_analysis,
         external_analysis: ExternalAnalysisResult::default(),
         ast_grep_scan,
+        resolution_work,
         timings,
         parsed_sources,
     })
@@ -476,6 +490,14 @@ pub fn analyze_rust_project(
 pub fn build_semantic_graph_project(
     root: impl Into<PathBuf>,
     scan_config: &ScanConfig,
+) -> Result<SemanticGraphProject, ProjectAnalysisError> {
+    build_semantic_graph_project_with_resolver(root, scan_config, None)
+}
+
+pub(crate) fn build_semantic_graph_project_with_resolver(
+    root: impl Into<PathBuf>,
+    scan_config: &ScanConfig,
+    resolver: Option<&mut ResolutionCache>,
 ) -> Result<SemanticGraphProject, ProjectAnalysisError> {
     let root = root.into();
     trace(&format!("analyze_project start {}", root.display()));
@@ -547,7 +569,13 @@ pub fn build_semantic_graph_project(
         &semantic_graph.files.iter().map(|file| file.path.clone()).collect::<Vec<_>>(),
     )?;
     trace("resolve start");
-    resolve_graph_with_config(&mut semantic_graph, &resolve_config);
+    let resolution_work = match resolver {
+        Some(resolver) => Some(resolver.resolve(&mut semantic_graph, &resolve_config)),
+        None => {
+            resolve_graph_with_config(&mut semantic_graph, &resolve_config);
+            None
+        }
+    };
     let resolve_elapsed = resolve_started.elapsed().as_millis();
     trace(&format!(
         "resolve complete resolved_edges={} elapsed_ms={resolve_elapsed}",
@@ -568,6 +596,7 @@ pub fn build_semantic_graph_project(
         structure,
         semantic_graph,
         resolve_config_xxh3: resolve_config.fingerprint,
+        resolution_work,
         parsed_sources,
         timings: vec![
             PhaseTiming {

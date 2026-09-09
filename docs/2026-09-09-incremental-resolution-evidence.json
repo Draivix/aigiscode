@@ -1,0 +1,963 @@
+{
+  "observed_at": "2026-09-09T18:00:53.191Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-incremental-lazy",
+    "sha256": "9de4794bbc152c86a0d04929682ffbe883f8142098010368769e6df8435b32ac",
+    "engine_fingerprint": "7eaf2473301ad9b3",
+    "build_log": "target/reliability-2026-09-09/resolver-reviewed-final-build.txt",
+    "production_build_succeeded": true,
+    "automated_tests_run": false,
+    "ci_run": false
+  },
+  "baseline_resolver": {
+    "binary": "target/reliability-2026-09-09/aigiscode-native-cypher",
+    "sha256": "915a6a119194eab62bd8655eaf8be5098c2737e23e7e4d58de7b21f608185df6",
+    "result": "target/reliability-2026-09-09/draivix-incremental-baseline.json",
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 238
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 285
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6174
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 17542
+      }
+    ],
+    "trace": "target/reliability-2026-09-09/draivix-incremental-baseline-trace.txt"
+  },
+  "borrowed_candidates": {
+    "result": "target/reliability-2026-09-09/draivix-borrowed-graph-result.json",
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 270
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 289
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6451
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 11908
+      }
+    ],
+    "reference_semantic_graph": "target/reliability-2026-09-09/draivix-publication/semantic-graph.json",
+    "semantic_graph": "target/reliability-2026-09-09/draivix-borrowed-graph/semantic-graph.json",
+    "reference_sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478",
+    "sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478"
+  },
+  "source": {
+    "baseline_scope_receipt": "2026-09-09-draivix-revalidation-evidence.json",
+    "baseline_inventory_sha256": "641e95edcc61e43807f7e5dc2648bdb23ea8d87f610f17a7c562ace317518e68",
+    "refreshes": [
+      {
+        "path": "clients/mitel/Entities/Account/Account.fields.php",
+        "captured_update": "target/reliability-2026-09-09/incremental-source-updates/account-fields.php",
+        "before_sha256": "b813ba20c87c3b9492b97c7654bf4d2ec988698aa942b8eb2dec9540928fbf85",
+        "after_sha256": "4a768d74893044d7b89fc3607908fb79a92ae0cc9c3ae653e20b8d3cfc772f36",
+        "captured_at": "2026-09-09T17:06:43.337Z"
+      },
+      {
+        "path": "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php",
+        "captured_update": "target/reliability-2026-09-09/incremental-source-updates/service-trip-hooks.php",
+        "before_sha256": "edc15242333a57be371bbb95f1bbad718237fb72ac7cbf9f054ab9d6fdc1b138",
+        "after_sha256": "ddbe8c142b3c789fdac719f0fd75f0d3f0c2d26a59275d0ee851cdb9f7f46c1e",
+        "captured_at": "2026-09-09T17:06:43.337Z"
+      }
+    ],
+    "integrity": {
+      "at": "2026-09-09T17:59:34.859Z",
+      "reference_capture": {
+        "root": "target/reliability-2026-09-09/draivix-full-source",
+        "files": 23166,
+        "mismatches": [],
+        "missing": []
+      },
+      "final_working_copy": {
+        "root": "target/reliability-2026-09-09/draivix-incremental-lazy-source",
+        "files": 23166,
+        "mismatches": [],
+        "missing": []
+      },
+      "applied_paths": [
+        "clients/mitel/Entities/Account/Account.fields.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php"
+      ],
+      "original_selected_sources": [
+        {
+          "path": "clients/mitel/Entities/Account/Account.fields.php",
+          "captured_sha256": "4a768d74893044d7b89fc3607908fb79a92ae0cc9c3ae653e20b8d3cfc772f36",
+          "current_sha256": "4a768d74893044d7b89fc3607908fb79a92ae0cc9c3ae653e20b8d3cfc772f36"
+        },
+        {
+          "path": "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php",
+          "captured_sha256": "ddbe8c142b3c789fdac719f0fd75f0d3f0c2d26a59275d0ee851cdb9f7f46c1e",
+          "current_sha256": "ddbe8c142b3c789fdac719f0fd75f0d3f0c2d26a59275d0ee851cdb9f7f46c1e"
+        }
+      ],
+      "original_writes_by_this_work": false
+    },
+    "scope": "Preserved captured corpus plus exactly the two captured real changes; not the complete current live working tree."
+  },
+  "first_implementation": {
+    "directory": "target/reliability-2026-09-09/incremental-mcp",
+    "process": {
+      "pid": 1268266,
+      "started_at": "2026-09-09T16:58:35.432Z",
+      "binary": "target/reliability-2026-09-09/aigiscode-incremental-resolver",
+      "root": "target/reliability-2026-09-09/draivix-incremental-source"
+    },
+    "time": {
+      "path": "target/reliability-2026-09-09/incremental-mcp-time.txt",
+      "peak_rss_kib": 7962884,
+      "exit_code": 0,
+      "session_elapsed": "28:18.51"
+    },
+    "exit": {
+      "code": 0,
+      "signal": null,
+      "elapsed_ms": 1698487.2981049998
+    },
+    "initial_overview": {
+      "id": 2,
+      "method": "tools/call",
+      "params": {
+        "name": "repo_overview",
+        "arguments": {
+          "consistency": "wait_until_indexed",
+          "min_revision": 1,
+          "wait_ms": 120000
+        }
+      },
+      "sent_ms": 8275.236409,
+      "file": "target/reliability-2026-09-09/incremental-mcp/2.jsonl",
+      "received_ms": 62273.009737,
+      "bytes": 287909,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788973177698,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "watching"
+      },
+      "resolution_work": {
+        "context_changed": true,
+        "files_resolved": 14057,
+        "files_reused": 0,
+        "references_resolved": 1086615,
+        "references_reused": 0
+      },
+      "response_latency_ms": 53997.773328
+    },
+    "stale_reads": [
+      {
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "allow_stale"
+          }
+        },
+        "sent_ms": 487940.346847,
+        "file": "target/reliability-2026-09-09/incremental-mcp/5.jsonl",
+        "received_ms": 487943.670316,
+        "bytes": 288061,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/Entities/Account/Account.fields.php"
+          ],
+          "generated_at_unix_ms": 1788973177698,
+          "indexed_revision": 1,
+          "is_stale": true,
+          "observed_revision": 5,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": true,
+          "files_resolved": 14057,
+          "files_reused": 0,
+          "references_resolved": 1086615,
+          "references_reused": 0
+        },
+        "response_latency_ms": 3.3234689999953844
+      },
+      {
+        "id": 9,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "allow_stale"
+          }
+        },
+        "sent_ms": 1294046.009454,
+        "file": "target/reliability-2026-09-09/incremental-mcp/9.jsonl",
+        "received_ms": 1294048.6722509998,
+        "bytes": 288084,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php"
+          ],
+          "generated_at_unix_ms": 1788973658680,
+          "indexed_revision": 5,
+          "is_stale": true,
+          "observed_revision": 9,
+          "rebuilding": false,
+          "revision": 5,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": false,
+          "files_resolved": 0,
+          "files_reused": 14057,
+          "references_resolved": 0,
+          "references_reused": 1086615
+        },
+        "response_latency_ms": 2.6627969997934997
+      }
+    ],
+    "fresh_refresh_reads": [
+      {
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "wait_until_indexed",
+            "min_revision": 2,
+            "wait_ms": 120000
+          }
+        },
+        "sent_ms": 487947.272755,
+        "file": "target/reliability-2026-09-09/incremental-mcp/6.jsonl",
+        "received_ms": 544373.35929,
+        "bytes": 287911,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788973658680,
+          "indexed_revision": 5,
+          "is_stale": false,
+          "observed_revision": 5,
+          "rebuilding": false,
+          "revision": 5,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": false,
+          "files_resolved": 0,
+          "files_reused": 14057,
+          "references_resolved": 0,
+          "references_reused": 1086615
+        },
+        "response_latency_ms": 56426.08653500007
+      },
+      {
+        "id": 10,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "wait_until_indexed",
+            "min_revision": 6,
+            "wait_ms": 120000
+          }
+        },
+        "sent_ms": 1294049.6753059998,
+        "file": "target/reliability-2026-09-09/incremental-mcp/10.jsonl",
+        "received_ms": 1361724.386769,
+        "bytes": 287910,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788974475915,
+          "indexed_revision": 9,
+          "is_stale": false,
+          "observed_revision": 9,
+          "rebuilding": false,
+          "revision": 9,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": true,
+          "files_resolved": 14057,
+          "files_reused": 0,
+          "references_resolved": 1086643,
+          "references_reused": 0
+        },
+        "response_latency_ms": 67674.71146300016
+      }
+    ],
+    "resource_reads": [
+      {
+        "id": 3,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/dependency-graph"
+        },
+        "sent_ms": 158612.975676,
+        "file": "target/reliability-2026-09-09/incremental-mcp/3.jsonl",
+        "received_ms": 159648.105091,
+        "bytes": 280205688,
+        "response_latency_ms": 1035.129415000003
+      },
+      {
+        "id": 4,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/evidence-graph"
+        },
+        "sent_ms": 267742.06957,
+        "file": "target/reliability-2026-09-09/incremental-mcp/4.jsonl",
+        "received_ms": 269422.504522,
+        "bytes": 570553929,
+        "response_latency_ms": 1680.4349519999814
+      },
+      {
+        "id": 7,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/dependency-graph"
+        },
+        "sent_ms": 676202.828682,
+        "file": "target/reliability-2026-09-09/incremental-mcp/7.jsonl",
+        "received_ms": 677039.0392080001,
+        "bytes": 280205688,
+        "response_latency_ms": 836.2105260000098
+      },
+      {
+        "id": 8,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/evidence-graph"
+        },
+        "sent_ms": 677039.335847,
+        "file": "target/reliability-2026-09-09/incremental-mcp/8.jsonl",
+        "received_ms": 678592.7061160001,
+        "bytes": 570553929,
+        "response_latency_ms": 1553.3702690000646
+      },
+      {
+        "id": 11,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/dependency-graph"
+        },
+        "sent_ms": 1694268.181878,
+        "file": "target/reliability-2026-09-09/incremental-mcp/11.jsonl",
+        "received_ms": 1695211.020543,
+        "bytes": 280206878,
+        "response_latency_ms": 942.8386649999302
+      },
+      {
+        "id": 12,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/evidence-graph"
+        },
+        "sent_ms": 1695211.245105,
+        "file": "target/reliability-2026-09-09/incremental-mcp/12.jsonl",
+        "received_ms": 1696855.708585,
+        "bytes": 570557016,
+        "response_latency_ms": 1644.4634799999185
+      }
+    ],
+    "memory": [
+      {
+        "stage": "after-first-refresh",
+        "at": "2026-09-09T17:08:29.213Z",
+        "pid": 1268266,
+        "VmSize_kib": 8737964,
+        "VmHWM_kib": 7352360,
+        "VmRSS_kib": 6478360
+      },
+      {
+        "stage": "after-second-refresh",
+        "at": "2026-09-09T17:25:13.563Z",
+        "pid": 1268266,
+        "VmSize_kib": 9314828,
+        "VmHWM_kib": 7962884,
+        "VmRSS_kib": 7337992
+      }
+    ],
+    "counter_note": "Prototype fields files_resolved/references_resolved count attempts; the final API uses files_processed/references_processed."
+  },
+  "final_implementation": {
+    "directory": "target/reliability-2026-09-09/incremental-lazy-mcp",
+    "process": {
+      "pid": 1479729,
+      "started_at": "2026-09-09T17:42:50.867Z",
+      "binary": "target/reliability-2026-09-09/aigiscode-incremental-lazy",
+      "root": "target/reliability-2026-09-09/draivix-incremental-lazy-source"
+    },
+    "time": {
+      "path": "target/reliability-2026-09-09/incremental-lazy-mcp-time.txt",
+      "peak_rss_kib": 6507864,
+      "exit_code": 0,
+      "session_elapsed": "14:02.31"
+    },
+    "exit": {
+      "code": 0,
+      "signal": null,
+      "elapsed_ms": 842292.851804
+    },
+    "initial_overview": {
+      "id": 2,
+      "method": "tools/call",
+      "params": {
+        "name": "repo_overview",
+        "arguments": {
+          "consistency": "wait_until_indexed",
+          "min_revision": 1,
+          "wait_ms": 120000
+        }
+      },
+      "sent_ms": 15925.737845,
+      "file": "target/reliability-2026-09-09/incremental-lazy-mcp/2.jsonl",
+      "received_ms": 60041.652764,
+      "bytes": 288097,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788975830901,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "watching"
+      },
+      "resolution_work": {
+        "context_changed": true,
+        "files_processed": 14057,
+        "files_reused": 0,
+        "references_processed": 1086615,
+        "references_reused": 0
+      },
+      "response_latency_ms": 44115.914919
+    },
+    "stale_reads": [
+      {
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "allow_stale"
+          }
+        },
+        "sent_ms": 334462.415337,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/5.jsonl",
+        "received_ms": 334465.713031,
+        "bytes": 288249,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/Entities/Account/Account.fields.php"
+          ],
+          "generated_at_unix_ms": 1788975830901,
+          "indexed_revision": 1,
+          "is_stale": true,
+          "observed_revision": 5,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": true,
+          "files_processed": 14057,
+          "files_reused": 0,
+          "references_processed": 1086615,
+          "references_reused": 0
+        },
+        "response_latency_ms": 3.2976940000080504
+      },
+      {
+        "id": 9,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "allow_stale"
+          }
+        },
+        "sent_ms": 678497.60447,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/9.jsonl",
+        "received_ms": 678502.642509,
+        "bytes": 288272,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php"
+          ],
+          "generated_at_unix_ms": 1788976156742,
+          "indexed_revision": 5,
+          "is_stale": true,
+          "observed_revision": 9,
+          "rebuilding": false,
+          "revision": 5,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": false,
+          "files_processed": 0,
+          "files_reused": 14057,
+          "references_processed": 0,
+          "references_reused": 1086615
+        },
+        "response_latency_ms": 5.038039000006393
+      }
+    ],
+    "fresh_refresh_reads": [
+      {
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "wait_until_indexed",
+            "min_revision": 2,
+            "wait_ms": 120000
+          }
+        },
+        "sent_ms": 334467.008405,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/6.jsonl",
+        "received_ms": 386442.152042,
+        "bytes": 288099,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788976156742,
+          "indexed_revision": 5,
+          "is_stale": false,
+          "observed_revision": 5,
+          "rebuilding": false,
+          "revision": 5,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": false,
+          "files_processed": 0,
+          "files_reused": 14057,
+          "references_processed": 0,
+          "references_reused": 1086615
+        },
+        "response_latency_ms": 51975.143637
+      },
+      {
+        "id": 10,
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "consistency": "wait_until_indexed",
+            "min_revision": 6,
+            "wait_ms": 120000
+          }
+        },
+        "sent_ms": 678503.6548070001,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/10.jsonl",
+        "received_ms": 740636.130012,
+        "bytes": 288098,
+        "error": null,
+        "is_error": false,
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1788976511051,
+          "indexed_revision": 9,
+          "is_stale": false,
+          "observed_revision": 9,
+          "rebuilding": false,
+          "revision": 9,
+          "watcher": "watching"
+        },
+        "resolution_work": {
+          "context_changed": true,
+          "files_processed": 14057,
+          "files_reused": 0,
+          "references_processed": 1086643,
+          "references_reused": 0
+        },
+        "response_latency_ms": 62132.47520499991
+      }
+    ],
+    "resource_reads": [
+      {
+        "id": 3,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/dependency-graph"
+        },
+        "sent_ms": 203051.35353,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/3.jsonl",
+        "received_ms": 205861.774386,
+        "bytes": 280205692,
+        "response_latency_ms": 2810.4208560000116
+      },
+      {
+        "id": 4,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/evidence-graph"
+        },
+        "sent_ms": 205862.093436,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/4.jsonl",
+        "received_ms": 208919.631114,
+        "bytes": 570553933,
+        "response_latency_ms": 3057.5376779999933
+      },
+      {
+        "id": 7,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/dependency-graph"
+        },
+        "sent_ms": 552007.671417,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/7.jsonl",
+        "received_ms": 555068.190714,
+        "bytes": 280205692,
+        "response_latency_ms": 3060.5192970000207
+      },
+      {
+        "id": 8,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/evidence-graph"
+        },
+        "sent_ms": 555068.481117,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/8.jsonl",
+        "received_ms": 558499.4050530001,
+        "bytes": 570553933,
+        "response_latency_ms": 3430.923936000094
+      },
+      {
+        "id": 11,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/dependency-graph"
+        },
+        "sent_ms": 835200.786221,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/11.jsonl",
+        "received_ms": 837772.097342,
+        "bytes": 280206882,
+        "response_latency_ms": 2571.311120999977
+      },
+      {
+        "id": 12,
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/evidence-graph"
+        },
+        "sent_ms": 837772.378826,
+        "file": "target/reliability-2026-09-09/incremental-lazy-mcp/12.jsonl",
+        "received_ms": 841195.2932440001,
+        "bytes": 570557020,
+        "response_latency_ms": 3422.9144180000294
+      }
+    ],
+    "memory": [
+      {
+        "stage": "ready-before-resources",
+        "at": "2026-09-09T17:46:13.882Z",
+        "pid": 1479729,
+        "VmSize_kib": 4767740,
+        "VmHWM_kib": 2788136,
+        "VmRSS_kib": 2636416
+      },
+      {
+        "stage": "after-initial-resources",
+        "at": "2026-09-09T17:48:25.295Z",
+        "pid": 1479729,
+        "VmSize_kib": 5837652,
+        "VmHWM_kib": 4326696,
+        "VmRSS_kib": 3234740
+      },
+      {
+        "stage": "after-first-refresh",
+        "at": "2026-09-09T17:52:02.843Z",
+        "pid": 1479729,
+        "VmSize_kib": 6320032,
+        "VmHWM_kib": 4430760,
+        "VmRSS_kib": 4002552
+      },
+      {
+        "stage": "after-second-refresh",
+        "at": "2026-09-09T17:55:56.045Z",
+        "pid": 1479729,
+        "VmSize_kib": 7756000,
+        "VmHWM_kib": 6507864,
+        "VmRSS_kib": 5777124
+      }
+    ]
+  },
+  "memory_comparison": {
+    "first_refresh": {
+      "before_rss_kib": 6478360,
+      "after_rss_kib": 4002552
+    },
+    "second_refresh": {
+      "before_rss_kib": 7337992,
+      "after_rss_kib": 5777124
+    },
+    "peak_rss_kib": {
+      "before": 7962884,
+      "after": 6507864
+    }
+  },
+  "complete_view_comparisons": [
+    {
+      "phase": "initial",
+      "view": "dependency",
+      "actual_file": "target/reliability-2026-09-09/incremental-lazy-mcp/initial-dependency-sha256.txt",
+      "reference_file": "target/reliability-2026-09-09/incremental-mcp/reference-dependency-sha256.txt",
+      "sha256": "f9af7ae9bbbcb9cafc574153d0fa2269ac964d6697803756d1da41efc66aae22",
+      "reference_sha256": "f9af7ae9bbbcb9cafc574153d0fa2269ac964d6697803756d1da41efc66aae22",
+      "equal": true
+    },
+    {
+      "phase": "initial",
+      "view": "evidence",
+      "actual_file": "target/reliability-2026-09-09/incremental-lazy-mcp/initial-evidence-sha256.txt",
+      "reference_file": "target/reliability-2026-09-09/incremental-mcp/reference-evidence-sha256.txt",
+      "sha256": "9a5387b0641d0cec231492711e555ebe0bf3ab50717454d88230abd97daa94cd",
+      "reference_sha256": "9a5387b0641d0cec231492711e555ebe0bf3ab50717454d88230abd97daa94cd",
+      "equal": true
+    },
+    {
+      "phase": "first",
+      "view": "dependency",
+      "actual_file": "target/reliability-2026-09-09/incremental-lazy-mcp/first-dependency-sha256.txt",
+      "reference_file": "target/reliability-2026-09-09/incremental-mcp/first-cold-dependency-sha256.txt",
+      "sha256": "f9af7ae9bbbcb9cafc574153d0fa2269ac964d6697803756d1da41efc66aae22",
+      "reference_sha256": "f9af7ae9bbbcb9cafc574153d0fa2269ac964d6697803756d1da41efc66aae22",
+      "equal": true
+    },
+    {
+      "phase": "first",
+      "view": "evidence",
+      "actual_file": "target/reliability-2026-09-09/incremental-lazy-mcp/first-evidence-sha256.txt",
+      "reference_file": "target/reliability-2026-09-09/incremental-mcp/first-cold-evidence-sha256.txt",
+      "sha256": "9a5387b0641d0cec231492711e555ebe0bf3ab50717454d88230abd97daa94cd",
+      "reference_sha256": "9a5387b0641d0cec231492711e555ebe0bf3ab50717454d88230abd97daa94cd",
+      "equal": true
+    },
+    {
+      "phase": "second",
+      "view": "dependency",
+      "actual_file": "target/reliability-2026-09-09/incremental-lazy-mcp/second-dependency-sha256.txt",
+      "reference_file": "target/reliability-2026-09-09/incremental-mcp/second-cold-dependency-sha256.txt",
+      "sha256": "afd407082e2d4938b3d1f2caeee28e786f1bd65551ee9b061eea5223fa536fb0",
+      "reference_sha256": "afd407082e2d4938b3d1f2caeee28e786f1bd65551ee9b061eea5223fa536fb0",
+      "equal": true
+    },
+    {
+      "phase": "second",
+      "view": "evidence",
+      "actual_file": "target/reliability-2026-09-09/incremental-lazy-mcp/second-evidence-sha256.txt",
+      "reference_file": "target/reliability-2026-09-09/incremental-mcp/second-cold-evidence-sha256.txt",
+      "sha256": "99a11b0d11811d92a02c7249de7a646d1564290385803accc6b3116ae5f77e9b",
+      "reference_sha256": "99a11b0d11811d92a02c7249de7a646d1564290385803accc6b3116ae5f77e9b",
+      "equal": true
+    }
+  ],
+  "resource_metadata": [
+    {
+      "id": 3,
+      "error": null,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788975830901,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "watching"
+      },
+      "coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    {
+      "id": 4,
+      "error": null,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788975830901,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "watching"
+      },
+      "coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    {
+      "id": 7,
+      "error": null,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788976156742,
+        "indexed_revision": 5,
+        "is_stale": false,
+        "observed_revision": 5,
+        "rebuilding": false,
+        "revision": 5,
+        "watcher": "watching"
+      },
+      "coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    {
+      "id": 8,
+      "error": null,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788976156742,
+        "indexed_revision": 5,
+        "is_stale": false,
+        "observed_revision": 5,
+        "rebuilding": false,
+        "revision": 5,
+        "watcher": "watching"
+      },
+      "coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    {
+      "id": 11,
+      "error": null,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788976511051,
+        "indexed_revision": 9,
+        "is_stale": false,
+        "observed_revision": 9,
+        "rebuilding": false,
+        "revision": 9,
+        "watcher": "watching"
+      },
+      "coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    {
+      "id": 12,
+      "error": null,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788976511051,
+        "indexed_revision": 9,
+        "is_stale": false,
+        "observed_revision": 9,
+        "rebuilding": false,
+        "revision": 9,
+        "watcher": "watching"
+      },
+      "coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 81,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    }
+  ],
+  "validation_limits": [
+    "Tests and CI remain paused. Five differential regression tests are written but not executed.",
+    "Actual refreshes prove reuse with unchanged reference inputs and complete invalidation when imports/symbol context changes. Changed-reference reuse for one file with a stable context still needs approved regression coverage.",
+    "Parsing, runtime plugins, override discovery, detectors and report assembly remain full passes. Symbol/import context changes invalidate globally.",
+    "Complete exported dependency/evidence views were compared, not a full semantic-graph payload through MCP.",
+    "Single-client foreground reads during background rebuilding were exercised; this is not a multi-client load or adversarial failure campaign.",
+    "Timings are individual shared-host observations. Source directories and output paths differ across the two sessions; session totals include manual inspection. Baseline resolver tracing was enabled.",
+    "Full resource projection is now computed on demand and takes longer, while retained memory falls. Large JSON payloads and substantial rebuild memory remain.",
+    "An initial client attempt was stopped after initialize to correct client backpressure handling; retained under incremental-mcp-transport-attempt and excluded from timings."
+  ]
+}

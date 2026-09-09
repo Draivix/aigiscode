@@ -297,6 +297,17 @@ plugins are active in the current binary.
 Use this when another tool or agent wants to consume AigisCode through MCP over
 stdio instead of reading JSON files directly.
 
+For experimental per-file resolver reuse, run
+`AIGISCORE_INCREMENTAL_RESOLVE=1 aigiscode mcp /repo --watch`.
+`repo_overview.resolution_work` reports resolution attempts and cache reuse;
+parsing and later analyses still run in full. Symbol/import-context changes
+invalidate the complete resolver cache. This remains opt-in pending approved
+differential regression gates; see the [observed behavior and limits](docs/2026-09-09-incremental-resolution.md).
+
+Full dependency/evidence resources are built from the request's pinned semantic
+graph when read. MCP no longer retains those two complete copies in every live
+snapshot, but exporting either resource still requires a large JSON payload.
+
 ## Common CLI Options
 
 ### `--output-dir <dir>`
