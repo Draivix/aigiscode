@@ -290,15 +290,16 @@ fn build_mcp_state(
     write_artifacts: bool,
     write_kuzu: bool,
 ) -> Result<McpState, McpServerError> {
-    build_mcp_state_with_resolver(root, output_dir, write_artifacts, write_kuzu, None)
+    build_mcp_state_with_caches(root, output_dir, write_artifacts, write_kuzu, None, None)
 }
 
-fn build_mcp_state_with_resolver(
+fn build_mcp_state_with_caches(
     root: &Path,
     output_dir: Option<&Path>,
     write_artifacts: bool,
     write_kuzu: bool,
     resolver: Option<&mut crate::resolve::ResolutionCache>,
+    mut scanner: Option<&mut crate::scanners::ast_grep::AstGrepScanCache>,
 ) -> Result<McpState, McpServerError> {
     let output_root = output_dir.map(Path::to_path_buf).unwrap_or_else(|| crate::artifacts::default_output_dir(root));
     let snapshot = match crate::artifacts::ArtifactSnapshot::pin(&output_root) {
@@ -316,7 +317,7 @@ fn build_mcp_state_with_resolver(
     if std::env::var_os("AIGISCORE_FAST_LOAD").is_some() {
         if let Some(snapshot) = &snapshot {
             fast_analysis = crate::ingestion::pipeline::analyze_project_fast_load_pinned(
-                root, &ScanConfig::default(), &snapshot.directory,
+                root, &ScanConfig::default(), &snapshot.directory, scanner.as_deref_mut(),
             )?;
         }
     }
@@ -329,8 +330,8 @@ fn build_mcp_state_with_resolver(
             );
             analysis
         }
-        None => crate::ingestion::pipeline::analyze_project_with_resolver(
-            root.to_path_buf(), &ScanConfig::default(), resolver,
+        None => crate::ingestion::pipeline::analyze_project_with_caches(
+            root.to_path_buf(), &ScanConfig::default(), resolver, scanner,
         )?,
     };
     let disk_generation = snapshot.as_ref().and_then(|snapshot| snapshot.generation.clone());
@@ -2103,6 +2104,7 @@ impl McpState {
         );
 
         repo_overview.resolution_work = analysis.resolution_work.clone();
+        repo_overview.ast_grep_work = analysis.ast_grep_work.clone();
         Ok(Self {
             artifact_generation,
             root,

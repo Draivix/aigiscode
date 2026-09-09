@@ -221,6 +221,8 @@ pub(super) fn start_indexer(
         // Experimental until the differential regression gate has been approved.
         let incremental_resolution = watch && std::env::var("AIGISCORE_INCREMENTAL_RESOLVE").as_deref() == Ok("1");
         let mut resolver = incremental_resolution.then(crate::resolve::ResolutionCache::default);
+        let incremental_scan = watch && std::env::var("AIGISCORE_INCREMENTAL_SCAN").as_deref() == Ok("1");
+        let mut scanner = incremental_scan.then(crate::scanners::ast_grep::AstGrepScanCache::default);
         let mut watcher = None::<InputWatcher>;
         let mut immediate = true;
         let mut watch_failed = false;
@@ -261,15 +263,17 @@ pub(super) fn start_indexer(
             let build_root = root.clone();
             let build_output = output_dir.clone();
             let mut build_resolver = resolver.take();
+            let mut build_scanner = scanner.take();
             let result = tokio::task::spawn_blocking(move || {
-                let result = super::build_mcp_state_with_resolver(
+                let result = super::build_mcp_state_with_caches(
                     &build_root,
                     build_output.as_deref(),
                     initial && write_artifacts,
                     initial && write_kuzu,
                     build_resolver.as_mut(),
+                    build_scanner.as_mut(),
                 ).map_err(|error| error.to_string());
-                (result, build_resolver)
+                (result, build_resolver, build_scanner)
             })
             .await;
             // A directory/scope event during registration may have introduced an
@@ -282,19 +286,22 @@ pub(super) fn start_indexer(
                 live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
             }
             match result {
-                Ok((Ok(state), updated_resolver)) => {
+                Ok((Ok(state), updated_resolver, updated_scanner)) => {
                     resolver = updated_resolver;
+                    scanner = updated_scanner;
                     live.publish(Some(state), target);
                     eprintln!("aigiscode mcp: published revision {target}");
                 }
-                Ok((Err(message), updated_resolver)) => {
+                Ok((Err(message), updated_resolver, updated_scanner)) => {
                     resolver = updated_resolver;
+                    scanner = updated_scanner;
                     eprintln!("aigiscode mcp: {message}");
                     live.record_error(message);
                 }
                 Err(error) => {
                     // The failed worker owned the cache; start fresh after a panic.
                     resolver = incremental_resolution.then(crate::resolve::ResolutionCache::default);
+                    scanner = incremental_scan.then(crate::scanners::ast_grep::AstGrepScanCache::default);
                     live.record_error(format!("analysis task failed: {error}"));
                 }
             }

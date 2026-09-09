@@ -12,7 +12,7 @@ use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::policy::{PolicyBundle, PolicyLoadError};
 use crate::resolve::{load_resolve_config, resolve_graph_with_config, ResolveConfigError, ResolutionCache, ResolutionWork};
-use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
+use crate::scanners::ast_grep::{run_ast_grep_scan_with_cache, AstGrepScanCache, AstGrepScanResult, AstGrepScanWork};
 use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
 use rayon::prelude::*;
@@ -86,6 +86,8 @@ pub struct ProjectAnalysis {
     pub external_analysis: ExternalAnalysisResult,
     #[serde(default, skip_serializing_if = "AstGrepScanResult::is_empty")]
     pub ast_grep_scan: AstGrepScanResult,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ast_grep_work: Option<AstGrepScanWork>,
     pub timings: Vec<PhaseTiming>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolution_work: Option<ResolutionWork>,
@@ -186,16 +188,17 @@ pub fn analyze_project(
     root: impl Into<PathBuf>,
     scan_config: &ScanConfig,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
-    analyze_project_with_resolver(root, scan_config, None)
+    analyze_project_with_caches(root, scan_config, None, None)
 }
 
-pub(crate) fn analyze_project_with_resolver(
+pub(crate) fn analyze_project_with_caches(
     root: impl Into<PathBuf>,
     scan_config: &ScanConfig,
     resolver: Option<&mut ResolutionCache>,
+    scanner: Option<&mut AstGrepScanCache>,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
     let graph_project = build_semantic_graph_project_with_resolver(root, scan_config, resolver)?;
-    finish_project_analysis(graph_project)
+    finish_project_analysis(graph_project, scanner)
 }
 
 /// Opt-in fast load (driven by `AIGISCORE_FAST_LOAD=1` at the call site):
@@ -214,18 +217,19 @@ pub fn analyze_project_fast_load(
         .map_err(ProjectAnalysisError::Artifacts)? else {
         return Ok(None);
     };
-    analyze_project_fast_load_pinned(&root, scan_config, &snapshot.directory)
+    analyze_project_fast_load_pinned(&root, scan_config, &snapshot.directory, None)
 }
 
 pub(crate) fn analyze_project_fast_load_pinned(
     root: &Path,
     scan_config: &ScanConfig,
     output_dir: &Path,
+    scanner: Option<&mut AstGrepScanCache>,
 ) -> Result<Option<ProjectAnalysis>, ProjectAnalysisError> {
     let Some(graph_project) = try_fast_load_graph_project(root, scan_config, Some(output_dir))? else {
         return Ok(None);
     };
-    Ok(Some(finish_project_analysis(graph_project)?))
+    Ok(Some(finish_project_analysis(graph_project, scanner)?))
 }
 
 fn try_fast_load_graph_project(
@@ -354,6 +358,7 @@ fn try_fast_load_graph_project(
 
 fn finish_project_analysis(
     graph_project: SemanticGraphProject,
+    scanner: Option<&mut AstGrepScanCache>,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
     let SemanticGraphProject {
         root,
@@ -404,7 +409,9 @@ fn finish_project_analysis(
     ));
 
     let ast_grep_started = Instant::now();
-    let ast_grep_scan = run_ast_grep_scan(&parsed_sources);
+    let incremental_scan = scanner.is_some();
+    let (ast_grep_scan, scan_work) = run_ast_grep_scan_with_cache(&parsed_sources, scanner);
+    let ast_grep_work = incremental_scan.then_some(scan_work);
     trace(&format!(
         "analyze.ast_grep elapsed_ms={}",
         ast_grep_started.elapsed().as_millis()
@@ -474,6 +481,7 @@ fn finish_project_analysis(
         security_analysis,
         external_analysis: ExternalAnalysisResult::default(),
         ast_grep_scan,
+        ast_grep_work,
         resolution_work,
         timings,
         parsed_sources,

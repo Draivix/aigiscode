@@ -300,9 +300,16 @@ stdio instead of reading JSON files directly.
 For experimental per-file resolver reuse, run
 `AIGISCORE_INCREMENTAL_RESOLVE=1 aigiscode mcp /repo --watch`.
 `repo_overview.resolution_work` reports resolution attempts and cache reuse;
-parsing and later analyses still run in full. Symbol/import-context changes
+parsing and global analyses still run in full. Symbol/import-context changes
 invalidate the complete resolver cache. This remains opt-in pending approved
 differential regression gates; see the [observed behavior and limits](docs/2026-09-09-incremental-resolution.md).
+
+Secondary scanner reuse is independently available with
+`AIGISCORE_INCREMENTAL_SCAN=1 aigiscode mcp /repo --watch`.
+`repo_overview.ast_grep_work` reports processed/reused files and bytes while
+coverage continues to describe all current inputs, including retained gaps.
+This also remains experimental pending approved CI; see the
+[real source-refresh measurements](docs/2026-09-09-incremental-scanning.md).
 
 Full dependency/evidence resources are built from the request's pinned semantic
 graph when read. MCP no longer retains those two complete copies in every live

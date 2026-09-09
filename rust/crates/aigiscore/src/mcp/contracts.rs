@@ -332,6 +332,9 @@ pub struct RepoOverviewOutput {
     /// Work performed by the opt-in resolver cache for this indexed snapshot.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolution_work: Option<crate::resolve::ResolutionWork>,
+    /// Work performed by the opt-in secondary scanner cache for this snapshot.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ast_grep_work: Option<crate::scanners::ast_grep::AstGrepScanWork>,
     pub root: String,
     pub artifact_files: ArtifactFileOutput,
     pub overview: OverviewOutput,
@@ -622,6 +625,7 @@ impl RepoOverviewOutput {
     ) -> Self {
         Self {
             resolution_work: None,
+            ast_grep_work: None,
             root: String::from(root),
             artifact_files: ArtifactFileOutput::from_paths(artifact_paths, kuzu_path),
             overview: OverviewOutput::from_surface(surface),

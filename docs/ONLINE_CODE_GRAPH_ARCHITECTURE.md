@@ -303,10 +303,17 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
   `AIGISCORE_INCREMENTAL_RESOLVE=1` for `mcp --watch`. It reuses per-file native
   results when the full symbol/import context and ordered reference inputs agree;
   context changes invalidate globally. `repo_overview.resolution_work` reports
-  processed/reused reference work. Parsing and later analyses remain full passes.
+  processed/reused reference work. Parsing and global analyses remain full passes.
   The complete dependency/evidence views on controlled real Draivix refreshes and
   memory measurements are documented in the [resolver evidence](2026-09-09-incremental-resolution.md).
   Differential CI remains pending; the feature is not enabled by default.
+- Secondary scanner outcomes can be reused separately with
+  `AIGISCORE_INCREMENTAL_SCAN=1`. The per-file boundary includes negative results,
+  coverage gaps, path-based rules and captured source bytes. Current scope is
+  rebuilt and missing paths are evicted; global assessments still recompute.
+  `repo_overview.ast_grep_work` distinguishes work from coverage. See the
+  [scanner contract](SECONDARY_COVERAGE_CONTRACT.md). This opt-in path also awaits
+  approved differential CI before default activation.
 - Convert parsing to genuinely incremental where edit ranges are available
   (`Tree::edit` + `changed_ranges()`); full-parse the settled file otherwise
   — intra-file incremental parsing is not the main bottleneck in a

@@ -6,7 +6,7 @@ use ast_grep_language::{LanguageExt, SupportLang};
 use rayon::prelude::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
@@ -766,7 +766,7 @@ fn trace_slow_pattern(path: &Path, rule_id: &str, pattern: &str, matches: usize,
 /// Per-file scan result, merged in file order by the driver. Dedup keys are
 /// file-scoped and the final findings list is sorted, so scanning files in
 /// parallel and merging sequentially yields byte-identical output.
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct AstGrepFileOutcome {
     findings: Vec<AstGrepFinding>,
     skipped: Option<AstGrepSkippedFile>,
@@ -776,17 +776,54 @@ struct AstGrepFileOutcome {
     rule_ids: BTreeSet<String>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct AstGrepScanWork {
+    /// All input files, including prefilters and explicit coverage gaps.
+    pub files_processed: usize,
+    pub files_reused: usize,
+    pub bytes_processed: usize,
+    pub bytes_reused: usize,
+}
+
+/// Owned by one index writer, never persisted. Rules and grammars are fixed for
+/// this process; every remaining scanner input is the relative path and source.
+/// Cache complete outcomes, including negative results and coverage limitations.
+#[derive(Default)]
+pub struct AstGrepScanCache {
+    files: HashMap<PathBuf, (u128, AstGrepFileOutcome)>,
+}
+
 pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanResult {
+    run_ast_grep_scan_with_cache(parsed_sources, None).0
+}
+
+pub(crate) fn run_ast_grep_scan_with_cache(
+    parsed_sources: &[(PathBuf, String)],
+    mut cache: Option<&mut AstGrepScanCache>,
+) -> (AstGrepScanResult, AstGrepScanWork) {
     let scan_started = Instant::now();
     trace(&format!(
         "ast_grep.scan start files={}",
         parsed_sources.len()
     ));
+    let mut work = AstGrepScanWork::default();
+    if let Some(cache) = cache.as_mut() {
+        let paths = parsed_sources.iter().map(|(path, _)| path).collect::<HashSet<_>>();
+        cache.files.retain(|path, _| paths.contains(path));
+    }
     let outcomes = parsed_sources
         .par_iter()
         .map(|(path, source)| {
-            (source.len() <= AST_GREP_PARALLEL_FILE_BYTES)
-                .then(|| scan_one_file(path, source))
+            // Hash the actual captured source, never an earlier stat/scan hash.
+            let fingerprint = cache.as_ref().map(|_| xxhash_rust::xxh3::xxh3_128(source.as_bytes()));
+            if let Some((_, outcome)) = cache.as_ref()
+                .and_then(|cache| cache.files.get(path))
+                .filter(|(hash, _)| Some(*hash) == fingerprint)
+            {
+                return (fingerprint, true, Some(outcome.clone()));
+            }
+            (fingerprint, false, (source.len() <= AST_GREP_PARALLEL_FILE_BYTES)
+                .then(|| scan_one_file(path, source)))
         })
         .collect::<Vec<_>>();
     let mut findings = Vec::new();
@@ -795,8 +832,18 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
     let mut scanned_files = 0usize;
     let mut skipped_files = Vec::new();
     let mut scope_limited_files = Vec::new();
-    for (outcome, (path, source)) in outcomes.into_iter().zip(parsed_sources) {
+    for ((fingerprint, reused, outcome), (path, source)) in outcomes.into_iter().zip(parsed_sources) {
         let outcome = outcome.unwrap_or_else(|| scan_one_file(path, source));
+        if reused {
+            work.files_reused += 1;
+            work.bytes_reused += source.len();
+        } else {
+            work.files_processed += 1;
+            work.bytes_processed += source.len();
+            if let (Some(cache), Some(fingerprint)) = (cache.as_mut(), fingerprint) {
+                cache.files.insert(path.clone(), (fingerprint, outcome.clone()));
+            }
+        }
         findings.extend(outcome.findings);
         rule_ids.extend(outcome.rule_ids);
         matched_files += usize::from(outcome.matched);
@@ -835,7 +882,7 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
         result.findings.len(),
         scan_started.elapsed().as_millis()
     ));
-    result
+    (result, work)
 }
 
 fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
@@ -1557,6 +1604,77 @@ mod tests {
         AstGrepFrameworkMisuseSubtype, AstGrepSecurityCategory,
     };
     use std::path::{Path, PathBuf};
+
+    fn compare_cached(
+        cache: &mut super::AstGrepScanCache,
+        sources: &[(PathBuf, String)],
+    ) -> super::AstGrepScanWork {
+        let (actual, work) = super::run_ast_grep_scan_with_cache(sources, Some(cache));
+        assert_eq!(actual, run_ast_grep_scan(sources));
+        assert_eq!(work.files_processed + work.files_reused, sources.len());
+        assert_eq!(work.bytes_processed + work.bytes_reused, sources.iter().map(|(_, text)| text.len()).sum::<usize>());
+        work
+    }
+
+    #[test]
+    fn incremental_scan_replaces_negative_results_and_prunes_removed_files() {
+        let mut cache = super::AstGrepScanCache::default();
+        let mut sources = vec![
+            (PathBuf::from("src/run.js"), String::from("eval(input);")),
+            (PathBuf::from("src/quiet.js"), String::from("const value = 1;")),
+            (PathBuf::from("src/other.go"), String::from("package main")),
+        ];
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 3);
+        assert_eq!(compare_cached(&mut cache, &sources).files_reused, 3);
+        // Same byte length, but a previously dangerous API is now an ordinary call.
+        sources[0].1 = String::from("send(input);");
+        sources[1].1 = String::from("eval(input);");
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 2);
+        sources.remove(0);
+        assert_eq!(compare_cached(&mut cache, &sources).files_reused, 2);
+        assert_eq!(cache.files.len(), 2);
+        sources.push((PathBuf::from("src/new.js"), String::from("eval(input);")));
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 1);
+        compare_cached(&mut cache, &[]);
+        assert!(cache.files.is_empty());
+    }
+
+    #[test]
+    fn incremental_scan_uses_path_for_boundary_rules_and_language_selection() {
+        let mut cache = super::AstGrepScanCache::default();
+        let source = String::from("<?php return env('APP_MODE');");
+        let mut sources = vec![(PathBuf::from("app/Service.php"), source)];
+        let before = run_ast_grep_scan(&sources);
+        assert!(!before.findings.is_empty());
+        compare_cached(&mut cache, &sources);
+        sources[0].0 = PathBuf::from("config/service.php");
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 1);
+        assert!(run_ast_grep_scan(&sources).findings.is_empty());
+        sources[0].0 = PathBuf::from("config/service.go");
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 1);
+        assert_eq!(run_ast_grep_scan(&sources).skipped_files[0].reason, "no_rules_for_language");
+        assert_eq!(cache.files.len(), 1);
+    }
+
+    #[test]
+    fn incremental_scan_preserves_vue_gaps_large_file_results_and_input_order() {
+        let mut cache = super::AstGrepScanCache::default();
+        let large = format!("/*{}*/\neval(input);", "x".repeat(super::AST_GREP_PARALLEL_FILE_BYTES));
+        let mut sources = vec![
+            (PathBuf::from("src/large.js"), large),
+            (PathBuf::from("src/Panel.vue"), String::from("<template><p>eval(input)</p></template><script setup lang=\"ts\">eval(input);</script>")),
+        ];
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 2);
+        assert_eq!(compare_cached(&mut cache, &sources).files_reused, 2);
+        sources.reverse();
+        assert_eq!(compare_cached(&mut cache, &sources).files_reused, 2);
+        sources[0].1 = String::from("<script src=\"./logic.ts\"></script>");
+        assert_eq!(compare_cached(&mut cache, &sources).files_processed, 1);
+        assert_eq!(compare_cached(&mut cache, &sources).files_reused, 2);
+        let result = run_ast_grep_scan(&sources);
+        assert_eq!(result.findings.len(), 1);
+        assert!(result.skipped_files.iter().any(|file| file.file_path == sources[0].0));
+    }
 
     #[test]
     fn truncates_unicode_matches_without_splitting_code_points() {

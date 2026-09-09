@@ -100,3 +100,28 @@ dependency explanation, not proof of execution or measured runtime cost.
 Backend, prefilter and built-in rule-family selection share one language mapping.
 JavaScript includes `.js`, `.jsx`, `.mjs` and `.cjs`; TypeScript includes `.ts`,
 `.mts` and `.cts`, with `.tsx` using its TSX parser. Extensions are case-insensitive.
+
+`AIGISCORE_INCREMENTAL_SCAN=1` enables process-local secondary scan reuse for
+`mcp --watch`. It is experimental and independent of the resolver cache; neither
+is enabled by default while differential CI is pending. The cache keys each
+relative path by an XXH3-128 fingerprint of the actual captured source bytes.
+Rules, grammars and framework catalogs are compiled into the process; current
+file selection is still recomputed. These are change-detection fingerprints,
+not authentication or persisted artifact identities.
+
+Complete per-file outcomes are reused, including findings, rule IDs, matched/scanned
+flags, prefilters, unsupported languages and Vue extraction/scope limitations.
+Changed content or a new path is scanned normally; removed or excluded paths are
+evicted. New large sources retain the sequential scanning rule. The driver merges
+outcomes in current input order and sorts findings through the same cold path.
+Global graph analysis, contracts, security assessment, doctrine/policy handling and
+review generation still run against the current snapshot. No downstream judgment
+is cached, and a failed analysis is not published. Worker panic discards both caches.
+
+`repo_overview.ast_grep_work` reports `files_processed`, `files_reused`,
+`bytes_processed` and `bytes_reused` for the returned indexed snapshot. Processed
+files include prefilters and gaps, not only AST-admitted inputs. These work counters
+are separate from coverage: `coverage.scanned_files` includes valid reused AST
+outcomes and continues describing all current inputs. Reuse never turns incomplete
+coverage into complete coverage. The work field is absent when reuse is disabled.
+Fast graph loading also runs this same scanner stage and can populate its cache.

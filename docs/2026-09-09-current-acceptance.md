@@ -9,6 +9,12 @@ Tento dokument aktualizuje stav [původních podmínek](2026-09-09-quality-reaud
 nemění jejich rozsah. Podrobnosti a otisky zachycuje
 [strojový doklad](2026-09-09-current-acceptance-evidence.json).
 
+Navazující [inkrementální sekundární scan](2026-09-09-incremental-scanning.md)
+zkrátil dvě řízené aktualizace ze zhruba 80 na 58 sekund při zachování porovnaných
+MCP dat. Je volitelný a dosud bez schváleného CI; Q11 i celková akceptace zůstávají
+otevřené. Nové měření rovněž dokládá okno před doručením události watcheru,
+kdy okamžitý dotaz ještě vrátí starou revizi bez příznaku stale.
+
 Nový snímek vznikl 9. září 2026 ve 20:18:04 UTC ze skutečného pracovního stromu
 Draivix, včetně necommitovaných souborů. Obsahuje 23 296 běžných souborů o celkové
 velikosti 301 695 383 bytů. Proti předchozímu korpusu přibylo 130 souborů,
