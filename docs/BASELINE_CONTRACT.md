@@ -69,6 +69,11 @@ regressions. Agent commands use the context produced by the writer directly; the
 do not reread a newly written current snapshot as its own predecessor. Read-only
 agent/MCP paths use the same baseline reader.
 
+Secondary scanner coverage is also required for comparison. Current or previous
+`ast_grep_coverage` with size, language-support or unclassified gaps prevents
+findings omitted by that scanner from appearing resolved. An older artifact without
+this coverage contract has `unknown` coverage, not an assumed complete scan.
+
 ## Guard and automation
 
 The guard includes the baseline assessment and
@@ -77,6 +82,12 @@ when this is true. Missing comparison produces review obligations rather than a
 claim about the current diff. Visible high-severity security evidence can block
 on its own, independently of when it was introduced. Incomplete native or requested
 external evidence also blocks, with a missing-evidence reason.
+
+Incomplete secondary rule coverage blocks the guard as missing evidence and makes
+full analytical commands return exit code 1 after emitting partial artifacts.
+The graph-only command does not execute secondary rules and does not include them
+in its completion decision. Native input, secondary rule and external-tool coverage
+remain separate contracts; none is a guarantee of semantic or security soundness.
 
 An analytical CLI exit code of 0 means that the requested analysis completed; it
 does not mean guard `Allow`. Exit code 1 covers analysis failures or incomplete

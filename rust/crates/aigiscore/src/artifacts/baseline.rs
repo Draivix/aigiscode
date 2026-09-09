@@ -117,6 +117,8 @@ pub enum BaselineReason {
     DifferentExternalTools,
     CurrentInputsIncomplete,
     PreviousInputsIncomplete,
+    CurrentSecondaryChecksIncomplete,
+    PreviousSecondaryChecksIncomplete,
     ExternalChecksIncomplete,
 }
 
@@ -234,10 +236,16 @@ impl BaselineSnapshot {
         if !analysis.semantic_graph.input_coverage().is_complete() {
             reasons.push(BaselineReason::CurrentInputsIncomplete);
         }
+        if !analysis.ast_grep_scan.coverage.is_complete() {
+            reasons.push(BaselineReason::CurrentSecondaryChecksIncomplete);
+        }
         if !current.external_checks_complete {
             reasons.push(BaselineReason::ExternalChecksIncomplete);
         }
         if self.availability == BaselineAvailability::Verified {
+            if self.architecture.as_ref().is_none_or(|surface| !surface.overview.ast_grep_coverage.is_complete()) {
+                reasons.push(BaselineReason::PreviousSecondaryChecksIncomplete);
+            }
             if self
                 .architecture
                 .as_ref()

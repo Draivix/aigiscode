@@ -15,6 +15,8 @@ use std::time::Instant;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct AstGrepScanResult {
     pub scanner: String,
+    #[serde(default)]
+    pub coverage: super::coverage::SecondaryCoverage,
     pub scanned_files: usize,
     pub matched_files: usize,
     pub rule_ids: Vec<String>,
@@ -750,6 +752,7 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
 
     let result = AstGrepScanResult {
         scanner: String::from("ast_grep"),
+        coverage: super::coverage::SecondaryCoverage::from_scan(scanned_files, &skipped_files),
         scanned_files,
         matched_files,
         rule_ids: rule_ids.into_iter().collect(),
@@ -775,6 +778,11 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
         source.len()
     ));
     let Some(language) = support_lang_for_path(path) else {
+        outcome.skipped = Some(AstGrepSkippedFile {
+            file_path: path.to_path_buf(),
+            bytes: source.len(),
+            reason: String::from("no_rules_for_language"),
+        });
         return outcome;
     };
     if source.len() > AST_GREP_MAX_FILE_BYTES {
@@ -1892,6 +1900,26 @@ eval(payload)
             "file_too_large_for_secondary_scan"
         );
         assert!(!result.is_empty());
+        assert!(!result.coverage.is_complete());
+        assert_eq!(result.coverage.oversized_files, 1);
+        assert_eq!(result.coverage.prefiltered_files, 0);
+        assert_eq!(result.coverage.gap_files_preview, result.skipped_files);
+    }
+
+    #[test]
+    fn accounts_for_sources_without_secondary_language_rules() {
+        let result = run_ast_grep_scan(&[
+            (PathBuf::from("src/Page.vue"), String::from("<template><div /></template>")),
+            (PathBuf::from("src/admin.ts"), String::from("eval(input)")),
+            (PathBuf::from("src/constants.ts"), String::from("export const answer = 42;")),
+        ]);
+        assert_eq!(result.coverage.input_files, 3);
+        assert_eq!(result.coverage.scanned_files, 1);
+        assert_eq!(result.coverage.prefiltered_files, 1);
+        assert_eq!(result.coverage.unsupported_files, 1);
+        assert!(!result.coverage.is_complete());
+        assert_eq!(result.coverage.gap_files_preview[0].file_path, PathBuf::from("src/Page.vue"));
+        assert!(!result.findings.is_empty());
     }
 
     #[test]
@@ -1905,6 +1933,9 @@ eval(payload)
         assert_eq!(result.scanned_files, 0);
         assert_eq!(result.skipped_files.len(), 1);
         assert_eq!(result.skipped_files[0].reason, "no_family_prefilter_hit");
+        assert!(result.coverage.is_complete());
+        assert_eq!(result.coverage.prefiltered_files, 1);
+        assert!(result.coverage.gap_files_preview.is_empty());
         assert_eq!(
             result.skipped_files[0].file_path,
             PathBuf::from("src/app.ts")

@@ -211,6 +211,8 @@ pub struct AigiscodeReportArtifact<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct ReportSummary {
+    #[serde(default)]
+    pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub baseline: BaselineAssessment,
     pub input_coverage: crate::coverage::InputCoverage,
     pub scanned_files: usize,
@@ -589,6 +591,8 @@ pub struct RepositoryTopologyContractZone {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceHistoryArtifact {
+    #[serde(default)]
+    pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub root: String,
     #[serde(default)]
     pub baseline: BaselineAssessment,
@@ -1041,6 +1045,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
+            ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             baseline: convergence_history.baseline.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
             scanned_files: analysis.scan.files.len(),
@@ -1095,20 +1100,9 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
             ast_grep_algorithmic_complexity_count: ast_grep_family_counts.algorithmic_complexity,
             ast_grep_security_dangerous_api_count: ast_grep_family_counts.security_dangerous_api,
             ast_grep_framework_misuse_count: ast_grep_family_counts.framework_misuse,
-            ast_grep_skipped_file_count: analysis.ast_grep_scan.skipped_files.len(),
-            ast_grep_skipped_bytes: analysis
-                .ast_grep_scan
-                .skipped_files
-                .iter()
-                .map(|file| file.bytes)
-                .sum(),
-            ast_grep_skipped_files_preview: analysis
-                .ast_grep_scan
-                .skipped_files
-                .iter()
-                .take(5)
-                .cloned()
-                .collect(),
+            ast_grep_skipped_file_count: surface.overview.ast_grep_skipped_file_count,
+            ast_grep_skipped_bytes: surface.overview.ast_grep_skipped_bytes,
+            ast_grep_skipped_files_preview: surface.overview.ast_grep_skipped_files_preview.clone(),
             dead_code_count: analysis.dead_code.findings.len(),
             hardwiring_count: analysis.hardwiring.findings.len(),
             security_finding_count: analysis.security_analysis.findings.len(),
@@ -3703,6 +3697,7 @@ pub fn build_convergence_history_artifact(
         root: root.display().to_string(),
         baseline: baseline.clone(),
         input_coverage: current_overview.input_coverage.clone(),
+        ast_grep_coverage: current_overview.ast_grep_coverage.clone(),
         summary,
         graph_delta: baseline.is_comparable().then(|| ConvergenceGraphDelta {
             strong_cycle_delta: delta(
@@ -3930,6 +3925,23 @@ pub fn build_guard_decision_artifact(
         obligations.push(GuardianObligation {
             action: String::from("Review parser diagnostics and unsupported inputs; restore coverage or explicitly narrow the analysis scope before using absence-based findings."),
             acceptance: String::from("Every supported source has parse evidence without recovery or scope limitations, and no recognized unsupported source remains in the selected scope."),
+        });
+    }
+
+    if !convergence.ast_grep_coverage.is_complete() {
+        let message = convergence.ast_grep_coverage.summary();
+        reasons.push(message.clone());
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Block,
+            message,
+            precision: String::from("exact"),
+            confidence_millis: 1000,
+            provenance: vec![String::from("ast_grep_scan.coverage")],
+            doctrine_refs: vec![String::from("guardian.change-governance")],
+        });
+        obligations.push(GuardianObligation {
+            action: String::from("Review files omitted by the secondary rules; restore scanner coverage before treating missing findings as a clean audit."),
+            acceptance: String::from("Secondary rule execution has no size, language-support or unclassified gaps within the selected source scope."),
         });
     }
 
@@ -4356,6 +4368,12 @@ pub fn build_guard_decision_artifact(
             GuardVerdict::Block,
             1000,
             String::from("Block: native input coverage is incomplete; this is missing evidence, not proof of a code defect."),
+        )
+    } else if !convergence.ast_grep_coverage.is_complete() {
+        (
+            GuardVerdict::Block,
+            1000,
+            String::from("Block: secondary rule coverage is incomplete; omitted files are missing evidence, not proof of code defects."),
         )
     } else if !external.is_complete() {
         (
@@ -7061,6 +7079,8 @@ fn build_markdown_report(
         ),
         format!("- Dead code findings: {}", report.summary.dead_code_count),
         format!("- Hardwiring findings: {}", report.summary.hardwiring_count),
+        format!("- {}", report.summary.ast_grep_coverage.summary()),
+        format!("- Secondary coverage gaps (largest files): {}", report.summary.ast_grep_coverage.gap_files_preview.iter().map(|file| format!("{} ({}, {} bytes)", file.file_path.display(), file.reason, file.bytes)).collect::<Vec<_>>().join(", ")),
         format!(
             "- Native security findings: {}",
             report.summary.security_finding_count
@@ -8543,6 +8563,10 @@ fn main() {
     #[test]
     fn guard_decision_promotes_architectonic_regressions_into_triggers() {
         let convergence = ConvergenceHistoryArtifact {
+            ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage {
+                status: crate::scanners::coverage::SecondaryCoverageStatus::NoInputs,
+                ..Default::default()
+            },
             root: String::from("/tmp/example"),
             baseline: super::BaselineAssessment {
                 availability: super::BaselineAvailability::Verified,
@@ -8657,6 +8681,10 @@ fn main() {
     #[test]
     fn guard_decision_surfaces_algorithmic_complexity_regressions() {
         let convergence = ConvergenceHistoryArtifact {
+            ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage {
+                status: crate::scanners::coverage::SecondaryCoverageStatus::NoInputs,
+                ..Default::default()
+            },
             root: String::from("/tmp/example"),
             baseline: super::BaselineAssessment {
                 availability: super::BaselineAvailability::Verified,

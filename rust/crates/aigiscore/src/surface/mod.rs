@@ -119,6 +119,8 @@ pub struct ArchitectureSurface {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SurfaceOverview {
     #[serde(default)]
+    pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
+    #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub generated_path_prefixes: Vec<PathBuf>,
@@ -495,6 +497,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
     ArchitectureSurface {
         root: analysis.root.clone(),
         overview: SurfaceOverview {
+            ast_grep_coverage: analysis.ast_grep_scan.coverage.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
             generated_path_prefixes: analysis.scan.scope.generated_path_prefixes.clone(),
             scanned_files: analysis.scan.files.len(),
