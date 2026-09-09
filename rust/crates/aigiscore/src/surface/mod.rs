@@ -9,7 +9,9 @@ use crate::external::{ExternalFinding, ExternalSeverity};
 use crate::graph::analysis::{
     ArchitecturalSmell, ArchitecturalSmellKind, BottleneckFile, CycleClass, CycleFinding,
 };
-use crate::graph::{GraphLayer, Language, ReferenceKind, RelationKind, ResolutionTier};
+use crate::graph::{
+    GraphLayer, Language, ReferenceKind, RelationKind, ResolutionTier, ResolvedEdge,
+};
 use crate::identity::{normalized_path, stable_fingerprint};
 use crate::ingestion::pipeline::{PhaseTiming, ProjectAnalysis};
 use crate::security::{
@@ -210,6 +212,8 @@ pub struct SurfaceCycleFinding {
     pub fingerprint: String,
     pub cycle_class: String,
     pub files: Vec<PathBuf>,
+    #[serde(default)]
+    pub directed_witness: Vec<ResolvedEdge>,
     pub layers: Vec<String>,
     pub dominant_relations: Vec<String>,
     pub edge_count: usize,
@@ -791,18 +795,13 @@ fn build_highlights(
             precision: String::from("modeled"),
             confidence_millis: 780,
             title: format!(
-                "{} cycle across {} files",
+                "{} cyclic component containing {} files",
                 cycle_class_label(cycle.cycle_class),
                 cycle.files.len()
             ),
             summary: format!(
                 "{}; layers: {}; dominant relations: {}",
-                cycle
-                    .files
-                    .iter()
-                    .map(|path| path.to_string_lossy().to_string())
-                    .collect::<Vec<_>>()
-                    .join(" -> "),
+                cycle_witness_summary(cycle),
                 cycle
                     .layers
                     .iter()
@@ -1800,12 +1799,38 @@ fn relation_anchor_weight(relation: RelationKind) -> usize {
     }
 }
 
+fn cycle_witness_summary(finding: &CycleFinding) -> String {
+    if let Some(first) = finding.directed_witness.first() {
+        let paths = std::iter::once(&first.source_file_path)
+            .chain(
+                finding
+                    .directed_witness
+                    .iter()
+                    .map(|edge| &edge.target_file_path),
+            )
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>();
+        format!("cycle witness: {}", paths.join(" -> "))
+    } else {
+        format!(
+            "component members (directed witness unavailable): {}",
+            finding
+                .files
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
 fn surface_cycle_finding(index: usize, finding: &CycleFinding) -> SurfaceCycleFinding {
     SurfaceCycleFinding {
         id: format!("graph:cycle:{index}"),
         fingerprint: finding.fingerprint.clone(),
         cycle_class: cycle_class_label(finding.cycle_class).to_owned(),
         files: finding.files.clone(),
+        directed_witness: finding.directed_witness.clone(),
         layers: finding
             .layers
             .iter()
@@ -2986,6 +3011,23 @@ def execute():
             .symbolic_literals
             .iter()
             .any(|item| item.value == "draft"));
+    }
+
+    #[test]
+    fn legacy_cycle_members_are_not_rendered_as_an_unproven_path() {
+        let finding: crate::graph::analysis::CycleFinding =
+            serde_json::from_value(serde_json::json!({
+                "files": ["a.php", "b.php", "c.php"],
+                "cycle_class": "Structural",
+                "layers": ["Structural"],
+                "dominant_relations": ["Import"],
+                "edge_count": 3
+            }))
+            .unwrap();
+        assert_eq!(
+            super::cycle_witness_summary(&finding),
+            "component members (directed witness unavailable): a.php, b.php, c.php"
+        );
     }
 
     #[test]

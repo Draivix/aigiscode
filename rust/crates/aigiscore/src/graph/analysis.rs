@@ -7,7 +7,7 @@ use petgraph::algo::kosaraju_scc;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::{EdgeRef, NodeIndexable};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -48,6 +48,10 @@ pub enum CycleClass {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CycleFinding {
     pub files: Vec<PathBuf>,
+    /// An ordered, closed path of actual edges in this finding's graph view.
+    /// Empty only for older serialized artifacts without witness evidence.
+    #[serde(default)]
+    pub directed_witness: Vec<ResolvedEdge>,
     pub cycle_class: CycleClass,
     pub layers: Vec<GraphLayer>,
     pub dominant_relations: Vec<RelationKind>,
@@ -96,31 +100,15 @@ pub fn analyze_semantic_graph(
     analysis_scope: &AnalysisScope,
 ) -> GraphAnalysis {
     let file_graph_started = Instant::now();
-    let file_graph = build_file_dependency_graph(graph.resolved_edges.iter(), |edge| {
-        matches!(
-            edge.kind,
-            ReferenceKind::Import
-                | ReferenceKind::Call
-                | ReferenceKind::Type
-                | ReferenceKind::Extends
-                | ReferenceKind::Implements
-        )
-    });
+    let file_graph = build_file_dependency_graph(graph.resolved_edges.iter(), is_dependency_edge);
     trace(&format!(
         "graph.file_graph elapsed_ms={}",
         file_graph_started.elapsed().as_millis()
     ));
 
     let strong_graph_started = Instant::now();
-    let strong_graph = build_file_dependency_graph(graph.resolved_edges.iter(), |edge| {
-        matches!(
-            edge.kind,
-            ReferenceKind::Import
-                | ReferenceKind::Call
-                | ReferenceKind::Extends
-                | ReferenceKind::Implements
-        ) && edge.strength != EdgeStrength::Inferred
-    });
+    let strong_graph =
+        build_file_dependency_graph(graph.resolved_edges.iter(), is_strong_dependency_edge);
     trace(&format!(
         "graph.strong_graph elapsed_ms={}",
         strong_graph_started.elapsed().as_millis()
@@ -150,13 +138,17 @@ pub fn analyze_semantic_graph(
         strong_cycles_started.elapsed().as_millis()
     ));
     let cycle_findings_started = Instant::now();
-    let cycle_findings = classify_cycles(graph, &circular_dependencies);
+    let cycle_findings = classify_cycles(graph, &circular_dependencies, is_dependency_edge);
     trace(&format!(
         "graph.cycle_findings elapsed_ms={}",
         cycle_findings_started.elapsed().as_millis()
     ));
     let strong_cycle_findings_started = Instant::now();
-    let strong_cycle_findings = classify_cycles(graph, &strong_circular_dependencies);
+    let strong_cycle_findings = classify_cycles(
+        graph,
+        &strong_circular_dependencies,
+        is_strong_dependency_edge,
+    );
     trace(&format!(
         "graph.strong_cycle_findings elapsed_ms={}",
         strong_cycle_findings_started.elapsed().as_millis()
@@ -471,27 +463,50 @@ fn find_cycles(graph: &DiGraph<PathBuf, ()>) -> Vec<Vec<PathBuf>> {
     cycles
 }
 
-fn classify_cycles(graph: &SemanticGraph, cycles: &[Vec<PathBuf>]) -> Vec<CycleFinding> {
+fn is_dependency_edge(edge: &ResolvedEdge) -> bool {
+    matches!(
+        edge.kind,
+        ReferenceKind::Import
+            | ReferenceKind::Call
+            | ReferenceKind::Type
+            | ReferenceKind::Extends
+            | ReferenceKind::Implements
+    )
+}
+
+fn is_strong_dependency_edge(edge: &ResolvedEdge) -> bool {
+    is_dependency_edge(edge)
+        && edge.kind != ReferenceKind::Type
+        && edge.strength != EdgeStrength::Inferred
+}
+
+fn classify_cycles(
+    graph: &SemanticGraph,
+    cycles: &[Vec<PathBuf>],
+    include: impl Fn(&ResolvedEdge) -> bool,
+) -> Vec<CycleFinding> {
+    // Partition once: rescanning all edges per SCC is O(components * edges).
+    let component_of: HashMap<&Path, usize> = cycles
+        .iter()
+        .enumerate()
+        .flat_map(|(index, files)| files.iter().map(move |file| (file.as_path(), index)))
+        .collect();
+    let mut grouped_edges: Vec<Vec<&ResolvedEdge>> = vec![Vec::new(); cycles.len()];
+    for edge in &graph.resolved_edges {
+        if !include(edge) || edge.source_file_path == edge.target_file_path {
+            continue;
+        }
+        let Some(&index) = component_of.get(edge.source_file_path.as_path()) else {
+            continue;
+        };
+        if component_of.get(edge.target_file_path.as_path()) == Some(&index) {
+            grouped_edges[index].push(edge);
+        }
+    }
     cycles
         .iter()
-        .map(|files| {
-            let file_set = files.iter().cloned().collect::<HashSet<_>>();
-            let component_edges = graph
-                .resolved_edges
-                .iter()
-                .filter(|edge| {
-                    file_set.contains(&edge.source_file_path)
-                        && file_set.contains(&edge.target_file_path)
-                        && matches!(
-                            edge.kind,
-                            ReferenceKind::Import
-                                | ReferenceKind::Call
-                                | ReferenceKind::Type
-                                | ReferenceKind::Extends
-                                | ReferenceKind::Implements
-                        )
-                })
-                .collect::<Vec<_>>();
+        .zip(grouped_edges)
+        .map(|(files, component_edges)| {
             let mut layers = component_edges
                 .iter()
                 .map(|edge| edge.layer)
@@ -515,6 +530,7 @@ fn classify_cycles(graph: &SemanticGraph, cycles: &[Vec<PathBuf>]) -> Vec<CycleF
 
             let mut finding = CycleFinding {
                 files: files.clone(),
+                directed_witness: cycle_witness(files, &component_edges),
                 cycle_class: classify_cycle_class(files, &layers, &component_edges),
                 layers,
                 dominant_relations,
@@ -525,6 +541,65 @@ fn classify_cycles(graph: &SemanticGraph, cycles: &[Vec<PathBuf>]) -> Vec<CycleF
             finding
         })
         .collect()
+}
+
+fn cycle_witness(files: &[PathBuf], edges: &[&ResolvedEdge]) -> Vec<ResolvedEdge> {
+    let Some(start) = files.first().map(PathBuf::as_path) else {
+        return Vec::new();
+    };
+    let mut outgoing: BTreeMap<&Path, Vec<&ResolvedEdge>> = BTreeMap::new();
+    for &edge in edges {
+        outgoing
+            .entry(&edge.source_file_path)
+            .or_default()
+            .push(edge);
+    }
+    for neighbors in outgoing.values_mut() {
+        neighbors.sort_by_key(|edge| {
+            (
+                &edge.target_file_path,
+                edge.line,
+                edge.relation_kind,
+                std::cmp::Reverse(edge.confidence_millis),
+                &edge.source_symbol_id,
+                &edge.target_symbol_id,
+                &edge.reason,
+                (
+                    edge.layer,
+                    edge.strength,
+                    edge.origin,
+                    edge.resolution_tier as u8,
+                    edge.occurrence_index,
+                    &edge.reference_target_name,
+                    edge.kind as u8,
+                ),
+            )
+        });
+    }
+    let mut queue = VecDeque::from([start]);
+    let mut seen = HashSet::from([start]);
+    let mut parents: HashMap<&Path, &ResolvedEdge> = HashMap::new();
+    while let Some(current) = queue.pop_front() {
+        for &edge in outgoing.get(current).into_iter().flatten() {
+            let target = edge.target_file_path.as_path();
+            if target == start && current != start {
+                let mut witness = vec![edge.clone()];
+                let mut cursor = current;
+                while cursor != start {
+                    let incoming = parents[cursor];
+                    witness.push(incoming.clone());
+                    cursor = &incoming.source_file_path;
+                }
+                witness.reverse();
+                return witness;
+            }
+            if seen.insert(target) {
+                parents.insert(target, edge);
+                queue.push_back(target);
+            }
+        }
+    }
+    Vec::new()
 }
 
 fn classify_cycle_class(
@@ -920,7 +995,7 @@ mod tests {
         ResolvedEdge, SemanticGraph,
     };
     use crate::ingestion::scan::{AnalysisBoundaryReason, AnalysisBoundaryTruth, AnalysisScope};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn finds_cycles_from_resolved_file_edges() {
@@ -1056,6 +1131,49 @@ mod tests {
             super::CycleClass::Mixed
         );
         assert_eq!(analysis.strong_cycle_findings[0].layers.len(), 2);
+    }
+
+    #[test]
+    fn witnesses_follow_real_edges_and_classification_respects_graph_view() {
+        let mut graph = SemanticGraph::default();
+        // Alphabetical member order is not a cycle: a -> c -> b -> a.
+        for (from, to) in [("a.php", "c.php"), ("c.php", "b.php"), ("b.php", "a.php")] {
+            graph.add_resolved_edge(edge(from, to, ReferenceKind::Import));
+        }
+        let mut inferred = edge("a.php", "b.php", ReferenceKind::Call);
+        inferred.strength = EdgeStrength::Inferred;
+        inferred.layer = GraphLayer::Framework;
+        graph.add_resolved_edge(inferred);
+        graph.add_resolved_edge(edge("a.php", "b.php", ReferenceKind::Type));
+        graph.add_resolved_edge(edge("a.php", "a.php", ReferenceKind::Call));
+        let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
+        let strong = &analysis.strong_cycle_findings[0];
+        assert_eq!(strong.edge_count, 3);
+        assert_eq!(strong.layers, vec![GraphLayer::Structural]);
+        assert_eq!(strong.directed_witness.len(), 3);
+        assert_eq!(
+            strong.directed_witness[0].target_file_path,
+            Path::new("c.php")
+        );
+        for (index, step) in strong.directed_witness.iter().enumerate() {
+            assert!(graph.resolved_edges.contains(step));
+            assert_eq!(
+                step.target_file_path,
+                strong.directed_witness[(index + 1) % 3].source_file_path
+            );
+        }
+        assert_eq!(analysis.cycle_findings[0].edge_count, 5);
+        assert_eq!(
+            analysis.cycle_findings[0].cycle_class,
+            super::CycleClass::Mixed
+        );
+        graph.resolved_edges.reverse();
+        let reversed = analyze_semantic_graph(&graph, &AnalysisScope::default());
+        assert_eq!(
+            analysis.strong_cycle_findings,
+            reversed.strong_cycle_findings
+        );
+        assert_eq!(analysis.cycle_findings, reversed.cycle_findings);
     }
 
     #[test]
