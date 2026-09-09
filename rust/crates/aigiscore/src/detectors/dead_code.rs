@@ -81,6 +81,11 @@ pub fn analyze_dead_code_scoped(
     repo_root: &Path,
     scope: &AnalysisScope,
 ) -> DeadCodeResult {
+    if !graph.input_coverage().is_complete() {
+        // Missing syntax, template bindings or unsupported callers cannot prove
+        // absence of use. The coverage contract records these checks as deferred.
+        return DeadCodeResult::default();
+    }
     let called_symbols = graph
         .resolved_edges
         .iter()
@@ -1569,6 +1574,7 @@ export { helper } from '@/utils/reExported'
             } else {
                 parse_javascript_to_graph(path.clone(), source, true).unwrap()
             };
+            graph.parse_outcomes.extend(parsed.parse_outcomes);
             graph.files.extend(parsed.files);
             graph.symbols.extend(parsed.symbols);
             graph.references.extend(parsed.references);
@@ -1581,8 +1587,12 @@ export { helper } from '@/utils/reExported'
             &ContractInventory::default(),
             Path::new(""),
         );
-        let orphans: Vec<&str> = result
-            .findings
+        assert!(result.findings.is_empty(), "Vue template scope must defer absence-based findings");
+        assert!(graph.input_coverage().scope_limited_files > 0);
+        // Retain coverage of candidate-generation channels independently from the
+        // final evidence gate, which cannot prove orphan debt for these SFCs.
+        let candidates = super::detect_orphan_modules(&graph, &sources);
+        let orphans: Vec<&str> = candidates
             .iter()
             .filter(|f| f.category == DeadCodeCategory::OrphanModule)
             .map(|f| f.name.as_str())
@@ -1591,7 +1601,7 @@ export { helper } from '@/utils/reExported'
         assert_eq!(
             orphans,
             vec!["Orphan"],
-            "only the truly unreferenced module is an orphan; import, glob, \
+            "only the unreferenced module is a raw candidate; import, glob, \
              worker-URL, re-export, and index-stem channels all suppress: {orphans:?}"
         );
     }
@@ -1627,6 +1637,7 @@ export { helper } from '@/utils/reExported'
         let mut graph = crate::graph::SemanticGraph::default();
         for (path, source) in &sources {
             let parsed = crate::parsing::parse_source_file(path.clone(), source).unwrap();
+            graph.parse_outcomes.extend(parsed.parse_outcomes);
             graph.files.extend(parsed.files);
             graph.symbols.extend(parsed.symbols);
             graph.references.extend(parsed.references);
@@ -1680,6 +1691,7 @@ export { helper } from '@/utils/reExported'
             let mut graph = crate::graph::SemanticGraph::default();
             for (path, source) in &selected {
                 let parsed = crate::parsing::parse_source_file(path.clone(), source).unwrap();
+                graph.parse_outcomes.extend(parsed.parse_outcomes);
                 graph.files.extend(parsed.files);
                 graph.symbols.extend(parsed.symbols);
                 graph.references.extend(parsed.references);
@@ -1738,6 +1750,7 @@ export { helper } from '@/utils/reExported'
         let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
         for (path, source) in &sources[1..] {
             let parsed = parse_php_to_graph(path.clone(), source).unwrap();
+            graph.parse_outcomes.extend(parsed.parse_outcomes);
             graph.files.extend(parsed.files);
             graph.symbols.extend(parsed.symbols);
             graph.references.extend(parsed.references);
@@ -1853,6 +1866,7 @@ export { helper } from '@/utils/reExported'
         let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
         for (path, source) in &sources[1..] {
             let parsed = parse_php_to_graph(path.clone(), source).unwrap();
+            graph.parse_outcomes.extend(parsed.parse_outcomes);
             graph.files.extend(parsed.files);
             graph.symbols.extend(parsed.symbols);
             graph.references.extend(parsed.references);
@@ -1928,6 +1942,7 @@ export { helper } from '@/utils/reExported'
         let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
         for (path, source) in &sources[1..] {
             let parsed = parse_php_to_graph(path.clone(), source).unwrap();
+            graph.parse_outcomes.extend(parsed.parse_outcomes);
             graph.files.extend(parsed.files);
             graph.symbols.extend(parsed.symbols);
             graph.references.extend(parsed.references);
@@ -2063,9 +2078,11 @@ final class Account {}
 "#,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut imported.parse_outcomes);
         graph.files.append(&mut imported.files);
         graph.symbols.append(&mut imported.symbols);
         graph.references.append(&mut imported.references);
+        graph.parse_outcomes.append(&mut imported_account.parse_outcomes);
         graph.files.append(&mut imported_account.files);
         graph.symbols.append(&mut imported_account.symbols);
         graph.references.append(&mut imported_account.references);
@@ -2116,6 +2133,7 @@ pub struct Repo {}
 "#,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut imported.parse_outcomes);
         graph.files.append(&mut imported.files);
         graph.symbols.append(&mut imported.symbols);
         graph.references.append(&mut imported.references);
@@ -2225,6 +2243,7 @@ const label = "widget";
 "#,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut widget.parse_outcomes);
         graph.files.append(&mut widget.files);
         graph.symbols.append(&mut widget.symbols);
         graph.references.append(&mut widget.references);
@@ -2270,6 +2289,7 @@ export class Service {
             true,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut imported.parse_outcomes);
         graph.files.append(&mut imported.files);
         graph.symbols.append(&mut imported.symbols);
         graph.references.append(&mut imported.references);
@@ -2327,6 +2347,7 @@ final class FieldLoader
 "#,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut imported.parse_outcomes);
         graph.files.append(&mut imported.files);
         graph.symbols.append(&mut imported.symbols);
         graph.references.append(&mut imported.references);
@@ -2372,6 +2393,7 @@ final class EntityRegistry
 "#,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut imported.parse_outcomes);
         graph.files.append(&mut imported.files);
         graph.symbols.append(&mut imported.symbols);
         graph.references.append(&mut imported.references);
@@ -2441,9 +2463,11 @@ apps = {}
 "#,
         )
         .unwrap();
+        graph.parse_outcomes.append(&mut imported.parse_outcomes);
         graph.files.append(&mut imported.files);
         graph.symbols.append(&mut imported.symbols);
         graph.references.append(&mut imported.references);
+        graph.parse_outcomes.append(&mut registry.parse_outcomes);
         graph.files.append(&mut registry.files);
         graph.symbols.append(&mut registry.symbols);
         graph.references.append(&mut registry.references);

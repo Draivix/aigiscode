@@ -36,6 +36,7 @@ pub fn parse_rust_to_graph(
         language: Language::Rust,
     });
     add_file_module_symbol(&mut graph, &file_path, Language::Rust, source);
+    super::record_parse_outcome(&mut graph, &file_path, tree.root_node(), "tree-sitter-rust");
 
     let mut context = RustExtractionContext::new(file_path, source);
     walk_node(root, &mut context, &mut graph, None, None, false);

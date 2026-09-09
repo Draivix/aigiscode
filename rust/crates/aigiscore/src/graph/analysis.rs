@@ -117,10 +117,15 @@ pub fn analyze_semantic_graph(
     let orphan_started = Instant::now();
     let (
         zero_inbound_candidate_files,
-        orphan_files,
+        mut orphan_files,
         boundary_truncated_files,
         runtime_entry_candidates,
     ) = find_orphan_files(&file_graph, analysis_scope);
+    if !graph.input_coverage().is_complete() {
+        // Keep raw zero-inbound candidates, but do not classify confirmed orphan
+        // debt when unparsed inputs or parser recovery may hide callers.
+        orphan_files.clear();
+    }
     trace(&format!(
         "graph.orphans elapsed_ms={}",
         orphan_started.elapsed().as_millis()
@@ -1188,7 +1193,7 @@ mod tests {
     }
 
     #[test]
-    fn detects_orphans_runtime_entries_and_bottlenecks() {
+    fn preserves_candidates_and_topology_without_claiming_orphans_from_missing_parse_evidence() {
         let mut graph = SemanticGraph::default();
         graph.add_resolved_edge(edge("src/a.rs", "src/b.rs", ReferenceKind::Import));
         graph.add_resolved_edge(edge("src/b.rs", "src/c.rs", ReferenceKind::Import));
@@ -1196,7 +1201,8 @@ mod tests {
 
         let analysis = analyze_semantic_graph(&graph, &AnalysisScope::default());
 
-        assert!(analysis.orphan_files.contains(&PathBuf::from("src/a.rs")));
+        assert!(analysis.orphan_files.is_empty());
+        assert!(analysis.zero_inbound_candidate_files.contains(&PathBuf::from("src/a.rs")));
         assert!(analysis
             .runtime_entry_candidates
             .contains(&PathBuf::from("src/main.rs")));

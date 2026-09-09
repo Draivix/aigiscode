@@ -9,6 +9,48 @@ use crate::graph::{Language, SemanticGraph, SymbolKind, SymbolNode, Visibility};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+/// Capture recovery evidence from the very tree used for extraction. Diagnostics
+/// are bounded per file; the count and truncation flag preserve missing detail.
+pub(crate) fn record_parse_outcome(
+    graph: &mut SemanticGraph,
+    file_path: &Path,
+    root: tree_sitter::Node<'_>,
+    parser: &str,
+) {
+    use crate::coverage::{ParseDiagnostic, ParseDiagnosticKind, ParseOutcome, ParseScope};
+    let mut outcome = ParseOutcome {
+        file_path: file_path.to_path_buf(), parser: parser.to_owned(), scope: ParseScope::Source,
+        required_recovery: root.has_error(), diagnostic_count: 0,
+        diagnostics: Vec::new(), diagnostics_truncated: false,
+    };
+    let mut pending = vec![root];
+    while let Some(node) = pending.pop() {
+        if node.is_error() || node.is_missing() {
+            outcome.required_recovery = true;
+            outcome.diagnostic_count += 1;
+            if outcome.diagnostics.len() < 32 {
+                outcome.diagnostics.push(ParseDiagnostic {
+                    kind: if node.is_missing() { ParseDiagnosticKind::MissingNode } else { ParseDiagnosticKind::ErrorNode },
+                    node_kind: node.kind().to_owned(),
+                    start_line: node.start_position().row + 1,
+                    start_column: node.start_position().column + 1,
+                    end_line: node.end_position().row + 1,
+                    end_column: node.end_position().column + 1,
+                });
+            }
+        }
+        if node.has_error() {
+            for index in (0..node.child_count()).rev() {
+                if let Some(child) = node.child(index as u32) {
+                    if child.has_error() || child.is_error() || child.is_missing() { pending.push(child); }
+                }
+            }
+        }
+    }
+    outcome.diagnostics_truncated = outcome.diagnostic_count > outcome.diagnostics.len();
+    graph.parse_outcomes.push(outcome);
+}
+
 #[derive(Debug, Error)]
 pub enum ParseFileError {
     #[error("unsupported source file for parsing: {0}")]
@@ -30,7 +72,8 @@ pub fn parse_source_file(
     source: &str,
 ) -> Result<SemanticGraph, ParseFileError> {
     let file_path = file_path.into();
-    match file_path.extension().and_then(|ext| ext.to_str()) {
+    let extension = file_path.extension().and_then(|ext| ext.to_str()).map(str::to_ascii_lowercase);
+    match extension.as_deref() {
         Some("rs") => Ok(rust::parse_rust_to_graph(file_path, source)?),
         Some("js") | Some("jsx") | Some("mjs") | Some("cjs") => Ok(
             javascript::parse_javascript_to_graph(file_path, source, false)?,
@@ -49,8 +92,9 @@ pub fn parse_source_file(
 }
 
 pub fn is_supported_source_file(path: &Path) -> bool {
+    let extension = path.extension().and_then(|ext| ext.to_str()).map(str::to_ascii_lowercase);
     matches!(
-        path.extension().and_then(|ext| ext.to_str()),
+        extension.as_deref(),
         Some(
             "rs" | "js"
                 | "jsx"

@@ -279,6 +279,12 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
   publication of the entire artifact family still require further work.
 - Kuzu is exposed only when materialized for the current snapshot. A database
   left on disk by an earlier revision is unavailable after a live rebuild.
+- Input coverage is independent of freshness. `repo_overview`, coverage and
+  quality expose `input_coverage`; every tool/resource response carries its
+  compact status in `_meta["aigiscode/input_coverage"]`. Parser recovery,
+  unsupported sources and limited adapters (currently Vue script-only) defer
+  absence-based checks and block clean-audit conclusions. Full parse outcomes
+  live in the semantic graph. See the [input coverage evidence and limits](2026-09-09-input-coverage.md).
 - ⏳ Deferred (advisory, not correctness): MCP resource-subscription *push*
   (`notifications/resources/updated`). The freshness contract already covers
   correctness — a client polling `repo_overview` sees the revision change and the

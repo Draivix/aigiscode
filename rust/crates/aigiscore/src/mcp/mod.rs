@@ -224,7 +224,9 @@ impl ServerHandler for AigiscodeMcpServer {
         .with_server_info(Implementation::new("aigiscode", env!("CARGO_PKG_VERSION")))
         .with_instructions(
             "AigisCode provides single-repo architectural analysis over native Rust artifacts. \
-             Start with repo_overview, then drill into findings, hotspots, cycles, and coverage.",
+             Start with repo_overview, then drill into findings, hotspots, cycles, and coverage. \
+             Inspect input_coverage as well as freshness: a fresh snapshot can have incomplete \
+             parser coverage, and zero findings in deferred checks do not establish clean code.",
         )
     }
 

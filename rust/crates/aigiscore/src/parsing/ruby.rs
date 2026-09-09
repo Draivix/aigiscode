@@ -34,6 +34,7 @@ pub fn parse_ruby_to_graph(
         language: Language::Ruby,
     });
     add_file_module_symbol(&mut graph, &file_path, Language::Ruby, source);
+    super::record_parse_outcome(&mut graph, &file_path, tree.root_node(), "tree-sitter-ruby");
 
     let mut context = RubyContext { file_path, source };
     walk_node(tree.root_node(), &mut context, &mut graph, None, None);

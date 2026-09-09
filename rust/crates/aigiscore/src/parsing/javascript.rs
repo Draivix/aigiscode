@@ -28,7 +28,7 @@ pub fn parse_javascript_to_graph(
         Language::JavaScript
     };
     let tree_sitter_language = if is_typescript {
-        if file_path.extension().and_then(|extension| extension.to_str()) == Some("tsx") {
+        if file_path.extension().and_then(|extension| extension.to_str()).is_some_and(|extension| extension.eq_ignore_ascii_case("tsx")) {
             tree_sitter_typescript::LANGUAGE_TSX
         } else {
             tree_sitter_typescript::LANGUAGE_TYPESCRIPT
@@ -51,6 +51,11 @@ pub fn parse_javascript_to_graph(
         language,
     });
     add_file_module_symbol(&mut graph, &file_path, language, source);
+    super::record_parse_outcome(&mut graph, &file_path, root, if is_typescript {
+        if file_path.extension().and_then(|extension| extension.to_str()).is_some_and(|extension| extension.eq_ignore_ascii_case("tsx")) {
+            "tree-sitter-tsx"
+        } else { "tree-sitter-typescript" }
+    } else { "tree-sitter-javascript" });
 
     let mut context = JavaScriptContext { file_path, source };
     walk_node(root, &mut context, &mut graph, None, None);

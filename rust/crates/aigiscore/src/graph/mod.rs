@@ -236,9 +236,38 @@ pub struct SemanticGraph {
     pub symbols: Vec<SymbolNode>,
     pub references: Vec<SemanticReference>,
     pub resolved_edges: Vec<ResolvedEdge>,
+    #[serde(default)]
+    pub parse_outcomes: Vec<crate::coverage::ParseOutcome>,
+    #[serde(default)]
+    pub unsupported_sources: Vec<crate::coverage::UnsupportedSource>,
+    #[serde(default)]
+    pub other_input_files: usize,
 }
 
 impl SemanticGraph {
+    pub fn downgrade_recovered_edges(&mut self) {
+        let recovered = self.parse_outcomes.iter()
+            .filter(|outcome| outcome.required_recovery)
+            .map(|outcome| &outcome.file_path).collect::<std::collections::HashSet<_>>();
+        for edge in &mut self.resolved_edges {
+            if edge.origin != EdgeOrigin::Policy
+                && (recovered.contains(&edge.source_file_path) || recovered.contains(&edge.target_file_path)) {
+                edge.strength = EdgeStrength::Inferred;
+                edge.confidence_millis = edge.confidence_millis.min(500);
+                if !edge.reason.contains("parser_recovery") {
+                    edge.reason.push_str("; parser_recovery: endpoint file required syntax recovery");
+                }
+            }
+        }
+    }
+
+    pub fn input_coverage(&self) -> crate::coverage::InputCoverage {
+        crate::coverage::InputCoverage::summarize(
+            self.files.iter().map(|file| &file.path), &self.parse_outcomes,
+            &self.unsupported_sources, self.other_input_files,
+        )
+    }
+
     pub fn add_file(&mut self, file: FileNode) {
         self.files.push(file);
     }

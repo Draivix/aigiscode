@@ -4,6 +4,7 @@ pub mod artifacts;
 pub mod assessment;
 pub mod cli;
 pub mod contracts;
+pub mod coverage;
 pub mod detectors;
 pub mod doctrine;
 pub mod evidence;

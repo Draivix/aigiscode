@@ -62,7 +62,7 @@ pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 
 /// Bump whenever parser/resolver/plugin semantics change without a package-version bump.
-pub const SEMANTIC_REVISION: u32 = 9;
+pub const SEMANTIC_REVISION: u32 = 10;
 
 /// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
 /// proves the analyzed file set and contents still match `semantic-graph.json`
@@ -149,6 +149,7 @@ pub struct AgentRunPaths {
 #[derive(Debug, Serialize)]
 pub struct DeterministicFindingsArtifact<'a> {
     pub root: &'a Path,
+    pub input_coverage: crate::coverage::InputCoverage,
     pub scanned_files: usize,
     pub analyzed_files: usize,
     pub symbols: usize,
@@ -201,6 +202,7 @@ pub struct AigiscodeReportArtifact<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct ReportSummary {
+    pub input_coverage: crate::coverage::InputCoverage,
     pub scanned_files: usize,
     pub analyzed_files: usize,
     pub symbols: usize,
@@ -574,6 +576,8 @@ pub struct RepositoryTopologyContractZone {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceHistoryArtifact {
     pub root: String,
+    #[serde(default)]
+    pub input_coverage: crate::coverage::InputCoverage,
     pub summary: ConvergenceSummary,
     pub graph_delta: ConvergenceGraphDelta,
     pub contract_delta: ConvergenceContractDelta,
@@ -915,6 +919,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
 
     let findings = DeterministicFindingsArtifact {
         root: &analysis.root,
+        input_coverage: analysis.semantic_graph.input_coverage(),
         scanned_files: analysis.scan.files.len(),
         analyzed_files: analysis.semantic_graph.files.len(),
         symbols: analysis.semantic_graph.symbols.len(),
@@ -1015,6 +1020,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
+            input_coverage: analysis.semantic_graph.input_coverage(),
             scanned_files: analysis.scan.files.len(),
             analyzed_files: analysis.semantic_graph.files.len(),
             symbols: analysis.semantic_graph.symbols.len(),
@@ -3651,6 +3657,7 @@ pub fn build_convergence_history_artifact(
 
     ConvergenceHistoryArtifact {
         root: root.display().to_string(),
+        input_coverage: current_overview.input_coverage.clone(),
         summary,
         graph_delta: ConvergenceGraphDelta {
             strong_cycle_delta: delta(
@@ -3837,6 +3844,22 @@ pub fn build_guard_decision_artifact(
         String::from("guardian.diff-local-judgment"),
     ]);
     let mut obligations = Vec::new();
+
+    if !convergence.input_coverage.is_complete() {
+        reasons.push(String::from("Native input coverage is incomplete; absence-based checks are deferred."));
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Block,
+            message: String::from("Parser recovery, limited extraction scope, unsupported sources or missing parse evidence prevent a complete audit."),
+            precision: String::from("exact"),
+            confidence_millis: 1000,
+            provenance: vec![String::from("semantic_graph.parse_outcomes"), String::from("summary.input_coverage")],
+            doctrine_refs: vec![String::from("guardian.change-governance")],
+        });
+        obligations.push(GuardianObligation {
+            action: String::from("Review parser diagnostics and unsupported inputs; restore coverage or explicitly narrow the analysis scope before using absence-based findings."),
+            acceptance: String::from("Every supported source has parse evidence without recovery or scope limitations, and no recognized unsupported source remains in the selected scope."),
+        });
+    }
 
     if !external.is_complete() {
         let message = String::from(
@@ -4256,7 +4279,13 @@ pub fn build_guard_decision_artifact(
         .max()
         .unwrap_or(0);
 
-    let (verdict, confidence_millis, summary) = if !external.is_complete() {
+    let (verdict, confidence_millis, summary) = if !convergence.input_coverage.is_complete() {
+        (
+            GuardVerdict::Block,
+            1000,
+            String::from("Block: native input coverage is incomplete; this is missing evidence, not proof of a code defect."),
+        )
+    } else if !external.is_complete() {
         (
             GuardVerdict::Block,
             1000,
@@ -6897,6 +6926,19 @@ fn build_markdown_report(
         String::from("# AigisCode Report"),
         String::new(),
         format!("- Root: `{}`", analysis.root.display()),
+        format!("- Input coverage: {:?}; parsed {}, recovered {}, scope-limited {}, unsupported {}, missing parse evidence {}.",
+            report.summary.input_coverage.status,
+            report.summary.input_coverage.parsed_source_files,
+            report.summary.input_coverage.recovered_source_files,
+            report.summary.input_coverage.scope_limited_files,
+            report.summary.input_coverage.unsupported_source_files,
+            report.summary.input_coverage.files_without_parse_evidence),
+        if report.summary.input_coverage.is_complete() {
+            String::from("- Syntax coverage is complete for recognized source inputs; this does not establish semantic correctness or security.")
+        } else {
+            format!("- Deferred checks: {}. Zero findings in these checks are not clean results; inspect semantic-graph.json parse_outcomes and unsupported_sources.",
+                report.summary.input_coverage.deferred_checks.join(", "))
+        },
         format!("- Scanned files: {}", report.summary.scanned_files),
         format!("- Analyzed files: {}", report.summary.analyzed_files),
         format!("- Symbols: {}", report.summary.symbols),
@@ -8399,6 +8441,10 @@ fn main() {
     fn guard_decision_promotes_architectonic_regressions_into_triggers() {
         let convergence = ConvergenceHistoryArtifact {
             root: String::from("/tmp/example"),
+            input_coverage: crate::coverage::InputCoverage {
+                status: crate::coverage::InputCoverageStatus::Complete,
+                ..Default::default()
+            },
             summary: ConvergenceSummary {
                 current_findings: 0,
                 previous_findings: 0,
@@ -8502,6 +8548,10 @@ fn main() {
     fn guard_decision_surfaces_algorithmic_complexity_regressions() {
         let convergence = ConvergenceHistoryArtifact {
             root: String::from("/tmp/example"),
+            input_coverage: crate::coverage::InputCoverage {
+                status: crate::coverage::InputCoverageStatus::Complete,
+                ..Default::default()
+            },
             summary: ConvergenceSummary {
                 current_findings: 0,
                 previous_findings: 0,

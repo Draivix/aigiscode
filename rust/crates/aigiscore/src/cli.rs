@@ -17,7 +17,7 @@ use crate::artifacts::{
 };
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
-    analyze_project, analyze_rust_project, build_semantic_graph_project, PhaseTiming,
+    analyze_project, build_semantic_graph_project, PhaseTiming,
     ProjectAnalysis, SemanticGraphProject,
 };
 use crate::ingestion::scan::ScanConfig;
@@ -60,6 +60,22 @@ fn build_agent_context(result: &ProjectAnalysis) -> Result<AgentContext, i32> {
     Ok(AgentContext { review })
 }
 
+fn analysis_exit_code(
+    graph: &crate::graph::SemanticGraph,
+    external: Option<&crate::external::ExternalAnalysisResult>,
+) -> i32 {
+    let mut incomplete = false;
+    if !graph.input_coverage().is_complete() {
+        eprintln!("native input coverage is incomplete; see input_coverage and semantic-graph.json parse_outcomes");
+        incomplete = true;
+    }
+    if external.is_some_and(|external| !external.is_complete()) {
+        eprintln!("requested external checks are incomplete; see external-analysis.json for tool status and raw evidence");
+        incomplete = true;
+    }
+    i32::from(incomplete)
+}
+
 pub fn run_with_default_stack() -> i32 {
     const STACK_SIZE_BYTES: usize = 256 * 1024 * 1024;
     let handle = std::thread::Builder::new()
@@ -88,44 +104,9 @@ where
     };
 
     match command.as_str() {
-        "analyze" => {
+        "analyze" | "report" | "analyze-rust" => {
             let (path, options) = parse_path_and_options(args);
             run_project_analysis_command(path, options)
-        }
-        "report" => {
-            let (path, options) = parse_path_and_options(args);
-            run_project_analysis_command(path, options)
-        }
-        "analyze-rust" => {
-            let (path, options) = parse_path_and_options(args);
-            match analyze_rust_project(path, &ScanConfig::default()) {
-                Ok(result) => {
-                    let artifact_paths = if options.write_artifacts {
-                        match write_project_analysis_artifacts(
-                            &result,
-                            options.output_dir.as_deref(),
-                        ) {
-                            Ok(paths) => Some(paths),
-                            Err(error) => {
-                                eprintln!("{error}");
-                                return 1;
-                            }
-                        }
-                    } else {
-                        None
-                    };
-                    let output =
-                        build_analysis_command_output(&result, artifact_paths.as_ref(), None);
-                    let json = serde_json::to_string_pretty(&output)
-                        .expect("failed to serialize analysis summary");
-                    println!("{json}");
-                    0
-                }
-                Err(error) => {
-                    eprintln!("{error}");
-                    1
-                }
-            }
         }
         "surface" => {
             let (path, options) = parse_path_and_options(args);
@@ -145,7 +126,7 @@ where
                     let json = serde_json::to_string_pretty(&surface)
                         .expect("failed to serialize architecture surface");
                     println!("{json}");
-                    0
+                    analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis))
                 }
                 Err(error) => {
                     eprintln!("{error}");
@@ -252,6 +233,7 @@ struct GraphCommandOutput {
 
 #[derive(Debug, Serialize)]
 struct GraphCommandSummary {
+    input_coverage: crate::coverage::InputCoverage,
     scanned_files: usize,
     analyzed_files: usize,
     symbols: usize,
@@ -307,6 +289,7 @@ struct PluginCatalogEntry {
 
 #[derive(Debug, Serialize)]
 struct AnalyzeCommandSummary {
+    input_coverage: crate::coverage::InputCoverage,
     scanned_files: usize,
     analyzed_files: usize,
     symbols: usize,
@@ -789,6 +772,7 @@ fn build_analysis_command_output(
             aigiscode_report_markdown: paths.aigiscode_report_markdown.clone(),
         }),
         summary: AnalyzeCommandSummary {
+            input_coverage: result.semantic_graph.input_coverage(),
             scanned_files: result.scan.files.len(),
             analyzed_files: result.semantic_graph.files.len(),
             symbols: result.semantic_graph.symbols.len(),
@@ -910,12 +894,7 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
             let json = serde_json::to_string_pretty(&output)
                 .expect("failed to serialize analysis summary");
             println!("{json}");
-            if result.external_analysis.is_complete() {
-                0
-            } else {
-                eprintln!("requested external checks are incomplete; see external-analysis.json for tool status and raw evidence");
-                1
-            }
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis))
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1000,7 +979,7 @@ fn run_graph_command(path: PathBuf, options: ArtifactOptions) -> i32 {
             let json =
                 serde_json::to_string_pretty(&output).expect("failed to serialize graph summary");
             println!("{json}");
-            0
+            analysis_exit_code(&result.semantic_graph, None)
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1023,6 +1002,7 @@ fn build_graph_command_output(
         evidence_graph,
         kuzu_graph,
         summary: GraphCommandSummary {
+            input_coverage: result.semantic_graph.input_coverage(),
             scanned_files: result.scan.files.len(),
             analyzed_files: result.semantic_graph.files.len(),
             symbols: result.semantic_graph.symbols.len(),
@@ -1176,12 +1156,7 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                 serde_json::to_string_pretty(&agentic_review)
                     .expect("failed to serialize agentic review output")
             );
-            if result.external_analysis.is_complete() {
-                0
-            } else {
-                eprintln!("requested external checks are incomplete; see external-analysis.json for tool status and raw evidence");
-                1
-            }
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis))
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1224,7 +1199,7 @@ fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
                 ))
                 .expect("failed to serialize agent-run output")
             );
-            0
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis))
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1268,7 +1243,7 @@ fn run_agent_spider_command(path: PathBuf, options: AgentSpiderOptions) -> i32 {
                 ))
                 .expect("failed to serialize agent-spider output")
             );
-            0
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis))
         }
         Err(error) => {
             eprintln!("{error}");

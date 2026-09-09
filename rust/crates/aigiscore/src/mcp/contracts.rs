@@ -1253,6 +1253,8 @@ fn guard_trigger_level_label(level: GuardTriggerLevel) -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct OverviewOutput {
+    #[serde(default)]
+    pub input_coverage: crate::coverage::InputCoverage,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub generated_path_prefixes: Vec<PathBuf>,
     pub scanned_files: usize,
@@ -1307,6 +1309,7 @@ pub struct OverviewOutput {
 impl OverviewOutput {
     fn from_surface(surface: &ArchitectureSurface) -> Self {
         Self {
+            input_coverage: surface.overview.input_coverage.clone(),
             generated_path_prefixes: surface.overview.generated_path_prefixes.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
@@ -1927,6 +1930,8 @@ impl CycleOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct QualityEvaluationOutput {
     pub root: String,
+    #[serde(default)]
+    pub input_coverage: crate::coverage::InputCoverage,
     pub summary: String,
     pub dimensions: Vec<QualityDimensionOutput>,
     pub suspects: Vec<QualitySuspectOutput>,
@@ -1992,6 +1997,7 @@ impl QualityEvaluationOutput {
             })
             .count();
         let security_pressure = analysis.external_analysis.findings.len()
+            + analysis.security_analysis.findings.len()
             + analysis
                 .hardwiring
                 .findings
@@ -2004,7 +2010,7 @@ impl QualityEvaluationOutput {
                 })
                 .count();
 
-        let dimensions = vec![
+        let mut dimensions = vec![
             QualityDimensionOutput::new(
                 "architecture",
                 "Architecture",
@@ -2060,13 +2066,22 @@ impl QualityEvaluationOutput {
                 "Security Pressure",
                 security_pressure,
                 count_severity(security_pressure, 1, 5),
-                format!("{security_pressure} security-relevant findings across external tools and hardcoded network/env access."),
+                format!("{security_pressure} security-relevant findings across native analysis, external tools and hardcoded network/env access."),
                 security_supporting_files(analysis),
             ),
         ];
 
         let suspects = quality_suspects(analysis, surface);
         let mut recommendations = Vec::new();
+        if !surface.overview.input_coverage.is_complete() {
+            recommendations.push(String::from("Review input_coverage before drawing clean-code conclusions; absence-based checks are deferred."));
+            for dimension in &mut dimensions {
+                if dimension.key == "dead_code" || dimension.count == 0 {
+                    dimension.severity = String::from("unknown");
+                    dimension.summary = String::from("Input coverage is incomplete; a zero count does not establish absence of defects.");
+                }
+            }
+        }
         if architecture_pressure > 0 {
             recommendations.push(String::from(
                 "Drill into typed cycle findings first and separate structural cycles from framework/runtime expansion before refactoring.",
@@ -2095,8 +2110,10 @@ impl QualityEvaluationOutput {
 
         Self {
             root: String::from(root),
+            input_coverage: surface.overview.input_coverage.clone(),
             summary: format!(
-                "{} visible findings across {} dimensions; {} remain unreviewed.",
+                "{}{} visible findings across {} dimensions; {} remain unreviewed.",
+                if surface.overview.input_coverage.is_complete() { "" } else { "Partial evidence: " },
                 review_surface.summary.visible_findings,
                 dimensions.len(),
                 review_surface.summary.unreviewed_findings
@@ -2216,6 +2233,8 @@ pub struct AtlasEdgeOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CoverageReportOutput {
     pub root: String,
+    #[serde(default)]
+    pub input_coverage: crate::coverage::InputCoverage,
     pub scanned_files: usize,
     pub analyzed_files: usize,
     pub unresolved_reference_sites: usize,
@@ -2400,6 +2419,9 @@ impl CoverageReportOutput {
     ) -> Self {
         let unresolved_breakdown = build_unresolved_breakdown(graph);
         let mut notes = Vec::new();
+        if !surface.overview.input_coverage.is_complete() {
+            notes.push(String::from("Native input coverage is incomplete. Parser diagnostics and unsupported inputs are explicit; absence-based checks are deferred."));
+        }
         if surface
             .languages
             .iter()
@@ -2425,6 +2447,7 @@ impl CoverageReportOutput {
         }
         Self {
             root: String::from(root),
+            input_coverage: surface.overview.input_coverage.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
             unresolved_reference_sites: surface.overview.unresolved_reference_sites,

@@ -39,6 +39,7 @@ pub fn parse_python_to_graph(
         language: Language::Python,
     });
     add_file_module_symbol(&mut graph, &file_path, Language::Python, source);
+    super::record_parse_outcome(&mut graph, &file_path, tree.root_node(), "tree-sitter-python");
 
     let mut context = PythonContext { file_path, source };
     walk_tree(tree.root_node(), &mut context, &mut graph);

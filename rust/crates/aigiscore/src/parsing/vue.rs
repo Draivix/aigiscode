@@ -89,7 +89,13 @@ pub fn parse_vue_to_graph(
 ) -> Result<SemanticGraph, JavaScriptParseError> {
     let file_path = file_path.into();
     let script = extract_script(source);
-    parse_javascript_to_graph(file_path, &script.masked_source, script.is_typescript)
+    let mut graph = parse_javascript_to_graph(file_path, &script.masked_source, script.is_typescript)?;
+    for outcome in &mut graph.parse_outcomes {
+        // Template bindings and non-script regions are outside this adapter's
+        // extraction scope, even when the extracted script has valid syntax.
+        outcome.scope = crate::coverage::ParseScope::VueScriptOnly;
+    }
+    Ok(graph)
 }
 
 #[cfg(test)]

@@ -39,6 +39,7 @@ pub fn parse_php_to_graph(
         language: Language::Php,
     });
     add_file_module_symbol(&mut graph, &file_path, Language::Php, source);
+    super::record_parse_outcome(&mut graph, &file_path, tree.root_node(), "tree-sitter-php");
 
     let mut context = PhpContext {
         file_path,

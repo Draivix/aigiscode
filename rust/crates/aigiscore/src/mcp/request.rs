@@ -74,9 +74,19 @@ impl AigiscodeMcpServer {
     pub(super) fn freshness_meta(&self) -> Result<Meta, McpError> {
         let value = serde_json::to_value(self.freshness(true))
             .map_err(|error| McpError::internal_error(error.to_string(), None))?;
-        Ok(Meta(serde_json::Map::from_iter([(
-            String::from("aigiscode/freshness"),
-            value,
-        )])))
+        let published = self.live.load();
+        let snapshot = self.request_snapshot.as_ref().map(|state| state.snapshot())
+            .or_else(|| published.snapshot.as_ref());
+        let coverage = snapshot.map(|snapshot| &snapshot.repo_overview.overview.input_coverage);
+        Ok(Meta(serde_json::Map::from_iter([
+            (String::from("aigiscode/freshness"), value),
+            (String::from("aigiscode/input_coverage"), serde_json::json!({
+                "status": coverage.map_or(crate::coverage::InputCoverageStatus::Unknown, |coverage| coverage.status),
+                "recovered_source_files": coverage.map(|coverage| coverage.recovered_source_files),
+                "unsupported_source_files": coverage.map(|coverage| coverage.unsupported_source_files),
+                "scope_limited_files": coverage.map(|coverage| coverage.scope_limited_files),
+                "files_without_parse_evidence": coverage.map(|coverage| coverage.files_without_parse_evidence),
+            })),
+        ])))
     }
 }

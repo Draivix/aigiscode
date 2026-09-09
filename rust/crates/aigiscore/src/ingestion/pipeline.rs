@@ -283,13 +283,14 @@ fn try_fast_load_graph_project(
     // Decode and hash the same stream. A second open would race publication,
     // while a whole-file String doubles peak memory for large cached graphs.
     let mut reader = BufReader::new(crate::ingestion::hash::HashingIo::new(file));
-    let semantic_graph: SemanticGraph = match serde_json::from_reader(&mut reader) {
+    let mut semantic_graph: SemanticGraph = match serde_json::from_reader(&mut reader) {
         Ok(graph) => graph,
         Err(_) => return Ok(None),
     };
     if format!("{:016x}", reader.get_ref().content_hash().0) != manifest.semantic_graph_xxh3 {
         return Ok(None);
     }
+    update_input_inventory(&mut semantic_graph, &scan);
     let structure_started = Instant::now();
     let structure = build_structure_graph(&scan.files);
     Ok(Some(SemanticGraphProject {
@@ -505,6 +506,7 @@ pub fn build_semantic_graph_project(
         parsed_sources.push((relative_path, source));
     }
     let parse_elapsed = parse_started.elapsed().as_millis();
+    update_input_inventory(&mut semantic_graph, &scan);
     trace(&format!(
         "parse complete semantic_files={} symbols={} references={} elapsed_ms={parse_elapsed}",
         semantic_graph.files.len(),
@@ -526,6 +528,7 @@ pub fn build_semantic_graph_project(
     ));
     let plugins_started = Instant::now();
     apply_runtime_plugins(&RepoContext::new(root.clone()), &mut semantic_graph);
+    semantic_graph.downgrade_recovered_edges();
     trace(&format!(
         "runtime plugins complete resolved_edges={} elapsed_ms={}",
         semantic_graph.resolved_edges.len(),
@@ -560,7 +563,18 @@ pub fn build_semantic_graph_project(
     })
 }
 
+fn update_input_inventory(graph: &mut SemanticGraph, scan: &ScanResult) {
+    graph.unsupported_sources = scan.files.iter()
+        .filter(|file| !is_supported_source_file(&file.relative_path))
+        .filter_map(|file| crate::coverage::unsupported_source(&file.relative_path))
+        .collect();
+    graph.other_input_files = scan.files.len().saturating_sub(
+        graph.files.len() + graph.unsupported_sources.len(),
+    );
+}
+
 fn merge_semantic_graph(target: &mut SemanticGraph, mut parsed: SemanticGraph) {
+    target.parse_outcomes.append(&mut parsed.parse_outcomes);
     target.files.append(&mut parsed.files);
     target.symbols.append(&mut parsed.symbols);
     target.references.append(&mut parsed.references);

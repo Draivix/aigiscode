@@ -1,0 +1,88 @@
+{
+  "audit_date": "2026-09-09",
+  "semantic_revision": 10,
+  "verification": "Real whole-repository product audit; automated tests and CI remain disabled by user",
+  "binary_sha256": "1558f5e285de4542df2845f82ba353002a9b3085e0ba6e77880cdae6de3166ba",
+  "source_manifest_sha256": "69c13c5e11d4045ced3aa36323d3973f96ba68a4456f7545dbf677418ddf3370",
+  "elapsed_seconds": 2.29,
+  "maximum_rss_kib": 144740,
+  "exit_status": 1,
+  "input_coverage": {
+    "status": "incomplete",
+    "supported_source_files": 110,
+    "parsed_source_files": 110,
+    "recovered_source_files": 2,
+    "scope_limited_files": 0,
+    "files_without_parse_evidence": 0,
+    "unsupported_source_files": 2,
+    "other_input_files": 92,
+    "diagnostic_count": 2,
+    "parse_issues_preview": [
+      {
+        "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+        "parser": "tree-sitter-rust",
+        "scope": "source",
+        "required_recovery": true,
+        "diagnostic_count": 1,
+        "diagnostics": [
+          {
+            "kind": "error_node",
+            "node_kind": "ERROR",
+            "start_line": 212,
+            "start_column": 50,
+            "end_line": 212,
+            "end_column": 54
+          }
+        ],
+        "diagnostics_truncated": false
+      },
+      {
+        "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+        "parser": "tree-sitter-rust",
+        "scope": "source",
+        "required_recovery": true,
+        "diagnostic_count": 1,
+        "diagnostics": [
+          {
+            "kind": "error_node",
+            "node_kind": "ERROR",
+            "start_line": 2277,
+            "start_column": 57,
+            "end_line": 2277,
+            "end_column": 61
+          }
+        ],
+        "diagnostics_truncated": false
+      }
+    ],
+    "unsupported_sources_preview": [
+      {
+        "file_path": "install.ps1",
+        "extension": "ps1"
+      },
+      {
+        "file_path": "install.sh",
+        "extension": "sh"
+      }
+    ],
+    "deferred_checks": [
+      "unused_imports",
+      "unused_private_functions",
+      "orphan_modules",
+      "confirmed_orphan_files"
+    ]
+  },
+  "dead_code_count": 0,
+  "guard": {
+    "verdict": "Block",
+    "summary": "Block: native input coverage is incomplete; this is missing evidence, not proof of a code defect."
+  },
+  "weakened_edges": {
+    "count": 655,
+    "strengths": [
+      "Inferred"
+    ],
+    "maximum_confidence": 500
+  },
+  "raw_artifacts": "target/reliability-2026-09-09/self-q07-final"
+}
