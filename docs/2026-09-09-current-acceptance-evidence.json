@@ -1,0 +1,1880 @@
+{
+  "recorded_at": "2026-09-09T20:49:40.114Z",
+  "implementation_commit": "87e5c5ae0f8416c112af9457281a0cbde1221346",
+  "acceptance": "open",
+  "tests_run": false,
+  "ci_triggered": false,
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-complexity-final",
+    "bytes": 94746104,
+    "sha256": "b7c431eacdb2e7758e05fb4aebdc86ee5358920fbe03cb47f47c8187f55a17da"
+  },
+  "capture": {
+    "captured_at": "2026-09-09T20:18:04.985Z",
+    "root": "/home/david/Work/Programming/draivix",
+    "destination": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-fresh-source-1",
+    "scope": {
+      "excluded_dir_names": [
+        ".git",
+        "vendor",
+        "node_modules",
+        "storage",
+        "__pycache__",
+        "tmp",
+        "dist",
+        "build",
+        "target",
+        "coverage"
+      ],
+      "excluded_prefixes": [
+        "public/build",
+        "public/vendor",
+        "phpstan/cache",
+        "phpstan/resultCache.php",
+        "android/app/src/main/assets/public"
+      ],
+      "hidden_directories_excluded": true,
+      "symlinks_followed": false,
+      "original_scan_configuration_overridden": true,
+      "applied_scan_configuration_sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec"
+    },
+    "attempts": [
+      {
+        "attempt": 1,
+        "started": "2026-09-09T20:18:01.240Z",
+        "finished": "2026-09-09T20:18:04.985Z",
+        "destination": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-fresh-source-1",
+        "files": 23296,
+        "bytes": 301695383,
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "125331bf2b93a0465f45adfd9467647d017bec3c1ac2c2893986d8a357e42f08",
+            "bytes": 202
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ],
+        "skipped_symlink_count": 144,
+        "skipped_other_count": 0,
+        "mismatches": [],
+        "changes_during_capture": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "git_before": {
+          "head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+          "status_sha256": "fa7e035936efd722e434b5cab80d0e1baef138ca3f6d8b544892f3cfa0ce1c8d",
+          "status_bytes": 154905
+        },
+        "git_after": {
+          "head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+          "status_sha256": "fa7e035936efd722e434b5cab80d0e1baef138ca3f6d8b544892f3cfa0ce1c8d",
+          "status_bytes": 154905
+        },
+        "stable": true
+      }
+    ],
+    "from_previous_capture": {
+      "added": [
+        "clients/mitel/.gitattributes",
+        "clients/mitel/Actions/Task/ApproveAndCloseTaskAction.php",
+        "clients/mitel/Actions/Task/ApproveAndPrepareInvoiceAction.php",
+        "clients/mitel/Actions/Task/RejectAndDiscardInvoiceAction.php",
+        "clients/mitel/ci-modules.txt",
+        "clients/mitel/Console/Commands/MenuSyncCommand.php",
+        "clients/mitel/Console/Commands/WorkflowSyncCommand.php",
+        "clients/mitel/docs/2026-08-27-mitel-complete-provoz-flow-design.md",
+        "clients/mitel/docs/2026-08-27-mitel-complete-provoz-flow-implementation.md",
+        "clients/mitel/docs/JAKUB-PROVOZ-TEST.md",
+        "clients/mitel/docs/PREZENTACE-PROVOZ-TRAINING.md",
+        "clients/mitel/docs/PROVOZ-END-TO-END-SCENAR.md",
+        "clients/mitel/Entities/AssemblyProtocol/AssemblyProtocol.ui.php",
+        "clients/mitel/Entities/InternalTodo/InternalTodo.views.php",
+        "clients/mitel/Entities/Invoice/Invoice.hooks.php",
+        "clients/mitel/Entities/InvoiceItem/InvoiceItem.hooks.php",
+        "clients/mitel/Entities/InvoiceItem/InvoiceItem.permissions.php",
+        "clients/mitel/Entities/Service/Service.relations.php",
+        "clients/mitel/Entities/ServiceProtocol/ServiceProtocol.permissions.php",
+        "clients/mitel/Entities/ServiceTripItem/ServiceTripItem.permissions.php",
+        "clients/mitel/Entities/Task/Task.actions.php",
+        "clients/mitel/Entities/VacationRequest/VacationRequest.permissions.php",
+        "clients/mitel/Hooks/Invoice/InvoiceTaskApprovalGate.php",
+        "clients/mitel/Hooks/Task/TaskWorkflowHook.php",
+        "clients/mitel/i18n/de_DE/Contract.json",
+        "clients/mitel/i18n/de_DE/Messages.json",
+        "clients/mitel/i18n/de_DE/Task.json",
+        "clients/mitel/i18n/en_US/Contract.json",
+        "clients/mitel/i18n/en_US/Messages.json",
+        "clients/mitel/i18n/en_US/Task.json",
+        "clients/mitel/i18n/sk_SK/Contract.json",
+        "clients/mitel/i18n/sk_SK/Messages.json",
+        "clients/mitel/i18n/sk_SK/Task.json",
+        "clients/mitel/Services/TaskApproveAndCloseService.php",
+        "clients/mitel/Services/TaskApproveAndPrepareInvoiceService.php",
+        "clients/mitel/Services/TaskCompletionService.php",
+        "clients/mitel/Services/TaskOwnedInvoiceMutationGuard.php",
+        "clients/mitel/Services/TaskRejectAndDiscardInvoiceService.php",
+        "clients/mitel/showcase/brand/mitel-logo-dark.svg",
+        "clients/mitel/showcase/brand/mitel-logo-light.svg",
+        "clients/mitel/showcase/complete-provoz/elektro/DEMO-PROVOZ-KOMPLET-ELEKTRO-foto-zarizeni.png",
+        "clients/mitel/showcase/complete-provoz/elektro/DEMO-PROVOZ-KOMPLET-ELEKTRO-mereni.png",
+        "clients/mitel/showcase/complete-provoz/elektro/DEMO-PROVOZ-KOMPLET-ELEKTRO-predavaci-protokol.pdf",
+        "clients/mitel/showcase/complete-provoz/isp/DEMO-PROVOZ-KOMPLET-ISP-foto-zarizeni.png",
+        "clients/mitel/showcase/complete-provoz/isp/DEMO-PROVOZ-KOMPLET-ISP-mereni.png",
+        "clients/mitel/showcase/complete-provoz/isp/DEMO-PROVOZ-KOMPLET-ISP-predavaci-protokol.pdf",
+        "clients/mitel/showcase/complete-provoz/it/DEMO-PROVOZ-KOMPLET-IT-foto-zarizeni.png",
+        "clients/mitel/showcase/complete-provoz/it/DEMO-PROVOZ-KOMPLET-IT-mereni.png",
+        "clients/mitel/showcase/complete-provoz/it/DEMO-PROVOZ-KOMPLET-IT-predavaci-protokol.pdf",
+        "clients/mitel/showcase/complete-provoz/stavebni/DEMO-PROVOZ-KOMPLET-STAVEBNI-foto-zarizeni.png",
+        "clients/mitel/showcase/complete-provoz/stavebni/DEMO-PROVOZ-KOMPLET-STAVEBNI-mereni.png",
+        "clients/mitel/showcase/complete-provoz/stavebni/DEMO-PROVOZ-KOMPLET-STAVEBNI-predavaci-protokol.pdf",
+        "clients/mitel/Support/division_field.php",
+        "clients/mitel/Support/TaskBillingSnapshotBackfillAuthority.php",
+        "clients/mitel/Support/TaskCompletionWriteAuthority.php",
+        "clients/mitel/Support/TaskInvoiceLinkWriteAuthority.php",
+        "clients/mitel/Tests/Integration/MitelShowcaseFixtureServiceTest.php",
+        "clients/mitel/Tests/Integration/MitelTaskBillingSubmissionGateTest.php",
+        "clients/mitel/Tests/Integration/MitelTaskStatusPatchAuditTest.php",
+        "clients/mitel/Tests/Integration/ServiceTripEvidenceCompletionTest.php",
+        "clients/mitel/Tests/Integration/TaskApproveAndCloseTest.php",
+        "clients/mitel/Tests/Integration/TaskApproveAndPrepareInvoiceTest.php",
+        "clients/mitel/Tests/Unit/AnalysisDataDictionaryUiContractTest.php",
+        "clients/mitel/Tests/Unit/CalendarPermissionOverlayTest.php",
+        "clients/mitel/Tests/Unit/InvoiceItemPermissionContractTest.php",
+        "clients/mitel/Tests/Unit/MitelApprovalDivisionsTest.php",
+        "clients/mitel/Tests/Unit/MitelAssemblyProtocolSignatureHookTest.php",
+        "clients/mitel/Tests/Unit/MitelHeaderBrandingContractTest.php",
+        "clients/mitel/Tests/Unit/MitelInternalTodoNavigationContractTest.php",
+        "clients/mitel/Tests/Unit/MitelSalesFollowUpWorkflowContractTest.php",
+        "clients/mitel/Tests/Unit/MitelServiceTripEvidenceGateTest.php",
+        "clients/mitel/Tests/Unit/MitelShowcaseProtocolContentTest.php",
+        "clients/mitel/Tests/Unit/MitelTaskWorkflowGatesTest.php",
+        "clients/mitel/Tests/Unit/MitelWorkflowSyncCommandContractTest.php",
+        "clients/mitel/Tests/Unit/PrezFlowToolContractTest.php",
+        "clients/mitel/Tests/Unit/ProvozUiWhitelistContractTest.php",
+        "clients/mitel/Tests/Unit/ServiceProtocolAndTripItemPermissionContractTest.php",
+        "clients/mitel/Tests/Unit/TaskBillingSnapshotContractTest.php",
+        "clients/mitel/Tests/Unit/TaskInvoiceActionMetadataTest.php",
+        "clients/mitel/Tests/Unit/TaskTagUiContractTest.php",
+        "clients/mitel/Tests/Unit/TaskWarrantyStatusMetadataTest.php",
+        "clients/mitel/tools/prez_flow_e2e.py",
+        "clients/mitel/tools/seed_prez_flow.py",
+        "clients/mitel/tools/upload_brand_logo.py",
+        "clients/mitel/tools/walk/w1-poptavka-detail.png",
+        "clients/mitel/tools/walk/w10-technik-muj-den.png",
+        "clients/mitel/tools/walk/w11-technik-kalendar.png",
+        "clients/mitel/tools/walk/w12-ukol-stitky.png",
+        "clients/mitel/tools/walk/w13-ukol-spokojenost.png",
+        "clients/mitel/tools/walk/w14-projekt-dph.png",
+        "clients/mitel/tools/walk/w15-zakaznik-ico.png",
+        "clients/mitel/tools/walk/w16-vedouci-kpi.png",
+        "clients/mitel/tools/walk/w17-incident-sla.png",
+        "clients/mitel/tools/walk/w18-smlouva-sla.png",
+        "clients/mitel/tools/walk/w19-pf-ucetni.png",
+        "clients/mitel/tools/walk/w2-prilezitost-detail.png",
+        "clients/mitel/tools/walk/w20-pf-vedouci-schvaleno.png",
+        "clients/mitel/tools/walk/w21-pf-technik-bez-akci.png",
+        "clients/mitel/tools/walk/w22-rma-v-zaruce.png",
+        "clients/mitel/tools/walk/w23-rma-po-zaruce.png",
+        "clients/mitel/tools/walk/w24-mapa-vyjezdy-pin.png",
+        "clients/mitel/tools/walk/w25-mapa-vyjezdy-detail.png",
+        "clients/mitel/tools/walk/w26-kalendar-predplneny-den.png",
+        "clients/mitel/tools/walk/w26-migrace-predpis.png",
+        "clients/mitel/tools/walk/w27-ipam-pridelena.png",
+        "clients/mitel/tools/walk/w28-ipam-duplicita.png",
+        "clients/mitel/tools/walk/w29-ipam-kontrola-vraceni.png",
+        "clients/mitel/tools/walk/w3-nabidka-detail.png",
+        "clients/mitel/tools/walk/w30-dodatek.png",
+        "clients/mitel/tools/walk/w31-vyrovnani.png",
+        "clients/mitel/tools/walk/w32-posledni-vyuctovani.png",
+        "clients/mitel/tools/walk/w4-smlouva-detail.png",
+        "clients/mitel/tools/walk/w40-podpis-detail.png",
+        "clients/mitel/tools/walk/w40-podpis-kresba.png",
+        "clients/mitel/tools/walk/w40-podpis-ulozit-bez-zmeny.png",
+        "clients/mitel/tools/walk/w40-podpis-z-detailu.png",
+        "clients/mitel/tools/walk/w41-smlouva-k-revizi.png",
+        "clients/mitel/tools/walk/w42-smlouva-z-nabidky.png",
+        "clients/mitel/tools/walk/w43-predpis-generuje-fakturu.png",
+        "clients/mitel/tools/walk/w44-incident-stitky.png",
+        "clients/mitel/tools/walk/w45-kalendar-kolize.png",
+        "clients/mitel/tools/walk/w46-alokace-casu.png",
+        "clients/mitel/tools/walk/w47-absence-kalendar.png",
+        "clients/mitel/tools/walk/w48-pf-dvoji-schvaleni.png",
+        "clients/mitel/tools/walk/w48b-pf-vraceni-k-doplneni.png",
+        "clients/mitel/tools/walk/w5-ukol-detail.png",
+        "clients/mitel/tools/walk/w6-rozvrh-detail.png",
+        "clients/mitel/tools/walk/w7-majetek-detail.png",
+        "clients/mitel/tools/walk/w8-technik-smlouvy.png",
+        "clients/mitel/tools/walk/w9-technik-vyjezdy.png"
+      ],
+      "removed": [],
+      "changed": [
+        "clients/mitel/config.php",
+        "clients/mitel/docs/CHANGELOG-KLIENT.md",
+        "clients/mitel/docs/MIGRACE.md",
+        "clients/mitel/docs/RELEASE-POSTUP.md",
+        "clients/mitel/Entities/Account/Account.fields.php",
+        "clients/mitel/Entities/Account/Account.permissions.php",
+        "clients/mitel/Entities/AssemblyProtocol/AssemblyProtocol.hooks.php",
+        "clients/mitel/Entities/AssemblyProtocol/AssemblyProtocol.permissions.php",
+        "clients/mitel/Entities/Asset/Asset.permissions.php",
+        "clients/mitel/Entities/AutomaticInvoice/AutomaticInvoice.permissions.php",
+        "clients/mitel/Entities/Contact/Contact.permissions.php",
+        "clients/mitel/Entities/Contract/Contract.fields.php",
+        "clients/mitel/Entities/Contract/Contract.permissions.php",
+        "clients/mitel/Entities/GoodsIssue/GoodsIssue.permissions.php",
+        "clients/mitel/Entities/Invoice/Invoice.permissions.php",
+        "clients/mitel/Entities/Lead/Lead.fields.php",
+        "clients/mitel/Entities/Lead/Lead.permissions.php",
+        "clients/mitel/Entities/Opportunity/Opportunity.fields.php",
+        "clients/mitel/Entities/Opportunity/Opportunity.permissions.php",
+        "clients/mitel/Entities/Product/Product.permissions.php",
+        "clients/mitel/Entities/Project/Project.fields.php",
+        "clients/mitel/Entities/Project/Project.permissions.php",
+        "clients/mitel/Entities/Project/Project.ui.php",
+        "clients/mitel/Entities/Quote/Quote.fields.php",
+        "clients/mitel/Entities/Quote/Quote.permissions.php",
+        "clients/mitel/Entities/Service/Service.fields.php",
+        "clients/mitel/Entities/Service/Service.permissions.php",
+        "clients/mitel/Entities/Service/Service.ui.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.fields.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.permissions.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.ui.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.views.php",
+        "clients/mitel/Entities/SupplierInvoice/SupplierInvoice.permissions.php",
+        "clients/mitel/Entities/Task/Task.fields.php",
+        "clients/mitel/Entities/Task/Task.hooks.php",
+        "clients/mitel/Entities/Task/Task.permissions.php",
+        "clients/mitel/Entities/Task/Task.ui.php",
+        "clients/mitel/Entities/Warehouse/Warehouse.permissions.php",
+        "clients/mitel/i18n/cs_CZ/AssemblyProtocol.json",
+        "clients/mitel/i18n/cs_CZ/Contract.json",
+        "clients/mitel/i18n/cs_CZ/Global.json",
+        "clients/mitel/i18n/cs_CZ/Messages.json",
+        "clients/mitel/i18n/cs_CZ/Project.json",
+        "clients/mitel/i18n/cs_CZ/ServiceTrip.json",
+        "clients/mitel/i18n/cs_CZ/Task.json",
+        "clients/mitel/Services/MitelShowcaseFixtureService.php",
+        "clients/mitel/showcase/mitel.cs_CZ.json",
+        "clients/mitel/tools/gen_migration_sample.py",
+        "clients/mitel/tools/README.md",
+        "clients/mitel/tools/seed_import_definitions.py",
+        "clients/mitel/tools/seed_vedouci.py",
+        "clients/mitel/tools/walkthrough.py"
+      ]
+    },
+    "limitations": [
+      "Two complete content inventories and copied-file hashes agree; this is not an atomic filesystem snapshot.",
+      "The source repository and its Git state were read only. The snapshot has its own empty Git boundary and a broad scan configuration."
+    ]
+  },
+  "post_audit_integrity": {
+    "started": "2026-09-09T20:44:56.716Z",
+    "finished": "2026-09-09T20:44:58.081Z",
+    "snapshot_delta": {
+      "added": [],
+      "removed": [],
+      "changed": []
+    },
+    "live_delta": {
+      "added": [],
+      "removed": [],
+      "changed": []
+    },
+    "snapshot_inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+    "live_inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+    "live_configurations_match": true,
+    "snapshot_configurations": [
+      {
+        "path": ".aigiscode/scan.json",
+        "present": true,
+        "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+        "bytes": 132
+      },
+      {
+        "path": ".aigiscode/doctrine.json",
+        "present": true,
+        "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+        "bytes": 8641
+      },
+      {
+        "path": ".aigiscode/policy.json",
+        "present": false
+      },
+      {
+        "path": ".aigiscode/rules.json",
+        "present": false
+      }
+    ],
+    "live_symlinks_match": true,
+    "live_other_entries_match": true,
+    "snapshot_symlinks_match": false,
+    "git": {
+      "head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+      "status_sha256": "fa7e035936efd722e434b5cab80d0e1baef138ca3f6d8b544892f3cfa0ce1c8d",
+      "status_bytes": 154905
+    },
+    "git_status_matches_capture": true,
+    "limitations": [
+      "Read-only sequential content inventories; not an atomic filesystem snapshot."
+    ]
+  },
+  "source_capture_evidence": [
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-capture.cjs",
+      "bytes": 5979,
+      "sha256": "21f13e55ab6a24a514e1110118adc22727a0d77dddc4a8e1943e49cea193f24e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-capture.json",
+      "bytes": 14406,
+      "sha256": "5b9b774cef9769ab2514bced4c93872a95e158f0d00662b9d4857c710c847512"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-attempt-1-inventory.json",
+      "bytes": 4653554,
+      "sha256": "7a952b3daba1463b91c4fe743de0ee797c0e1ec5d95a1d1f33882f59cfb1cbd3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-post-audit.cjs",
+      "bytes": 3703,
+      "sha256": "6b89d04be7fe833be672820cdec719e964af5dc004271c6c761d2eac3c3bbe71"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-post-audit-integrity.json",
+      "bytes": 1456,
+      "sha256": "8f3be2b7d92653872093621d51cd8d67f95fa6889ef50a6fb762e82a4ae3eae7"
+    }
+  ],
+  "analysis": {
+    "wall_seconds": 86.78,
+    "peak_rss_kib": 3530952,
+    "exit_code": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 130081,
+      "references": 1092834,
+      "resolved_edges": 328144,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 29,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 273
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 344
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6645
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 12004
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 41021
+      }
+    ],
+    "guard": {
+      "verdict": "Block",
+      "summary": "Block: native input coverage is incomplete; this is missing evidence, not proof of a code defect.",
+      "reasons": [
+        "No verified comparable baseline is available; current observations do not establish a regression or improvement.",
+        "Current snapshot contains 17 visible high-severity security finding(s); this is an observed risk, not a claim about when it was introduced.",
+        "Native input coverage is incomplete; absence-based checks are deferred.",
+        "Secondary rule coverage Incomplete: 8404 scanned, 8663 prefiltered, 0 oversized, 0 without language rules, 0 other gaps, 792 scope-limited files. See ast-grep-scan.json; this does not establish absence of defects.",
+        "10 doctrine-backed attention item(s) need review."
+      ]
+    },
+    "baseline": {
+      "availability": "missing",
+      "comparison": "initial_snapshot",
+      "current": {
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-fresh-source-1",
+        "engine_version": "0.1.0",
+        "engine_fingerprint": "de941ce266f2f712",
+        "semantic_revision": 11,
+        "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+        "input_inventory_fingerprint": "cfca57f2dc4e058e",
+        "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+        "resolve_config_fingerprint": "042caf49d29f411d",
+        "assessment_config_fingerprint": "15d53a85edc70ec3",
+        "external_tools": [],
+        "external_checks_complete": true
+      },
+      "previous": null,
+      "reasons": [
+        "no_baseline",
+        "current_inputs_incomplete",
+        "current_secondary_checks_incomplete"
+      ]
+    },
+    "convergence": {
+      "summary": {
+        "current_findings": 3435,
+        "previous_findings": null,
+        "first_observed_findings": 3435,
+        "not_compared_findings": 0,
+        "new_findings": 0,
+        "worsened_findings": 0,
+        "improved_findings": 0,
+        "unchanged_findings": 0,
+        "resolved_findings": 0
+      },
+      "graph_delta": null,
+      "contract_delta": null,
+      "status_counts": {
+        "FirstObserved": 3435
+      }
+    }
+  },
+  "artifacts": [
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/deterministic-analysis.json",
+      "bytes": 55929908,
+      "sha256": "636632ee91f09fac5cf3b4185ee418314fbf2d4addd533f69a0994777bd8df05"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/semantic-graph.json",
+      "bytes": 793166985,
+      "sha256": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/dependency-graph.json",
+      "bytes": 216557049,
+      "sha256": "1670663b7ec1a4f798f87e453c568fc489c920b65cad3e6f33ed540d79ff7998"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/evidence-graph.json",
+      "bytes": 479750794,
+      "sha256": "e229a6bfb3644f37c5893d47e4fd1d8c988a5aeba6105220d2a5b742d00f1f2e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/contract-inventory.json",
+      "bytes": 143773,
+      "sha256": "dc653ad63ce0f02fba622bf920114c1a5baa213239cb877fbc1c03d8ec85ea88"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/doctrine-registry.json",
+      "bytes": 24056,
+      "sha256": "21b24baadd51b49e519d367c06965b94771cc7a3e4eefec9c618e5b589babe3e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/deterministic-findings.json",
+      "bytes": 11373881,
+      "sha256": "62f3bb25dbbb10f61306a94fe0cfb8f1c33de886870c9f39140127068fd740d9"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/ast-grep-scan.json",
+      "bytes": 8225069,
+      "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/external-analysis.json",
+      "bytes": 68,
+      "sha256": "ab93513ddc68ad82b9a15a4ac05de20864155ac0e0109a27e7dc43ea34fee768"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/architecture-surface.json",
+      "bytes": 37590799,
+      "sha256": "51d6d4963f03d13060d1f2558a5cc8bbbafa0fb29c0b9e949b0aef3d5e2370b6"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/review-surface.json",
+      "bytes": 9174589,
+      "sha256": "5f50d162512da69f2471cad7778103bf05eac8b8ac9bf4d4a6b52e752539826e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/convergence-history.json",
+      "bytes": 3220778,
+      "sha256": "a43b016f9b8a8eee6047ba0dd2934f28ad335d12365f73b7406a5e4a5f220413"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/guard-decision.json",
+      "bytes": 56457,
+      "sha256": "cf3562bd667a77623a26ec11c7b0ecac2adb2c6ba28af8086507e13012ed2810"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/aigiscode-handoff.json",
+      "bytes": 47001,
+      "sha256": "3a42ccb9f92827ae5e207bc7df0c46a69c81b54e2fcac0fbd4cd6e7e069cfebd"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/agentic-review.json",
+      "bytes": 234215,
+      "sha256": "4a385653d01a54572547820faca22ab9fb66ee7c936042391e5cd1625f27da40"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/graph-packets.json",
+      "bytes": 172544,
+      "sha256": "99c90db6f2715613a9399cb86e0c45df78cd757c35b71b4168e2b56625ece6b6"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/repository-topology.json",
+      "bytes": 934762,
+      "sha256": "8da05dcac9e6ba594f3c7372173972eddc5d499ea56df6d2949777f10a237417"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/aigiscode-report.json",
+      "bytes": 55929908,
+      "sha256": "636632ee91f09fac5cf3b4185ee418314fbf2d4addd533f69a0994777bd8df05"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/aigiscode-report.md",
+      "bytes": 19607,
+      "sha256": "eb1ed26e7b2965669c0d1a8fc4fcd6c16ffab5c026c21e855e4c152ef0a8a59f"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0/scan-manifest.json",
+      "bytes": 2248628,
+      "sha256": "97fefaf503e95dbed195a0c600134fa88bd830cd10e9bee1b30358811394d638"
+    }
+  ],
+  "raw_receipts": [
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit-result.json",
+      "bytes": 16443,
+      "sha256": "4eb0e17ab82cf8e0f0ecda2fb54f9ee6bd76062b95a6146aea498ac499bcfad3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit-time.txt",
+      "bytes": 957,
+      "sha256": "84fefe65f3aadd5324553fbf567a04c5aa5e363a238cb6b214f0fe176e31db17"
+    },
+    {
+      "path": "target/reliability-2026-09-09/draivix-fresh-audit-trace.txt",
+      "bytes": 10967219,
+      "sha256": "c2bb13cecab25ea724f4fe6e550683f38714cf027f5565abcecb0fa3ff5464d4"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-mcp-responses.jsonl",
+      "bytes": 384173,
+      "sha256": "123cf9409d3ade7a636715b90ba14e76c3db32b05733b961e1bc0530efeb05f3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-mcp-timings.json",
+      "bytes": 3885,
+      "sha256": "5e671a66a17c4500ea1bba6fb972eb8aed4ee47c9186c88a60005fff3c2a3fcd"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-mcp-stderr.txt",
+      "bytes": 135,
+      "sha256": "8d51c33ad39ce2179db3bc69fac80d1c62e7b2b8beb2a86652eb480bfa5ab992"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-finding-candidates.json",
+      "bytes": 8771,
+      "sha256": "fcb1515cf450f156b6255750f2ba85910875eb2ca0c1c60bc22440a14be6a4b8"
+    },
+    {
+      "path": "target/reliability-2026-09-09/historical-green-ci-state.json",
+      "bytes": 263,
+      "sha256": "9e1d55f3b80022308222f15eea9469b9be7cfad5b41f5951d069613111f8f399"
+    },
+    {
+      "path": "target/reliability-2026-09-09/current-ci-state.json",
+      "bytes": 45,
+      "sha256": "6f0f2c734d60872d7da39d3045434450936cd9e70522c5f60b5a829c1eb2095f"
+    }
+  ],
+  "mcp": {
+    "exit_code": 0,
+    "signal": null,
+    "queries": [
+      {
+        "name": "repo_overview",
+        "arguments": {}
+      },
+      {
+        "name": "list_findings",
+        "arguments": {
+          "family": "graph",
+          "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+          "max_items": 500
+        }
+      },
+      {
+        "name": "explain_finding",
+        "arguments": {
+          "finding_id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:new RegExp(+new RegExp(`(${escapeRegex(word)})`, 'gi')"
+        }
+      },
+      {
+        "name": "explain_finding",
+        "arguments": {
+          "finding_id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:loop"
+        }
+      },
+      {
+        "name": "explain_finding",
+        "arguments": {
+          "finding_id": "architecture:algorithmic-complexity:app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:.find(+existing.some((value) => String(value) === String(id))+props.fields.find((item) => item.name === condition.field)+props.fields.find((item) => item.name === selection.fieldName)"
+        }
+      },
+      {
+        "name": "list_findings",
+        "arguments": {
+          "family": "graph",
+          "file_path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+          "max_items": 500
+        }
+      },
+      {
+        "name": "list_findings",
+        "arguments": {
+          "family": "graph",
+          "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+          "max_items": 500
+        }
+      },
+      {
+        "name": "quality_evaluation",
+        "arguments": {}
+      },
+      {
+        "name": "coverage_report",
+        "arguments": {}
+      }
+    ],
+    "elapsed_ms": 46223.450849,
+    "timings": [
+      {
+        "id": 1,
+        "tool": "initialize",
+        "elapsed_ms": 8.296893000000004,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 2,
+        "tool": "repo_overview",
+        "elapsed_ms": 30009.552082000002,
+        "error": {
+          "code": -32603,
+          "message": "Initial index is still building; retry when ready",
+          "data": {
+            "freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788986064578,
+              "indexed_revision": 0,
+              "is_stale": true,
+              "observed_revision": 1,
+              "rebuilding": true,
+              "revision": 0,
+              "watcher": "disabled"
+            },
+            "index_state": "indexing",
+            "retryable": true
+          }
+        },
+        "is_error": false
+      },
+      {
+        "id": 2,
+        "tool": "repo_overview",
+        "elapsed_ms": 45754.428243,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 3,
+        "tool": "list_findings",
+        "elapsed_ms": 45755.456207,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 4,
+        "tool": "explain_finding",
+        "elapsed_ms": 45755.896609,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 5,
+        "tool": "explain_finding",
+        "elapsed_ms": 45756.082606,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 6,
+        "tool": "explain_finding",
+        "elapsed_ms": 45756.333618000004,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 7,
+        "tool": "list_findings",
+        "elapsed_ms": 45757.102981,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 8,
+        "tool": "list_findings",
+        "elapsed_ms": 45757.793752,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 9,
+        "tool": "quality_evaluation",
+        "elapsed_ms": 45758.229055,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 10,
+        "tool": "coverage_report",
+        "elapsed_ms": 45758.707775,
+        "error": null,
+        "is_error": false
+      }
+    ],
+    "responses": [
+      {
+        "id": 2,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 3,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 4,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 5,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 6,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 7,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 8,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 9,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 10,
+        "meta": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-fresh-audit/.generations/18d3c0bcbfd82f10-2386aa-0",
+            "generation": "18d3c0bcbfd82f10-2386aa-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986110324,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      }
+    ],
+    "indexing_response": {
+      "jsonrpc": "2.0",
+      "id": 2,
+      "error": {
+        "code": -32603,
+        "message": "Initial index is still building; retry when ready",
+        "data": {
+          "freshness": {
+            "consistency_satisfied": false,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788986064578,
+            "indexed_revision": 0,
+            "is_stale": true,
+            "observed_revision": 1,
+            "rebuilding": true,
+            "revision": 0,
+            "watcher": "disabled"
+          },
+          "index_state": "indexing",
+          "retryable": true
+        }
+      }
+    },
+    "positive_details": [
+      {
+        "id": 4,
+        "finding": {
+          "confidence_millis": 590,
+          "doctrine_refs": [
+            "performance.scaling",
+            "guardian.superlinear-risk"
+          ],
+          "evidence_anchors": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:regex_compile_in_loop",
+              "line": 1143
+            }
+          ],
+          "family": "graph",
+          "file_paths": [
+            "resources/js/Components/Search/GlobalSearch.vue"
+          ],
+          "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Search/GlobalSearch.vue|new RegExp(|new RegExp(`(${escapeRegex(word)})`, 'gi')|complexity:regex_compile_in_loop|scanner:ast_grep",
+          "id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:new RegExp(+new RegExp(`(${escapeRegex(word)})`, 'gi')",
+          "is_visible": true,
+          "languages": [
+            "vue"
+          ],
+          "line": 1143,
+          "locations": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "primary",
+              "line": 1143
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:regex_compile_in_loop",
+              "line": 1143
+            }
+          ],
+          "phase": "implementation",
+          "policy_status": "none",
+          "precision": "heuristic",
+          "primary_anchor": {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "label": "primary",
+            "line": 1143
+          },
+          "provenance": [
+            "architectural_assessment",
+            "parsed_sources",
+            "graph_analysis"
+          ],
+          "severity": "high",
+          "summary": "resources/js/Components/Search/GlobalSearch.vue contains loop-local complexity observations (complexity:regex_compile_in_loop, scanner:ast_grep). Inspect input bounds and measure runtime cost before choosing a refactor.",
+          "supporting_context": [
+            "scanner:ast_grep",
+            "expensive_operation_sites: regex_compile_in_loop@1143:ast_grep:new RegExp(`(${escapeRegex(word)})`, 'gi')",
+            "expensive_operation_flow: resources/js/Components/Search/GlobalSearch.vue:1143:regex_compile_in_loop"
+          ],
+          "title": "Algorithmic complexity hotspot"
+        }
+      },
+      {
+        "id": 5,
+        "finding": {
+          "confidence_millis": 600,
+          "doctrine_refs": [
+            "performance.scaling",
+            "guardian.superlinear-risk"
+          ],
+          "evidence_anchors": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 268
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 433
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 649
+            }
+          ],
+          "family": "graph",
+          "file_paths": [
+            "resources/js/Components/Search/GlobalSearch.vue"
+          ],
+          "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Search/GlobalSearch.vue|loop|complexity:nested_iteration",
+          "id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:loop",
+          "is_visible": true,
+          "languages": [
+            "vue"
+          ],
+          "line": 268,
+          "locations": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "primary",
+              "line": 268
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 268
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 433
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 649
+            }
+          ],
+          "phase": "implementation",
+          "policy_status": "none",
+          "precision": "heuristic",
+          "primary_anchor": {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "label": "primary",
+            "line": 268
+          },
+          "provenance": [
+            "architectural_assessment",
+            "parsed_sources",
+            "graph_analysis"
+          ],
+          "severity": "high",
+          "summary": "resources/js/Components/Search/GlobalSearch.vue contains loop-local complexity observations (complexity:nested_iteration). Inspect input bounds and measure runtime cost before choosing a refactor.",
+          "supporting_context": [
+            "expensive_operation_sites: nested_iteration@268:native:loop | nested_iteration@433:native:loop | nested_iteration@649:native:loop",
+            "expensive_operation_flow: resources/js/Components/Search/GlobalSearch.vue:268:nested_iteration"
+          ],
+          "title": "Algorithmic complexity hotspot"
+        }
+      },
+      {
+        "id": 6,
+        "finding": {
+          "confidence_millis": 640,
+          "doctrine_refs": [
+            "performance.scaling",
+            "guardian.superlinear-risk"
+          ],
+          "evidence_anchors": [
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 98
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 104
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 124
+            }
+          ],
+          "family": "graph",
+          "file_paths": [
+            "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue"
+          ],
+          "fingerprint": "architecture|algorithmic-complexity-hotspot|app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue|.find(|existing.some((value) => String(value) === String(id))|props.fields.find((item) => item.name === condition.field)|props.fields.find((item) => item.name === selection.fieldName)|complexity:collection_scan_in_loop|scanner:ast_grep",
+          "id": "architecture:algorithmic-complexity:app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:.find(+existing.some((value) => String(value) === String(id))+props.fields.find((item) => item.name === condition.field)+props.fields.find((item) => item.name === selection.fieldName)",
+          "is_visible": true,
+          "languages": [
+            "vue"
+          ],
+          "line": 98,
+          "locations": [
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "primary",
+              "line": 98
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 98
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 104
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 124
+            }
+          ],
+          "phase": "implementation",
+          "policy_status": "none",
+          "precision": "heuristic",
+          "primary_anchor": {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "label": "primary",
+            "line": 98
+          },
+          "provenance": [
+            "architectural_assessment",
+            "parsed_sources",
+            "graph_analysis"
+          ],
+          "severity": "high",
+          "summary": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue contains loop-local complexity observations (complexity:collection_scan_in_loop, scanner:ast_grep). Inspect input bounds and measure runtime cost before choosing a refactor.",
+          "supporting_context": [
+            "scanner:ast_grep",
+            "expensive_operation_sites: collection_scan_in_loop@98:ast_grep:props.fields.find((item) => item.name === condition.field) | collection_scan_in_loop@104:ast_grep:existing.some((value) => String(value) === String(id)) | collection_scan_in_loop@124:ast_grep:props.fields.find((item) => item.name === selection.fieldName)",
+            "expensive_operation_flow: app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:98:collection_scan_in_loop"
+          ],
+          "title": "Algorithmic complexity hotspot"
+        }
+      }
+    ],
+    "negative_controls": [
+      {
+        "id": 7,
+        "owner": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+        "total": 8,
+        "truncated": false,
+        "owned_complexity_findings": 0
+      },
+      {
+        "id": 8,
+        "owner": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+        "total": 0,
+        "truncated": false,
+        "owned_complexity_findings": 0
+      }
+    ],
+    "quality_summary": "Partial evidence: 4183 visible findings across 6 dimensions; 4183 remain unreviewed.",
+    "coverage": {
+      "input": {
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ],
+        "diagnostic_count": 810,
+        "files_without_parse_evidence": 0,
+        "other_input_files": 6083,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "unsupported_source_files": 146
+      },
+      "secondary": {
+        "gap_bytes": 12818568,
+        "input_files": 17067,
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "prefiltered_files": 8663,
+        "scanned_files": 8404,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "unresolved_reference_sites": 691530,
+      "unresolved_breakdown": {
+        "by_kind": [
+          {
+            "kind": "call",
+            "same_repo_name_matches": 230679,
+            "total": 561076
+          },
+          {
+            "kind": "extends",
+            "same_repo_name_matches": 728,
+            "total": 1647
+          },
+          {
+            "kind": "implements",
+            "same_repo_name_matches": 2,
+            "total": 132
+          },
+          {
+            "kind": "import",
+            "same_repo_name_matches": 5282,
+            "total": 41608
+          },
+          {
+            "kind": "type",
+            "same_repo_name_matches": 272,
+            "total": 86091
+          },
+          {
+            "kind": "typeimport",
+            "same_repo_name_matches": 161,
+            "total": 976
+          }
+        ],
+        "external_targets": 454406,
+        "same_repo_name_matches": 237124,
+        "top_same_repo_names": [
+          {
+            "name": "assertSame",
+            "sites": 25675
+          },
+          {
+            "name": "computed",
+            "sites": 7507
+          },
+          {
+            "name": "nullable",
+            "sites": 5579
+          },
+          {
+            "name": "t",
+            "sites": 5516
+          },
+          {
+            "name": "getId",
+            "sites": 4932
+          },
+          {
+            "name": "get",
+            "sites": 4778
+          },
+          {
+            "name": "where",
+            "sites": 4665
+          },
+          {
+            "name": "now",
+            "sites": 4025
+          },
+          {
+            "name": "with",
+            "sites": 3819
+          },
+          {
+            "name": "statement",
+            "sites": 3767
+          }
+        ],
+        "total": 691530
+      }
+    }
+  },
+  "self_audit": {
+    "scope": "Previously completed self audit using the same production binary; this acceptance unit changes documentation only.",
+    "artifacts": [
+      {
+        "path": "target/reliability-2026-09-09/self-complexity-final/semantic-graph.json",
+        "bytes": 15783686,
+        "sha256": "25c0b83c5d4728e10acf0236b51fc27a91fd90fd092afca0c1d67b99fd56211f"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-complexity-final/deterministic-findings.json",
+        "bytes": 477362,
+        "sha256": "d092da488238d5f6d32b36a4a6bbb637a8f56fe38ea247523eee0d9ad4fbd862"
+      }
+    ],
+    "type_imports": [
+      {
+        "source_file_path": "website/src/pages/LanguagePage.tsx",
+        "source_symbol_id": null,
+        "target_file_path": "website/src/content/languages.ts",
+        "target_symbol_id": "interface:website/src/content/languages.ts:Language",
+        "reference_target_name": "@/content/languages::Language",
+        "kind": "TypeImport",
+        "relation_kind": "TypeUse",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "ImportScoped",
+        "confidence_millis": 900,
+        "reason": "type-import:import-scoped",
+        "line": 21,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "website/src/pages/LanguagesPage.tsx",
+        "source_symbol_id": null,
+        "target_file_path": "website/src/content/languages.ts",
+        "target_symbol_id": "interface:website/src/content/languages.ts:Language",
+        "reference_target_name": "@/content/languages::Language",
+        "kind": "TypeImport",
+        "relation_kind": "TypeUse",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "ImportScoped",
+        "confidence_millis": 900,
+        "reason": "type-import:import-scoped",
+        "line": 18,
+        "occurrence_index": 0
+      }
+    ],
+    "original_owned_fixture_false_positives": [],
+    "source_files": [
+      {
+        "path": "website/src/pages/LanguagePage.tsx",
+        "bytes": 22505,
+        "sha256": "26d7a5157eeefac4e0f6c09f83364bc68489d3f5c4b62fff5445816cb431ed7e"
+      },
+      {
+        "path": "website/src/pages/LanguagesPage.tsx",
+        "bytes": 13379,
+        "sha256": "16793b493c8374a4873ddfa5203063b8f9a941590e8b600f3784a0637b4faa2c"
+      },
+      {
+        "path": "website/src/content/languages.ts",
+        "bytes": 148231,
+        "sha256": "3b868e90f43f82766b2cd7fa2c2d45afd484ada55e9b9c066547694671962924"
+      },
+      {
+        "path": "website/tsconfig.json",
+        "bytes": 480,
+        "sha256": "62b7e61fe8832331885f26103942889a67ac1e8687861d42bfcc1901253902be"
+      },
+      {
+        "path": "rust/crates/aigiscore/src/artifacts.rs",
+        "bytes": 369503,
+        "sha256": "0450514ab36ac0e513953217656a6133c3fb77c8f5bf9cb1efd22d1a106cbb19"
+      },
+      {
+        "path": "rust/crates/aigiscore/src/assessment/mod.rs",
+        "bytes": 223154,
+        "sha256": "bae4cf6aac87591e1fb6e869388523a38f769d4433adc71085f11ddaa55e31a7"
+      },
+      {
+        "path": "rust/crates/aigiscore/src/resolve/mod.rs",
+        "bytes": 152451,
+        "sha256": "aaabc81a56fb315e1c4c9119b1dc56d1251ac0843cad868d6dccfa74d649f8e2"
+      },
+      {
+        "path": "rust/crates/aigiscore/src/resolve/tsconfig.rs",
+        "bytes": 17026,
+        "sha256": "8f8f9d93fcf17fcac88a73eb71721f1bdb6830395ee945ae27a86f7978b6db6d"
+      }
+    ]
+  },
+  "source_cases": [
+    {
+      "path": "resources/js/Components/Search/GlobalSearch.vue",
+      "bytes": 60763,
+      "sha256": "ecbb0dcba15968845e2a554aa4f40a59927567d3590b193a96edd604ebaa55af",
+      "lines": [
+        268,
+        433,
+        649,
+        1143
+      ],
+      "interpretation": "regex construction in loop; nested child-list traversal does not alone prove quadratic growth"
+    },
+    {
+      "path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+      "bytes": 6930,
+      "sha256": "61b05ebb0cd159b4d329b2eebf9e1d4c83e3d94717575f5096396263b493e7a2",
+      "lines": [
+        98,
+        104,
+        124
+      ],
+      "interpretation": "repeated field lookup and growing membership scan; measure data bounds before refactor"
+    },
+    {
+      "path": "clients/mitel/Hooks/Task/TaskWorkflowHook.php",
+      "bytes": 22832,
+      "sha256": "2efa2e7742967f72f45e914cb45bf047d71eba4ddfe906ace05ebc961d86e6aa",
+      "lines": [
+        315,
+        316,
+        329
+      ],
+      "interpretation": "per-trip protocol query and traversal; source-backed query candidate, not measured N+1 cost"
+    },
+    {
+      "path": "clients/mitel/Services/TaskRejectAndDiscardInvoiceService.php",
+      "bytes": 8836,
+      "sha256": "f2cc7fe1614119e3d21ef38e9eaeb5cb81552825d4a1928b1e05354b0b19d795",
+      "lines": [
+        156,
+        164,
+        168
+      ],
+      "interpretation": "four fixed dependencies with one or two criteria; nested-loop warning is not superlinear evidence"
+    },
+    {
+      "path": "clients/mitel/Console/Commands/WorkflowSyncCommand.php",
+      "bytes": 15323,
+      "sha256": "b9f07edfb629e8549fc074b1aab6a141df2ffc7b650e15fb050ed437b8ef9d2b",
+      "lines": [
+        345,
+        354,
+        358
+      ],
+      "interpretation": "administrative configuration-diff output, not measured interactive cost"
+    },
+    {
+      "path": "clients/mitel/tools/upload_brand_logo.py",
+      "bytes": 6103,
+      "sha256": "644974fdd6f91f64b58f4520c8a27c3fb04a66b2bbd01966eacb779d3a688f46",
+      "lines": [
+        57,
+        61
+      ],
+      "interpretation": "fixed two attempts and twenty polls; helper script was read only, never executed"
+    },
+    {
+      "path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+      "bytes": 106758,
+      "sha256": "7dfa01c7d465f3e32ceb1bd3bdba7809adba65cc62a514414bf4cf2ded5a6cc1",
+      "lines": [
+        962,
+        1192
+      ],
+      "interpretation": "no owned complexity finding; path-filter related findings are not owned findings"
+    },
+    {
+      "path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+      "bytes": 3810,
+      "sha256": "baf6a4b59995a55203dd728283d25e8669ebd659316e8e5c6b33b516b09734d6",
+      "lines": [
+        35,
+        37,
+        39
+      ],
+      "interpretation": "bounded operator memberships; no MCP graph findings"
+    }
+  ],
+  "new_complexity_candidate_groups": [
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/Services/MitelShowcaseFixtureService.php",
+      "warning_families": [
+        "complexity:sort_in_loop",
+        "scanner:ast_grep"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/Services/MitelShowcaseFixtureService.php",
+          "line": 1398,
+          "subtype": "sort_in_loop",
+          "token": "sort($crew)",
+          "source": "AstGrep"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/tools/seed_prez_flow.py",
+      "warning_families": [
+        "complexity:nested_iteration"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/tools/seed_prez_flow.py",
+          "line": 346,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        },
+        {
+          "file_path": "clients/mitel/tools/seed_prez_flow.py",
+          "line": 636,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/Services/MitelShowcaseFixtureService.php",
+      "warning_families": [
+        "complexity:collection_scan_in_loop",
+        "scanner:ast_grep"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/Services/MitelShowcaseFixtureService.php",
+          "line": 3432,
+          "subtype": "collection_scan_in_loop",
+          "token": "in_array($this->string($row, 'name'), $names, true)",
+          "source": "AstGrep"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/Console/Commands/WorkflowSyncCommand.php",
+      "warning_families": [
+        "complexity:nested_iteration"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/Console/Commands/WorkflowSyncCommand.php",
+          "line": 358,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/Hooks/Task/TaskWorkflowHook.php",
+      "warning_families": [
+        "complexity:nested_iteration"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/Hooks/Task/TaskWorkflowHook.php",
+          "line": 329,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/Services/TaskRejectAndDiscardInvoiceService.php",
+      "warning_families": [
+        "complexity:nested_iteration"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/Services/TaskRejectAndDiscardInvoiceService.php",
+          "line": 168,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/tools/prez_flow_e2e.py",
+      "warning_families": [
+        "complexity:nested_iteration"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/tools/prez_flow_e2e.py",
+          "line": 562,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        }
+      ]
+    },
+    {
+      "kind": "AlgorithmicComplexityHotspot",
+      "file_path": "clients/mitel/tools/upload_brand_logo.py",
+      "warning_families": [
+        "complexity:nested_iteration"
+      ],
+      "expensive_operation_sites": [
+        {
+          "file_path": "clients/mitel/tools/upload_brand_logo.py",
+          "line": 61,
+          "subtype": "nested_iteration",
+          "token": "loop",
+          "source": "Native"
+        }
+      ]
+    }
+  ],
+  "ci": {
+    "historical": {
+      "conclusion": "success",
+      "event": "push",
+      "head_sha": "2721fcbfc3ed96133fa675f667f0f8f77c3f68dd",
+      "html_url": "https://github.com/Draivix/aigiscode/actions/runs/34326319636",
+      "id": 34326319636,
+      "role": "historical",
+      "status": "completed",
+      "updated_at": "2026-09-09T07:58:12Z"
+    },
+    "historical_test_result": {
+      "passed": 408,
+      "failed": 0,
+      "ignored": 0,
+      "raw_log": {
+        "path": "target/reliability-2026-09-09/ci-green-2721fcb.txt",
+        "bytes": 240084,
+        "sha256": "32fbf24c560ca57c10350faca693d6e84f3fee22461c63e024f87de8beeda5ea"
+      }
+    },
+    "current": {
+      "role": "current",
+      "runs": [],
+      "total_count": 0
+    },
+    "current_implementation_verified": false
+  },
+  "limitations": [
+    "Capture excludes documented source areas, hidden directories and all symlinks; it is not an atomic filesystem snapshot.",
+    "Snapshot symlink mismatch is expected: excluded original symlinks were not copied. Original symlink inventory is unchanged.",
+    "Original scan configuration is intentionally broadened only in the isolated copy.",
+    "One observed full analysis and one sequential MCP session; no statistical or concurrent-client benchmark.",
+    "Source-backed operation observations are not runtime performance measurements or confirmed defects.",
+    "New candidate-group selection uses kind/path/subtype keys and is not a complete finding diff.",
+    "All nine successful MCP calls carry the same generation and incomplete coverage; watcher is disabled for this session.",
+    "Unresolved same-repository name matches are lexical clues, not proofs of valid target resolution.",
+    "No external scanner ran, and no fresh Kuzu database was created for this capture.",
+    "Automated tests and CI remain paused on user instruction; historical CI does not verify the current commit.",
+    "Q01–Q12 acceptance and the overall reliability goal remain open."
+  ]
+}
