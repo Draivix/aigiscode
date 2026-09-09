@@ -991,7 +991,7 @@ fn boundary_context_preview(analysis: &ProjectAnalysis) -> Vec<String> {
     preview.extend(
         boundary_reason_labels(analysis)
             .into_iter()
-            .map(|reason| format!("boundary_reason: {}", reason)),
+            .map(|reason| format!("boundary_reason: {reason}")),
     );
     if !analysis.scan.scope.include_path_prefixes.is_empty() {
         preview.push(format!(
@@ -1576,7 +1576,7 @@ fn surface_finding_from_architectural_smell(
             smell
                 .related_components
                 .iter()
-                .map(|component| format!("component: {}", component)),
+                .map(|component| format!("component: {component}")),
         )
         .take(5)
         .collect::<Vec<_>>();

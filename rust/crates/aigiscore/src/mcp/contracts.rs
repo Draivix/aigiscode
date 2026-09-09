@@ -2011,10 +2011,7 @@ impl QualityEvaluationOutput {
                 "Dead Code",
                 dead_code_pressure,
                 count_severity(dead_code_pressure, 50, 250),
-                format!(
-                    "{} dead-code findings remain visible to deterministic analysis.",
-                    dead_code_pressure
-                ),
+                format!("{dead_code_pressure} dead-code findings remain visible to deterministic analysis."),
                 top_dead_code_files(&analysis.dead_code.findings, 5),
             ),
             QualityDimensionOutput::new(
@@ -2022,10 +2019,7 @@ impl QualityEvaluationOutput {
                 "Hardwiring",
                 hardwiring_pressure,
                 count_severity(hardwiring_pressure, 30, 150),
-                format!(
-                    "{} hardwiring findings remain after current suppressions.",
-                    hardwiring_pressure
-                ),
+                format!("{hardwiring_pressure} hardwiring findings remain after current suppressions."),
                 top_hardwiring_files(&analysis.hardwiring.findings, 5),
             ),
             QualityDimensionOutput::new(
@@ -2033,10 +2027,7 @@ impl QualityEvaluationOutput {
                 "Logic Concentration",
                 logic_hotspots,
                 count_severity(logic_hotspots, 3, 8),
-                format!(
-                    "{} files show elevated coupling/finding concentration.",
-                    logic_hotspots
-                ),
+                format!("{logic_hotspots} files show elevated coupling/finding concentration."),
                 surface
                     .hotspots
                     .iter()
@@ -2049,10 +2040,7 @@ impl QualityEvaluationOutput {
                 "Overengineering Suspects",
                 overengineering_pressure,
                 count_severity(overengineering_pressure, 2, 6),
-                format!(
-                    "{} framework/mixed/probable-artifact cycles suggest abstraction or runtime expansion pressure.",
-                    overengineering_pressure
-                ),
+                format!("{overengineering_pressure} framework/mixed/probable-artifact cycles suggest abstraction or runtime expansion pressure."),
                 supporting_cycle_files(&analysis.graph_analysis.cycle_findings, 5),
             ),
             QualityDimensionOutput::new(
@@ -2060,10 +2048,7 @@ impl QualityEvaluationOutput {
                 "Security Pressure",
                 security_pressure,
                 count_severity(security_pressure, 1, 5),
-                format!(
-                    "{} security-relevant findings across external tools and hardcoded network/env access.",
-                    security_pressure
-                ),
+                format!("{security_pressure} security-relevant findings across external tools and hardcoded network/env access."),
                 security_supporting_files(analysis),
             ),
         ];
@@ -2300,7 +2285,7 @@ pub struct UnresolvedNameCountOutput {
 /// separators used by supported languages (`::`, `.`, `\`, `/`).
 fn reference_leaf_name(target: &str) -> &str {
     target
-        .rsplit(|separator| matches!(separator, ':' | '.' | '\\' | '/'))
+        .rsplit([':', '.', '\\', '/'])
         .next()
         .unwrap_or(target)
 }

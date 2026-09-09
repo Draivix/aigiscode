@@ -6530,7 +6530,7 @@ export function run(items: string[][]) {
         use crate::graph::SymbolNode;
 
         let mut graph = SemanticGraph::default();
-        let mut add_class = |graph: &mut SemanticGraph, file: &str, name: &str| {
+        let add_class = |graph: &mut SemanticGraph, file: &str, name: &str| {
             graph.symbols.push(SymbolNode {
                 id: format!("class:{file}:{name}"),
                 file_path: PathBuf::from(file),

@@ -74,27 +74,6 @@ pub fn is_supported_source_file(path: &Path) -> bool {
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{is_supported_source_file, parse_source_file};
-    use std::path::Path;
-
-    #[test]
-    fn parses_module_script_and_type_variants_as_javascript_family() {
-        for path in ["server.mjs", "server.cjs", "types.mts", "types.cts"] {
-            assert!(
-                is_supported_source_file(Path::new(path)),
-                "{path} must be supported"
-            );
-            let graph = parse_source_file(path, "export function main() {}\nmain();\n").unwrap();
-            assert!(
-                graph.symbols.iter().any(|symbol| symbol.name == "main"),
-                "{path} must yield symbols"
-            );
-        }
-    }
-}
-
 pub(crate) fn add_file_module_symbol(
     graph: &mut SemanticGraph,
     file_path: &Path,
@@ -136,4 +115,25 @@ pub(crate) fn module_symbol_name(file_path: &Path) -> String {
             .to_owned();
     }
     stem.to_owned()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_supported_source_file, parse_source_file};
+    use std::path::Path;
+
+    #[test]
+    fn parses_module_script_and_type_variants_as_javascript_family() {
+        for path in ["server.mjs", "server.cjs", "types.mts", "types.cts"] {
+            assert!(
+                is_supported_source_file(Path::new(path)),
+                "{path} must be supported"
+            );
+            let graph = parse_source_file(path, "export function main() {}\nmain();\n").unwrap();
+            assert!(
+                graph.symbols.iter().any(|symbol| symbol.name == "main"),
+                "{path} must yield symbols"
+            );
+        }
+    }
 }

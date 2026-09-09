@@ -469,7 +469,7 @@ fn filter_candidates(
                 .language_map
                 .get(&candidate.file_path)
                 .copied()
-                .map_or(true, |candidate_language| {
+                .is_none_or(|candidate_language| {
                     same_language_family(source_language, candidate_language)
                 })
         });
@@ -1371,24 +1371,24 @@ fn resolve_import_paths(
         Language::JavaScript | Language::TypeScript => resolve_javascript_import_paths(
             &reference.file_path,
             &reference.target_name,
-            &known_files,
+            known_files,
             config,
         ),
-        Language::Php => resolve_php_import_paths(&reference.target_name, &known_files, config),
+        Language::Php => resolve_php_import_paths(&reference.target_name, known_files, config),
         Language::Python => resolve_python_import_paths(
             &reference.file_path,
             &reference.target_name,
-            &known_files,
+            known_files,
             config,
         ),
         Language::Ruby => resolve_ruby_import_paths(
             &reference.file_path,
             &reference.target_name,
-            &known_files,
+            known_files,
             config,
         ),
         Language::Rust => {
-            resolve_rust_import_paths(&reference.file_path, &reference.target_name, &known_files)
+            resolve_rust_import_paths(&reference.file_path, &reference.target_name, known_files)
         }
     };
 

@@ -1352,12 +1352,11 @@ pub fn build_repository_topology_artifact(
     }
     let runtime_entry_files = runtime_entry_file_map
         .into_values()
-        .map(|file_ref| {
+        .inspect(|file_ref| {
             zones
                 .entry(file_ref.zone_path.clone())
                 .or_default()
                 .runtime_entry_count += 1;
-            file_ref
         })
         .collect::<Vec<_>>();
 
@@ -1891,10 +1890,7 @@ pub fn build_repository_topology_artifact(
                         triage_summary: preview
                             .map(|preview| preview.triage_summary.clone())
                             .unwrap_or_else(|| {
-                                format!(
-                                    "Linked zone `{}` has no direct triage summary.",
-                                    linked_zone_path
-                                )
+                                format!("Linked zone `{linked_zone_path}` has no direct triage summary.")
                             }),
                     }
                 })
@@ -2441,10 +2437,7 @@ fn build_topology_zone_triage_summary(
             topology_semantic_state_proof_label(flow.proof_tier)
         );
     }
-    format!(
-        "No linked triage targets are currently attached to `{}`.",
-        zone_path
-    )
+    format!("No linked triage targets are currently attached to `{zone_path}`.")
 }
 
 fn build_topology_zone_triage_steps(
@@ -2517,10 +2510,7 @@ fn build_topology_cross_zone_pressure_summary(
     linked_zones: &[RepositoryTopologyLinkedZone],
 ) -> String {
     let Some(strongest) = linked_zones.first() else {
-        return format!(
-            "No cross-zone pressure is currently attached to `{}`.",
-            zone_path
-        );
+        return format!("No cross-zone pressure is currently attached to `{zone_path}`.");
     };
     let dominant_relations = strongest
         .relation_kinds
@@ -4651,52 +4641,28 @@ pub fn build_agent_handoff_artifact(
         doctrine_registry,
     );
     if warning_hotspot_count > 0 {
-        next_steps.push(format!(
-            "Reduce {} warning-heavy hotspot files where architectural centrality and detector/security noise are accumulating together.",
-            warning_hotspot_count
-        ));
+        next_steps.push(format!("Reduce {warning_hotspot_count} warning-heavy hotspot files where architectural centrality and detector/security noise are accumulating together."));
     }
     if split_identity_count > 0 {
-        next_steps.push(format!(
-            "Converge {} split identity model hotspots where the same concept is represented through both object-like and scalar identifier forms.",
-            split_identity_count
-        ));
+        next_steps.push(format!("Converge {split_identity_count} split identity model hotspots where the same concept is represented through both object-like and scalar identifier forms."));
     }
     if compatibility_scar_count > 0 {
-        next_steps.push(format!(
-            "Refactor {} compatibility-scar hotspots where one file is centralizing translation glue for competing domain representations.",
-            compatibility_scar_count
-        ));
+        next_steps.push(format!("Refactor {compatibility_scar_count} compatibility-scar hotspots where one file is centralizing translation glue for competing domain representations."));
     }
     if duplicate_mechanism_count > 0 {
-        next_steps.push(format!(
-            "Collapse {} duplicate-mechanism hotspots where the same concern is routed through competing orchestration paths.",
-            duplicate_mechanism_count
-        ));
+        next_steps.push(format!("Collapse {duplicate_mechanism_count} duplicate-mechanism hotspots where the same concern is routed through competing orchestration paths."));
     }
     if sanctioned_path_bypass_count > 0 {
-        next_steps.push(format!(
-            "Refactor {} sanctioned-path bypass hotspots where raw primitives bypass approved configuration or framework pathways.",
-            sanctioned_path_bypass_count
-        ));
+        next_steps.push(format!("Refactor {sanctioned_path_bypass_count} sanctioned-path bypass hotspots where raw primitives bypass approved configuration or framework pathways."));
     }
     if abstraction_sprawl_count > 0 {
-        next_steps.push(format!(
-            "Collapse {} abstraction-sprawl hotspots where one concern is split across too many helper/service/registry/factory-style layers.",
-            abstraction_sprawl_count
-        ));
+        next_steps.push(format!("Collapse {abstraction_sprawl_count} abstraction-sprawl hotspots where one concern is split across too many helper/service/registry/factory-style layers."));
     }
     if algorithmic_complexity_hotspot_count > 0 {
-        next_steps.push(format!(
-            "Reduce {} algorithmic-complexity hotspots where nested iteration, repeated linear scans, sorting, or regex compilation inside loops may create superlinear runtime growth.",
-            algorithmic_complexity_hotspot_count
-        ));
+        next_steps.push(format!("Reduce {algorithmic_complexity_hotspot_count} algorithmic-complexity hotspots where nested iteration, repeated linear scans, sorting, or regex compilation inside loops may create superlinear runtime growth."));
     }
     if hand_rolled_parsing_count > 0 {
-        next_steps.push(format!(
-            "Review {} hand-rolled parsing, schema-validation, scheduler-DSL, definition-engine, or contract-stack hotspots and replace custom mini-language, validator/resolver, scheduler/orchestration, schema-walker, or metadata-engine logic with battle-tested native/framework/library mechanisms where possible.",
-            hand_rolled_parsing_count
-        ));
+        next_steps.push(format!("Review {hand_rolled_parsing_count} hand-rolled parsing, schema-validation, scheduler-DSL, definition-engine, or contract-stack hotspots and replace custom mini-language, validator/resolver, scheduler/orchestration, schema-walker, or metadata-engine logic with battle-tested native/framework/library mechanisms where possible."));
     }
     if analysis.dead_code.findings.is_empty().not() {
         next_steps.push(format!(
@@ -6119,7 +6085,7 @@ fn finalize_algorithmic_complexity_packet(mut packet: GuardianPacket) -> Guardia
             ""
         },
         entry_path
-            .map(|path| format!(" {}", path))
+            .map(|path| format!(" {path}"))
             .unwrap_or_default()
     );
     packet.obligations = guardian_packet_obligations(
@@ -6928,7 +6894,7 @@ fn build_markdown_report(
             report.summary.ast_grep_skipped_bytes
         ),
         ast_grep_skipped_preview
-            .map(|preview| format!("- Secondary scanner skipped preview: {}", preview))
+            .map(|preview| format!("- Secondary scanner skipped preview: {preview}"))
             .unwrap_or_default(),
         format!(
             "- External findings: {}",
@@ -7218,7 +7184,7 @@ fn build_markdown_report(
                 any = true;
                 let line_suffix = finding
                     .line
-                    .map(|line| format!(" line {}", line))
+                    .map(|line| format!(" line {line}"))
                     .unwrap_or_default();
                 let location = finding
                     .file_paths

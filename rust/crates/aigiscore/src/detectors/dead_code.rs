@@ -214,9 +214,7 @@ pub fn analyze_dead_code_scoped(
             // `zone.js` -> `js`) and flag a phantom import. Python and PHP always
             // record an explicit binding name, so this only skips the JS
             // bindingless forms.
-            if reference.binding_name.is_none() {
-                return None;
-            }
+            reference.binding_name.as_ref()?;
             let candidate_edges = edges_by_location
                 .get(&(reference.file_path.as_path(), reference.line))
                 .map(|edges| {
@@ -260,9 +258,7 @@ pub fn analyze_dead_code_scoped(
                         })
                         .copied()
                 });
-            let Some(resolved_import) = resolved_import else {
-                return None;
-            };
+            let resolved_import = resolved_import?;
             let imported_symbol_name = symbols_by_id
                 .get(&resolved_import.target_symbol_id)
                 .map(|(name, _, _)| name.clone());

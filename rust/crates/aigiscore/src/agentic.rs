@@ -1076,12 +1076,14 @@ impl<'a> AgenticAnalysisContext<'a> {
     }
 }
 
+type TraceCacheKey = (String, String, usize, usize);
+
 pub struct GraphQueryContext<'a> {
     semantic_graph: &'a SemanticGraph,
     symbol_lookup: HashMap<&'a str, &'a SymbolNode>,
     outbound_edges: HashMap<String, Vec<&'a ResolvedEdge>>,
     incident_edges: HashMap<String, Vec<&'a ResolvedEdge>>,
-    trace_cache: RefCell<HashMap<(String, String, usize, usize), Vec<AgenticGraphTrace>>>,
+    trace_cache: RefCell<HashMap<TraceCacheKey, Vec<AgenticGraphTrace>>>,
 }
 
 impl<'a> GraphQueryContext<'a> {
@@ -1946,9 +1948,7 @@ pub enum SemanticStateProofKind {
     Heuristic,
 }
 
-fn build_source_lookup<'a>(
-    parsed_sources: &'a [(std::path::PathBuf, String)],
-) -> HashMap<String, &'a str> {
+fn build_source_lookup(parsed_sources: &[(std::path::PathBuf, String)]) -> HashMap<String, &str> {
     parsed_sources
         .iter()
         .map(|(path, source)| (path.display().to_string(), source.as_str()))
@@ -3155,11 +3155,10 @@ fn extract_semantic_state_param_name(param: &str) -> String {
 
 fn semantic_slot_name(prefix: &str, suffix: &str) -> String {
     let lowered = lower_camel_case(suffix);
-    let normalized = match prefix {
+    match prefix {
         "add" => singularize_slot(pluralize_slot_if_item(lowered)),
         _ => singularize_slot(lowered),
-    };
-    normalized
+    }
 }
 
 fn pluralize_slot_if_item(slot: String) -> String {

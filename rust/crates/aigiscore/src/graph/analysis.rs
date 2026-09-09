@@ -384,18 +384,12 @@ fn supporting_neighbors_for_module(
                     outbound + inbound
                 ),
                 (true, false) => {
-                    format!(
-                        "{} -> {} ({} cross-module links)",
-                        subject, neighbor, outbound
-                    )
+                    format!("{subject} -> {neighbor} ({outbound} cross-module links)")
                 }
                 (false, true) => {
-                    format!(
-                        "{} -> {} ({} cross-module links)",
-                        neighbor, subject, inbound
-                    )
+                    format!("{neighbor} -> {subject} ({inbound} cross-module links)")
                 }
-                (false, false) => format!("{} <> {} (0 cross-module links)", subject, neighbor),
+                (false, false) => format!("{subject} <> {neighbor} (0 cross-module links)"),
             },
         )
         .collect::<Vec<_>>();

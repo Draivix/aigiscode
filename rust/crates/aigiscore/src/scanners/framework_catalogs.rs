@@ -406,11 +406,6 @@ const PHP_DISPATCH_MECHANISM_CATALOG: DispatchMechanismCatalog = DispatchMechani
     matches_file: is_php_source_file,
 };
 
-/// Dispatch-mechanism catalogs whose language gate matches this file. Language
-/// gating is what stops PHP/Laravel markers from being tested against Rust, Vue,
-/// or TypeScript files — including the analyzer's own source, which contains these
-/// marker strings as literals.
-
 /// How a role-shaped file proves it is wired into its framework channel.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(dead_code)] // LexicalMarker + markers stay for future roles (job/listener revisit)
@@ -477,6 +472,10 @@ pub(crate) fn role_wiring_catalogs_for_file(
         .collect()
 }
 
+/// Dispatch-mechanism catalogs whose language gate matches this file. Language
+/// gating is what stops PHP/Laravel markers from being tested against Rust, Vue,
+/// or TypeScript files — including the analyzer's own source, which contains these
+/// marker strings as literals.
 pub(crate) fn dispatch_mechanism_catalogs_for_file(
     path: &Path,
     source: &str,

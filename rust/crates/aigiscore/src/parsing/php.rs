@@ -261,7 +261,6 @@ fn push_children<'a>(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 /// Whether a declaration sits inside a conditional (`if`/`else`) rather than at
 /// program or namespace level. PHP allows the same class name to be declared in
 /// mutually-exclusive branches (`if (class_exists(...)) { class X } else
@@ -278,6 +277,7 @@ fn is_conditionally_declared(node: Node<'_>) -> bool {
     false
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_symbol(
     context: &PhpContext<'_>,
     kind: SymbolKind,
