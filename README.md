@@ -315,6 +315,22 @@ Use this when you want:
 - OpenGrep / Trivy / Grype / Gitleaks / audit-tool enrichment
 - unified review and policy handling across native and imported findings
 
+Requested external checks have an explicit `external_checks` summary:
+`not_requested`, `complete`, or `incomplete`, with completed, failed, and
+unavailable counts. Malformed reports, tool failures, unavailable requested tools,
+and timeouts cannot become a clean result. `analyze`/`report`/`agent` still publish
+the available evidence but return a nonzero exit code for incomplete external
+checks; the guard blocks a clean conclusion. This reports missing evidence, not a
+new defect in the analyzed source.
+
+Each executed tool run preserves its exit code, optional `failure_kind`, raw stdout/stderr
+paths, and a bounded stderr preview. On Unix the runner owns a process group and
+terminates remaining descendants before reaping its leader; other platforms
+currently report `direct_child` process scope. Raw streams go directly to files
+so verbose scanners cannot deadlock on undrained output pipes. Composer uses
+`--locked --no-plugins --no-scripts` and requires both Composer manifests; enabling
+external tools preserves the architectural doctrine captured by the analysis.
+
 ## Example Workflows
 
 ### Fast local repo check

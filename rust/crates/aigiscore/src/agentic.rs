@@ -4030,7 +4030,11 @@ mod tests {
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
 
         let artifact =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
@@ -4190,7 +4194,11 @@ mod tests {
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
 
         let artifact =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
@@ -4222,7 +4230,11 @@ mod tests {
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
 
         let artifact =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
@@ -4442,7 +4454,11 @@ fn helper() {}"#,
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
         let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
         let review =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
@@ -4492,7 +4508,11 @@ fn helper() {}"#,
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
         let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
         let mut review =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);

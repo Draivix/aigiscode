@@ -254,6 +254,8 @@ pub struct ReportSummary {
     pub declared_env_key_count: usize,
     pub declared_config_key_count: usize,
     pub external_tool_count: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_checks: Option<crate::external::ExternalCheckSummary>,
     pub external_finding_count: usize,
     pub visible_findings: usize,
     pub accepted_by_policy: usize,
@@ -974,7 +976,11 @@ pub fn write_project_analysis_artifacts(
         convergence_started.elapsed().as_millis(),
     );
     let guard_started = Instant::now();
-    let guard_decision = build_guard_decision_artifact(&analysis.root, &convergence_history);
+    let guard_decision = build_guard_decision_artifact(
+        &analysis.root,
+        &convergence_history,
+        &analysis.external_analysis,
+    );
     trace_artifact_step("guard.build", guard_started.elapsed().as_millis());
     let feedback_loop = build_feedback_loop_summary(&review_surface);
     let handoff_started = Instant::now();
@@ -1102,6 +1108,7 @@ pub fn write_project_analysis_artifacts(
                 .config_keys
                 .unique_values,
             external_tool_count: analysis.external_analysis.tool_runs.len(),
+            external_checks: Some(analysis.external_analysis.check_summary()),
             external_finding_count: analysis.external_analysis.findings.len(),
             visible_findings: review_surface.summary.visible_findings,
             accepted_by_policy: review_surface.summary.accepted_by_policy,
@@ -3749,6 +3756,7 @@ fn build_convergence_required_radius(
 pub fn build_guard_decision_artifact(
     root: &Path,
     convergence: &ConvergenceHistoryArtifact,
+    external: &ExternalAnalysisResult,
 ) -> GuardDecisionArtifact {
     let contract_delta_count = [
         &convergence.contract_delta.routes,
@@ -3828,6 +3836,26 @@ pub fn build_guard_decision_artifact(
         String::from("guardian.diff-local-judgment"),
     ]);
     let mut obligations = Vec::new();
+
+    if !external.is_complete() {
+        let message = String::from(
+            "Requested external checks are incomplete; no clean audit conclusion is available.",
+        );
+        reasons.push(message.clone());
+        doctrine_refs.insert(String::from("security.external-evidence"));
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Block,
+            message,
+            precision: String::from("exact"),
+            confidence_millis: 1000,
+            provenance: vec![String::from("external_analysis.tool_runs")],
+            doctrine_refs: vec![String::from("security.external-evidence")],
+        });
+        obligations.push(GuardianObligation {
+            action: String::from("Resolve the recorded tool failures and rerun the requested checks."),
+            acceptance: String::from("Each requested external tool has a valid completed result; findings remain available for review."),
+        });
+    }
 
     if high_severity_security_regressions > 0 {
         let message = format!(
@@ -4227,7 +4255,15 @@ pub fn build_guard_decision_artifact(
         .max()
         .unwrap_or(0);
 
-    let (verdict, confidence_millis, summary) = if block_trigger_count > 0 {
+    let (verdict, confidence_millis, summary) = if !external.is_complete() {
+        (
+            GuardVerdict::Block,
+            1000,
+            String::from(
+                "Block: requested external checks did not complete; the audit is incomplete.",
+            ),
+        )
+    } else if block_trigger_count > 0 {
         (
             GuardVerdict::Block,
             max_trigger_confidence.max(930),
@@ -8442,7 +8478,11 @@ fn main() {
             findings: Vec::new(),
         };
 
-        let guard = build_guard_decision_artifact(Path::new("/tmp/example"), &convergence);
+        let guard = build_guard_decision_artifact(
+            Path::new("/tmp/example"),
+            &convergence,
+            &crate::external::ExternalAnalysisResult::default(),
+        );
 
         assert_eq!(guard.verdict, GuardVerdict::Warn);
         assert!(guard.pressure.split_identity_model_regression);
@@ -8541,7 +8581,11 @@ fn main() {
             findings: Vec::new(),
         };
 
-        let guard = build_guard_decision_artifact(Path::new("/tmp/example"), &convergence);
+        let guard = build_guard_decision_artifact(
+            Path::new("/tmp/example"),
+            &convergence,
+            &crate::external::ExternalAnalysisResult::default(),
+        );
 
         assert_eq!(guard.verdict, GuardVerdict::Warn);
         assert!(guard.pressure.algorithmic_complexity_hotspot_regression);

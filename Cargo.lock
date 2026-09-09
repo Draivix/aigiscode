@@ -19,6 +19,7 @@ dependencies = [
  "ast-grep-core",
  "ast-grep-language",
  "globset",
+ "libc",
  "notify",
  "notify-debouncer-full",
  "petgraph",

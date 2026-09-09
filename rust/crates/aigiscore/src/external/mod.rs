@@ -4,9 +4,8 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::thread;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
 use sarif_rust::types::{
@@ -15,6 +14,10 @@ use sarif_rust::types::{
 };
 
 use crate::evidence::EvidenceAnchor;
+
+mod process;
+mod report;
+use process::{CapturePaths, ProcessError, ReportStream};
 
 const REPORTS_DIR: &str = "reports";
 const RAW_DIR: &str = "raw";
@@ -55,6 +58,33 @@ pub enum ExternalToolStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum ExternalFailureKind {
+    InvalidReport,
+    ProcessExit,
+    ProcessIo,
+    Timeout,
+    UnsupportedTool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ExternalCheckStatus {
+    NotRequested,
+    Complete,
+    Incomplete,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct ExternalCheckSummary {
+    pub status: ExternalCheckStatus,
+    pub requested: usize,
+    pub completed: usize,
+    pub failed: usize,
+    pub unavailable: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ExternalSeverity {
     High,
     Medium,
@@ -75,6 +105,8 @@ pub struct ExternalToolRun {
     pub command: Vec<String>,
     pub status: ExternalToolStatus,
     pub exit_code: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failure_kind: Option<ExternalFailureKind>,
     pub artifact_path: String,
     pub summary: Map<String, Value>,
 }
@@ -107,10 +139,59 @@ impl ExternalAnalysisResult {
     pub fn is_empty(&self) -> bool {
         self.tool_runs.is_empty() && self.findings.is_empty()
     }
+
+    /// Whether every requested tool produced a usable result, including findings.
+    pub fn is_complete(&self) -> bool {
+        self.tool_runs.iter().all(|run| {
+            matches!(
+                run.status,
+                ExternalToolStatus::Passed | ExternalToolStatus::Findings
+            )
+        })
+    }
+
+    pub fn check_summary(&self) -> ExternalCheckSummary {
+        ExternalCheckSummary {
+            status: if self.tool_runs.is_empty() {
+                ExternalCheckStatus::NotRequested
+            } else if self.is_complete() {
+                ExternalCheckStatus::Complete
+            } else {
+                ExternalCheckStatus::Incomplete
+            },
+            requested: self.tool_runs.len(),
+            completed: self
+                .tool_runs
+                .iter()
+                .filter(|run| {
+                    matches!(
+                        run.status,
+                        ExternalToolStatus::Passed | ExternalToolStatus::Findings
+                    )
+                })
+                .count(),
+            failed: self
+                .tool_runs
+                .iter()
+                .filter(|run| run.status == ExternalToolStatus::Failed)
+                .count(),
+            unavailable: self
+                .tool_runs
+                .iter()
+                .filter(|run| run.status == ExternalToolStatus::Unavailable)
+                .count(),
+        }
+    }
 }
 
 #[derive(Debug, Error)]
 pub enum ExternalAnalysisError {
+    #[error("failed to resolve external-analysis project root {path}: {source}")]
+    ProjectRoot {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
     #[error("failed to create external-analysis raw artifact directory {path}: {source}")]
     CreateRawDir {
         path: PathBuf,
@@ -129,12 +210,23 @@ pub fn collect_external_analysis(
         return Ok(ExternalAnalysisResult::default());
     }
 
+    let project_path =
+        fs::canonicalize(project_path).map_err(|source| ExternalAnalysisError::ProjectRoot {
+            path: project_path.to_path_buf(),
+            source,
+        })?;
+
     let run_id = current_run_id();
     let raw_dir = output_dir.join(REPORTS_DIR).join(&run_id).join(RAW_DIR);
     fs::create_dir_all(&raw_dir).map_err(|source| ExternalAnalysisError::CreateRawDir {
         path: raw_dir.clone(),
         source,
     })?;
+    let raw_dir =
+        fs::canonicalize(&raw_dir).map_err(|source| ExternalAnalysisError::CreateRawDir {
+            path: raw_dir,
+            source,
+        })?;
 
     let mut result = ExternalAnalysisResult {
         tool_runs: Vec::new(),
@@ -144,23 +236,24 @@ pub fn collect_external_analysis(
 
     for tool in normalized_tools {
         let (tool_run, findings) = match tool.as_str() {
-            OPENGREP_TOOL => run_opengrep(project_path, &raw_dir),
-            TRIVY_TOOL => run_trivy(project_path, &raw_dir),
-            GRYPE_TOOL => run_grype(project_path, &raw_dir),
-            RUFF_TOOL => run_ruff(project_path, &raw_dir),
-            GITLEAKS_TOOL => run_gitleaks(project_path, &raw_dir),
-            PIP_AUDIT_TOOL => run_pip_audit(project_path, &raw_dir),
-            OSV_SCANNER_TOOL => run_osv_scanner(project_path, &raw_dir),
-            COMPOSER_AUDIT_TOOL => run_composer_audit(project_path, &raw_dir),
-            NPM_AUDIT_TOOL => run_npm_audit(project_path, &raw_dir),
-            CARGO_DENY_TOOL => run_cargo_deny(project_path, &raw_dir),
-            CARGO_CLIPPY_TOOL => run_cargo_clippy(project_path, &raw_dir),
+            OPENGREP_TOOL => run_opengrep(&project_path, &raw_dir),
+            TRIVY_TOOL => run_trivy(&project_path, &raw_dir),
+            GRYPE_TOOL => run_grype(&project_path, &raw_dir),
+            RUFF_TOOL => run_ruff(&project_path, &raw_dir),
+            GITLEAKS_TOOL => run_gitleaks(&project_path, &raw_dir),
+            PIP_AUDIT_TOOL => run_pip_audit(&project_path, &raw_dir),
+            OSV_SCANNER_TOOL => run_osv_scanner(&project_path, &raw_dir),
+            COMPOSER_AUDIT_TOOL => run_composer_audit(&project_path, &raw_dir),
+            NPM_AUDIT_TOOL => run_npm_audit(&project_path, &raw_dir),
+            CARGO_DENY_TOOL => run_cargo_deny(&project_path, &raw_dir),
+            CARGO_CLIPPY_TOOL => run_cargo_clippy(&project_path, &raw_dir),
             unsupported => (
                 ExternalToolRun {
                     tool: unsupported.to_string(),
                     command: Vec::new(),
                     status: ExternalToolStatus::Failed,
                     exit_code: None,
+                    failure_kind: Some(ExternalFailureKind::UnsupportedTool),
                     artifact_path: raw_dir
                         .join(format!("{unsupported}.json"))
                         .display()
@@ -209,11 +302,16 @@ fn normalize_selected_tools(selected_tools: &[String]) -> Vec<String> {
 }
 
 fn current_run_id() -> String {
-    SystemTime::now()
+    static SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .expect("system clock before epoch")
-        .as_millis()
-        .to_string()
+        .unwrap_or_default()
+        .as_nanos();
+    format!(
+        "{timestamp}-{}-{}",
+        std::process::id(),
+        SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    )
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -237,42 +335,15 @@ fn run_sarif_tool(
     artifact_name: &str,
     project_path: &Path,
     raw_dir: &Path,
-    fallback: SarifFallback,
 ) -> (ExternalToolRun, Vec<ExternalFinding>) {
-    let artifact_path = raw_dir.join(artifact_name);
-    let executable = command[0].clone();
-    if which(&command[0]).is_none() {
-        return unavailable_run(
-            tool,
-            command,
-            &artifact_path,
-            &format!("{executable} executable not found on PATH"),
-        );
-    }
-
-    match run_command(&command, Some(project_path), Duration::from_secs(300)) {
-        Err(error) => failed_run(tool, command, &artifact_path, None, error),
-        Ok(output) => {
-            if let Err(error) = fs::write(&artifact_path, &output.stdout) {
-                return failed_run(
-                    tool,
-                    command,
-                    &artifact_path,
-                    output.exit_code,
-                    format!("failed to write raw artifact: {error}"),
-                );
-            }
-            let findings = parse_sarif_output(tool, project_path, &output.stdout, fallback);
-            completed_run(
-                tool,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        tool,
+        command,
+        project_path,
+        &raw_dir.join(artifact_name),
+        Duration::from_secs(300),
+        ReportStream::Stdout,
+    )
 }
 
 fn run_opengrep(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
@@ -289,10 +360,6 @@ fn run_opengrep(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<Ex
         "opengrep.sarif",
         project_path,
         raw_dir,
-        SarifFallback {
-            domain: "security",
-            category: "sast",
-        },
     )
 }
 
@@ -311,10 +378,6 @@ fn run_trivy(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<Exter
         "trivy.sarif",
         project_path,
         raw_dir,
-        SarifFallback {
-            domain: "security",
-            category: "sca",
-        },
     )
 }
 
@@ -330,10 +393,6 @@ fn run_grype(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<Exter
         "grype.sarif",
         project_path,
         raw_dir,
-        SarifFallback {
-            domain: "security",
-            category: "sca",
-        },
     )
 }
 
@@ -350,49 +409,14 @@ fn run_ruff(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<Extern
         project_path.display().to_string(),
     ];
 
-    if which(RUFF_TOOL).is_none() {
-        return unavailable_run(
-            RUFF_TOOL,
-            command,
-            &artifact_path,
-            "ruff executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, None, Duration::from_secs(60)) {
-        Err(error) => failed_run(RUFF_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            let stdout = if output.stdout.trim().is_empty() {
-                String::from("[]")
-            } else {
-                output.stdout
-            };
-            if let Err(error) = fs::write(&artifact_path, &stdout) {
-                return failed_run(
-                    RUFF_TOOL,
-                    command,
-                    &artifact_path,
-                    output.exit_code,
-                    format!("failed to write raw artifact: {error}"),
-                );
-            }
-            let payload = match load_json_artifact(&artifact_path) {
-                Ok(payload) => payload,
-                Err(error) => {
-                    return failed_run(RUFF_TOOL, command, &artifact_path, output.exit_code, error)
-                }
-            };
-            let findings = parse_ruff_payload(project_path, &payload);
-            completed_run(
-                RUFF_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&[]),
-            )
-        }
-    }
+    run_tool(
+        RUFF_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(60),
+        ReportStream::Stdout,
+    )
 }
 
 fn run_gitleaks(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
@@ -412,47 +436,21 @@ fn run_gitleaks(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<Ex
         String::from("--redact"),
     ];
 
-    if which(GITLEAKS_TOOL).is_none() {
-        return unavailable_run(
-            GITLEAKS_TOOL,
-            command,
-            &artifact_path,
-            "gitleaks executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, None, Duration::from_secs(120)) {
-        Err(error) => failed_run(GITLEAKS_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            let payload = match load_json_artifact(&artifact_path) {
-                Ok(payload) => payload,
-                Err(error) => {
-                    return failed_run(
-                        GITLEAKS_TOOL,
-                        command,
-                        &artifact_path,
-                        output.exit_code,
-                        error,
-                    )
-                }
-            };
-            let findings = parse_gitleaks_payload(project_path, &payload);
-            completed_run(
-                GITLEAKS_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        GITLEAKS_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(120),
+        ReportStream::File,
+    )
 }
 
 fn run_pip_audit(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
     let artifact_path = raw_dir.join("pip-audit.json");
     let command = vec![
         String::from(PIP_AUDIT_TOOL),
+        String::from("--strict"),
         String::from("--format"),
         String::from("json"),
         String::from("--output"),
@@ -460,41 +458,14 @@ fn run_pip_audit(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<E
         project_path.display().to_string(),
     ];
 
-    if which(PIP_AUDIT_TOOL).is_none() {
-        return unavailable_run(
-            PIP_AUDIT_TOOL,
-            command,
-            &artifact_path,
-            "pip-audit executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, None, Duration::from_secs(120)) {
-        Err(error) => failed_run(PIP_AUDIT_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            let payload = match load_json_artifact(&artifact_path) {
-                Ok(payload) => payload,
-                Err(error) => {
-                    return failed_run(
-                        PIP_AUDIT_TOOL,
-                        command,
-                        &artifact_path,
-                        output.exit_code,
-                        error,
-                    )
-                }
-            };
-            let findings = parse_pip_audit_payload(&payload);
-            completed_run(
-                PIP_AUDIT_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        PIP_AUDIT_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(120),
+        ReportStream::File,
+    )
 }
 
 fn run_osv_scanner(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
@@ -507,45 +478,18 @@ fn run_osv_scanner(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec
         project_path.display().to_string(),
         String::from("--format"),
         String::from("json"),
-        String::from("--output"),
+        String::from("--output-file"),
         artifact_path.display().to_string(),
     ];
 
-    if which(OSV_SCANNER_TOOL).is_none() {
-        return unavailable_run(
-            OSV_SCANNER_TOOL,
-            command,
-            &artifact_path,
-            "osv-scanner executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, None, Duration::from_secs(120)) {
-        Err(error) => failed_run(OSV_SCANNER_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            let payload = match load_json_artifact(&artifact_path) {
-                Ok(payload) => payload,
-                Err(error) => {
-                    return failed_run(
-                        OSV_SCANNER_TOOL,
-                        command,
-                        &artifact_path,
-                        output.exit_code,
-                        error,
-                    )
-                }
-            };
-            let findings = parse_osv_scanner_payload(&payload);
-            completed_run(
-                OSV_SCANNER_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        OSV_SCANNER_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(120),
+        ReportStream::File,
+    )
 }
 
 fn run_composer_audit(
@@ -555,69 +499,33 @@ fn run_composer_audit(
     let artifact_path = raw_dir.join("composer-audit.json");
     let command = vec![
         String::from("composer"),
+        String::from("--no-plugins"),
+        String::from("--no-scripts"),
         String::from("audit"),
+        String::from("--locked"),
         String::from("--format=json"),
         String::from("--no-interaction"),
         String::from("--no-ansi"),
     ];
 
-    if !project_path.join("composer.json").exists() {
+    if !project_path.join("composer.json").is_file()
+        || !project_path.join("composer.lock").is_file()
+    {
         return unavailable_run(
             COMPOSER_AUDIT_TOOL,
             command,
             &artifact_path,
-            "composer.json not found",
+            "composer.json and composer.lock are required for a source-locked audit",
         );
     }
-    if which("composer").is_none() {
-        return unavailable_run(
-            COMPOSER_AUDIT_TOOL,
-            command,
-            &artifact_path,
-            "composer executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, Some(project_path), Duration::from_secs(120)) {
-        Err(error) => failed_run(COMPOSER_AUDIT_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            let stdout = if output.stdout.trim().is_empty() {
-                String::from("{}")
-            } else {
-                output.stdout
-            };
-            if let Err(error) = fs::write(&artifact_path, &stdout) {
-                return failed_run(
-                    COMPOSER_AUDIT_TOOL,
-                    command,
-                    &artifact_path,
-                    output.exit_code,
-                    format!("failed to write raw artifact: {error}"),
-                );
-            }
-            let payload = match load_json_artifact(&artifact_path) {
-                Ok(payload) => payload,
-                Err(error) => {
-                    return failed_run(
-                        COMPOSER_AUDIT_TOOL,
-                        command,
-                        &artifact_path,
-                        output.exit_code,
-                        error,
-                    )
-                }
-            };
-            let findings = parse_composer_audit_payload(&payload);
-            completed_run(
-                COMPOSER_AUDIT_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        COMPOSER_AUDIT_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(120),
+        ReportStream::Stdout,
+    )
 }
 
 fn run_npm_audit(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
@@ -637,68 +545,27 @@ fn run_npm_audit(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<E
             "package.json not found",
         );
     }
-    if which("npm").is_none() {
-        return unavailable_run(
-            NPM_AUDIT_TOOL,
-            command,
-            &artifact_path,
-            "npm executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, Some(project_path), Duration::from_secs(120)) {
-        Err(error) => failed_run(NPM_AUDIT_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            let stdout = if output.stdout.trim().is_empty() {
-                String::from("{}")
-            } else {
-                output.stdout
-            };
-            if let Err(error) = fs::write(&artifact_path, &stdout) {
-                return failed_run(
-                    NPM_AUDIT_TOOL,
-                    command,
-                    &artifact_path,
-                    output.exit_code,
-                    format!("failed to write raw artifact: {error}"),
-                );
-            }
-            let payload = match load_json_artifact(&artifact_path) {
-                Ok(payload) => payload,
-                Err(error) => {
-                    return failed_run(
-                        NPM_AUDIT_TOOL,
-                        command,
-                        &artifact_path,
-                        output.exit_code,
-                        error,
-                    )
-                }
-            };
-            let findings = parse_npm_audit_payload(&payload);
-            completed_run(
-                NPM_AUDIT_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        NPM_AUDIT_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(120),
+        ReportStream::Stdout,
+    )
 }
 
 fn run_cargo_deny(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<ExternalFinding>) {
     let artifact_path = raw_dir.join("cargo-deny.jsonl");
     let command = vec![
         String::from(CARGO_DENY_TOOL),
+        String::from("--format"),
+        String::from("json"),
         String::from("check"),
         String::from("advisories"),
         String::from("bans"),
         String::from("licenses"),
         String::from("sources"),
-        String::from("--format"),
-        String::from("json"),
         String::from("--hide-inclusion-graph"),
     ];
 
@@ -710,38 +577,14 @@ fn run_cargo_deny(project_path: &Path, raw_dir: &Path) -> (ExternalToolRun, Vec<
             "Cargo.toml not found",
         );
     }
-    if which(CARGO_DENY_TOOL).is_none() {
-        return unavailable_run(
-            CARGO_DENY_TOOL,
-            command,
-            &artifact_path,
-            "cargo-deny executable not found on PATH",
-        );
-    }
-
-    match run_command(&command, Some(project_path), Duration::from_secs(300)) {
-        Err(error) => failed_run(CARGO_DENY_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            if let Err(error) = fs::write(&artifact_path, &output.stdout) {
-                return failed_run(
-                    CARGO_DENY_TOOL,
-                    command,
-                    &artifact_path,
-                    output.exit_code,
-                    format!("failed to write raw artifact: {error}"),
-                );
-            }
-            let findings = parse_cargo_deny_output(&output.stdout);
-            completed_run(
-                CARGO_DENY_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
-        }
-    }
+    run_tool(
+        CARGO_DENY_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(300),
+        ReportStream::Stderr,
+    )
 }
 
 fn run_cargo_clippy(
@@ -768,38 +611,98 @@ fn run_cargo_clippy(
             "Cargo.toml not found",
         );
     }
-    if which("cargo").is_none() {
-        return unavailable_run(
-            CARGO_CLIPPY_TOOL,
-            command,
-            &artifact_path,
-            "cargo executable not found on PATH",
-        );
-    }
+    run_tool(
+        CARGO_CLIPPY_TOOL,
+        command,
+        project_path,
+        &artifact_path,
+        Duration::from_secs(300),
+        ReportStream::Stdout,
+    )
+}
 
-    match run_command(&command, Some(project_path), Duration::from_secs(300)) {
-        Err(error) => failed_run(CARGO_CLIPPY_TOOL, command, &artifact_path, None, error),
-        Ok(output) => {
-            if let Err(error) = fs::write(&artifact_path, &output.stdout) {
-                return failed_run(
-                    CARGO_CLIPPY_TOOL,
-                    command,
-                    &artifact_path,
-                    output.exit_code,
-                    format!("failed to write raw artifact: {error}"),
+fn run_tool(
+    tool: &str,
+    command: Vec<String>,
+    project_path: &Path,
+    artifact_path: &Path,
+    timeout: Duration,
+    stream: ReportStream,
+) -> (ExternalToolRun, Vec<ExternalFinding>) {
+    if command.first().and_then(|binary| which(binary)).is_none() {
+        return unavailable_run(tool, command, artifact_path, "executable not found on PATH");
+    }
+    let captures = CapturePaths::new(artifact_path, stream);
+    let execution = process::run(&command, Some(project_path), &captures, timeout);
+    let (mut run, findings) = match execution {
+        Err(error) => {
+            let (kind, message) = match error {
+                ProcessError::Timeout(duration) => (
+                    ExternalFailureKind::Timeout,
+                    format!("timed out after {}ms", duration.as_millis()),
+                ),
+                ProcessError::Io(error) => (ExternalFailureKind::ProcessIo, error.to_string()),
+            };
+            failed_run(tool, command, artifact_path, None, kind, message)
+        }
+        Ok(status) => match report::read(tool, project_path, artifact_path) {
+            Ok(report) => completed_run(
+                tool,
+                command,
+                artifact_path,
+                status.code(),
+                report.findings,
+                Map::new(),
+                report.error,
+            ),
+            Err(error) => failed_run(
+                tool,
+                command,
+                artifact_path,
+                status.code(),
+                ExternalFailureKind::InvalidReport,
+                error,
+            ),
+        },
+    };
+    run.summary.insert(
+        "stdout_path".into(),
+        Value::String(captures.stdout.display().to_string()),
+    );
+    run.summary.insert(
+        "stderr_path".into(),
+        Value::String(captures.stderr.display().to_string()),
+    );
+    run.summary.insert(
+        "process_scope".into(),
+        Value::String(
+            if cfg!(unix) {
+                "process_group"
+            } else {
+                "direct_child"
+            }
+            .into(),
+        ),
+    );
+    match captures.stderr_preview() {
+        Ok(preview) => run.summary.extend(summary_map(&stderr_summary(preview))),
+        Err(error) => {
+            run.summary
+                .insert("stderr_read_error".into(), Value::String(error.to_string()));
+            if matches!(
+                run.status,
+                ExternalToolStatus::Passed | ExternalToolStatus::Findings
+            ) {
+                run.status = ExternalToolStatus::Failed;
+                run.failure_kind = Some(ExternalFailureKind::ProcessIo);
+                run.summary.insert(
+                    "error".into(),
+                    Value::String(format!("raw stderr is unavailable: {error}")),
                 );
             }
-            let findings = parse_cargo_clippy_output(project_path, &output.stdout);
-            completed_run(
-                CARGO_CLIPPY_TOOL,
-                command,
-                &artifact_path,
-                output.exit_code,
-                findings,
-                summary_map(&stderr_summary(output.stderr)),
-            )
         }
     }
+    (run, findings)
 }
 
 fn completed_run(
@@ -809,23 +712,36 @@ fn completed_run(
     exit_code: Option<i32>,
     findings: Vec<ExternalFinding>,
     mut summary: Map<String, Value>,
+    report_error: Option<String>,
 ) -> (ExternalToolRun, Vec<ExternalFinding>) {
     summary.insert(
         String::from("finding_count"),
         Value::from(findings.len() as u64),
     );
-    let status = if findings.is_empty() {
+    let failure = report_error
+        .map(|error| (ExternalFailureKind::InvalidReport, error))
+        .or_else(|| {
+            report::exit_error(tool, exit_code, !findings.is_empty())
+                .map(|error| (ExternalFailureKind::ProcessExit, error))
+        });
+    let status = if failure.is_some() {
+        ExternalToolStatus::Failed
+    } else if findings.is_empty() {
         ExternalToolStatus::Passed
     } else {
         ExternalToolStatus::Findings
     };
 
+    if let Some((_, error)) = &failure {
+        summary.insert("error".into(), Value::String(error.clone()));
+    }
     (
         ExternalToolRun {
             tool: tool.to_string(),
             command,
             status,
             exit_code,
+            failure_kind: failure.map(|(kind, _)| kind),
             artifact_path: artifact_path.display().to_string(),
             summary,
         },
@@ -838,6 +754,7 @@ fn failed_run(
     command: Vec<String>,
     artifact_path: &Path,
     exit_code: Option<i32>,
+    failure_kind: ExternalFailureKind,
     error: String,
 ) -> (ExternalToolRun, Vec<ExternalFinding>) {
     (
@@ -846,6 +763,7 @@ fn failed_run(
             command,
             status: ExternalToolStatus::Failed,
             exit_code,
+            failure_kind: Some(failure_kind),
             artifact_path: artifact_path.display().to_string(),
             summary: summary_map(&[("error", Value::String(error))]),
         },
@@ -865,6 +783,7 @@ fn unavailable_run(
             command,
             status: ExternalToolStatus::Unavailable,
             exit_code: None,
+            failure_kind: None,
             artifact_path: artifact_path.display().to_string(),
             summary: summary_map(&[("message", Value::String(message.to_string()))]),
         },
@@ -888,65 +807,6 @@ fn stderr_summary(stderr: String) -> Vec<(&'static str, Value)> {
     }
 }
 
-fn load_json_artifact(path: &Path) -> Result<Value, String> {
-    let data = fs::read_to_string(path)
-        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
-    serde_json::from_str(&data)
-        .map_err(|error| format!("failed to parse {} as JSON: {error}", path.display()))
-}
-
-struct CommandOutput {
-    exit_code: Option<i32>,
-    stdout: String,
-    stderr: String,
-}
-
-fn run_command(
-    command: &[String],
-    cwd: Option<&Path>,
-    timeout: Duration,
-) -> Result<CommandOutput, String> {
-    if command.is_empty() {
-        return Err(String::from("refused to run empty command"));
-    }
-    let mut cmd = Command::new(&command[0]);
-    cmd.args(&command[1..])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    if let Some(cwd) = cwd {
-        cmd.current_dir(cwd);
-    }
-
-    let start = Instant::now();
-    let mut child = cmd
-        .spawn()
-        .map_err(|error| format!("failed to spawn {}: {error}", command[0]))?;
-
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => {
-                let output = child
-                    .wait_with_output()
-                    .map_err(|error| format!("failed to collect command output: {error}"))?;
-                return Ok(CommandOutput {
-                    exit_code: output.status.code(),
-                    stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-                    stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-                });
-            }
-            Ok(None) => {
-                if start.elapsed() >= timeout {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return Err(format!("timed out after {}s", timeout.as_secs()));
-                }
-                thread::sleep(Duration::from_millis(50));
-            }
-            Err(error) => return Err(format!("failed while waiting for command: {error}")),
-        }
-    }
-}
-
 fn which(binary: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path) {
@@ -958,18 +818,14 @@ fn which(binary: &str) -> Option<PathBuf> {
     None
 }
 
+#[cfg(test)]
 fn parse_sarif_output(
     tool: &str,
     project_path: &Path,
     payload: &str,
     fallback: SarifFallback,
 ) -> Vec<ExternalFinding> {
-    if payload.trim().is_empty() {
-        return Vec::new();
-    }
-    let Ok(sarif) = sarif_rust::from_str(payload) else {
-        return Vec::new();
-    };
+    let sarif = sarif_rust::from_str(payload).expect("valid SARIF fixture");
 
     let mut findings = Vec::new();
     for run in sarif.runs {
@@ -1673,14 +1529,20 @@ fn parse_osv_scanner_payload(payload: &Value) -> Vec<ExternalFinding> {
     findings
 }
 
+fn json_collection(value: &Value) -> impl Iterator<Item = &Value> {
+    value.as_array().into_iter().flatten().chain(
+        value
+            .as_object()
+            .into_iter()
+            .flat_map(|object| object.values()),
+    )
+}
+
 fn parse_composer_audit_payload(payload: &Value) -> Vec<ExternalFinding> {
     let mut findings = Vec::new();
     if let Some(advisories) = payload.get("advisories").and_then(Value::as_object) {
         for (package_name, advisories) in advisories {
-            let Some(advisories) = advisories.as_array() else {
-                continue;
-            };
-            for advisory in advisories {
+            for advisory in json_collection(advisories) {
                 let Some(advisory) = advisory.as_object() else {
                     continue;
                 };
@@ -1751,6 +1613,49 @@ fn parse_composer_audit_payload(payload: &Value) -> Vec<ExternalFinding> {
                 ]),
                 extras: map_from_pairs([("replacement", replacement.clone())]),
             });
+        }
+    }
+
+    if let Some(packages) = payload.get("filter").and_then(Value::as_object) {
+        for (package_name, entries) in packages {
+            for entry in json_collection(entries) {
+                let Some(list) = entry.get("listName").and_then(Value::as_str) else {
+                    continue;
+                };
+                let id = entry.get("id").and_then(Value::as_str).unwrap_or(list);
+                let reason = entry
+                    .get("reason")
+                    .and_then(Value::as_str)
+                    .unwrap_or("matched dependency policy");
+                let constraint = entry
+                    .get("constraint")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                findings.push(ExternalFinding {
+                    tool: COMPOSER_AUDIT_TOOL.into(),
+                    domain: "security".into(),
+                    category: "dependency_policy".into(),
+                    rule_id: id.into(),
+                    severity: if list == "malware" {
+                        ExternalSeverity::High
+                    } else {
+                        ExternalSeverity::Medium
+                    },
+                    confidence: ExternalConfidence::High,
+                    file_path: Some(PathBuf::from("composer.lock")),
+                    line: Some(1),
+                    locations: Vec::new(),
+                    message: format!("{package_name}: {list}: {reason}"),
+                    fingerprint: stable_fingerprint(&[
+                        COMPOSER_AUDIT_TOOL,
+                        package_name,
+                        list,
+                        id,
+                        constraint,
+                    ]),
+                    extras: entry.as_object().cloned().unwrap_or_default(),
+                });
+            }
         }
     }
 

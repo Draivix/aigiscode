@@ -1987,6 +1987,7 @@ impl McpState {
                     crate::artifacts::build_guard_decision_artifact(
                         &analysis.root,
                         &convergence_artifact,
+                        &analysis.external_analysis,
                     )
                 });
         let agentic_review = crate::agentic::build_agentic_review_artifact(

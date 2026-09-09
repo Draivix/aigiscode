@@ -1265,6 +1265,8 @@ pub struct OverviewOutput {
     pub security_finding_count: usize,
     pub external_finding_count: usize,
     pub external_tool_run_count: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_checks: Option<crate::external::ExternalCheckSummary>,
     pub override_edge_count: usize,
     pub architectural_smell_count: usize,
     pub hub_like_dependency_count: usize,
@@ -1316,6 +1318,7 @@ impl OverviewOutput {
             security_finding_count: surface.overview.security_finding_count,
             external_finding_count: surface.overview.external_finding_count,
             external_tool_run_count: surface.overview.external_tool_run_count,
+            external_checks: surface.overview.external_checks.clone(),
             override_edge_count: surface.overview.override_edge_count,
             architectural_smell_count: surface.overview.architectural_smell_count,
             hub_like_dependency_count: surface.overview.hub_like_dependency_count,

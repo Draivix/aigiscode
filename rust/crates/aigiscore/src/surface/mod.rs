@@ -142,6 +142,8 @@ pub struct SurfaceOverview {
     pub security_finding_count: usize,
     pub external_finding_count: usize,
     pub external_tool_run_count: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub external_checks: Option<crate::external::ExternalCheckSummary>,
     pub override_edge_count: usize,
     pub architectural_smell_count: usize,
     pub hub_like_dependency_count: usize,
@@ -511,6 +513,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             security_finding_count: analysis.security_analysis.findings.len(),
             external_finding_count: analysis.external_analysis.findings.len(),
             external_tool_run_count: analysis.external_analysis.tool_runs.len(),
+            external_checks: Some(analysis.external_analysis.check_summary()),
             override_edge_count: analysis.graph_analysis.override_edges,
             architectural_smell_count: analysis.graph_analysis.architectural_smells.len(),
             hub_like_dependency_count: analysis

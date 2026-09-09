@@ -58,7 +58,8 @@ fn build_agent_context(result: &ProjectAnalysis) -> Result<AgentContext, i32> {
         &result.contract_inventory,
         &doctrine,
     );
-    let guard = build_guard_decision_artifact(&result.root, &convergence);
+    let guard =
+        build_guard_decision_artifact(&result.root, &convergence, &result.external_analysis);
     let handoff = build_agent_handoff_artifact(result, &review_surface, &doctrine);
     let review = build_agentic_review_artifact(result, &doctrine, &handoff, &guard, &convergence);
     Ok(AgentContext { review })
@@ -338,6 +339,7 @@ struct AnalyzeCommandSummary {
     hardwiring_count: usize,
     security_finding_count: usize,
     external_tool_count: usize,
+    external_checks: crate::external::ExternalCheckSummary,
     external_finding_count: usize,
 }
 
@@ -843,6 +845,7 @@ fn build_analysis_command_output(
             hardwiring_count: result.hardwiring.findings.len(),
             security_finding_count: result.security_analysis.findings.len(),
             external_tool_count: result.external_analysis.tool_runs.len(),
+            external_checks: result.external_analysis.check_summary(),
             external_finding_count: result.external_analysis.findings.len(),
         },
         timings: result.timings.clone(),
@@ -912,7 +915,12 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
             let json = serde_json::to_string_pretty(&output)
                 .expect("failed to serialize analysis summary");
             println!("{json}");
-            0
+            if result.external_analysis.is_complete() {
+                0
+            } else {
+                eprintln!("requested external checks are incomplete; see external-analysis.json for tool status and raw evidence");
+                1
+            }
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1173,7 +1181,12 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                 serde_json::to_string_pretty(&agentic_review)
                     .expect("failed to serialize agentic review output")
             );
-            0
+            if result.external_analysis.is_complete() {
+                0
+            } else {
+                eprintln!("requested external checks are incomplete; see external-analysis.json for tool status and raw evidence");
+                1
+            }
         }
         Err(error) => {
             eprintln!("{error}");

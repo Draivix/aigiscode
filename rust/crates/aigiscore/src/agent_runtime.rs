@@ -697,7 +697,11 @@ mod tests {
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
         let artifact =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
         assert_eq!(
@@ -758,7 +762,11 @@ mod tests {
             &analysis.contract_inventory,
             &doctrine,
         );
-        let guard = build_guard_decision_artifact(&analysis.root, &convergence);
+        let guard = build_guard_decision_artifact(
+            &analysis.root,
+            &convergence,
+            &analysis.external_analysis,
+        );
         let artifact =
             build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
         let body =
