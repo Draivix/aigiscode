@@ -2,6 +2,7 @@ use crate::assessment::{build_architectural_assessment_full, ArchitecturalAssess
 use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code_scoped, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
+use crate::doctrine::{load_doctrine_registry, DoctrineLoadError, LayerContract};
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::{analyze_semantic_graph, GraphAnalysis};
 use crate::graph::SemanticGraph;
@@ -65,6 +66,8 @@ pub struct ProjectAnalysis {
     pub semantic_graph: SemanticGraph,
     pub graph_analysis: GraphAnalysis,
     pub architectural_assessment: ArchitecturalAssessment,
+    #[serde(skip)]
+    doctrine_layers: Vec<LayerContract>,
     pub contract_inventory: ContractInventory,
     pub dead_code: DeadCodeResult,
     pub hardwiring: HardwiringResult,
@@ -83,12 +86,29 @@ impl ProjectAnalysis {
     pub fn architecture_surface(&self) -> ArchitectureSurface {
         build_architecture_surface(self)
     }
+
+    /// Add external evidence without discarding the captured architectural doctrine.
+    pub fn set_external_analysis(&mut self, external: ExternalAnalysisResult) {
+        self.external_analysis = external;
+        self.architectural_assessment = build_architectural_assessment_full(
+            &self.graph_analysis,
+            &self.dead_code,
+            &self.hardwiring,
+            &self.external_analysis,
+            &self.parsed_sources,
+            &self.ast_grep_scan,
+            Some(&self.semantic_graph),
+            &self.doctrine_layers,
+        );
+    }
 }
 
 #[derive(Debug, Error)]
 pub enum ProjectAnalysisError {
     #[error(transparent)]
     Scan(#[from] ScanError),
+    #[error(transparent)]
+    Doctrine(#[from] DoctrineLoadError),
     #[error("failed to read source file {path}: {source}")]
     ReadFile {
         path: PathBuf,
@@ -336,11 +356,7 @@ fn finish_project_analysis(
     ));
 
     let assessment_started = Instant::now();
-    // Layer contracts are doctrine-declared; absent or unreadable doctrine
-    // simply means no layer enforcement, never a pipeline failure.
-    let doctrine_layers = crate::doctrine::load_doctrine_registry(&root)
-        .map(|registry| registry.layers)
-        .unwrap_or_default();
+    let doctrine_layers = load_doctrine_registry(&root)?.layers;
     let architectural_assessment = build_architectural_assessment_full(
         &graph_analysis,
         &dead_code,
@@ -380,6 +396,7 @@ fn finish_project_analysis(
         semantic_graph,
         graph_analysis,
         architectural_assessment,
+        doctrine_layers,
         contract_inventory,
         dead_code,
         hardwiring,
@@ -530,6 +547,71 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn external_evidence_preserves_captured_layer_contracts() {
+        use crate::assessment::ArchitecturalAssessmentKind::LayerContractViolation;
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::create_dir_all(fixture.join("domain")).unwrap();
+        fs::create_dir_all(fixture.join("runtime")).unwrap();
+        fs::write(
+            fixture.join(".aigiscode/doctrine.json"),
+            r#"{"layers":[
+                {"name":"domain","path_prefixes":["domain"]},
+                {"name":"runtime","path_prefixes":["runtime"],"may_depend_on":["domain"]}
+            ]}"#,
+        )
+        .unwrap();
+        fs::write(fixture.join("domain/model.ts"), "import '../runtime/io';").unwrap();
+        fs::write(fixture.join("runtime/io.ts"), "export const io = 1;").unwrap();
+        let mut analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let before = analysis
+            .architectural_assessment
+            .findings
+            .iter()
+            .filter(|finding| finding.kind == LayerContractViolation)
+            .cloned()
+            .collect::<Vec<_>>();
+        assert_eq!(before.len(), 1);
+        // A run uses its captured doctrine even if the file changes afterward.
+        fs::write(fixture.join(".aigiscode/doctrine.json"), "{}").unwrap();
+        let external = crate::external::collect_external_analysis(
+            &fixture,
+            &fixture.join(".aigiscode"),
+            &[String::from("unsupported")],
+        )
+        .unwrap();
+        assert_eq!(external.tool_runs.len(), 1);
+        analysis.set_external_analysis(external);
+        let after = analysis
+            .architectural_assessment
+            .findings
+            .iter()
+            .filter(|finding| finding.kind == LayerContractViolation)
+            .cloned()
+            .collect::<Vec<_>>();
+        assert_eq!(before, after);
+        assert_eq!(analysis.external_analysis.tool_runs.len(), 1);
+    }
+
+    #[test]
+    fn invalid_doctrine_is_an_analysis_error_before_artifact_writing() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        let path = fixture.join(".aigiscode/doctrine.json");
+        fs::write(&path, "{broken").unwrap();
+        assert!(matches!(
+            analyze_project(&fixture, &ScanConfig::default()),
+            Err(super::ProjectAnalysisError::Doctrine(_))
+        ));
+        fs::remove_file(&path).unwrap();
+        fs::create_dir(&path).unwrap();
+        assert!(matches!(
+            analyze_project(&fixture, &ScanConfig::default()),
+            Err(super::ProjectAnalysisError::Doctrine(_))
+        ));
+    }
 
     #[test]
     fn fast_load_round_trips_unchanged_tree_and_declines_on_change() {

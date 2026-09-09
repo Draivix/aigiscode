@@ -15,7 +15,6 @@ use crate::artifacts::{
     EXTERNAL_ANALYSIS_FILE, GRAPH_PACKETS_FILE, GUARD_DECISION_FILE, REPOSITORY_TOPOLOGY_FILE,
     REVIEW_SURFACE_FILE, SCAN_MANIFEST_FILE, SEMANTIC_GRAPH_FILE,
 };
-use crate::assessment::build_architectural_assessment_with_ast_grep_and_graph;
 use crate::doctrine::load_doctrine_registry;
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
@@ -870,17 +869,7 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
                 match collect_external_analysis(&result.root, &output_dir, &options.external_tools)
                 {
                     Ok(external_analysis) => {
-                        result.external_analysis = external_analysis;
-                        result.architectural_assessment =
-                            build_architectural_assessment_with_ast_grep_and_graph(
-                                &result.graph_analysis,
-                                &result.dead_code,
-                                &result.hardwiring,
-                                &result.external_analysis,
-                                &result.parsed_sources,
-                                &result.ast_grep_scan,
-                                Some(&result.semantic_graph),
-                            );
+                        result.set_external_analysis(external_analysis);
                     }
                     Err(error) => {
                         eprintln!("{error}");
@@ -1122,17 +1111,7 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                 match collect_external_analysis(&result.root, &output_dir, &options.external_tools)
                 {
                     Ok(external_analysis) => {
-                        result.external_analysis = external_analysis;
-                        result.architectural_assessment =
-                            build_architectural_assessment_with_ast_grep_and_graph(
-                                &result.graph_analysis,
-                                &result.dead_code,
-                                &result.hardwiring,
-                                &result.external_analysis,
-                                &result.parsed_sources,
-                                &result.ast_grep_scan,
-                                Some(&result.semantic_graph),
-                            );
+                        result.set_external_analysis(external_analysis);
                     }
                     Err(error) => {
                         eprintln!("{error}");
