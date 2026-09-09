@@ -15,6 +15,9 @@ shodu parsovaných bajtů se scanem, přísnější klíč fast-load a explicitn
 sémantický graf a scanner na stabilním korpusu zůstaly shodné.
 [Navazující oprava pluginů](2026-09-10-plugin-capture.md) odstraňuje jejich pozdní
 čtení zdrojů z disku. Celková stabilita capture a schválené CI jsou nadále otevřené.
+[Rozlišení signálů](2026-09-10-signal-bindings.md) dále odstranilo přesně pět
+chybných vazeb Vue → PHP a jedno navazující upozornění na nestabilní závislost;
+deterministické nálezy detektorů a inventář kontraktů zachovaného korpusu se nezměnily.
 
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto

@@ -1,0 +1,1045 @@
+{
+  "recorded_at": "2026-09-09T23:36:17.722Z",
+  "base_commit": "d9c3f5780961a692057a66f640f603e9d9eee1cf",
+  "implementation_files": [
+    {
+      "path": "rust/crates/aigiscore/src/artifacts.rs",
+      "bytes": 369503,
+      "sha256": "dbecb48b6fac6781b48650181746d3988bff13790064dfc6964f0997862d93e5"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/signals.rs",
+      "bytes": 24233,
+      "sha256": "fc2a4dfde30618b4e449d5f7fa6e0a703c2df256815b39d3ff509c0859ce5bbd"
+    }
+  ],
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-signal-bindings",
+    "bytes": 94855776,
+    "sha256": "3665f61d8d9fcf2052d55ee1524e02230c9514ed234b1abbe8ebc4f0e664d6fe"
+  },
+  "build": {
+    "exit": 0,
+    "seconds": 46.89,
+    "log": {
+      "path": "target/reliability-2026-09-09/signal-bindings-build.txt",
+      "bytes": 156,
+      "sha256": "5326880068ce8536f89693d85ccc078da562487b6fa8d80193de6686f9a928dd"
+    }
+  },
+  "automated_tests_run": false,
+  "ci_run": false,
+  "observation": {
+    "source_root": "target/reliability-2026-09-09/draivix-capture-identity-source",
+    "original_draivix_written": false,
+    "source_mutations_this_unit": 0,
+    "wall_seconds": 83.16,
+    "peak_rss_kib": 3501508,
+    "exit": 1,
+    "exit_reason": "Native and secondary coverage remain incomplete.",
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 130081,
+      "references": 1092834,
+      "resolved_edges": 328139,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 29,
+      "architectural_smell_count": 3,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 273
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 287
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6131
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 11534
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 38999
+      }
+    ],
+    "summary_changes": [
+      {
+        "field": "resolved_edges",
+        "before": 328144,
+        "after": 328139
+      },
+      {
+        "field": "architectural_smell_count",
+        "before": 4,
+        "after": 3
+      }
+    ],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/signal-bindings-cli-result.json",
+        "bytes": 16572,
+        "sha256": "d70dc8190d1ba671a3ade37686a01142d31461421966e407afaf92d02130a1db"
+      },
+      {
+        "path": "target/reliability-2026-09-09/signal-bindings-cli-time.txt",
+        "bytes": 1078,
+        "sha256": "6624bdef6ba702ac306697b3b8e7d9ce5b66ec3933542e67cea0b50aaad8f64d"
+      },
+      {
+        "path": "target/reliability-2026-09-09/signal-bindings-cli-trace.txt",
+        "bytes": 10967372,
+        "sha256": "576adc3a3419a7f1ff9818e31a55459b9c16a6a3cbbe98753bfd9330acefcb94"
+      }
+    ]
+  },
+  "graph_comparison": {
+    "compared_at": "2026-09-09T23:33:30.177Z",
+    "method": "Stream the whole old graph, remove only the five exact recorded serialized edges with preceding commas, and compare the resulting byte hash and size to the entire new graph. No metadata exclusions or array sorting.",
+    "old": {
+      "path": "target/reliability-2026-09-09/plugin-capture-artifacts/semantic-graph.json",
+      "bytes": 793166985,
+      "sha256": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde"
+    },
+    "new": {
+      "path": "target/reliability-2026-09-09/signal-bindings-artifacts/semantic-graph.json",
+      "bytes": 793163640,
+      "sha256": "76d7eb67dda634ba32db8e946c83747d66a70d6901b392cb4f29ddc08a384ee0"
+    },
+    "removed": [
+      {
+        "edge": {
+          "source_file_path": "resources/js/Components/Email/Settings/EmailAccountForm.vue",
+          "source_symbol_id": "function:resources/js/Components/Email/Settings/EmailAccountForm.vue:connectOAuth",
+          "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+          "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+          "reference_target_name": null,
+          "kind": "Call",
+          "relation_kind": "EventSubscribe",
+          "layer": "Framework",
+          "strength": "Dynamic",
+          "origin": "Plugin",
+          "resolution_tier": "Global",
+          "confidence_millis": 650,
+          "reason": "signal callback registration `value`",
+          "line": 235,
+          "occurrence_index": 0
+        },
+        "matches": 1,
+        "bytes_with_separator": 687
+      },
+      {
+        "edge": {
+          "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+          "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:signalRealtimeAudioStreamEnd",
+          "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+          "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+          "reference_target_name": null,
+          "kind": "Call",
+          "relation_kind": "EventPublish",
+          "layer": "Runtime",
+          "strength": "Dynamic",
+          "origin": "Plugin",
+          "resolution_tier": "Global",
+          "confidence_millis": 650,
+          "reason": "signal dispatch `value`",
+          "line": 1048,
+          "occurrence_index": 0
+        },
+        "matches": 1,
+        "bytes_with_separator": 669
+      },
+      {
+        "edge": {
+          "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+          "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:sendRealtimeAudioChunk",
+          "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+          "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+          "reference_target_name": null,
+          "kind": "Call",
+          "relation_kind": "EventPublish",
+          "layer": "Runtime",
+          "strength": "Dynamic",
+          "origin": "Plugin",
+          "resolution_tier": "Global",
+          "confidence_millis": 650,
+          "reason": "signal dispatch `value`",
+          "line": 1600,
+          "occurrence_index": 0
+        },
+        "matches": 1,
+        "bytes_with_separator": 663
+      },
+      {
+        "edge": {
+          "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+          "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:handleToolCall",
+          "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+          "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+          "reference_target_name": null,
+          "kind": "Call",
+          "relation_kind": "EventPublish",
+          "layer": "Runtime",
+          "strength": "Dynamic",
+          "origin": "Plugin",
+          "resolution_tier": "Global",
+          "confidence_millis": 650,
+          "reason": "signal dispatch `value`",
+          "line": 2488,
+          "occurrence_index": 0
+        },
+        "matches": 1,
+        "bytes_with_separator": 655
+      },
+      {
+        "edge": {
+          "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+          "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:sendBackendReplyOverLiveSocket",
+          "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+          "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+          "reference_target_name": null,
+          "kind": "Call",
+          "relation_kind": "EventPublish",
+          "layer": "Runtime",
+          "strength": "Dynamic",
+          "origin": "Plugin",
+          "resolution_tier": "Global",
+          "confidence_millis": 650,
+          "reason": "signal dispatch `value`",
+          "line": 2700,
+          "occurrence_index": 0
+        },
+        "matches": 1,
+        "bytes_with_separator": 671
+      }
+    ],
+    "normalized_old": {
+      "bytes": 793163640,
+      "sha256": "76d7eb67dda634ba32db8e946c83747d66a70d6901b392cb4f29ddc08a384ee0"
+    },
+    "only_recorded_five_edges_removed": true,
+    "scanner": {
+      "old_sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246",
+      "new_sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246",
+      "byte_identical": true
+    }
+  },
+  "graph_comparator": {
+    "path": "target/reliability-2026-09-09/signal-bindings-compare.cjs",
+    "bytes": 2750,
+    "sha256": "580daccb0dc1582ebcf48a9c5c502df9823704c4c3ded66d7dbd4b81b2c9d16f"
+  },
+  "findings_comparison": {
+    "graph_analysis_changes": [
+      {
+        "field": "architectural_smells",
+        "before": [
+          {
+            "kind": "HubLikeDependency",
+            "subject": "app",
+            "related_components": [
+              "tests",
+              "clients",
+              "resources"
+            ],
+            "relation_previews": [
+              "app <-> tests (7210 cross-module links)",
+              "app <-> clients (3678 cross-module links)"
+            ],
+            "evidence_count": 17,
+            "severity_millis": 1000,
+            "fingerprint": "graph|smell|hub-like-dependency|app|clients|resources|tests"
+          },
+          {
+            "kind": "UnstableDependency",
+            "subject": "app",
+            "related_components": [
+              "resources"
+            ],
+            "relation_previews": [
+              "app -> resources (963 cross-module links)"
+            ],
+            "evidence_count": 963,
+            "severity_millis": 338,
+            "fingerprint": "graph|smell|unstable-dependency|app|resources"
+          },
+          {
+            "kind": "UnstableDependency",
+            "subject": "app",
+            "related_components": [
+              "database"
+            ],
+            "relation_previews": [
+              "app -> database (1 cross-module links)"
+            ],
+            "evidence_count": 1,
+            "severity_millis": 255,
+            "fingerprint": "graph|smell|unstable-dependency|app|database"
+          },
+          {
+            "kind": "UnstableDependency",
+            "subject": "clients",
+            "related_components": [
+              "resources"
+            ],
+            "relation_previews": [
+              "clients -> resources (183 cross-module links)"
+            ],
+            "evidence_count": 183,
+            "severity_millis": 250,
+            "fingerprint": "graph|smell|unstable-dependency|clients|resources"
+          }
+        ],
+        "after": [
+          {
+            "kind": "HubLikeDependency",
+            "subject": "app",
+            "related_components": [
+              "tests",
+              "clients",
+              "resources"
+            ],
+            "relation_previews": [
+              "app <-> tests (7210 cross-module links)",
+              "app <-> clients (3678 cross-module links)"
+            ],
+            "evidence_count": 17,
+            "severity_millis": 1000,
+            "fingerprint": "graph|smell|hub-like-dependency|app|clients|resources|tests"
+          },
+          {
+            "kind": "UnstableDependency",
+            "subject": "app",
+            "related_components": [
+              "resources"
+            ],
+            "relation_previews": [
+              "app -> resources (963 cross-module links)"
+            ],
+            "evidence_count": 963,
+            "severity_millis": 302,
+            "fingerprint": "graph|smell|unstable-dependency|app|resources"
+          },
+          {
+            "kind": "UnstableDependency",
+            "subject": "app",
+            "related_components": [
+              "database"
+            ],
+            "relation_previews": [
+              "app -> database (1 cross-module links)"
+            ],
+            "evidence_count": 1,
+            "severity_millis": 255,
+            "fingerprint": "graph|smell|unstable-dependency|app|database"
+          }
+        ]
+      },
+      {
+        "field": "coupling_metrics",
+        "before": [
+          {
+            "module": "app",
+            "afferent": 10,
+            "efferent": 7,
+            "instability_millis": 412
+          },
+          {
+            "module": "apps",
+            "afferent": 2,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "bootstrap",
+            "afferent": 3,
+            "efferent": 1,
+            "instability_millis": 250
+          },
+          {
+            "module": "capacitor.config.ts",
+            "afferent": 0,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "ci",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "clients",
+            "afferent": 3,
+            "efferent": 3,
+            "instability_millis": 500
+          },
+          {
+            "module": "config",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "database",
+            "afferent": 1,
+            "efferent": 2,
+            "instability_millis": 667
+          },
+          {
+            "module": "docker",
+            "afferent": 2,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "docs",
+            "afferent": 1,
+            "efferent": 1,
+            "instability_millis": 500
+          },
+          {
+            "module": "eslint.config.js",
+            "afferent": 0,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "hocuspocus-server.mjs",
+            "afferent": 0,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "public",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "resources",
+            "afferent": 2,
+            "efferent": 6,
+            "instability_millis": 750
+          },
+          {
+            "module": "routes",
+            "afferent": 0,
+            "efferent": 2,
+            "instability_millis": 1000
+          },
+          {
+            "module": "scripts",
+            "afferent": 0,
+            "efferent": 2,
+            "instability_millis": 1000
+          },
+          {
+            "module": "server.php",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "tests",
+            "afferent": 8,
+            "efferent": 4,
+            "instability_millis": 333
+          },
+          {
+            "module": "tools",
+            "afferent": 2,
+            "efferent": 2,
+            "instability_millis": 500
+          }
+        ],
+        "after": [
+          {
+            "module": "app",
+            "afferent": 10,
+            "efferent": 7,
+            "instability_millis": 412
+          },
+          {
+            "module": "apps",
+            "afferent": 2,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "bootstrap",
+            "afferent": 3,
+            "efferent": 1,
+            "instability_millis": 250
+          },
+          {
+            "module": "capacitor.config.ts",
+            "afferent": 0,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "ci",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "clients",
+            "afferent": 3,
+            "efferent": 3,
+            "instability_millis": 500
+          },
+          {
+            "module": "config",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "database",
+            "afferent": 1,
+            "efferent": 2,
+            "instability_millis": 667
+          },
+          {
+            "module": "docker",
+            "afferent": 2,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "docs",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "eslint.config.js",
+            "afferent": 0,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "hocuspocus-server.mjs",
+            "afferent": 0,
+            "efferent": 0,
+            "instability_millis": 0
+          },
+          {
+            "module": "public",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "resources",
+            "afferent": 2,
+            "efferent": 5,
+            "instability_millis": 714
+          },
+          {
+            "module": "routes",
+            "afferent": 0,
+            "efferent": 2,
+            "instability_millis": 1000
+          },
+          {
+            "module": "scripts",
+            "afferent": 0,
+            "efferent": 2,
+            "instability_millis": 1000
+          },
+          {
+            "module": "server.php",
+            "afferent": 0,
+            "efferent": 1,
+            "instability_millis": 1000
+          },
+          {
+            "module": "tests",
+            "afferent": 8,
+            "efferent": 4,
+            "instability_millis": 333
+          },
+          {
+            "module": "tools",
+            "afferent": 2,
+            "efferent": 2,
+            "instability_millis": 500
+          }
+        ]
+      },
+      {
+        "field": "edge_count",
+        "before": 49082,
+        "after": 49080
+      }
+    ],
+    "other_findings_fields_equal": {
+      "input_coverage": true,
+      "architectural_assessment": true,
+      "dead_code": true,
+      "hardwiring": true,
+      "ast_grep_scan": true,
+      "security_analysis": true,
+      "contract_inventory": true
+    }
+  },
+  "integrity": {
+    "completed_at": "2026-09-09T23:33:31.350Z",
+    "results": [
+      {
+        "name": "draivix-capture-identity-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "Positive and negative fixture tests were written, not executed; the actual corpus supplies a negative case.",
+    "No new real MCP session was needed for this plugin-only change; the native CLI pipeline and whole graph were inspected.",
+    "File/import receiver identity does not establish dynamic instance aliasing, rebinding, or nested-scope shadowing.",
+    "Configuration capture, final input-set stability, incremental analysis, approved CI and overall Q01-Q12 acceptance remain open.",
+    "No current original Draivix recapture was performed."
+  ]
+}

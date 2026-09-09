@@ -2,10 +2,12 @@ use crate::graph::{
     CallForm, EdgeOrigin, EdgeStrength, GraphLayer, Language, ReferenceKind, RelationKind,
     ResolutionTier, ResolvedEdge, SemanticGraph, SymbolKind,
 };
-use crate::plugins::{import_targets_by_binding, leaf_symbol_name, RepoContext, RuntimePlugin};
+use crate::plugins::{
+    import_edges_by_reference, import_targets_by_binding, RepoContext, RuntimePlugin,
+};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 pub struct SignalCallbacksPlugin;
@@ -22,7 +24,10 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             .map(|symbol| (symbol.id.clone(), symbol))
             .collect::<HashMap<_, _>>();
         let import_targets = import_targets_by_binding(graph, &symbols_by_id, |symbol| {
-            matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            matches!(
+                symbol.kind,
+                SymbolKind::Function | SymbolKind::Method | SymbolKind::Class | SymbolKind::Module
+            )
         })
         .into_iter()
         .map(|(binding, (symbol_id, file_path))| {
@@ -36,9 +41,9 @@ impl RuntimePlugin for SignalCallbacksPlugin {
         })
         .collect::<HashMap<_, _>>();
         let same_file_functions = same_file_function_targets(graph);
-        let global_unique_functions = global_unique_function_targets(graph);
+        let signal_imports = signal_import_identities(graph);
         let methods_by_owner_and_name = methods_by_owner_and_name(graph);
-        let mut registrations = HashMap::<String, Vec<SignalCallbackTarget>>::new();
+        let mut registrations = HashMap::<SignalIdentity, Vec<SignalCallbackTarget>>::new();
         let mut edges = Vec::new();
         let mut emitted = HashSet::<(PathBuf, String, usize, RelationKind)>::new();
 
@@ -46,6 +51,7 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             repo,
             graph,
             &same_file_functions,
+            &signal_imports,
             &mut registrations,
             &mut edges,
             &mut emitted,
@@ -55,13 +61,25 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             let Some(snippet) = repo.source_snippet(&reference.file_path, reference.line, 2) else {
                 continue;
             };
-            let Some(captures) = connect_call_regex().captures(&snippet) else {
+            let Some(first_line) = repo
+                .source_lines(&reference.file_path)
+                .and_then(|lines| lines.get(reference.line.saturating_sub(1)))
+            else {
+                continue;
+            };
+            let Some(captures) = connect_call_regex().captures_iter(&snippet).find(|captures| {
+                captures
+                    .get(0)
+                    .is_some_and(|value| value.start() < first_line.len())
+                    && captures.name("receiver").map(|value| value.as_str())
+                        == reference.receiver_name.as_deref()
+            }) else {
                 continue;
             };
             let Some(callback_name) = captures.name("callback").map(|value| value.as_str()) else {
                 continue;
             };
-            let Some(signal_name) = reference.receiver_name.as_deref().map(leaf_symbol_name) else {
+            let Some(signal_name) = reference.receiver_name.as_deref() else {
                 continue;
             };
             let Some(target) = resolve_callback_target(
@@ -70,13 +88,16 @@ impl RuntimePlugin for SignalCallbacksPlugin {
                 &symbols_by_id,
                 &import_targets,
                 &same_file_functions,
-                &global_unique_functions,
                 &methods_by_owner_and_name,
             ) else {
                 continue;
             };
             registrations
-                .entry(signal_name.clone())
+                .entry(signal_identity(
+                    &reference.file_path,
+                    signal_name,
+                    &signal_imports,
+                ))
                 .or_default()
                 .push(target.clone());
             emit_signal_edge(
@@ -93,10 +114,11 @@ impl RuntimePlugin for SignalCallbacksPlugin {
         }
 
         for reference in graph.references.iter().filter(is_signal_send_reference) {
-            let Some(signal_name) = reference.receiver_name.as_deref().map(leaf_symbol_name) else {
+            let Some(signal_name) = reference.receiver_name.as_deref() else {
                 continue;
             };
-            let Some(callbacks) = registrations.get(&signal_name) else {
+            let identity = signal_identity(&reference.file_path, signal_name, &signal_imports);
+            let Some(callbacks) = registrations.get(&identity) else {
                 continue;
             };
             for callback in callbacks {
@@ -124,11 +146,95 @@ struct SignalCallbackTarget {
     file_path: PathBuf,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum SignalOrigin {
+    File(PathBuf),
+    External(Language, String),
+    UnresolvedRelativeImport(PathBuf, String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct SignalIdentity {
+    origin: SignalOrigin,
+    member: String,
+}
+
+/// Preserve the imported module and exported binding, including aliases. Local
+/// receivers keep their full expression and file instead of a global leaf name.
+fn signal_import_identities(
+    graph: &SemanticGraph,
+) -> HashMap<(PathBuf, String), SignalIdentity> {
+    let import_edges = import_edges_by_reference(graph);
+    let languages = graph
+        .files
+        .iter()
+        .map(|file| (&file.path, file.language))
+        .collect::<HashMap<_, _>>();
+    graph
+        .references
+        .iter()
+        .filter(|reference| reference.kind.is_import())
+        .filter_map(|reference| {
+            let binding = reference.binding_name.as_ref()?;
+            let (module, member) = reference
+                .target_name
+                .split_once("::")
+                .unwrap_or((&reference.target_name, ""));
+            let origin = if let Some(edge) = import_edges.get(&(
+                reference.file_path.as_path(),
+                reference.line,
+                reference.target_name.as_str(),
+            )) {
+                SignalOrigin::File(edge.target_file_path.clone())
+            } else if module.starts_with('.') || module.starts_with('/') {
+                SignalOrigin::UnresolvedRelativeImport(reference.file_path.clone(), module.to_owned())
+            } else {
+                SignalOrigin::External(*languages.get(&reference.file_path)?, module.to_owned())
+            };
+            Some((
+                (reference.file_path.clone(), binding.clone()),
+                SignalIdentity {
+                    origin,
+                    member: if member == "*" {
+                        String::new()
+                    } else {
+                        member.to_owned()
+                    },
+                },
+            ))
+        })
+        .collect()
+}
+
+fn signal_identity(
+    file: &Path,
+    receiver: &str,
+    imports: &HashMap<(PathBuf, String), SignalIdentity>,
+) -> SignalIdentity {
+    let (binding, suffix) = receiver.split_once('.').unwrap_or((receiver, ""));
+    if let Some(imported) = imports.get(&(file.to_path_buf(), binding.to_owned())) {
+        let mut identity = imported.clone();
+        if !suffix.is_empty() {
+            if !identity.member.is_empty() {
+                identity.member.push('.');
+            }
+            identity.member.push_str(suffix);
+        }
+        identity
+    } else {
+        SignalIdentity {
+            origin: SignalOrigin::File(file.to_path_buf()),
+            member: receiver.to_owned(),
+        }
+    }
+}
+
 fn scan_receiver_decorators(
     repo: &RepoContext,
     graph: &SemanticGraph,
     same_file_functions: &HashMap<(PathBuf, String), SignalCallbackTarget>,
-    registrations: &mut HashMap<String, Vec<SignalCallbackTarget>>,
+    signal_imports: &HashMap<(PathBuf, String), SignalIdentity>,
+    registrations: &mut HashMap<SignalIdentity, Vec<SignalCallbackTarget>>,
     edges: &mut Vec<ResolvedEdge>,
     emitted: &mut HashSet<(PathBuf, String, usize, RelationKind)>,
 ) {
@@ -148,7 +254,7 @@ fn scan_receiver_decorators(
             };
             let Some(signal_name) = captures
                 .name("signal")
-                .map(|value| leaf_symbol_name(value.as_str()))
+                .map(|value| value.as_str())
             else {
                 index += 1;
                 continue;
@@ -167,7 +273,7 @@ fn scan_receiver_decorators(
                 continue;
             };
             registrations
-                .entry(signal_name.clone())
+                .entry(signal_identity(&file.path, signal_name, signal_imports))
                 .or_default()
                 .push(target.clone());
             emit_signal_edge(
@@ -263,38 +369,59 @@ fn resolve_callback_target(
     symbols_by_id: &HashMap<String, &crate::graph::SymbolNode>,
     import_targets: &HashMap<(PathBuf, String), SignalCallbackTarget>,
     same_file_functions: &HashMap<(PathBuf, String), SignalCallbackTarget>,
-    global_unique_functions: &HashMap<String, SignalCallbackTarget>,
-    methods_by_owner_and_name: &HashMap<(String, String), SignalCallbackTarget>,
+    methods_by_owner_and_name: &HashMap<(PathBuf, String, String), SignalCallbackTarget>,
 ) -> Option<SignalCallbackTarget> {
     if let Some((owner, method)) = callback_name.rsplit_once('.') {
-        let owner_name = if owner == "self" {
-            reference
-                .enclosing_symbol_id
-                .as_ref()
-                .and_then(|id| symbols_by_id.get(id))
-                .and_then(|symbol| symbol.owner_type_name.as_ref().or(Some(&symbol.name)))
-                .cloned()
-        } else {
-            Some(leaf_symbol_name(owner))
-        }?;
-        if let Some(target) = methods_by_owner_and_name
-            .get(&(owner_name, method.to_owned()))
-            .cloned()
+        let (owner_file, owner_name) = if matches!(owner, "self" | "this") {
+            let enclosing = symbols_by_id.get(reference.enclosing_symbol_id.as_ref()?)?;
+            (
+                reference.file_path.clone(),
+                enclosing.owner_type_name.clone()?,
+            )
+        } else if let Some(imported) =
+            import_targets.get(&(reference.file_path.clone(), owner.to_owned()))
         {
-            return Some(target);
-        }
+            let symbol = symbols_by_id.get(&imported.symbol_id)?;
+            match symbol.kind {
+                SymbolKind::Module => {
+                    return same_file_functions
+                        .get(&(symbol.file_path.clone(), method.to_owned()))
+                        .cloned();
+                }
+                SymbolKind::Class => (symbol.file_path.clone(), symbol.name.clone()),
+                _ => return None,
+            }
+        } else {
+            // Qualified members never fall back to unrelated bare functions.
+            let mut owners = symbols_by_id.values().filter(|symbol| {
+                symbol.file_path == reference.file_path
+                    && symbol.kind == SymbolKind::Class
+                    && symbol.name == owner
+            });
+            let symbol = owners.next()?;
+            if owners.next().is_some() {
+                return None;
+            }
+            (symbol.file_path.clone(), symbol.name.clone())
+        };
+        return methods_by_owner_and_name
+            .get(&(owner_file, owner_name, method.to_owned()))
+            .cloned();
     }
 
-    let binding_name = leaf_symbol_name(callback_name);
     import_targets
-        .get(&(reference.file_path.clone(), binding_name.clone()))
+        .get(&(reference.file_path.clone(), callback_name.to_owned()))
+        .filter(|target| {
+            symbols_by_id.get(&target.symbol_id).is_some_and(|symbol| {
+                matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            })
+        })
         .cloned()
         .or_else(|| {
             same_file_functions
-                .get(&(reference.file_path.clone(), binding_name.clone()))
+                .get(&(reference.file_path.clone(), callback_name.to_owned()))
                 .cloned()
         })
-        .or_else(|| global_unique_functions.get(&binding_name).cloned())
 }
 
 fn same_file_function_targets(
@@ -316,37 +443,9 @@ fn same_file_function_targets(
         .collect()
 }
 
-fn global_unique_function_targets(graph: &SemanticGraph) -> HashMap<String, SignalCallbackTarget> {
-    let mut grouped = HashMap::<String, Vec<SignalCallbackTarget>>::new();
-    for symbol in graph
-        .symbols
-        .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Function)
-    {
-        grouped
-            .entry(symbol.name.clone())
-            .or_default()
-            .push(SignalCallbackTarget {
-                symbol_id: symbol.id.clone(),
-                file_path: symbol.file_path.clone(),
-            });
-    }
-
-    grouped
-        .into_iter()
-        .filter_map(|(name, mut matches)| {
-            if matches.len() == 1 {
-                Some((name, matches.remove(0)))
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
 fn methods_by_owner_and_name(
     graph: &SemanticGraph,
-) -> HashMap<(String, String), SignalCallbackTarget> {
+) -> HashMap<(PathBuf, String, String), SignalCallbackTarget> {
     graph
         .symbols
         .iter()
@@ -354,7 +453,7 @@ fn methods_by_owner_and_name(
         .filter_map(|symbol| {
             let owner = symbol.owner_type_name.clone()?;
             Some((
-                (owner, symbol.name.clone()),
+                (symbol.file_path.clone(), owner, symbol.name.clone()),
                 SignalCallbackTarget {
                     symbol_id: symbol.id.clone(),
                     file_path: symbol.file_path.clone(),
@@ -368,7 +467,7 @@ fn connect_call_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
         Regex::new(
-            r#"\b[A-Za-z_][A-Za-z0-9_.]*\.connect\s*\(\s*(?P<callback>[A-Za-z_][A-Za-z0-9_.]*)"#,
+            r#"\b(?P<receiver>[A-Za-z_][A-Za-z0-9_.]*)\.connect\s*\(\s*(?P<callback>[A-Za-z_][A-Za-z0-9_.]*)\s*[,)]"#,
         )
         .expect("valid signal connect regex")
     })
@@ -417,10 +516,10 @@ def update_last_login(**kwargs):
         .unwrap();
         fs::write(
             fixture.join("app/apps.py"),
-            r#"from app.signals import user_logged_in, update_last_login
+            r#"from app.signals import user_logged_in as login_event, update_last_login
 
 def ready():
-    user_logged_in.connect(update_last_login)
+    login_event.connect(update_last_login)
 "#,
         )
         .unwrap();
@@ -431,6 +530,16 @@ def ready():
 def dispatch_login():
     user_logged_in.send(sender="demo")
 "#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/other_signals.py"),
+            "from django.dispatch import Signal\nuser_logged_in = Signal()\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/unrelated.py"),
+            "from app.other_signals import user_logged_in\nuser_logged_in.send(sender='other')\n",
         )
         .unwrap();
 
@@ -454,6 +563,121 @@ def dispatch_login():
         assert!(edges.iter().any(|edge| {
             edge.relation_kind == RelationKind::EventPublish && edge.layer == GraphLayer::Runtime
         }));
+        assert_eq!(edges.len(), 2);
+        assert!(edges.iter().all(|edge| edge.target_file_path == PathBuf::from("app/signals.py")));
+        assert!(edges.iter().all(|edge| edge.source_file_path != PathBuf::from("app/unrelated.py")));
+    }
+
+    #[test]
+    fn rejects_oauth_socket_leaf_collisions_and_callback_call_results() {
+        let fixture = create_fixture();
+        fs::write(
+            fixture.join("oauth.ts"),
+            "export function connectOAuth() { oauthAdapter.value.connect(oauthRedirectUri.value); }\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("voice.ts"),
+            "export function sendAudio() { liveSocket.value.send(JSON.stringify({ audio: true })); }\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("helper.php"),
+            "<?php function value(array $row): string { return ''; }\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("local.py"),
+            r#"def callback():
+    return None
+def factory():
+    return callback
+
+left.value.connect(factory())
+left.value.connect(callback)
+right.value.send()
+left.value.send()
+unknown.connect(unimported)
+"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("unimported.py"),
+            "def unimported():\n    return None\n",
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let edges = analysis
+            .semantic_graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                matches!(
+                    edge.relation_kind,
+                    RelationKind::EventSubscribe | RelationKind::EventPublish
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(edges.len(), 2);
+        assert!(edges.iter().all(|edge| edge.source_file_path == PathBuf::from("local.py")));
+        assert!(edges.iter().all(|edge| edge.target_symbol_id.ends_with(":callback")));
+        assert!(edges.iter().any(|edge| {
+            edge.relation_kind == RelationKind::EventSubscribe && edge.line == 7
+        }));
+        assert!(edges.iter().any(|edge| {
+            edge.relation_kind == RelationKind::EventPublish && edge.line == 9
+        }));
+    }
+
+    #[test]
+    fn resolves_qualified_callbacks_only_in_the_declared_module_or_class() {
+        let fixture = create_fixture();
+        fs::write(fixture.join("handlers.py"), "def handle():\n    return None\n").unwrap();
+        fs::write(
+            fixture.join("worker.py"),
+            "class Worker:\n    def handle(self):\n        return None\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("unrelated.py"),
+            "class Worker:\n    def handle(self):\n        return None\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("register.py"),
+            r#"import handlers as callbacks
+from worker import Worker as ImportedWorker
+
+first.connect(callbacks.handle)
+second.connect(ImportedWorker.handle)
+third.connect(unknown.handle)
+first.send()
+second.send()
+third.send()
+"#,
+        )
+        .unwrap();
+
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let edges = analysis
+            .semantic_graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                matches!(
+                    edge.relation_kind,
+                    RelationKind::EventSubscribe | RelationKind::EventPublish
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(edges.len(), 4);
+        for file in ["handlers.py", "worker.py"] {
+            assert_eq!(
+                edges.iter().filter(|edge| edge.target_file_path == PathBuf::from(file)).count(),
+                2
+            );
+        }
     }
 
     #[test]
