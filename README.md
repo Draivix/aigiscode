@@ -536,6 +536,14 @@ doctrine truth. `aigiscode-report.json.summary` and
 `architecture_surface.overview` now also break those scanner hits down by
 family so the scanner mix is visible without opening the raw artifact.
 
+Vue script regions now use the existing JS/TS rules with original file positions.
+Their `scope_limited_files` records remain `vue_script_only`; template and style
+behavior is outside this scan. Extraction limitations are explicit, and partial
+coverage still blocks a clean verdict. Vue complexity clues currently remain raw
+evidence pending native assessment integration. See the
+[coverage contract](docs/SECONDARY_COVERAGE_CONTRACT.md) and
+[captured Draivix evidence](docs/2026-09-09-vue-script-coverage.md).
+
 `graph-packets.json` complements `agentic-review.json` with bounded,
 doctrine-aware graph neighborhoods for the current top packets and focus files.
 Fallback focus-file packets now also carry bounded traces, code flows,

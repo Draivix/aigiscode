@@ -21,6 +21,17 @@ pub fn parse_javascript_to_graph(
     is_typescript: bool,
 ) -> Result<SemanticGraph, JavaScriptParseError> {
     let file_path = file_path.into();
+    let is_tsx = file_path.extension().and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("tsx"));
+    parse_javascript_with_dialect(file_path, source, is_typescript, is_tsx)
+}
+
+pub(super) fn parse_javascript_with_dialect(
+    file_path: PathBuf,
+    source: &str,
+    is_typescript: bool,
+    is_tsx: bool,
+) -> Result<SemanticGraph, JavaScriptParseError> {
     let mut parser = Parser::new();
     let language = if is_typescript {
         Language::TypeScript
@@ -28,7 +39,7 @@ pub fn parse_javascript_to_graph(
         Language::JavaScript
     };
     let tree_sitter_language = if is_typescript {
-        if file_path.extension().and_then(|extension| extension.to_str()).is_some_and(|extension| extension.eq_ignore_ascii_case("tsx")) {
+        if is_tsx {
             tree_sitter_typescript::LANGUAGE_TSX
         } else {
             tree_sitter_typescript::LANGUAGE_TYPESCRIPT
@@ -52,7 +63,7 @@ pub fn parse_javascript_to_graph(
     });
     add_file_module_symbol(&mut graph, &file_path, language, source);
     super::record_parse_outcome(&mut graph, &file_path, root, if is_typescript {
-        if file_path.extension().and_then(|extension| extension.to_str()).is_some_and(|extension| extension.eq_ignore_ascii_case("tsx")) {
+        if is_tsx {
             "tree-sitter-tsx"
         } else { "tree-sitter-typescript" }
     } else { "tree-sitter-javascript" });

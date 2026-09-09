@@ -1,6 +1,6 @@
 //! Completion of the configured secondary rules, independent of native parse coverage.
 
-use super::ast_grep::AstGrepSkippedFile;
+use super::ast_grep::{AstGrepScopeLimitedFile, AstGrepSkippedFile, SecondaryScanScope};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -23,6 +23,9 @@ pub struct SecondaryCoverage {
     pub oversized_files: usize,
     pub unsupported_files: usize,
     pub other_gap_files: usize,
+    /// Overlaps scanned/prefiltered inputs; these files were only partially covered.
+    #[serde(default)]
+    pub scope_limited_files: usize,
     pub gap_bytes: usize,
     pub gap_files_preview: Vec<AstGrepSkippedFile>,
 }
@@ -37,10 +40,15 @@ impl SecondaryCoverage {
         )
     }
 
-    pub fn from_scan(scanned_files: usize, skipped: &[AstGrepSkippedFile]) -> Self {
+    pub fn from_scan(
+        scanned_files: usize,
+        skipped: &[AstGrepSkippedFile],
+        scope_limited: &[AstGrepScopeLimitedFile],
+    ) -> Self {
         let mut coverage = Self {
             input_files: scanned_files + skipped.len(),
             scanned_files,
+            scope_limited_files: scope_limited.len(),
             ..Self::default()
         };
         let mut gaps = Vec::new();
@@ -55,7 +63,17 @@ impl SecondaryCoverage {
                 _ => coverage.other_gap_files += 1,
             }
             coverage.gap_bytes += file.bytes;
-            gaps.push(file);
+            gaps.push(file.clone());
+        }
+        for file in scope_limited {
+            coverage.gap_bytes += file.bytes;
+            gaps.push(AstGrepSkippedFile {
+                file_path: file.file_path.clone(),
+                bytes: file.bytes,
+                reason: match file.scope {
+                    SecondaryScanScope::VueScriptOnly => String::from("vue_script_only"),
+                },
+            });
         }
         coverage.status = if !gaps.is_empty() {
             SecondaryCoverageStatus::Incomplete
@@ -70,15 +88,15 @@ impl SecondaryCoverage {
                 .cmp(&left.bytes)
                 .then(left.file_path.cmp(&right.file_path))
         });
-        coverage.gap_files_preview = gaps.into_iter().take(5).cloned().collect();
+        coverage.gap_files_preview = gaps.into_iter().take(5).collect();
         coverage
     }
 
     pub fn summary(&self) -> String {
         format!(
-            "Secondary rule coverage {:?}: {} scanned, {} prefiltered, {} oversized, {} without language rules, {} other gaps. See ast-grep-scan.json; this does not establish absence of defects.",
+            "Secondary rule coverage {:?}: {} scanned, {} prefiltered, {} oversized, {} without language rules, {} other gaps, {} scope-limited files. See ast-grep-scan.json; this does not establish absence of defects.",
             self.status, self.scanned_files, self.prefiltered_files, self.oversized_files,
-            self.unsupported_files, self.other_gap_files,
+            self.unsupported_files, self.other_gap_files, self.scope_limited_files,
         )
     }
 }

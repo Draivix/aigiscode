@@ -1,5 +1,8 @@
-use super::javascript::{parse_javascript_to_graph, JavaScriptParseError};
+use super::javascript::{parse_javascript_with_dialect, JavaScriptParseError};
 use crate::graph::SemanticGraph;
+use crate::coverage::ExtractionGap;
+use ast_grep_language::{LanguageExt, SupportLang};
+use std::borrow::Cow;
 use std::path::PathBuf;
 
 /// Result of isolating the runtime script of a Vue single-file component.
@@ -11,8 +14,11 @@ pub struct VueScript {
     pub masked_source: String,
     /// True when any `<script>` tag declares `lang="ts"` / `lang="tsx"`.
     pub is_typescript: bool,
+    pub is_tsx: bool,
     /// Whether at least one `<script>` block was found.
     pub has_script: bool,
+    /// Extraction cannot account for all declared script content in this file.
+    pub gap: Option<ExtractionGap>,
 }
 
 /// Isolate the `<script>` / `<script setup>` content of a Vue SFC.
@@ -22,62 +28,109 @@ pub struct VueScript {
 /// buffer parses as plain JS/TS with byte offsets and line numbers unchanged.
 pub fn extract_script(source: &str) -> VueScript {
     let bytes = source.as_bytes();
-    let lower = source.to_ascii_lowercase();
     let mut masked: Vec<u8> = source
         .bytes()
         .map(|b| if b == b'\n' || b == b'\r' { b } else { b' ' })
         .collect();
 
     let mut is_typescript = false;
+    let mut is_tsx = false;
     let mut has_script = false;
-    let mut cursor = 0usize;
+    // The HTML external scanner treats embedded NUL as end-of-input. Mask it
+    // only for locating block boundaries; JS/TS receives the original bytes.
+    let first_nul = source.find('\0');
+    let structural_source = if first_nul.is_some() {
+        Cow::Owned(source.replace('\0', " "))
+    } else {
+        Cow::Borrowed(source)
+    };
+    let ast = SupportLang::Html.ast_grep(&structural_source);
+    let root = ast.root();
+    let mut gap = first_nul.map(|offset| ExtractionGap {
+        reason: String::from("vue_embedded_nul"),
+        line: source[..offset].bytes().filter(|byte| *byte == b'\n').count() + 1,
+    }).or_else(|| root
+        .dfs()
+        .find(|node| node.is_error() || node.is_missing())
+        .map(|node| ExtractionGap {
+            reason: String::from("vue_structure_recovery"),
+            line: node.start_pos().line() + 1,
+        }));
 
-    while let Some(rel) = lower[cursor..].find("<script") {
-        let tag_start = cursor + rel;
-        // Confirm this is a real `<script` tag (next char is whitespace or `>`).
-        let after = tag_start + "<script".len();
-        let boundary_ok = lower[after..]
-            .chars()
-            .next()
-            .map(|c| c.is_whitespace() || c == '>')
-            .unwrap_or(false);
-        let Some(tag_end_rel) = lower[tag_start..].find('>') else {
-            break;
+    // Only top-level SFC script blocks are executable component code. A tag
+    // inside a comment, template, style or custom block must never become JS.
+    for script in root.children() {
+        let Some(tag) = script.children().find(|node| {
+            matches!(node.kind().as_ref(), "start_tag" | "self_closing_tag")
+        }) else {
+            continue;
         };
-        let content_start = tag_start + tag_end_rel + 1;
-        if !boundary_ok {
-            cursor = content_start;
+        if !tag.children().any(|node| {
+            node.kind() == "tag_name" && node.text().eq_ignore_ascii_case("script")
+        }) {
             continue;
         }
-
-        let open_tag = &lower[tag_start..content_start];
-        if open_tag.contains("lang=\"ts\"")
-            || open_tag.contains("lang='ts'")
-            || open_tag.contains("lang=\"tsx\"")
-            || open_tag.contains("lang='tsx'")
+        if (script.kind() != "script_element" && tag.kind() != "self_closing_tag")
+            || script.dfs().any(|node| node.is_error() || node.is_missing())
         {
-            is_typescript = true;
+            gap.get_or_insert_with(|| ExtractionGap {
+                reason: String::from("vue_structure_recovery"), line: tag.start_pos().line() + 1,
+            });
+            continue;
         }
-
-        let Some(close_rel) = lower[content_start..].find("</script") else {
-            break;
-        };
-        let content_end = content_start + close_rel;
-        // Copy the real script bytes back into the masked buffer verbatim.
-        masked[content_start..content_end].copy_from_slice(&bytes[content_start..content_end]);
+        let mut language = String::from("js");
+        let mut external = false;
+        let mut unsupported_type = false;
+        for attribute in tag.children().filter(|node| node.kind() == "attribute") {
+            let name = attribute.children().find(|node| node.kind() == "attribute_name")
+                .map(|node| node.text().to_ascii_lowercase());
+            let value = attribute.dfs().find(|node| node.kind() == "attribute_value");
+            let value = value.map(|node| node.text().to_ascii_lowercase());
+            match name.as_deref() {
+                Some("lang") => language = value.unwrap_or_default(),
+                Some("src") => external = true,
+                Some("type") => {
+                    unsupported_type = !matches!(value.as_deref(),
+                        None | Some("" | "module" | "text/javascript" | "application/javascript"));
+                }
+                _ => {}
+            }
+        }
+        if external {
+            gap.get_or_insert_with(|| ExtractionGap {
+                reason: String::from("vue_external_script"), line: tag.start_pos().line() + 1,
+            });
+            continue;
+        }
+        if unsupported_type || !matches!(language.as_str(), "js" | "jsx" | "ts" | "tsx") {
+            gap.get_or_insert_with(|| ExtractionGap {
+                reason: String::from("vue_unsupported_script_language"), line: tag.start_pos().line() + 1,
+            });
+            continue;
+        }
+        if tag.kind() != "self_closing_tag"
+            && !script.children().any(|node| node.kind() == "end_tag" && !node.is_missing())
+        {
+            gap.get_or_insert_with(|| ExtractionGap {
+                reason: String::from("vue_structure_recovery"), line: tag.start_pos().line() + 1,
+            });
+            continue;
+        }
+        is_typescript |= matches!(language.as_str(), "ts" | "tsx");
+        is_tsx |= language == "tsx";
         has_script = true;
-
-        // Advance past this closing tag.
-        cursor = match lower[content_end..].find('>') {
-            Some(gt) => content_end + gt + 1,
-            None => break,
-        };
+        if let Some(content) = script.children().find(|node| node.kind() == "raw_text") {
+            let range = content.range();
+            masked[range.clone()].copy_from_slice(&bytes[range]);
+        }
     }
 
     VueScript {
         masked_source: String::from_utf8_lossy(&masked).into_owned(),
         is_typescript,
+        is_tsx,
         has_script,
+        gap,
     }
 }
 
@@ -89,11 +142,14 @@ pub fn parse_vue_to_graph(
 ) -> Result<SemanticGraph, JavaScriptParseError> {
     let file_path = file_path.into();
     let script = extract_script(source);
-    let mut graph = parse_javascript_to_graph(file_path, &script.masked_source, script.is_typescript)?;
+    let mut graph = parse_javascript_with_dialect(
+        file_path, &script.masked_source, script.is_typescript, script.is_tsx,
+    )?;
     for outcome in &mut graph.parse_outcomes {
         // Template bindings and non-script regions are outside this adapter's
         // extraction scope, even when the extracted script has valid syntax.
         outcome.scope = crate::coverage::ParseScope::VueScriptOnly;
+        outcome.extraction_gap = script.gap.clone();
     }
     Ok(graph)
 }
@@ -152,5 +208,71 @@ mod tests {
         assert!(!out.has_script);
         assert!(out.masked_source.trim().is_empty());
         assert_eq!(out.masked_source.len(), src.len());
+    }
+
+    #[test]
+    fn extracts_only_top_level_scripts_with_real_attribute_values() {
+        let source = concat!(
+            "<!-- <script>const commentOnly = 1;</script> -->\n",
+            "<template><script>const nestedOnly = 2;</script></template>\n",
+            "<docs><script>const exampleOnly = 3;</script></docs>\n",
+            "<script lang = 'ts'>const visible: number = 4;</script>\n",
+            "<script setup>const setupValue = 5;</script>\n",
+        );
+        let script = extract_script(source);
+        assert_eq!(script.gap, None);
+        assert!(script.is_typescript);
+        assert_eq!(script.masked_source.len(), source.len());
+        assert!(!script.masked_source.contains("Only"));
+        assert!(script.masked_source.lines().nth(3).unwrap().contains("visible: number"));
+        assert!(script.masked_source.lines().nth(4).unwrap().contains("setupValue"));
+    }
+
+    #[test]
+    fn exposes_unavailable_script_content_in_native_parse_evidence() {
+        for (source, reason) in [
+            ("<script src='./logic.ts'></script>", "vue_external_script"),
+            ("<script lang='coffee'>x = 1</script>", "vue_unsupported_script_language"),
+            ("<script>const unfinished = 1;", "vue_structure_recovery"),
+        ] {
+            let graph = parse_vue_to_graph("src/Widget.vue", source).unwrap();
+            assert_eq!(graph.parse_outcomes[0].extraction_gap.as_ref().map(|gap| gap.reason.as_str()), Some(reason));
+            assert_eq!(graph.parse_outcomes[0].scope, crate::coverage::ParseScope::VueScriptOnly);
+        }
+    }
+
+    #[test]
+    fn selects_tsx_grammar_for_the_original_vue_path() {
+        let graph = parse_vue_to_graph(
+            "src/Widget.vue",
+            "<script lang='tsx'>export const View = () => <div />;</script>",
+        ).unwrap();
+        assert_eq!(graph.parse_outcomes[0].file_path, PathBuf::from("src/Widget.vue"));
+        assert_eq!(graph.parse_outcomes[0].parser, "tree-sitter-tsx");
+        assert!(!graph.parse_outcomes[0].required_recovery);
+    }
+
+    #[test]
+    fn embedded_nul_does_not_discard_the_rest_of_a_script() {
+        let source = "<script setup lang='ts'>\nconst sentinel = '\0';\nconst later = eval(input);\n</script>\n";
+        let script = extract_script(source);
+        assert!(script.has_script);
+        assert!(script.is_typescript);
+        assert_eq!(script.masked_source.len(), source.len());
+        assert!(script.masked_source.contains("const sentinel = '\0';"));
+        assert!(script.masked_source.lines().nth(2).unwrap().contains("eval(input)"));
+        let gap = script.gap.unwrap();
+        assert_eq!(gap.reason, "vue_embedded_nul");
+        assert_eq!(gap.line, 2);
+    }
+
+    #[test]
+    fn quoted_generic_attribute_does_not_enter_the_script() {
+        let source = "<script setup lang=\"ts\" generic=\"T extends Record<string, unknown>\">\nconst value: T | null = null;\n</script>";
+        let script = extract_script(source);
+        assert!(script.masked_source.lines().next().unwrap().trim().is_empty());
+        assert!(script.masked_source.contains("const value: T | null = null;"));
+        let graph = parse_vue_to_graph("src/Generic.vue", source).unwrap();
+        assert!(!graph.parse_outcomes[0].required_recovery);
     }
 }

@@ -32,10 +32,19 @@ pub enum ParseScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ExtractionGap {
+    pub reason: String,
+    /// First observed extraction limitation, at a one-based original source line.
+    pub line: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ParseOutcome {
     pub file_path: PathBuf,
     pub parser: String,
     pub scope: ParseScope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extraction_gap: Option<ExtractionGap>,
     /// Recovery can mean invalid source or a grammar limitation; it proves neither by itself.
     pub required_recovery: bool,
     pub diagnostic_count: usize,

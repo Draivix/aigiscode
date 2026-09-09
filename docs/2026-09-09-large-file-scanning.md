@@ -7,6 +7,10 @@ All 9,497 preceding raw findings remain unchanged; 435 additional structural clu
 are recorded. This closes the measured size-admission gap, not overall Q12 or audit
 acceptance.
 
+Follow-up: [Vue script coverage](2026-09-09-vue-script-coverage.md) adds explicit
+partial script scanning on the same source capture. The observations below precede
+that change.
+
 The [receipt](2026-09-09-large-file-scanning-evidence.json) records binary and source
 identities, every formerly oversized file's result, complete artifact hashes,
 source samples, CLI and MCP coverage, and measured time and memory. All 23,166

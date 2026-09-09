@@ -20,6 +20,7 @@ pub(crate) fn record_parse_outcome(
     use crate::coverage::{ParseDiagnostic, ParseDiagnosticKind, ParseOutcome, ParseScope};
     let mut outcome = ParseOutcome {
         file_path: file_path.to_path_buf(), parser: parser.to_owned(), scope: ParseScope::Source,
+        extraction_gap: None,
         required_recovery: root.has_error(), diagnostic_count: 0,
         diagnostics: Vec::new(), diagnostics_truncated: false,
     };

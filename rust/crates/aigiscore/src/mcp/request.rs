@@ -88,6 +88,7 @@ impl AigiscodeMcpServer {
                 "oversized_files": secondary.map(|coverage| coverage.oversized_files),
                 "unsupported_files": secondary.map(|coverage| coverage.unsupported_files),
                 "other_gap_files": secondary.map(|coverage| coverage.other_gap_files),
+                "scope_limited_files": secondary.map(|coverage| coverage.scope_limited_files),
             })),
             (String::from("aigiscode/input_coverage"), serde_json::json!({
                 "status": coverage.map_or(crate::coverage::InputCoverageStatus::Unknown, |coverage| coverage.status),

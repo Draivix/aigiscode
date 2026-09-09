@@ -22,12 +22,14 @@ pub struct AstGrepScanResult {
     pub rule_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub skipped_files: Vec<AstGrepSkippedFile>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub scope_limited_files: Vec<AstGrepScopeLimitedFile>,
     pub findings: Vec<AstGrepFinding>,
 }
 
 impl AstGrepScanResult {
     pub fn is_empty(&self) -> bool {
-        self.findings.is_empty() && self.skipped_files.is_empty()
+        self.findings.is_empty() && self.skipped_files.is_empty() && self.scope_limited_files.is_empty()
     }
 
     pub fn family_counts(&self) -> AstGrepFamilyCounts {
@@ -54,6 +56,21 @@ pub struct AstGrepSkippedFile {
     pub file_path: PathBuf,
     pub bytes: usize,
     pub reason: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum SecondaryScanScope {
+    VueScriptOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct AstGrepScopeLimitedFile {
+    pub file_path: PathBuf,
+    pub bytes: usize,
+    pub scope: SecondaryScanScope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extraction_gap: Option<crate::coverage::ExtractionGap>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -714,6 +731,7 @@ fn trace_slow_pattern(path: &Path, rule_id: &str, pattern: &str, matches: usize,
 struct AstGrepFileOutcome {
     findings: Vec<AstGrepFinding>,
     skipped: Option<AstGrepSkippedFile>,
+    scope_limited: Option<AstGrepScopeLimitedFile>,
     matched: bool,
     scanned: bool,
     rule_ids: BTreeSet<String>,
@@ -737,6 +755,7 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
     let mut matched_files = 0usize;
     let mut scanned_files = 0usize;
     let mut skipped_files = Vec::new();
+    let mut scope_limited_files = Vec::new();
     for (outcome, (path, source)) in outcomes.into_iter().zip(parsed_sources) {
         let outcome = outcome.unwrap_or_else(|| scan_one_file(path, source));
         findings.extend(outcome.findings);
@@ -745,6 +764,9 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
         scanned_files += usize::from(outcome.scanned);
         if let Some(skipped) = outcome.skipped {
             skipped_files.push(skipped);
+        }
+        if let Some(scope_limited) = outcome.scope_limited {
+            scope_limited_files.push(scope_limited);
         }
     }
 
@@ -758,11 +780,14 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
 
     let result = AstGrepScanResult {
         scanner: String::from("ast_grep"),
-        coverage: super::coverage::SecondaryCoverage::from_scan(scanned_files, &skipped_files),
+        coverage: super::coverage::SecondaryCoverage::from_scan(
+            scanned_files, &skipped_files, &scope_limited_files,
+        ),
         scanned_files,
         matched_files,
         rule_ids: rule_ids.into_iter().collect(),
         skipped_files,
+        scope_limited_files,
         findings,
     };
     trace(&format!(
@@ -775,6 +800,36 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
 }
 
 fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
+    if path.extension().and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("vue"))
+    {
+        let script = crate::parsing::vue::extract_script(source);
+        if let Some(gap) = script.gap.as_ref().filter(|_| !script.has_script) {
+            return AstGrepFileOutcome {
+                skipped: Some(AstGrepSkippedFile {
+                    file_path: path.to_path_buf(), bytes: source.len(), reason: gap.reason.clone(),
+                }),
+                ..Default::default()
+            };
+        }
+        let language = if script.is_tsx {
+            SupportLang::Tsx
+        } else if script.is_typescript {
+            SupportLang::TypeScript
+        } else {
+            SupportLang::JavaScript
+        };
+        let mut outcome = scan_one_source(path, &script.masked_source, Some(language));
+        outcome.scope_limited = Some(AstGrepScopeLimitedFile {
+            file_path: path.to_path_buf(), bytes: source.len(), scope: SecondaryScanScope::VueScriptOnly,
+            extraction_gap: script.gap,
+        });
+        return outcome;
+    }
+    scan_one_source(path, source, support_lang_for_path(path))
+}
+
+fn scan_one_source(path: &Path, source: &str, language: Option<SupportLang>) -> AstGrepFileOutcome {
     let file_started = Instant::now();
     let mut outcome = AstGrepFileOutcome::default();
     let mut seen = BTreeSet::<String>::new();
@@ -783,7 +838,7 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
         path.display(),
         source.len()
     ));
-    let Some(language) = support_lang_for_path(path) else {
+    let Some(language) = language else {
         outcome.skipped = Some(AstGrepSkippedFile {
             file_path: path.to_path_buf(),
             bytes: source.len(),
@@ -791,7 +846,7 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
         });
         return outcome;
     };
-    let prefilter = lexical_family_prefilter(path, source);
+    let prefilter = lexical_family_prefilter(language, source);
     if !prefilter.any() {
         trace(&format!(
             "ast_grep.file skip path={} reason=no_family_prefilter_hit bytes={}",
@@ -815,7 +870,7 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
     let root = ast.root();
 
     if prefilter.complexity {
-        if let Some(rule_set) = complexity_rule_set_for_path(path) {
+        if let Some(rule_set) = complexity_rule_set_for_language(language) {
             let loop_patterns = rule_set
                 .loop_patterns
                 .iter()
@@ -943,7 +998,7 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
     }
 
     if prefilter.security {
-        if let Some(security_rule_set) = security_rule_set_for_path(path) {
+        if let Some(security_rule_set) = security_rule_set_for_language(language) {
             for rule in security_rule_set.rules {
                 for pattern in rule.patterns {
                     let pattern_started = Instant::now();
@@ -1000,7 +1055,7 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
     if prefilter.framework_misuse {
         let framework_catalogs = framework_misuse_catalogs_for_file(path, source);
         if framework_catalogs.is_empty() {
-            if let Some(framework_rule_set) = framework_misuse_rule_set_for_path(path) {
+            if let Some(framework_rule_set) = framework_misuse_rule_set_for_language(language) {
                 for rule in framework_rule_set.rules {
                     if is_within_sanctioned_boundary(rule.subtype, path) {
                         continue;
@@ -1141,9 +1196,9 @@ fn support_lang_for_path(path: &Path) -> Option<SupportLang> {
     }
 }
 
-fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter {
-    match support_lang_for_path(path) {
-        Some(SupportLang::Php) => AstGrepFamilyPrefilter {
+fn lexical_family_prefilter(language: SupportLang, source: &str) -> AstGrepFamilyPrefilter {
+    match language {
+        SupportLang::Php => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for", "foreach", "while"])
                 && has_any(
                     source,
@@ -1181,7 +1236,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
                 &["env(", "getenv(", "$_ENV", "app(", "resolve(", "make("],
             ),
         },
-        Some(SupportLang::Python) => AstGrepFamilyPrefilter {
+        SupportLang::Python => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "while "])
                 && has_any(
                     source,
@@ -1217,7 +1272,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
             ),
             framework_misuse: has_any(source, &["os.environ", "os.getenv"]),
         },
-        Some(SupportLang::JavaScript | SupportLang::TypeScript | SupportLang::Tsx) => AstGrepFamilyPrefilter {
+        SupportLang::JavaScript | SupportLang::TypeScript | SupportLang::Tsx => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "for(", "while ", "while("])
                 && has_any(
                     source,
@@ -1245,7 +1300,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
             ),
             framework_misuse: has_any(source, &["process.env"]),
         },
-        Some(SupportLang::Ruby) => AstGrepFamilyPrefilter {
+        SupportLang::Ruby => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "while "])
                 && has_any(
                     source,
@@ -1275,7 +1330,7 @@ fn lexical_family_prefilter(path: &Path, source: &str) -> AstGrepFamilyPrefilter
             ),
             framework_misuse: has_any(source, &["ENV[", "ENV.fetch"]),
         },
-        Some(SupportLang::Rust) => AstGrepFamilyPrefilter {
+        SupportLang::Rust => AstGrepFamilyPrefilter {
             complexity: has_any(source, &["for ", "for(", "while ", "while("])
                 && has_any(
                     source,
@@ -1351,25 +1406,25 @@ fn rule_set_loop_patterns_for_catalog(
     }
 }
 
-fn complexity_rule_set_for_path(path: &Path) -> Option<&'static AstGrepRuleSet> {
-    match support_lang_for_path(path) {
-        Some(SupportLang::Php) => Some(&PHP_RULE_SET),
-        Some(SupportLang::Python) => Some(&PYTHON_RULE_SET),
-        Some(SupportLang::JavaScript) => Some(&JAVASCRIPT_RULE_SET),
-        Some(SupportLang::TypeScript | SupportLang::Tsx) => Some(&TYPESCRIPT_RULE_SET),
-        Some(SupportLang::Rust) => Some(&RUST_RULE_SET),
+fn complexity_rule_set_for_language(language: SupportLang) -> Option<&'static AstGrepRuleSet> {
+    match language {
+        SupportLang::Php => Some(&PHP_RULE_SET),
+        SupportLang::Python => Some(&PYTHON_RULE_SET),
+        SupportLang::JavaScript => Some(&JAVASCRIPT_RULE_SET),
+        SupportLang::TypeScript | SupportLang::Tsx => Some(&TYPESCRIPT_RULE_SET),
+        SupportLang::Rust => Some(&RUST_RULE_SET),
         _ => None,
     }
 }
 
-fn security_rule_set_for_path(path: &Path) -> Option<&'static AstGrepSecurityRuleSet> {
-    match support_lang_for_path(path) {
-        Some(SupportLang::Php) => Some(&PHP_SECURITY_RULE_SET),
-        Some(SupportLang::Python) => Some(&PYTHON_SECURITY_RULE_SET),
-        Some(SupportLang::JavaScript) => Some(&JAVASCRIPT_SECURITY_RULE_SET),
-        Some(SupportLang::TypeScript | SupportLang::Tsx) => Some(&TYPESCRIPT_SECURITY_RULE_SET),
-        Some(SupportLang::Ruby) => Some(&RUBY_SECURITY_RULE_SET),
-        Some(SupportLang::Rust) => Some(&RUST_SECURITY_RULE_SET),
+fn security_rule_set_for_language(language: SupportLang) -> Option<&'static AstGrepSecurityRuleSet> {
+    match language {
+        SupportLang::Php => Some(&PHP_SECURITY_RULE_SET),
+        SupportLang::Python => Some(&PYTHON_SECURITY_RULE_SET),
+        SupportLang::JavaScript => Some(&JAVASCRIPT_SECURITY_RULE_SET),
+        SupportLang::TypeScript | SupportLang::Tsx => Some(&TYPESCRIPT_SECURITY_RULE_SET),
+        SupportLang::Ruby => Some(&RUBY_SECURITY_RULE_SET),
+        SupportLang::Rust => Some(&RUST_SECURITY_RULE_SET),
         _ => None,
     }
 }
@@ -1423,18 +1478,18 @@ pub fn is_dependency_boundary_path(path: &Path) -> bool {
         || normalized.ends_with("/container.rs")
 }
 
-fn framework_misuse_rule_set_for_path(
-    path: &Path,
+fn framework_misuse_rule_set_for_language(
+    language: SupportLang,
 ) -> Option<&'static AstGrepFrameworkMisuseRuleSet> {
-    match support_lang_for_path(path) {
-        Some(SupportLang::Php) => {
+    match language {
+        SupportLang::Php => {
             Some(&PHP_FRAMEWORK_MISUSE_RULE_SET)
         }
-        Some(SupportLang::Python) => Some(&PYTHON_FRAMEWORK_MISUSE_RULE_SET),
-        Some(SupportLang::JavaScript) => Some(&JAVASCRIPT_FRAMEWORK_MISUSE_RULE_SET),
-        Some(SupportLang::TypeScript | SupportLang::Tsx) => Some(&TYPESCRIPT_FRAMEWORK_MISUSE_RULE_SET),
-        Some(SupportLang::Ruby) => Some(&RUBY_FRAMEWORK_MISUSE_RULE_SET),
-        Some(SupportLang::Rust) => Some(&RUST_FRAMEWORK_MISUSE_RULE_SET),
+        SupportLang::Python => Some(&PYTHON_FRAMEWORK_MISUSE_RULE_SET),
+        SupportLang::JavaScript => Some(&JAVASCRIPT_FRAMEWORK_MISUSE_RULE_SET),
+        SupportLang::TypeScript | SupportLang::Tsx => Some(&TYPESCRIPT_FRAMEWORK_MISUSE_RULE_SET),
+        SupportLang::Ruby => Some(&RUBY_FRAMEWORK_MISUSE_RULE_SET),
+        SupportLang::Rust => Some(&RUST_FRAMEWORK_MISUSE_RULE_SET),
         _ => None,
     }
 }
@@ -1939,18 +1994,19 @@ eval(payload)
         assert!(result.findings.is_empty());
         assert_eq!(result.coverage.input_files, 2);
         assert_eq!(result.coverage.scanned_files, 0);
-        assert_eq!(result.coverage.prefiltered_files, 1);
-        assert_eq!(result.coverage.unsupported_files, 1);
+        assert_eq!(result.coverage.prefiltered_files, 2);
+        assert_eq!(result.coverage.unsupported_files, 0);
+        assert_eq!(result.coverage.scope_limited_files, 1);
         assert_eq!(result.coverage.oversized_files, 0);
         assert!(!result.coverage.is_complete());
         assert_eq!(result.skipped_files[0].reason, "no_family_prefilter_hit");
-        assert_eq!(result.skipped_files[1].reason, "no_rules_for_language");
+        assert_eq!(result.skipped_files[1].reason, "no_family_prefilter_hit");
     }
 
     #[test]
     fn accounts_for_sources_without_secondary_language_rules() {
         let result = run_ast_grep_scan(&[
-            (PathBuf::from("src/Page.vue"), String::from("<template><div /></template>")),
+            (PathBuf::from("src/Page.svelte"), String::from("<div />")),
             (PathBuf::from("src/admin.ts"), String::from("eval(input)")),
             (PathBuf::from("src/constants.ts"), String::from("export const answer = 42;")),
         ]);
@@ -1959,8 +2015,75 @@ eval(payload)
         assert_eq!(result.coverage.prefiltered_files, 1);
         assert_eq!(result.coverage.unsupported_files, 1);
         assert!(!result.coverage.is_complete());
-        assert_eq!(result.coverage.gap_files_preview[0].file_path, PathBuf::from("src/Page.vue"));
+        assert_eq!(result.coverage.gap_files_preview[0].file_path, PathBuf::from("src/Page.svelte"));
         assert!(!result.findings.is_empty());
+    }
+
+    #[test]
+    fn scans_vue_scripts_at_original_lines_without_claiming_template_coverage() {
+        let source = concat!(
+            "<template><div>{{ eval(templateValue) }}</div></template>\n",
+            "<!-- <script>eval(commentValue)</script> -->\n",
+            "<script setup lang = 'ts'>\n",
+            "for (const item of items) { JSON.parse(item); }\n",
+            "eval(scriptValue);\n",
+            "const mode = process.env.APP_MODE;\n",
+            "</script>\n",
+        );
+        let path = PathBuf::from("src/Widget.vue");
+        let result = run_ast_grep_scan(&[(path.clone(), source.to_owned())]);
+        let counts = result.family_counts();
+        assert_eq!(counts.algorithmic_complexity, 1);
+        assert_eq!(counts.security_dangerous_api, 1);
+        assert_eq!(counts.framework_misuse, 1);
+        assert!(result.findings.iter().all(|finding| {
+            finding.file_path == path && (4..=6).contains(&finding.line)
+        }));
+        assert_eq!(result.coverage.input_files, 1);
+        assert_eq!(result.coverage.scanned_files, 1);
+        assert_eq!(result.coverage.scope_limited_files, 1);
+        assert_eq!(result.coverage.unsupported_files, 0);
+        assert_eq!(result.coverage.gap_bytes, source.len());
+        assert_eq!(result.coverage.gap_files_preview[0].reason, "vue_script_only");
+        assert!(result.skipped_files.is_empty());
+        assert_eq!(result.scope_limited_files[0].file_path, path);
+        assert!(!result.coverage.is_complete());
+    }
+
+    #[test]
+    fn vue_extraction_gaps_remain_explicit_and_count_each_file_once() {
+        let result = run_ast_grep_scan(&[
+            (PathBuf::from("src/External.vue"), "<script src='./logic.ts'></script>".into()),
+            (PathBuf::from("src/Coffee.vue"), "<script lang='coffee'>x = 1</script>".into()),
+            (PathBuf::from("src/Template.vue"), "<template><div>{{ eval(value) }}</div></template>".into()),
+        ]);
+        assert!(result.findings.is_empty());
+        assert_eq!(result.coverage.input_files, 3);
+        assert_eq!(result.coverage.scanned_files, 0);
+        assert_eq!(result.coverage.prefiltered_files, 1);
+        assert_eq!(result.coverage.other_gap_files, 2);
+        assert_eq!(result.coverage.scope_limited_files, 1);
+        assert_eq!(result.skipped_files[0].reason, "vue_external_script");
+        assert_eq!(result.skipped_files[1].reason, "vue_unsupported_script_language");
+        assert!(!result.coverage.is_complete());
+    }
+
+    #[test]
+    fn keeps_known_vue_script_evidence_when_another_block_is_unavailable() {
+        let source = concat!(
+            "<script>eval(knownValue);</script>\n",
+            "<script setup src='./unavailable.js'></script>\n",
+        );
+        let result = run_ast_grep_scan(&[(PathBuf::from("src/Partial.vue"), source.into())]);
+        assert_eq!(result.findings.len(), 1);
+        assert_eq!(result.findings[0].line, 1);
+        assert_eq!(result.coverage.input_files, 1);
+        assert_eq!(result.coverage.scanned_files, 1);
+        assert_eq!(result.coverage.scope_limited_files, 1);
+        let gap = result.scope_limited_files[0].extraction_gap.as_ref().unwrap();
+        assert_eq!(gap.reason, "vue_external_script");
+        assert_eq!(gap.line, 2);
+        assert!(!result.coverage.is_complete());
     }
 
     #[test]

@@ -1,0 +1,2282 @@
+{
+  "observed_at": "2026-09-09T18:52:14.690Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-vue-script-final",
+    "sha256": "b572d3c397b7ab13976c0beda822db628c444a58e458ae9af7cc91a6fce932d6",
+    "build_log": "target/reliability-2026-09-09/vue-script-scope-final-build.txt",
+    "production_build_succeeded": true,
+    "new_regression_tests_written": 8,
+    "existing_regressions_updated": 2,
+    "tests_run": false,
+    "ci_run": false
+  },
+  "source": {
+    "root": "target/reliability-2026-09-09/draivix-full-source",
+    "inventory_sha256": "641e95edcc61e43807f7e5dc2648bdb23ea8d87f610f17a7c562ace317518e68",
+    "files": 23166,
+    "mismatches": [],
+    "missing": [],
+    "live_original_edited": false,
+    "scope": "Preserved captured source, not current live Draivix; subsequent known Mitel edits are not included.",
+    "selected_files": [
+      {
+        "path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+        "sha256": "1b97c790fd9b0ecdec1792a3bbc9b061d62f19acb80e4192cc51868670249f0e"
+      },
+      {
+        "path": "app/Modules/Advanced/resources/js/components/report/ReportResultView.vue",
+        "sha256": "c20b820d28b1ae739c16ce2ff0c032dc09be53bbb980e9d7de8454bb84840021"
+      },
+      {
+        "path": "app/Modules/Accounting/resources/js/components/CsvImportModal.vue",
+        "sha256": "5092bf2e03f640b06933a2e6e9c2780d36b94490dbf5d2157f622897d8863dfc"
+      },
+      {
+        "path": "resources/js/Components/Search/GlobalSearch.vue",
+        "sha256": "ecbb0dcba15968845e2a554aa4f40a59927567d3590b193a96edd604ebaa55af"
+      },
+      {
+        "path": "resources/js/Components/Preview/ShadowHtmlPreview.vue",
+        "sha256": "99c05323db017a6943bbfb76b43c534660f25cd081521a757068a76c74ccc5fd"
+      },
+      {
+        "path": "app/Modules/MapyCz/resources/js/components/MapyCzMapField.vue",
+        "sha256": "2b814f97ba1902ddbda060d2755593d5dfc9dd9c98be8bc04c1458f8be50d7db"
+      },
+      {
+        "path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+        "sha256": "7dfa01c7d465f3e32ceb1bd3bdba7809adba65cc62a514414bf4cf2ded5a6cc1"
+      }
+    ]
+  },
+  "snapshot_identity": {
+    "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+    "engine_version": "0.1.0",
+    "engine_fingerprint": "7a96669d1e0faab8",
+    "semantic_revision": 11,
+    "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+    "input_inventory_fingerprint": "55327d3f0dae4cc7",
+    "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+    "resolve_config_fingerprint": "50854948b7f43ebe",
+    "assessment_config_fingerprint": "15d53a85edc70ec3",
+    "external_tools": [],
+    "external_checks_complete": true
+  },
+  "baseline": {
+    "time_file": "target/reliability-2026-09-09/draivix-large-scanner-time.txt",
+    "trace_file": "target/reliability-2026-09-09/draivix-large-scanner-trace.txt",
+    "elapsed": "1:24.03",
+    "peak_rss_kib": 3510640,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8156 findings=9932 elapsed_ms=19246"
+    ],
+    "coverage": {
+      "status": "incomplete",
+      "input_files": 17013,
+      "scanned_files": 8156,
+      "prefiltered_files": 8065,
+      "oversized_files": 0,
+      "unsupported_files": 792,
+      "other_gap_files": 0,
+      "gap_bytes": 12818568,
+      "gap_files_preview": [
+        {
+          "file_path": "resources/js/Components/Email/EmailPreview.vue",
+          "bytes": 204305,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "resources/js/Pages/Email/Index.vue",
+          "bytes": 198406,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+          "bytes": 195802,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+          "bytes": 147303,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+          "bytes": 144848,
+          "reason": "no_rules_for_language"
+        }
+      ]
+    },
+    "scanner_sha256": "3a4062fc808df9ebd6acc17195da8de6693cdb95bfcd6d4328e89a85a3554da0"
+  },
+  "final": {
+    "time_file": "target/reliability-2026-09-09/draivix-vue-script-final-time.txt",
+    "trace_file": "target/reliability-2026-09-09/draivix-vue-script-final-trace.txt",
+    "elapsed": "1:24.48",
+    "peak_rss_kib": 3494756,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8362 findings=9978 elapsed_ms=18906"
+    ]
+  },
+  "coverage": {
+    "status": "incomplete",
+    "input_files": 17013,
+    "scanned_files": 8362,
+    "prefiltered_files": 8651,
+    "oversized_files": 0,
+    "unsupported_files": 0,
+    "other_gap_files": 0,
+    "scope_limited_files": 792,
+    "gap_bytes": 12818568,
+    "gap_files_preview": [
+      {
+        "file_path": "resources/js/Components/Email/EmailPreview.vue",
+        "bytes": 204305,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "resources/js/Pages/Email/Index.vue",
+        "bytes": 198406,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+        "bytes": 195802,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+        "bytes": 147303,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+        "bytes": 144848,
+        "reason": "vue_script_only"
+      }
+    ]
+  },
+  "vue": {
+    "files": 792,
+    "scanned": 206,
+    "prefiltered": 586,
+    "scope_list_canonical_sha256": "9330ca1b716bec90083e55702fe73bdf7ec9c89a41fc715a3a557174d73dc0d9",
+    "extraction_gaps": [
+      {
+        "file_path": "app/Modules/Accounting/resources/js/components/CsvImportModal.vue",
+        "bytes": 25585,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 528
+        }
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/resources/js/Pages/Architecture.vue",
+        "bytes": 28564,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 241
+        }
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/resources/js/Pages/Index.vue",
+        "bytes": 94013,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1347
+        }
+      },
+      {
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportBuilder.vue",
+        "bytes": 43461,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 834
+        }
+      },
+      {
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportResultView.vue",
+        "bytes": 19515,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_embedded_nul",
+          "line": 185
+        }
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/resources/js/components/ActivityArtifactContentPanel.vue",
+        "bytes": 18479,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1
+        }
+      },
+      {
+        "file_path": "app/Modules/ManufacturingFoundation/resources/js/Pages/Admin/components/ProfileDefinitionTable.vue",
+        "bytes": 4916,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 87
+        }
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/components/UserList.vue",
+        "bytes": 14818,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 392
+        }
+      },
+      {
+        "file_path": "app/Modules/ProductBase/resources/js/Pages/Admin/MeasurementStudio.vue",
+        "bytes": 11740,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 187
+        }
+      },
+      {
+        "file_path": "app/Modules/ProductBase/resources/js/Pages/Admin/components/ConversionPreviewPanel.vue",
+        "bytes": 5911,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 117
+        }
+      },
+      {
+        "file_path": "app/Modules/ProjectManagement/resources/js/widgets/ProjectOverviewMonthlyBillingWidget.vue",
+        "bytes": 7185,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 85
+        }
+      },
+      {
+        "file_path": "app/Modules/Sgeo/resources/js/widgets/SgeoTopQueriesWidget.vue",
+        "bytes": 7401,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 91
+        }
+      },
+      {
+        "file_path": "app/Modules/Storage/resources/js/components/FileUploadModal.vue",
+        "bytes": 12850,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 356
+        }
+      },
+      {
+        "file_path": "app/Modules/Storage/resources/js/components/PermissionManager.vue",
+        "bytes": 14258,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 433
+        }
+      },
+      {
+        "file_path": "app/Modules/SupportDesk/resources/js/Pages/Settings.vue",
+        "bytes": 88848,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1235
+        }
+      },
+      {
+        "file_path": "app/Modules/WarehouseMobile/resources/js/Components/WarehouseInquirySheet.vue",
+        "bytes": 10250,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 89
+        }
+      },
+      {
+        "file_path": "app/Modules/WarehouseMobile/resources/js/Pages/Transfers/Index.vue",
+        "bytes": 15509,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 220
+        }
+      },
+      {
+        "file_path": "clients/gavona/resources/js/components/GavonaFilterBuilder.vue",
+        "bytes": 63509,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1042
+        }
+      },
+      {
+        "file_path": "clients/trido/resources/js/Pages/ModelImportAdmin.vue",
+        "bytes": 54585,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1092
+        }
+      },
+      {
+        "file_path": "clients/trido/resources/js/Pages/PortalOrderDetail.vue",
+        "bytes": 44369,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 461
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Dashboard/WidgetConfigurator.vue",
+        "bytes": 26603,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 639
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Entity/EntityColumnDrawer.vue",
+        "bytes": 28763,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 562
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Filter/FilterBuilder.vue",
+        "bytes": 93434,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1335
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Mobile/MobileCameraCapture.vue",
+        "bytes": 12391,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 229
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Mobile/MobileEmailMailboxSwitcher.vue",
+        "bytes": 10666,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 147
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Vault/CredentialView.vue",
+        "bytes": 26873,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 577
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Conversions/Create.vue",
+        "bytes": 16261,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 278
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Conversions/Edit.vue",
+        "bytes": 16222,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 272
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/ETL/Imports/Create.vue",
+        "bytes": 7244,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 147
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Filters/Index.vue",
+        "bytes": 7160,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 172
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Roles/Index.vue",
+        "bytes": 15782,
+        "scope": "vue_script_only",
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 384
+        }
+      }
+    ],
+    "whole_file_extraction_skips": []
+  },
+  "scanner_findings": {
+    "previous": 9932,
+    "current": 9978,
+    "removed": [],
+    "added": [
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Accounting/resources/js/components/CsvImportModal.vue",
+        "line": 223,
+        "token": "normalizedCol.includes(normalizedAlias)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "normalizedCol.includes(normalizedAlias)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Accounting/resources/js/components/DocumentFieldsForm.vue",
+        "line": 214,
+        "token": "getLookupFilterSourceFields(field).includes(sourceFieldName)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "getLookupFilterSourceFields(field).includes(sourceFieldName)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+        "line": 962,
+        "token": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+        "line": 1192,
+        "token": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "line": 98,
+        "token": "props.fields.find((item) => item.name === condition.field)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "props.fields.find((item) => item.name === condition.field)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "line": 104,
+        "token": "existing.some((value) => String(value) === String(id))",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "existing.some((value) => String(value) === String(id))",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "line": 124,
+        "token": "props.fields.find((item) => item.name === selection.fieldName)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "props.fields.find((item) => item.name === selection.fieldName)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/sort_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "line": 128,
+        "token": "selection.ids.map((id) => String(id)).sort()",
+        "message": "Repeated sorting inside a loop should be moved out or precomputed.",
+        "matched_text": "selection.ids.map((id) => String(id)).sort()",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "sort_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/MagicOffice/resources/js/Components/Spreadsheet/ColumnMapper.vue",
+        "line": 185,
+        "token": "props.fields.some(f => f.name === templateMappings[col])",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "props.fields.some(f => f.name === templateMappings[col])",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "security/javascript/html_output",
+        "family": "security_dangerous_api",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/MapyCz/resources/js/components/MapyCzMapField.vue",
+        "line": 706,
+        "token": "panoramaContainer.value.innerHTML = ''",
+        "message": "Unsafe HTML output primitive should be isolated or sanitized.",
+        "matched_text": "panoramaContainer.value.innerHTML = ''",
+        "kind": {
+          "kind": "security_dangerous_api",
+          "category": "unsafe_html_output",
+          "api_name": "javascript-html-output"
+        }
+      },
+      {
+        "rule_id": "security/javascript/html_output",
+        "family": "security_dangerous_api",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/MapyCz/resources/js/components/MapyCzMapField.vue",
+        "line": 810,
+        "token": "panoramaContainer.value.innerHTML = ''",
+        "message": "Unsafe HTML output primitive should be isolated or sanitized.",
+        "matched_text": "panoramaContainer.value.innerHTML = ''",
+        "kind": {
+          "kind": "security_dangerous_api",
+          "category": "unsafe_html_output",
+          "api_name": "javascript-html-output"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Mattermost/resources/js/components/EmojiPicker.vue",
+        "line": 1148,
+        "token": "emoji.emoji.includes(query)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "emoji.emoji.includes(query)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Mattermost/resources/js/components/EmojiPicker.vue",
+        "line": 1148,
+        "token": "emoji.name.includes(query)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "emoji.name.includes(query)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "app/Modules/Storage/resources/js/components/FileUploadModal.vue",
+        "line": 92,
+        "token": "uploadItems.value.some(item => item.id === fileInfo.id)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "uploadItems.value.some(item => item.id === fileInfo.id)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "clients/gavona/docs/commercial/resources/js/widgets/GavonaCommercialKpiWidget.vue",
+        "line": 164,
+        "token": "rejectedQuoteStatuses.value.includes(statusOf(quote))",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "rejectedQuoteStatuses.value.includes(statusOf(quote))",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "clients/gavona/resources/js/components/GavonaFilterBuilder.vue",
+        "line": 445,
+        "token": "baseFilterableFields.value.find((item) => item.name === filter.field)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "baseFilterableFields.value.find((item) => item.name === filter.field)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "clients/gavona/resources/js/components/GavonaFilterBuilder.vue",
+        "line": 453,
+        "token": "selected.some((existing) => String(existing) === String(id))",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "selected.some((existing) => String(existing) === String(id))",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "clients/gavona/resources/js/components/GavonaFilterBuilder.vue",
+        "line": 487,
+        "token": "baseFilterableFields.value.find((item) => item.name === selection.fieldName)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "baseFilterableFields.value.find((item) => item.name === selection.fieldName)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/sort_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "clients/gavona/resources/js/components/GavonaFilterBuilder.vue",
+        "line": 491,
+        "token": "selection.ids.map((id) => String(id)).sort()",
+        "message": "Repeated sorting inside a loop should be moved out or precomputed.",
+        "matched_text": "selection.ids.map((id) => String(id)).sort()",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "sort_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Calendar/EntityCalendar.vue",
+        "line": 250,
+        "token": "unique.includes(id)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "unique.includes(id)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "security/javascript/html_output",
+        "family": "security_dangerous_api",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Email/EmailBodyRenderer.vue",
+        "line": 127,
+        "token": "template.innerHTML = fragment",
+        "message": "Unsafe HTML output primitive should be isolated or sanitized.",
+        "matched_text": "template.innerHTML = fragment",
+        "kind": {
+          "kind": "security_dangerous_api",
+          "category": "unsafe_html_output",
+          "api_name": "javascript-html-output"
+        }
+      },
+      {
+        "rule_id": "security/javascript/html_output",
+        "family": "security_dangerous_api",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Email/EmailPreview.vue",
+        "line": 1780,
+        "token": "template.innerHTML = html",
+        "message": "Unsafe HTML output primitive should be isolated or sanitized.",
+        "matched_text": "template.innerHTML = html",
+        "kind": {
+          "kind": "security_dangerous_api",
+          "category": "unsafe_html_output",
+          "api_name": "javascript-html-output"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/EntityDashboardView.vue",
+        "line": 179,
+        "token": "localWidgets.value.find(w => w.id === pos.id)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "localWidgets.value.find(w => w.id === pos.id)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/EntityRelationDisplayInput.vue",
+        "line": 127,
+        "token": "removedRowIds.includes(row.rowId)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "removedRowIds.includes(row.rowId)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/EntityStreamPanel.vue",
+        "line": 387,
+        "token": "entityTypes.includes(entityType)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "entityTypes.includes(entityType)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/FieldsPalette.vue",
+        "line": 116,
+        "token": "types.includes(normalizedType)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "types.includes(normalizedType)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/FieldsPalette.vue",
+        "line": 189,
+        "token": "added.includes(field.name)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "added.includes(field.name)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/FieldsPalette.vue",
+        "line": 305,
+        "token": "groupDefinitions.value.find(def => def.key === groupKey)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "groupDefinitions.value.find(def => def.key === groupKey)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Entity/FieldsPalette.vue",
+        "line": 306,
+        "token": "groupDefinitions.value.find(def => def.key === 'other')",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "groupDefinitions.value.find(def => def.key === 'other')",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Filter/FilterBuilder.vue",
+        "line": 617,
+        "token": "baseFilterableFields.value.find((item) => item.name === filter.field)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "baseFilterableFields.value.find((item) => item.name === filter.field)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Filter/FilterBuilder.vue",
+        "line": 625,
+        "token": "selected.some((existing) => String(existing) === String(id))",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "selected.some((existing) => String(existing) === String(id))",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Filter/FilterBuilder.vue",
+        "line": 659,
+        "token": "baseFilterableFields.value.find((item) => item.name === selection.fieldName)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "baseFilterableFields.value.find((item) => item.name === selection.fieldName)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/sort_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Filter/FilterBuilder.vue",
+        "line": 663,
+        "token": "selection.ids.map((id) => String(id)).sort()",
+        "message": "Repeated sorting inside a loop should be moved out or precomputed.",
+        "matched_text": "selection.ids.map((id) => String(id)).sort()",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "sort_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "security/javascript/html_output",
+        "family": "security_dangerous_api",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Preview/ShadowHtmlPreview.vue",
+        "line": 23,
+        "token": "wrapper.innerHTML = sanitizeTemplatePreviewHtml(props.html)",
+        "message": "Unsafe HTML output primitive should be isolated or sanitized.",
+        "matched_text": "wrapper.innerHTML = sanitizeTemplatePreviewHtml(props.html)",
+        "kind": {
+          "kind": "security_dangerous_api",
+          "category": "unsafe_html_output",
+          "api_name": "javascript-html-output"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/regex_compile_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+        "line": 1143,
+        "token": "new RegExp(`(${escapeRegex(word)})`, 'gi')",
+        "message": "Repeated regex compilation inside a loop should be hoisted or cached.",
+        "matched_text": "new RegExp(`(${escapeRegex(word)})`, 'gi')",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "regex_compile_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Views/Calendar/CalendarView.vue",
+        "line": 152,
+        "token": "startDate.includes('T')",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "startDate.includes('T')",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Views/Chart/ChartView.vue",
+        "line": 180,
+        "token": "numericValues.some(itemValue => itemValue === null)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "numericValues.some(itemValue => itemValue === null)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/sort_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Components/Views/Files/FilesView.vue",
+        "line": 685,
+        "token": "bucket.sort((a, b) => a.name.localeCompare(b.name))",
+        "message": "Repeated sorting inside a loop should be moved out or precomputed.",
+        "matched_text": "bucket.sort((a, b) => a.name.localeCompare(b.name))",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "sort_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Admin/Conversions/Create.vue",
+        "line": 138,
+        "token": "form.value.excludeFields.includes(source)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "form.value.excludeFields.includes(source)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Admin/Conversions/Edit.vue",
+        "line": 131,
+        "token": "form.value.excludeFields.includes(source)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "form.value.excludeFields.includes(source)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Admin/LabelManager/Index.vue",
+        "line": 177,
+        "token": "displayKey.toLowerCase().includes(query)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "displayKey.toLowerCase().includes(query)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Admin/LabelManager/Index.vue",
+        "line": 178,
+        "token": "baseValue.toLowerCase().includes(query)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "baseValue.toLowerCase().includes(query)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Admin/LabelManager/Index.vue",
+        "line": 179,
+        "token": "(customValue || '').toLowerCase().includes(query)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "(customValue || '').toLowerCase().includes(query)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Email/Index.vue",
+        "line": 3551,
+        "token": "paneFilters.value.some((pane) => pane.key === candidate)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "paneFilters.value.some((pane) => pane.key === candidate)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/collection_scan_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Production/Planning/Gantt.vue",
+        "line": 547,
+        "token": "tasks.find((t) => t.id === `grp:${groupKey}`)",
+        "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+        "matched_text": "tasks.find((t) => t.id === `grp:${groupKey}`)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "collection_scan_in_loop",
+          "loop_family": "brace_loop"
+        }
+      },
+      {
+        "rule_id": "complexity/javascript/sort_in_loop",
+        "family": "algorithmic_complexity",
+        "language": "typescript",
+        "provenance": "ast_grep.pattern",
+        "file_path": "resources/js/Pages/Production/Planning/Gantt.vue",
+        "line": 558,
+        "token": "list .filter((w) => w.sequence > 0) .slice() .sort((a, b) => a.sequence - b.sequence || a.id - b.id)",
+        "message": "Repeated sorting inside a loop should be moved out or precomputed.",
+        "matched_text": "list .filter((w) => w.sequence > 0) .slice() .sort((a, b) => a.sequence - b.sequence || a.id - b.id)",
+        "kind": {
+          "kind": "algorithmic_complexity",
+          "subtype": "sort_in_loop",
+          "loop_family": "brace_loop"
+        }
+      }
+    ]
+  },
+  "graph": {
+    "baseline": {
+      "file": "target/reliability-2026-09-09/draivix-large-scanner/semantic-graph.json",
+      "sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478",
+      "without_parse_outcomes_sha256": "6d13d22db607a655bb0b43ac1ee144464e108b1d3deebb4ba0ab9449735e88fc"
+    },
+    "current": {
+      "file": "target/reliability-2026-09-09/draivix-vue-script-final/semantic-graph.json",
+      "sha256": "b43e7ae13b1db73f1bc95daf56d45a4693017e1a6ec0a894b7372cfacf05e8a8",
+      "without_parse_outcomes_sha256": "67610aee40e6a34918299c14903945e029e8df09c9f226652d2b63575dcbc9f2"
+    },
+    "equal_outside_parse_outcomes": false,
+    "files_symbols_references": {
+      "baseline": {
+        "file": "target/reliability-2026-09-09/draivix-large-scanner/semantic-graph.json",
+        "files_symbols_references_sha256": "19cdd08f63427cc3d1dcfa38efd4f653d4ad736951bdd084b0e238918f1fcc83",
+        "edges": 325573
+      },
+      "current": {
+        "file": "target/reliability-2026-09-09/draivix-vue-script-final/semantic-graph.json",
+        "files_symbols_references_sha256": "19cdd08f63427cc3d1dcfa38efd4f653d4ad736951bdd084b0e238918f1fcc83",
+        "edges": 325573
+      },
+      "files_symbols_references_equal": true,
+      "remaining_fields_equal": true,
+      "changed_edges": [
+        {
+          "index": 133471,
+          "before": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/composables/useTranslation.ts",
+            "target_symbol_id": "function:resources/js/composables/useTranslation.ts:useTranslation",
+            "reference_target_name": "@/composables/useTranslation::useTranslation",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Inferred",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 500,
+            "reason": "import:import-scoped; parser_recovery: endpoint file required syntax recovery",
+            "line": 6,
+            "occurrence_index": 0
+          },
+          "after": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/composables/useTranslation.ts",
+            "target_symbol_id": "function:resources/js/composables/useTranslation.ts:useTranslation",
+            "reference_target_name": "@/composables/useTranslation::useTranslation",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 6,
+            "occurrence_index": 0
+          },
+          "changed_fields": [
+            "strength",
+            "confidence_millis",
+            "reason"
+          ]
+        },
+        {
+          "index": 133472,
+          "before": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/composables/useTranslation.ts",
+            "target_symbol_id": "function:resources/js/composables/useTranslation.ts:useTranslation",
+            "reference_target_name": "useTranslation",
+            "kind": "Call",
+            "relation_kind": "Call",
+            "layer": "Structural",
+            "strength": "Inferred",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 500,
+            "reason": "call:import-scoped; parser_recovery: endpoint file required syntax recovery",
+            "line": 34,
+            "occurrence_index": 0
+          },
+          "after": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "resources/js/composables/useTranslation.ts",
+            "target_symbol_id": "function:resources/js/composables/useTranslation.ts:useTranslation",
+            "reference_target_name": "useTranslation",
+            "kind": "Call",
+            "relation_kind": "Call",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "call:import-scoped",
+            "line": 34,
+            "occurrence_index": 0
+          },
+          "changed_fields": [
+            "strength",
+            "confidence_millis",
+            "reason"
+          ]
+        },
+        {
+          "index": 133475,
+          "before": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/GitVersionFleetPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "target_symbol_id": "module:app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "reference_target_name": "./FleetPanel.vue::default",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Inferred",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 500,
+            "reason": "import:import-scoped; parser_recovery: endpoint file required syntax recovery",
+            "line": 6,
+            "occurrence_index": 0
+          },
+          "after": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/GitVersionFleetPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "target_symbol_id": "module:app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "reference_target_name": "./FleetPanel.vue::default",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 6,
+            "occurrence_index": 0
+          },
+          "changed_fields": [
+            "strength",
+            "confidence_millis",
+            "reason"
+          ]
+        },
+        {
+          "index": 133493,
+          "before": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/OwnershipReviewPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "target_symbol_id": "module:app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "reference_target_name": "./FleetPanel.vue::default",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Inferred",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 500,
+            "reason": "import:import-scoped; parser_recovery: endpoint file required syntax recovery",
+            "line": 17,
+            "occurrence_index": 0
+          },
+          "after": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/OwnershipReviewPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "target_symbol_id": "module:app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "reference_target_name": "./FleetPanel.vue::default",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 17,
+            "occurrence_index": 0
+          },
+          "changed_fields": [
+            "strength",
+            "confidence_millis",
+            "reason"
+          ]
+        },
+        {
+          "index": 133539,
+          "before": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/WebActivityPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "target_symbol_id": "module:app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "reference_target_name": "./FleetPanel.vue::default",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Inferred",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 500,
+            "reason": "import:import-scoped; parser_recovery: endpoint file required syntax recovery",
+            "line": 6,
+            "occurrence_index": 0
+          },
+          "after": {
+            "source_file_path": "app/Modules/ServerManager/resources/js/Components/WebActivityPanel.vue",
+            "source_symbol_id": null,
+            "target_file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "target_symbol_id": "module:app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+            "reference_target_name": "./FleetPanel.vue::default",
+            "kind": "Import",
+            "relation_kind": "Import",
+            "layer": "Structural",
+            "strength": "Hard",
+            "origin": "Resolver",
+            "resolution_tier": "ImportScoped",
+            "confidence_millis": 900,
+            "reason": "import:import-scoped",
+            "line": 6,
+            "occurrence_index": 0
+          },
+          "changed_fields": [
+            "strength",
+            "confidence_millis",
+            "reason"
+          ]
+        }
+      ]
+    },
+    "changed_parse_outcomes": [
+      {
+        "file_path": "app/Modules/Accounting/resources/js/components/CsvImportModal.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 528
+        }
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/resources/js/Pages/Architecture.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 241
+        }
+      },
+      {
+        "file_path": "app/Modules/AccountingLedger/resources/js/Pages/Index.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1347
+        }
+      },
+      {
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportBuilder.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 834
+        }
+      },
+      {
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportResultView.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": true,
+        "after_recovered": true,
+        "before_diagnostic_count": 22,
+        "after_diagnostic_count": 22,
+        "extraction_gap": {
+          "reason": "vue_embedded_nul",
+          "line": 185
+        }
+      },
+      {
+        "file_path": "app/Modules/CRMFoundation/resources/js/components/ActivityArtifactContentPanel.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1
+        }
+      },
+      {
+        "file_path": "app/Modules/ManufacturingFoundation/resources/js/Pages/Admin/components/ProfileDefinitionTable.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 87
+        }
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/components/UserList.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 392
+        }
+      },
+      {
+        "file_path": "app/Modules/ProductBase/resources/js/Pages/Admin/MeasurementStudio.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 187
+        }
+      },
+      {
+        "file_path": "app/Modules/ProductBase/resources/js/Pages/Admin/components/ConversionPreviewPanel.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 117
+        }
+      },
+      {
+        "file_path": "app/Modules/ProjectManagement/resources/js/widgets/ProjectOverviewMonthlyBillingWidget.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 85
+        }
+      },
+      {
+        "file_path": "app/Modules/ServerManager/resources/js/Components/FleetPanel.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": true,
+        "after_recovered": false,
+        "before_diagnostic_count": 1,
+        "after_diagnostic_count": 0
+      },
+      {
+        "file_path": "app/Modules/Sgeo/resources/js/widgets/SgeoTopQueriesWidget.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 91
+        }
+      },
+      {
+        "file_path": "app/Modules/Storage/resources/js/components/FileUploadModal.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 356
+        }
+      },
+      {
+        "file_path": "app/Modules/Storage/resources/js/components/PermissionManager.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 433
+        }
+      },
+      {
+        "file_path": "app/Modules/SupportDesk/resources/js/Pages/Settings.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1235
+        }
+      },
+      {
+        "file_path": "app/Modules/WarehouseMobile/resources/js/Components/WarehouseInquirySheet.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 89
+        }
+      },
+      {
+        "file_path": "app/Modules/WarehouseMobile/resources/js/Pages/Transfers/Index.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 220
+        }
+      },
+      {
+        "file_path": "clients/gavona/resources/js/components/GavonaFilterBuilder.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1042
+        }
+      },
+      {
+        "file_path": "clients/trido/resources/js/Pages/ModelImportAdmin.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1092
+        }
+      },
+      {
+        "file_path": "clients/trido/resources/js/Pages/PortalOrderDetail.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 461
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Dashboard/WidgetConfigurator.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 639
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Entity/EntityColumnDrawer.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 562
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Filter/FilterBuilder.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 1335
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Mobile/MobileCameraCapture.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 229
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Mobile/MobileEmailMailboxSwitcher.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 147
+        }
+      },
+      {
+        "file_path": "resources/js/Components/Vault/CredentialView.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 577
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Conversions/Create.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 278
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Conversions/Edit.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 272
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/ETL/Imports/Create.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 147
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Filters/Index.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 172
+        }
+      },
+      {
+        "file_path": "resources/js/Pages/Admin/Roles/Index.vue",
+        "before_parser": "tree-sitter-typescript",
+        "after_parser": "tree-sitter-typescript",
+        "before_recovered": false,
+        "after_recovered": false,
+        "before_diagnostic_count": 0,
+        "after_diagnostic_count": 0,
+        "extraction_gap": {
+          "reason": "vue_structure_recovery",
+          "line": 384
+        }
+      }
+    ],
+    "baseline_parse_outcomes_sha256": "510ecb9366b26129e588b27502bef6ac4b8717649e59e4d522a28f94baddfae9",
+    "current_parse_outcomes_sha256": "ea3b6dfa3323c6306e3c9b90d82ac4c1d3a7764f3b05320fddf2eae67107b70d",
+    "comparison_method": "Files, symbols and references compared as complete compact JSON prefix bytes. All resolved edges compared in order across every serialized property. Remaining unsupported-source and other-input fields compared in full. Parse-outcome changes recorded separately."
+  },
+  "analysis_sections_equal": {
+    "architectural_assessment": true,
+    "security_analysis": true,
+    "hardwiring": true,
+    "graph_analysis": true
+  },
+  "coverage_projections": [
+    {
+      "projection": "raw",
+      "matches_scanner": true
+    },
+    {
+      "projection": "cli",
+      "matches_scanner": true
+    },
+    {
+      "projection": "report",
+      "matches_scanner": true
+    },
+    {
+      "projection": "surface",
+      "matches_scanner": true
+    }
+  ],
+  "mcp": {
+    "responses": "target/reliability-2026-09-09/draivix-mcp-vue-script-final-responses.jsonl",
+    "responses_sha256": "c81af12075186c582c8a06a634f2d9632ddad3c4fefa896633ca1965dfc7745d",
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 45446.656499000004,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 13.048193000000001,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30015.234492,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788979540288,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 44998.219974,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "show_cycles",
+          "elapsed_ms": 45000.581427,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 45001.229608,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 45001.616677,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "tools": [
+      {
+        "id": 2,
+        "coverage": {
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "bytes": 204305,
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 198406,
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 195802,
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 147303,
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 144848,
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "reason": "vue_script_only"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "prefiltered_files": 8651,
+          "scanned_files": 8362,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-vue-script-final/.generations/18d3bb5504546aa9-1b8faf-0",
+            "generation": "18d3bb5504546aa9-1b8faf-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788979585277,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 3,
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-vue-script-final/.generations/18d3bb5504546aa9-1b8faf-0",
+            "generation": "18d3bb5504546aa9-1b8faf-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788979585277,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 4,
+        "coverage": {
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "bytes": 204305,
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 198406,
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 195802,
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 147303,
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 144848,
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "reason": "vue_script_only"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "prefiltered_files": 8651,
+          "scanned_files": 8362,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-vue-script-final/.generations/18d3bb5504546aa9-1b8faf-0",
+            "generation": "18d3bb5504546aa9-1b8faf-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788979585277,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        },
+        "recommendations": [
+          "Secondary rule coverage Incomplete: 8362 scanned, 8651 prefiltered, 0 oversized, 0 without language rules, 0 other gaps, 792 scope-limited files. See ast-grep-scan.json; this does not establish absence of defects.",
+          "Review input_coverage before drawing clean-code conclusions; absence-based checks are deferred.",
+          "Drill into typed cycle findings first and separate structural cycles from framework/runtime expansion before refactoring.",
+          "Review repeated literals and hardcoded network/env access for centralization into configuration, constants, or doctrine.",
+          "Treat security pressure as guard-rail work: normalize external findings and hardcoded-network findings into the same remediation workflow."
+        ]
+      },
+      {
+        "id": 5,
+        "coverage": {
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "bytes": 204305,
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 198406,
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 195802,
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 147303,
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "reason": "vue_script_only"
+            },
+            {
+              "bytes": 144848,
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "reason": "vue_script_only"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "prefiltered_files": 8651,
+          "scanned_files": 8362,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-vue-script-final/.generations/18d3bb5504546aa9-1b8faf-0",
+            "generation": "18d3bb5504546aa9-1b8faf-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_files": 0
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788979585277,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 80,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      }
+    ]
+  },
+  "guard": {
+    "verdict": "Block",
+    "reasons": [
+      "No verified comparable baseline is available; current observations do not establish a regression or improvement.",
+      "Current snapshot contains 17 visible high-severity security finding(s); this is an observed risk, not a claim about when it was introduced.",
+      "Native input coverage is incomplete; absence-based checks are deferred.",
+      "Secondary rule coverage Incomplete: 8362 scanned, 8651 prefiltered, 0 oversized, 0 without language rules, 0 other gaps, 792 scope-limited files. See ast-grep-scan.json; this does not establish absence of defects.",
+      "10 doctrine-backed attention item(s) need review."
+    ]
+  },
+  "self": {
+    "time_file": "target/reliability-2026-09-09/self-vue-script-final-time.txt",
+    "trace_file": "target/reliability-2026-09-09/self-vue-script-final-trace.txt",
+    "elapsed": "0:02.91",
+    "peak_rss_kib": 154564,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=56 findings=53 elapsed_ms=708"
+    ],
+    "coverage": {
+      "status": "complete",
+      "input_files": 117,
+      "scanned_files": 56,
+      "prefiltered_files": 61,
+      "oversized_files": 0,
+      "unsupported_files": 0,
+      "other_gap_files": 0,
+      "scope_limited_files": 0,
+      "gap_bytes": 0,
+      "gap_files_preview": []
+    },
+    "native_input_status": "incomplete"
+  },
+  "artifacts": [
+    {
+      "name": "ast-grep-scan.json",
+      "sha256": "db0ea592c9d42216843b87330734e8687ca81aa5104d7857babf0d6b8b7e0696"
+    },
+    {
+      "name": "deterministic-findings.json",
+      "sha256": "945f00c3f10f39d394af7c983bdddb401d0e647233e5ca076559e27f105ad819"
+    },
+    {
+      "name": "aigiscode-report.json",
+      "sha256": "fa40c15218efce50cb5e0825467f2194ebfab0dea44233f3974e8e6b4d7ec4c6"
+    },
+    {
+      "name": "architecture-surface.json",
+      "sha256": "1710758debd4fd53abd228e83ca51556d24cdc5faec3f93faa5b699bcd8d3c93"
+    },
+    {
+      "name": "guard-decision.json",
+      "sha256": "aa8e2d6552dad1eaf8019883d3ef299695d05998a0602c11709a4e787b0be1f7"
+    },
+    {
+      "name": "convergence-history.json",
+      "sha256": "3f389005b7aaeb69c7fcecdf5f3667d7c48b2d2ea8a5bf54155e5adcf210aefc"
+    },
+    {
+      "name": "scan-manifest.json",
+      "sha256": "820cb88eddb2c7e015ebd7f5b6e5990a9f161161a3b1f24a6b34cb4730af201e"
+    }
+  ],
+  "limitations": [
+    "All Vue coverage remains script-only; templates, styles and custom blocks are outside secondary rule scope. HTML structure recovery is not a Vue compiler verdict.",
+    "Existing native architecture complexity dispatch excludes Vue, so the 41 new complexity clues remain raw scanner evidence. The broader Vue assessment integration and actionability filters remain outstanding.",
+    "The five HTML-output clues do not prove exploitable vulnerabilities; inspected examples include empty-string cleanup and an explicit sanitizer call.",
+    "Eight new and two updated regressions remain unexecuted under the user pause. This does not establish approved CI or universal parser correctness.",
+    "Measurements are individual observations on a shared host. Two exploratory passes under draivix-vue-scanner and draivix-vue-script-scope exposed the boundary/coverage issues corrected before the final pass; their counts are not final validation.",
+    "Only the preserved captured corpus is covered, not the complete current live repository."
+  ]
+}
