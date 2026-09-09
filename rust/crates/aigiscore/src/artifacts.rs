@@ -62,7 +62,7 @@ pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 
 /// Bump whenever parser/resolver/plugin semantics change without a package-version bump.
-pub const SEMANTIC_REVISION: u32 = 8;
+pub const SEMANTIC_REVISION: u32 = 9;
 
 /// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
 /// proves the analyzed file set and contents still match `semantic-graph.json`
@@ -87,15 +87,15 @@ pub struct ScanManifestEntry {
 }
 
 pub fn build_scan_manifest(
-    root: &Path,
     parsed_sources: &[(PathBuf, String)],
     semantic_graph_xxh3: String,
+    resolve_config_xxh3: String,
 ) -> ScanManifest {
     ScanManifest {
         aigiscode_version: env!("CARGO_PKG_VERSION").to_string(),
         semantic_revision: SEMANTIC_REVISION,
         semantic_graph_xxh3,
-        resolve_config_xxh3: resolve_config_hash(root),
+        resolve_config_xxh3,
         files: parsed_sources
             .iter()
             .map(|(path, source)| ScanManifestEntry {
@@ -104,20 +104,6 @@ pub fn build_scan_manifest(
             })
             .collect(),
     }
-}
-
-/// Hash of the files whose content changes resolution semantics. Missing
-/// files hash as empty — their absence is itself part of the fingerprint.
-pub fn resolve_config_hash(root: &Path) -> String {
-    let mut acc = xxhash_rust::xxh3::Xxh3::new();
-    for name in ["tsconfig.json", "jsconfig.json", "composer.json"] {
-        let path = root.join(name);
-        acc.update(name.as_bytes());
-        if let Ok(bytes) = fs::read(&path) {
-            acc.update(&bytes);
-        }
-    }
-    format!("{:016x}", acc.digest())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1222,9 +1208,9 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         "scan_manifest",
         &paths.scan_manifest,
         &build_scan_manifest(
-            &analysis.root,
             &analysis.parsed_sources,
             semantic_graph_xxh3,
+            analysis.resolve_config_xxh3.clone(),
         ),
     )?;
     trace_artifact_step("json.write", write_started.elapsed().as_millis());

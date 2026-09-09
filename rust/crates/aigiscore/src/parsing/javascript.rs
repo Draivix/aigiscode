@@ -28,7 +28,11 @@ pub fn parse_javascript_to_graph(
         Language::JavaScript
     };
     let tree_sitter_language = if is_typescript {
-        tree_sitter_typescript::LANGUAGE_TYPESCRIPT
+        if file_path.extension().and_then(|extension| extension.to_str()) == Some("tsx") {
+            tree_sitter_typescript::LANGUAGE_TSX
+        } else {
+            tree_sitter_typescript::LANGUAGE_TYPESCRIPT
+        }
     } else {
         tree_sitter_javascript::LANGUAGE
     };
@@ -81,6 +85,7 @@ impl<'a> JavaScriptContext<'a> {
             SymbolKind::Function => "function",
             SymbolKind::Method => "method",
             SymbolKind::Interface => "interface",
+            SymbolKind::Enum => "enum",
             _ => "symbol",
         };
         match parent {
@@ -104,12 +109,16 @@ fn walk_node(
         "export_statement" => {
             record_export_from_statement(node, context, graph, container_symbol_id);
         }
-        "class_declaration" => {
+        "class_declaration" | "abstract_class_declaration" | "interface_declaration" | "enum_declaration" => {
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = context.text(name_node);
                 let symbol = make_symbol(
                     context,
-                    SymbolKind::Class,
+                    match node.kind() {
+                        "interface_declaration" => SymbolKind::Interface,
+                        "enum_declaration" => SymbolKind::Enum,
+                        _ => SymbolKind::Class,
+                    },
                     &name,
                     None,
                     None,
@@ -503,13 +512,25 @@ fn record_js_heritage(
 ) {
     for idx in 0..node.child_count() {
         if let Some(child) = node.child(idx as u32) {
-            if matches!(child.kind(), "class_heritage" | "extends_clause") {
-                let parent = find_first_heritage_target(child);
-                if let Some(parent) = parent {
+            if child.kind() == "class_heritage" {
+                record_js_heritage(child, context, graph, enclosing_symbol_id);
+                continue;
+            }
+            let (kind, targets) = if matches!(child.kind(), "extends_clause" | "extends_type_clause" | "implements_clause") {
+                let kind = if child.kind() == "implements_clause" { ReferenceKind::Implements } else { ReferenceKind::Extends };
+                let mut cursor = child.walk();
+                (kind, child.named_children(&mut cursor).filter(|target| target.kind() != "type_arguments").collect::<Vec<_>>())
+            } else if node.kind() == "class_heritage" && child.is_named() {
+                (ReferenceKind::Extends, vec![child])
+            } else {
+                continue;
+            };
+            for target in targets {
+                if let Some(parent) = find_first_heritage_target(target) {
                     graph.add_reference(SemanticReference {
                         file_path: context.file_path.clone(),
                         enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-                        kind: ReferenceKind::Extends,
+                        kind,
                         target_name: context.text(parent),
                         binding_name: None,
                         line: context.line(parent),
@@ -528,7 +549,7 @@ fn record_js_heritage(
 fn find_first_heritage_target(node: Node<'_>) -> Option<Node<'_>> {
     if matches!(
         node.kind(),
-        "identifier" | "type_identifier" | "nested_identifier" | "member_expression"
+        "identifier" | "type_identifier" | "nested_identifier" | "nested_type_identifier" | "member_expression"
     ) {
         return Some(node);
     }

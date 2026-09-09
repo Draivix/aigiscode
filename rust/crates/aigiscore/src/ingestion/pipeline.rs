@@ -11,7 +11,7 @@ use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::policy::{PolicyBundle, PolicyLoadError};
-use crate::resolve::{load_resolve_config, resolve_graph_with_config};
+use crate::resolve::{load_resolve_config, resolve_graph_with_config, ResolveConfigError};
 use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
 use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
@@ -54,6 +54,8 @@ pub struct SemanticGraphProject {
     pub scan: ScanResult,
     pub structure: StructureGraph,
     pub semantic_graph: SemanticGraph,
+    #[serde(default)]
+    pub resolve_config_xxh3: String,
     pub timings: Vec<PhaseTiming>,
     #[serde(skip)]
     pub parsed_sources: Vec<(PathBuf, String)>,
@@ -71,6 +73,8 @@ pub struct ProjectAnalysis {
     doctrine_registry: DoctrineRegistry,
     #[serde(skip)]
     policy_bundle: PolicyBundle,
+    #[serde(skip)]
+    pub(crate) resolve_config_xxh3: String,
     pub contract_inventory: ContractInventory,
     pub dead_code: DeadCodeResult,
     pub hardwiring: HardwiringResult,
@@ -122,6 +126,8 @@ pub enum ProjectAnalysisError {
     Doctrine(#[from] DoctrineLoadError),
     #[error(transparent)]
     Policy(#[from] PolicyLoadError),
+    #[error(transparent)]
+    ResolveConfig(#[from] ResolveConfigError),
     #[error("failed to read source file {path}: {source}")]
     ReadFile {
         path: PathBuf,
@@ -211,7 +217,6 @@ fn try_fast_load_graph_project(
     if manifest.aigiscode_version != env!("CARGO_PKG_VERSION")
         || manifest.semantic_revision != crate::artifacts::SEMANTIC_REVISION
         || manifest.semantic_graph_xxh3.len() != 16
-        || manifest.resolve_config_xxh3 != crate::artifacts::resolve_config_hash(root)
     {
         return Ok(None);
     }
@@ -223,6 +228,13 @@ fn try_fast_load_graph_project(
         .filter(|file| is_supported_source_file(&file.relative_path))
         .collect::<Vec<_>>();
     if supported.len() != manifest.files.len() {
+        return Ok(None);
+    }
+    let resolve_config = load_resolve_config(
+        root,
+        &supported.iter().map(|file| file.relative_path.clone()).collect::<Vec<_>>(),
+    )?;
+    if manifest.resolve_config_xxh3 != resolve_config.fingerprint {
         return Ok(None);
     }
     let expected: HashMap<&str, &str> = manifest
@@ -285,6 +297,7 @@ fn try_fast_load_graph_project(
         scan,
         structure,
         semantic_graph,
+        resolve_config_xxh3: resolve_config.fingerprint,
         parsed_sources,
         timings: vec![
             PhaseTiming {
@@ -307,6 +320,7 @@ fn finish_project_analysis(
         scan,
         structure,
         semantic_graph,
+        resolve_config_xxh3,
         mut timings,
         parsed_sources,
     } = graph_project;
@@ -412,6 +426,7 @@ fn finish_project_analysis(
         architectural_assessment,
         doctrine_registry,
         policy_bundle,
+        resolve_config_xxh3,
         contract_inventory,
         dead_code,
         hardwiring,
@@ -498,7 +513,10 @@ pub fn build_semantic_graph_project(
     ));
 
     let resolve_started = Instant::now();
-    let resolve_config = load_resolve_config(&root);
+    let resolve_config = load_resolve_config(
+        &root,
+        &semantic_graph.files.iter().map(|file| file.path.clone()).collect::<Vec<_>>(),
+    )?;
     trace("resolve start");
     resolve_graph_with_config(&mut semantic_graph, &resolve_config);
     let resolve_elapsed = resolve_started.elapsed().as_millis();
@@ -519,6 +537,7 @@ pub fn build_semantic_graph_project(
         scan,
         structure,
         semantic_graph,
+        resolve_config_xxh3: resolve_config.fingerprint,
         parsed_sources,
         timings: vec![
             PhaseTiming {

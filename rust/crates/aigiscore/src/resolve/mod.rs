@@ -6,9 +6,11 @@ use regex::Regex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
-use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
+
+mod tsconfig;
+pub use tsconfig::ResolveConfigError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SymbolDefinition {
@@ -40,12 +42,15 @@ struct ReceiverResolution {
 #[derive(Debug, Clone, Default)]
 pub struct ResolveConfig {
     tsconfig_paths: Vec<TsPathAlias>,
+    ts_projects: Vec<tsconfig::TsProject>,
+    pub(crate) fingerprint: String,
+    pub(crate) input_paths: Vec<PathBuf>,
     composer_psr4: Vec<ComposerPsr4Mapping>,
     python_roots: Vec<PathBuf>,
     ruby_load_paths: Vec<PathBuf>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct TsPathAlias {
     pattern: String,
     targets: Vec<String>,
@@ -65,6 +70,7 @@ pub struct ResolutionContext {
     qualified_index: HashMap<String, Vec<SymbolDefinition>>,
     import_map: HashMap<PathBuf, HashSet<PathBuf>>,
     named_import_map: HashMap<(PathBuf, String), (PathBuf, String)>,
+    declared_imports: HashSet<(PathBuf, String)>,
     module_index: HashMap<PathBuf, SymbolDefinition>,
     declared_module_bindings: HashMap<(PathBuf, String), PathBuf>,
     reference_import_map: HashMap<(PathBuf, usize, String), Vec<PathBuf>>,
@@ -154,6 +160,9 @@ impl ResolutionContext {
         for reference in &graph.references {
             if !reference.kind.is_import() {
                 continue;
+            }
+            if let Some(binding) = &reference.binding_name {
+                context.declared_imports.insert((reference.file_path.clone(), binding.clone()));
             }
 
             let import_targets =
@@ -274,6 +283,9 @@ impl ResolutionContext {
             }
         }
 
+        if self.declared_imports.contains(&(from_file.to_path_buf(), name.to_owned())) {
+            return None;
+        }
         let all_candidates = self.global_index.get(name)?.clone();
         if let Some(imported_files) = self.import_map.get(from_file) {
             let imported_candidates = all_candidates
@@ -324,20 +336,25 @@ impl ResolutionContext {
     }
 }
 
-pub fn load_resolve_config(root: &Path) -> ResolveConfig {
+pub fn load_resolve_config(root: &Path, files: &[PathBuf]) -> Result<ResolveConfig, ResolveConfigError> {
+    let root = root.canonicalize().map_err(|error| ResolveConfigError {
+        path: root.to_path_buf(), message: error.to_string(),
+    })?;
+    let mut reader = tsconfig::ConfigReader::default();
     let mut config = ResolveConfig::default();
-    config
-        .tsconfig_paths
-        .extend(load_tsconfig_paths(root, &root.join("tsconfig.json")));
-    config
-        .tsconfig_paths
-        .extend(load_tsconfig_paths(root, &root.join("jsconfig.json")));
-    config
-        .composer_psr4
-        .extend(load_composer_psr4(root, &root.join("composer.json")));
-    config.python_roots = discover_python_roots(root);
-    config.ruby_load_paths = discover_ruby_load_paths(root);
-    config
+    config.ts_projects = reader.load_projects(&root, files)?;
+    let composer_path = root.join("composer.json");
+    if let Some(bytes) = reader.read(&composer_path)? {
+        let json = serde_json::from_slice(&bytes).map_err(|error| ResolveConfigError {
+            path: composer_path.clone(), message: error.to_string(),
+        })?;
+        config.composer_psr4 = load_composer_psr4(&root, &composer_path, &json);
+    }
+    config.python_roots = discover_python_roots(&root);
+    config.ruby_load_paths = discover_ruby_load_paths(&root);
+    config.fingerprint = reader.fingerprint();
+    config.input_paths = reader.input_paths();
+    Ok(config)
 }
 
 pub fn resolve_graph(graph: &mut SemanticGraph) {
@@ -420,35 +437,32 @@ fn resolve_import_reference(
         .clone()
         .unwrap_or_else(|| leaf_symbol_name(&reference.target_name));
     let import_targets = context.import_targets_for_reference(reference);
-    let mut candidates = context
-        .resolve(&preferred_name, &reference.file_path)
-        .or_else(|| {
-            let module_candidates = context.module_candidates_for_files(&import_targets);
-            (!module_candidates.is_empty()).then_some(TieredCandidates {
-                candidates: module_candidates,
-                tier: ResolutionTier::ImportScoped,
-            })
-        })?;
-
-    if !import_targets.is_empty() {
-        let filtered = candidates
-            .candidates
-            .iter()
-            .filter(|candidate| import_targets.contains(&candidate.file_path))
-            .cloned()
-            .collect::<Vec<_>>();
-        if !filtered.is_empty() {
-            candidates.candidates = filtered;
-        } else {
-            let module_candidates = context.module_candidates_for_files(&import_targets);
-            if !module_candidates.is_empty() {
-                candidates.candidates = module_candidates;
-                candidates.tier = ResolutionTier::ImportScoped;
-            }
-        }
+    let source_language = context.language_map.get(&reference.file_path)?;
+    let import_targets = import_targets
+        .into_iter()
+        .filter(|path| context.language_map.get(path).is_some_and(|language| {
+            same_language_family(*source_language, *language)
+        }))
+        .collect::<Vec<_>>();
+    if import_targets.is_empty() {
+        return None;
     }
-
-    pick_edge(reference, candidates)
+    let exported_name = leaf_symbol_name(&reference.target_name);
+    let mut definitions = import_targets
+        .iter()
+        .flat_map(|path| {
+            context.file_index.get(&(path.clone(), exported_name.clone()))
+                .or_else(|| context.file_index.get(&(path.clone(), preferred_name.clone())))
+                .into_iter().flatten().cloned()
+        })
+        .collect::<Vec<_>>();
+    if definitions.is_empty() {
+        definitions = context.module_candidates_for_files(&import_targets);
+    }
+    pick_edge(reference, TieredCandidates {
+        candidates: definitions,
+        tier: ResolutionTier::ImportScoped,
+    })
 }
 
 fn pick_edge(reference: &SemanticReference, candidates: TieredCandidates) -> Option<ResolvedEdge> {
@@ -1513,28 +1527,28 @@ fn resolve_javascript_import_paths(
         let normalized = normalize_relative_path(Path::new(module_target.trim_start_matches('/')));
         candidates.extend(javascript_candidate_paths(&normalized));
     } else {
-        let config_matches = resolve_tsconfig_path_alias(module_target, known_files, config);
-        if !config_matches.is_empty() {
-            return config_matches;
-        }
-        let normalized = normalize_relative_path(Path::new(module_target));
-        candidates.extend(javascript_candidate_paths(&normalized));
-        candidates.extend(javascript_candidate_paths(&PathBuf::from(format!(
-            "src/{module_target}"
-        ))));
+        return resolve_tsconfig_path_alias(from_file, module_target, known_files, config);
     }
-
-    match_candidates(candidates, known_files)
+    candidates.into_iter().find(|path| known_files.contains(path)).into_iter().collect()
 }
 
 fn javascript_candidate_paths(base: &Path) -> Vec<PathBuf> {
-    if base.extension().is_some() {
-        return vec![normalize_relative_path(base)];
+    if let Some(extension) = base.extension().and_then(OsStr::to_str) {
+        let replacements: &[&str] = match extension {
+            "js" => &["ts", "tsx", "d.ts", "js", "jsx"],
+            "jsx" => &["tsx", "d.ts", "jsx"],
+            "mjs" => &["mts", "d.mts", "mjs"],
+            "cjs" => &["cts", "d.cts", "cjs"],
+            _ => return vec![normalize_relative_path(base)],
+        };
+        return replacements.iter().map(|extension| normalize_relative_path(&base.with_extension(extension))).collect();
     }
 
     let mut candidates = Vec::new();
-    for extension in ["js", "jsx", "ts", "tsx", "vue"] {
+    for extension in ["ts", "tsx", "d.ts", "js", "jsx", "vue"] {
         candidates.push(normalize_relative_path(&base.with_extension(extension)));
+    }
+    for extension in ["ts", "tsx", "d.ts", "js", "jsx", "vue"] {
         candidates.push(normalize_relative_path(
             &base.join(format!("index.{extension}")),
         ));
@@ -1753,10 +1767,14 @@ fn normalize_relative_path(path: &Path) -> PathBuf {
         match component {
             Component::CurDir => {}
             Component::ParentDir => {
-                normalized.pop();
+                if matches!(normalized.components().next_back(), Some(Component::Normal(_))) {
+                    normalized.pop();
+                } else if !normalized.has_root() {
+                    normalized.push("..");
+                }
             }
             Component::Normal(segment) => normalized.push(segment),
-            _ => {}
+            Component::RootDir | Component::Prefix(_) => normalized.push(component.as_os_str()),
         }
     }
     normalized
@@ -1801,55 +1819,7 @@ fn suffix_match_case_insensitive(suffix: &str, known_files: &HashSet<PathBuf>) -
         .collect()
 }
 
-fn load_tsconfig_paths(root: &Path, path: &Path) -> Vec<TsPathAlias> {
-    let Ok(source) = fs::read_to_string(path) else {
-        return Vec::new();
-    };
-    let Ok(json) = serde_json::from_str::<Value>(&source) else {
-        return Vec::new();
-    };
-    let Some(compiler_options) = json.get("compilerOptions") else {
-        return Vec::new();
-    };
-    let Some(paths) = compiler_options.get("paths").and_then(Value::as_object) else {
-        return Vec::new();
-    };
-
-    let config_dir = path.parent().unwrap_or_else(|| Path::new(""));
-    let base_dir = compiler_options
-        .get("baseUrl")
-        .and_then(Value::as_str)
-        .map(|base_url| relativize_to_root(&config_dir.join(base_url), root))
-        .unwrap_or_else(|| relativize_to_root(config_dir, root));
-
-    paths
-        .iter()
-        .filter_map(|(pattern, targets)| {
-            let target_values = match targets {
-                Value::Array(values) => values
-                    .iter()
-                    .filter_map(Value::as_str)
-                    .map(str::to_owned)
-                    .collect::<Vec<_>>(),
-                Value::String(value) => vec![value.clone()],
-                _ => Vec::new(),
-            };
-            (!target_values.is_empty()).then_some(TsPathAlias {
-                pattern: pattern.clone(),
-                targets: target_values,
-                base_dir: base_dir.clone(),
-            })
-        })
-        .collect()
-}
-
-fn load_composer_psr4(root: &Path, path: &Path) -> Vec<ComposerPsr4Mapping> {
-    let Ok(source) = fs::read_to_string(path) else {
-        return Vec::new();
-    };
-    let Ok(json) = serde_json::from_str::<Value>(&source) else {
-        return Vec::new();
-    };
+fn load_composer_psr4(root: &Path, path: &Path, json: &Value) -> Vec<ComposerPsr4Mapping> {
     let Some(psr4) = json
         .get("autoload")
         .and_then(|autoload| autoload.get("psr-4"))
@@ -1882,34 +1852,50 @@ fn load_composer_psr4(root: &Path, path: &Path) -> Vec<ComposerPsr4Mapping> {
 }
 
 fn resolve_tsconfig_path_alias(
+    from_file: &Path,
     import_target: &str,
     known_files: &HashSet<PathBuf>,
     config: &ResolveConfig,
 ) -> HashSet<PathBuf> {
-    for alias in &config.tsconfig_paths {
-        if let Some(wildcard) = match_ts_path_pattern(&alias.pattern, import_target) {
-            let candidates = alias
-                .targets
-                .iter()
-                .flat_map(|target| {
-                    let substituted = apply_ts_path_target(target, wildcard);
-                    javascript_candidate_paths(&normalize_relative_path(
-                        &alias.base_dir.join(substituted),
-                    ))
-                })
-                .collect::<Vec<_>>();
-            let resolved = match_candidates(candidates, known_files);
-            if !resolved.is_empty() {
-                return resolved;
+    let mut projects = config.ts_projects.iter().filter(|project| project.contains(from_file)).collect::<Vec<_>>();
+    if projects.is_empty() {
+        // Include/exclude select root files; an imported dependency can still
+        // belong to the nearest project even when it was not a root file.
+        projects.extend(config.ts_projects.iter().filter(|project| from_file.starts_with(&project.directory)));
+    }
+    let depth = projects.iter().map(|project| project.directory.components().count()).max();
+    let mut projects = projects.into_iter().filter(|project| Some(project.directory.components().count()) == depth);
+    let project = projects.next();
+    if let Some(selected) = project {
+        // A file can belong to multiple configured projects. Do not pick a
+        // conflicting interpretation by traversal order.
+        if projects.any(|other| other.aliases != selected.aliases || other.base_url != selected.base_url) {
+            return HashSet::new();
+        }
+    }
+    let aliases = project.map_or(config.tsconfig_paths.as_slice(), |project| project.aliases.as_slice());
+    let selected = aliases.iter().filter_map(|alias| {
+        match_ts_path_pattern(&alias.pattern, import_target).map(|wildcard| (alias, wildcard))
+    }).max_by_key(|(alias, wildcard)| (wildcard.is_none(), alias.pattern.find('*').unwrap_or(alias.pattern.len())));
+    if let Some((alias, wildcard)) = selected {
+        for target in &alias.targets {
+            let substituted = apply_ts_path_target(target, wildcard);
+            if let Some(path) = javascript_candidate_paths(&normalize_relative_path(&alias.base_dir.join(substituted)))
+                .into_iter().find(|path| known_files.contains(path)) {
+                return HashSet::from([path]);
             }
         }
     }
-    HashSet::new()
+    project.and_then(|project| project.base_url.as_ref()).and_then(|base| {
+        javascript_candidate_paths(&normalize_relative_path(&base.join(import_target)))
+            .into_iter().find(|path| known_files.contains(path))
+    }).into_iter().collect()
 }
 
 fn match_ts_path_pattern<'a>(pattern: &'a str, import_target: &'a str) -> Option<Option<&'a str>> {
     if let Some((prefix, suffix)) = pattern.split_once('*') {
-        if import_target.starts_with(prefix) && import_target.ends_with(suffix) {
+        if import_target.len() >= prefix.len() + suffix.len()
+            && import_target.starts_with(prefix) && import_target.ends_with(suffix) {
             let wildcard = &import_target[prefix.len()..import_target.len() - suffix.len()];
             return Some(Some(wildcard));
         }
@@ -3773,6 +3759,7 @@ const _unused = user;
             composer_psr4: Vec::new(),
             python_roots: Vec::new(),
             ruby_load_paths: Vec::new(),
+            ..ResolveConfig::default()
         };
         resolve_graph_with_config(&mut app, &config);
 
@@ -3840,6 +3827,7 @@ def run(user: User):
             composer_psr4: Vec::new(),
             python_roots: vec![PathBuf::from("src")],
             ruby_load_paths: Vec::new(),
+            ..ResolveConfig::default()
         };
         resolve_graph_with_config(&mut service, &config);
 
@@ -3902,6 +3890,7 @@ use Acme\Models\User;
             }],
             python_roots: Vec::new(),
             ruby_load_paths: Vec::new(),
+            ..ResolveConfig::default()
         };
         resolve_graph_with_config(&mut service, &config);
 
@@ -4065,6 +4054,7 @@ end
             composer_psr4: Vec::new(),
             python_roots: Vec::new(),
             ruby_load_paths: vec![PathBuf::from("lib")],
+            ..ResolveConfig::default()
         };
         resolve_graph_with_config(&mut service, &config);
 
@@ -4239,9 +4229,9 @@ end
         )
         .unwrap();
 
-        let config = load_resolve_config(&fixture);
+        let config = load_resolve_config(&fixture, &[]).unwrap();
 
-        assert_eq!(config.tsconfig_paths.len(), 1);
+        assert_eq!(config.ts_projects.len(), 1);
         assert_eq!(config.composer_psr4.len(), 1);
         assert!(!config.python_roots.is_empty());
     }

@@ -1,0 +1,68 @@
+{
+  "language_imports": [
+    {
+      "source_file_path": "website/src/pages/LanguagePage.tsx",
+      "source_symbol_id": null,
+      "target_file_path": "website/src/content/languages.ts",
+      "target_symbol_id": "interface:website/src/content/languages.ts:Language",
+      "reference_target_name": "@/content/languages::Language",
+      "kind": "TypeImport",
+      "relation_kind": "TypeUse",
+      "layer": "Structural",
+      "strength": "Hard",
+      "origin": "Resolver",
+      "resolution_tier": "ImportScoped",
+      "confidence_millis": 900,
+      "reason": "type-import:import-scoped",
+      "line": 21,
+      "occurrence_index": 0
+    },
+    {
+      "source_file_path": "website/src/pages/LanguagesPage.tsx",
+      "source_symbol_id": null,
+      "target_file_path": "website/src/content/languages.ts",
+      "target_symbol_id": "interface:website/src/content/languages.ts:Language",
+      "reference_target_name": "@/content/languages::Language",
+      "kind": "TypeImport",
+      "relation_kind": "TypeUse",
+      "layer": "Structural",
+      "strength": "Hard",
+      "origin": "Resolver",
+      "resolution_tier": "ImportScoped",
+      "confidence_millis": 900,
+      "reason": "type-import:import-scoped",
+      "line": 18,
+      "occurrence_index": 0
+    }
+  ],
+  "declaration": [
+    {
+      "id": "interface:website/src/content/languages.ts:Language",
+      "file_path": "website/src/content/languages.ts",
+      "kind": "Interface",
+      "name": "Language",
+      "qualified_name": "Language",
+      "parent_symbol_id": null,
+      "owner_type_name": null,
+      "return_type_name": null,
+      "visibility": "Public",
+      "parameter_count": 0,
+      "required_parameter_count": 0,
+      "start_line": 5,
+      "end_line": 22
+    }
+  ],
+  "cross_language_edges": [],
+  "file_count": 109,
+  "symbol_count": 2611,
+  "edge_count": 5793,
+  "audit_date": "2026-09-09",
+  "binary_sha256": "144428fd484108abbeb71cf04dae0cb74dcad1778325d64e434cf93d0c38593a",
+  "source_manifest_sha256": "ada8d8f34dc994d7fafcc11fb6350044ef0382cb2a6b1037f487fa2160878578",
+  "semantic_revision": 9,
+  "elapsed_seconds": 2.17,
+  "maximum_rss_kib": 148976,
+  "exit_status": 0,
+  "verification": "Real whole-repository product analysis; automated tests and CI disabled by user",
+  "raw_artifacts": "target/reliability-2026-09-09/self-q01-types"
+}

@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::Duration;
 
 use notify::event::ModifyKind;
@@ -15,6 +15,7 @@ use super::contracts::WatcherStatus;
 use super::live::{DirtyKind, LiveState};
 use super::McpState;
 use crate::ingestion::scan::{watch_directories, ScanConfig};
+use crate::resolve::load_resolve_config;
 
 const DEBOUNCE: Duration = Duration::from_millis(300);
 const WATCH_RETRY: Duration = Duration::from_secs(2);
@@ -76,6 +77,8 @@ impl InputWatcher {
     ) -> Result<Self, String> {
         let topology_changed = Arc::new(AtomicBool::new(false));
         let observed_topology = Arc::clone(&topology_changed);
+        let config_inputs = Arc::new(RwLock::new(HashSet::<PathBuf>::new()));
+        let observed_inputs = Arc::clone(&config_inputs);
         let filter_root = root.to_path_buf();
         let mut watcher =
             notify::recommended_watcher(move |result: notify::Result<notify::Event>| {
@@ -99,11 +102,13 @@ impl InputWatcher {
                     return;
                 }
                 let kind = classify(&event.kind);
+                let inputs = observed_inputs.read().unwrap();
                 let changes = event
                     .paths
                     .iter()
-                    .filter(|path| !is_ignored(path, &filter_root))
-                    .filter_map(|path| path.strip_prefix(&filter_root).ok())
+                    .filter(|path| !is_ignored(path, &filter_root)
+                        || inputs.iter().any(|input| input.starts_with(path)))
+                    .map(|path| path.strip_prefix(&filter_root).unwrap_or(Path::new(".")))
                     .map(|path| {
                         (
                             if path.as_os_str().is_empty() {
@@ -115,12 +120,14 @@ impl InputWatcher {
                         )
                     })
                     .collect::<Vec<_>>();
+                let config_changed = event.paths.iter().any(|path| inputs.iter().any(|input| input.starts_with(path)));
+                drop(inputs);
                 if changes.is_empty() {
                     return;
                 }
                 // Invalidate before debounce or rebuild work, including events arriving
                 // during a build. A single wake token coalesces without losing paths.
-                let topology_event = event.kind.is_create()
+                let topology_event = config_changed || event.kind.is_create()
                     || event.kind.is_remove()
                     || matches!(
                         event.kind,
@@ -144,12 +151,37 @@ impl InputWatcher {
         watcher
             .watch(root, RecursiveMode::NonRecursive)
             .map_err(|error| error.to_string())?;
+        let mut directories = HashSet::from([root.to_path_buf()]);
         for entry in watch_directories(root).map_err(|error| error.to_string())? {
             let entry = entry.map_err(|error| error.to_string())?;
             if entry.path() != root {
                 watcher
                     .watch(entry.path(), RecursiveMode::NonRecursive)
                     .map_err(|error| error.to_string())?;
+                directories.insert(entry.path().to_path_buf());
+            }
+        }
+        let config_candidates = directories.iter().filter_map(|directory| {
+            directory.strip_prefix(root).ok().map(|directory| directory.join("tsconfig.json"))
+        }).collect::<Vec<_>>();
+        let config = load_resolve_config(root, &config_candidates).map_err(|error| error.to_string())?;
+        *config_inputs.write().unwrap() = config.input_paths.iter().cloned().collect();
+        for input in config.input_paths {
+            // Extended/package configuration may sit in an excluded tree or
+            // outside the repo. Watch its nearest existing parent, including
+            // absence so later directory/file creation is observed.
+            for parent in input.ancestors().skip(1) {
+                if directories.contains(parent) { break; }
+                match std::fs::metadata(parent) {
+                    Ok(metadata) if metadata.is_dir() => {
+                        watcher.watch(parent, RecursiveMode::NonRecursive).map_err(|error| error.to_string())?;
+                        directories.insert(parent.to_path_buf());
+                        break;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {},
+                    Err(error) => return Err(error.to_string()),
+                    _ => {},
+                }
             }
         }
         Ok(Self {
