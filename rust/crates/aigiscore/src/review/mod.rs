@@ -83,12 +83,11 @@ pub struct ReviewSurface {
 }
 
 pub fn load_review_surface(analysis: &ProjectAnalysis) -> Result<ReviewSurface, PolicyLoadError> {
-    let policy_bundle = PolicyBundle::load(&analysis.root)?;
     let architecture_surface = analysis.architecture_surface();
     Ok(build_review_surface(
         analysis,
         &architecture_surface,
-        &policy_bundle,
+        analysis.policy_bundle(),
     ))
 }
 

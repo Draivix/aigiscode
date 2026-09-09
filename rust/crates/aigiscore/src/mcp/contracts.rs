@@ -10,9 +10,7 @@ use crate::contracts::{
 };
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding, DeadCodeProofTier};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
-use crate::doctrine::{
-    load_doctrine_registry, DoctrineCategory, DoctrineDisposition, DoctrineLoadError,
-};
+use crate::doctrine::{DoctrineCategory, DoctrineDisposition};
 use crate::external::ExternalFinding;
 use crate::graph::analysis::{BottleneckFile, CycleClass, CycleFinding};
 use crate::graph::{GraphLayer, RelationKind};
@@ -47,11 +45,7 @@ pub struct DoctrineClauseOutput {
 }
 
 impl DoctrineRegistryOutput {
-    pub fn load(root: &Path) -> Result<Self, DoctrineLoadError> {
-        Ok(Self::from_registry(&load_doctrine_registry(root)?))
-    }
-
-    fn from_registry(registry: &crate::doctrine::DoctrineRegistry) -> Self {
+    pub(super) fn from_registry(registry: &crate::doctrine::DoctrineRegistry) -> Self {
         Self {
             version: registry.version.clone(),
             clauses: registry
@@ -560,6 +554,21 @@ pub struct Freshness {
     pub dirty_paths: Vec<String>,
     /// Milliseconds since the Unix epoch when the snapshot was generated.
     pub generated_at_unix_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+    #[serde(default)]
+    pub watcher: WatcherStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum WatcherStatus {
+    #[default]
+    Unknown,
+    Disabled,
+    Starting,
+    Watching,
+    Failed,
 }
 
 /// Requested read consistency for a graph-sensitive tool call.

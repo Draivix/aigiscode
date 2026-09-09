@@ -1,0 +1,82 @@
+use super::contracts::{ConsistencyMode, Freshness, RepoOverviewParams};
+use super::{AigiscodeMcpServer, ReadyState};
+use rmcp::{model::Meta, ErrorData as McpError};
+
+const INITIAL_WAIT_MS: u64 = 30_000;
+const MAX_WAIT_MS: u64 = 120_000;
+
+impl AigiscodeMcpServer {
+    /// One immutable index per protocol request; discovery remains available while
+    /// indexing. Failed startup wakes waiters and returns a typed error immediately.
+    pub(super) async fn for_request(
+        &self,
+        params: Option<&RepoOverviewParams>,
+    ) -> Result<Self, McpError> {
+        let target = params.map_or(0, |params| {
+            params.min_revision.unwrap_or_else(|| {
+                if params.consistency == ConsistencyMode::WaitUntilIndexed {
+                    self.live.observed()
+                } else {
+                    0
+                }
+            })
+        });
+        let pending = self.live.load().snapshot.is_none();
+        let allow_stale =
+            params.is_some_and(|params| params.consistency == ConsistencyMode::AllowStale);
+        let wait_ms = params
+            .and_then(|params| params.wait_ms)
+            .unwrap_or(if pending { INITIAL_WAIT_MS } else { 0 })
+            .min(MAX_WAIT_MS);
+        if (pending && !allow_stale)
+            || params.is_some_and(|params| params.consistency == ConsistencyMode::WaitUntilIndexed)
+        {
+            self.live.wait_for_revision(target.max(1), wait_ms).await;
+        }
+        let published = self.live.load();
+        if published.snapshot.is_none() {
+            let error = self.live.last_error();
+            return Err(McpError::internal_error(
+                error.clone().unwrap_or_else(|| {
+                    String::from("Initial index is still building; retry when ready")
+                }),
+                Some(serde_json::json!({
+                    "index_state": if error.is_some() { "failed" } else { "indexing" },
+                    "retryable": error.is_none(),
+                    "freshness": self.live.freshness(false),
+                })),
+            ));
+        }
+        let mut view = self.clone();
+        view.request_snapshot = Some(ReadyState(published));
+        view.request_target = target;
+        Ok(view)
+    }
+
+    pub(super) fn freshness(&self, satisfied: bool) -> Freshness {
+        match &self.request_snapshot {
+            Some(state) => self.live.freshness_for(
+                &state.0,
+                satisfied && state.revision() >= self.request_target,
+            ),
+            None => self.live.freshness(satisfied),
+        }
+    }
+
+    pub(super) fn actionable_freshness(&self, satisfied: bool) -> Option<Freshness> {
+        if self.request_snapshot.is_none() {
+            return self.live.actionable_freshness(satisfied);
+        }
+        let freshness = self.freshness(satisfied);
+        (freshness.is_stale || freshness.rebuilding).then_some(freshness)
+    }
+
+    pub(super) fn freshness_meta(&self) -> Result<Meta, McpError> {
+        let value = serde_json::to_value(self.freshness(true))
+            .map_err(|error| McpError::internal_error(error.to_string(), None))?;
+        Ok(Meta(serde_json::Map::from_iter([(
+            String::from("aigiscode/freshness"),
+            value,
+        )])))
+    }
+}

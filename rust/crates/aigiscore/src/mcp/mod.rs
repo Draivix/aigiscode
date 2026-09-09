@@ -1,5 +1,6 @@
 mod contracts;
 mod live;
+mod request;
 mod watch;
 
 use self::contracts::{
@@ -26,37 +27,38 @@ use crate::agentic::{
     GraphTraceParams, ListGraphPacketsParams,
 };
 use crate::artifacts::{
-    build_agent_handoff_artifact, write_project_analysis_artifacts, AgentHandoffArtifact,
-    ArtifactPaths, ConvergenceHistoryArtifact, GuardDecisionArtifact, RepositoryTopologyArtifact,
+    build_agent_handoff_artifact, read_json_artifact_if_exists,
+    write_project_analysis_artifacts_with_context, AgentHandoffArtifact, ArtifactContext,
+    ArtifactPaths, RepositoryTopologyArtifact,
 };
-use crate::doctrine::{load_doctrine_registry, DoctrineLoadError};
+use crate::doctrine::DoctrineLoadError;
 use crate::ingestion::pipeline::{analyze_project, ProjectAnalysis, ProjectAnalysisError};
 use crate::ingestion::scan::ScanConfig;
 use crate::kuzu_index::{
-    build_dependency_graph_artifact, build_evidence_graph_artifact, default_kuzu_path, query_kuzu,
+    build_dependency_graph_artifact, build_evidence_graph_artifact, query_kuzu,
     schema_reference_markdown, write_semantic_graph_kuzu_artifact, DependencyGraphArtifact,
     EvidenceGraphArtifact, KuzuIndexError,
 };
 use crate::policy::PolicyLoadError;
-use crate::review::load_review_surface;
+use crate::review::build_review_surface;
 use rmcp::handler::server::router::prompt::PromptRouter;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
+use rmcp::model::AnnotateAble;
 use rmcp::model::{
-    GetPromptRequestParams, GetPromptResult, Implementation, ListPromptsResult,
-    ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams, PromptMessage,
-    PromptMessageRole, RawResource, RawResourceTemplate, ReadResourceRequestParams,
-    ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo,
+    CallToolRequestParams, CallToolResult, GetPromptRequestParams, GetPromptResult, Implementation,
+    ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult, ListToolsResult,
+    PaginatedRequestParams, PromptMessage, PromptMessageRole, RawResource, RawResourceTemplate,
+    ReadResourceRequestParams, ReadResourceResult, ResourceContents, ServerCapabilities,
+    ServerInfo, Tool,
 };
 use rmcp::service::RequestContext;
-use rmcp::{model::AnnotateAble, prompt_handler, tool_handler};
 use rmcp::{
     prompt, prompt_router, tool, tool_router, ErrorData as McpError, Json, RoleServer,
     ServerHandler, ServiceExt,
 };
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use thiserror::Error;
@@ -91,6 +93,8 @@ pub enum McpServerError {
     Doctrine(#[from] DoctrineLoadError),
     #[error("failed to write AigisCode artifacts: {0}")]
     WriteArtifacts(#[source] std::io::Error),
+    #[error("failed to read AigisCode baseline artifacts: {0}")]
+    ReadArtifacts(#[source] std::io::Error),
     #[error("failed to materialize Kuzu graph artifact: {0}")]
     Kuzu(#[from] KuzuIndexError),
     #[error("failed to start MCP server: {0}")]
@@ -126,40 +130,7 @@ pub fn run_stdio_server(
         // freshness contract reports the pending index honestly.
         let server = AigiscodeMcpServer::new_pending();
         let live = Arc::clone(&server.live);
-        let watch_root = root.clone();
-        tokio::spawn(async move {
-            let target = live.begin_rebuild().max(1);
-            let build_root = root.clone();
-            let output_dir = output_dir.clone();
-            let built = tokio::task::spawn_blocking(move || {
-                build_mcp_state(
-                    &build_root,
-                    output_dir.as_deref(),
-                    write_artifacts,
-                    write_kuzu,
-                )
-            })
-            .await;
-            match built {
-                Ok(Ok(state)) => {
-                    live.publish(Some(state), target);
-                    eprintln!("aigiscode mcp: initial index published (revision {target})");
-                    if watch {
-                        watch::spawn_watch(live, watch_root);
-                    }
-                }
-                Ok(Err(error)) => {
-                    let message = format!("initial analysis failed: {error}");
-                    eprintln!("aigiscode mcp: {message}");
-                    live.record_error(message);
-                }
-                Err(join_error) => {
-                    let message = format!("initial analysis task panicked: {join_error}");
-                    eprintln!("aigiscode mcp: {message}");
-                    live.record_error(message);
-                }
-            }
-        });
+        watch::start_indexer(live, root, output_dir, write_artifacts, write_kuzu, watch);
         server
             .serve(rmcp::transport::stdio())
             .await?
@@ -169,9 +140,79 @@ pub fn run_stdio_server(
     })
 }
 
-#[tool_handler(router = self.tool_router)]
-#[prompt_handler(router = self.prompt_router)]
 impl ServerHandler for AigiscodeMcpServer {
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResult, McpError> {
+        if !self.tool_router.has_route(&request.name) {
+            return Err(McpError::invalid_params("tool not found", None));
+        }
+        let params = if request.name == "repo_overview" {
+            Some(
+                serde_json::from_value::<RepoOverviewParams>(serde_json::Value::Object(
+                    request.arguments.clone().unwrap_or_default(),
+                ))
+                .map_err(|error| McpError::invalid_params(error.to_string(), None))?,
+            )
+        } else {
+            None
+        };
+        let view = tokio::select! {
+            result = self.for_request(params.as_ref()) => result?,
+            _ = context.ct.cancelled() => return Err(McpError::internal_error("request cancelled", None)),
+        };
+        let call = rmcp::handler::server::tool::ToolCallContext::new(&view, request, context);
+        let mut result = self.tool_router.call(call).await?;
+        result
+            .meta
+            .get_or_insert_with(Default::default)
+            .0
+            .extend(view.freshness_meta()?.0);
+        Ok(result)
+    }
+
+    async fn list_tools(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListToolsResult, McpError> {
+        Ok(ListToolsResult::with_all_items(self.tool_router.list_all()))
+    }
+
+    fn get_tool(&self, name: &str) -> Option<Tool> {
+        self.tool_router.get(name).cloned()
+    }
+
+    async fn get_prompt(
+        &self,
+        request: GetPromptRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<GetPromptResult, McpError> {
+        let view = tokio::select! {
+            result = self.for_request(None) => result?,
+            _ = context.ct.cancelled() => return Err(McpError::internal_error("request cancelled", None)),
+        };
+        let prompt = rmcp::handler::server::prompt::PromptContext::new(
+            &view,
+            request.name,
+            request.arguments,
+            context,
+        );
+        self.prompt_router.get_prompt(prompt).await
+    }
+
+    async fn list_prompts(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> Result<ListPromptsResult, McpError> {
+        Ok(ListPromptsResult::with_all_items(
+            self.prompt_router.list_all(),
+        ))
+    }
+
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(
             ServerCapabilities::builder()
@@ -212,20 +253,32 @@ impl ServerHandler for AigiscodeMcpServer {
     async fn read_resource(
         &self,
         request: ReadResourceRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, McpError> {
-        let (uri, payload) = self.read_resource_payload(&request.uri).await?;
+        let view = if request.uri == GRAPH_SCHEMA_URI {
+            self.clone()
+        } else {
+            tokio::select! {
+                result = self.for_request(None) => result?,
+                _ = context.ct.cancelled() => return Err(McpError::internal_error("request cancelled", None)),
+            }
+        };
+        let (uri, payload) = view.read_resource_payload(&request.uri).await?;
         Ok(ReadResourceResult::new(vec![ResourceContents::text(
             payload, uri,
         )
-        .with_mime_type("application/json")]))
+        .with_mime_type("application/json")
+        .with_meta(view.freshness_meta()?)]))
     }
 }
 
+#[derive(Clone)]
 pub struct AigiscodeMcpServer {
     live: Arc<LiveState<Option<McpState>>>,
-    tool_router: ToolRouter<Self>,
-    prompt_router: PromptRouter<Self>,
+    tool_router: Arc<ToolRouter<Self>>,
+    prompt_router: Arc<PromptRouter<Self>>,
+    request_snapshot: Option<ReadyState>,
+    request_target: u64,
 }
 
 /// Run the full batch pipeline once and assemble an [`McpState`] snapshot. Shared by the
@@ -252,14 +305,15 @@ fn build_mcp_state(
         }
         None => analyze_project(root.to_path_buf(), &ScanConfig::default())?,
     };
-    let artifact_paths = if write_artifacts {
-        write_project_analysis_artifacts(&analysis, output_dir)
-            .map_err(McpServerError::WriteArtifacts)?
+    let (artifact_paths, prepared_context) = if write_artifacts {
+        let (paths, context) = write_project_analysis_artifacts_with_context(&analysis, output_dir)
+            .map_err(McpServerError::WriteArtifacts)?;
+        (paths, Some(context))
     } else {
         let output_dir = output_dir
             .map(Path::to_path_buf)
             .unwrap_or_else(|| analysis.root.join(".aigiscode"));
-        ArtifactPaths {
+        (ArtifactPaths {
             deterministic_analysis: output_dir.join("deterministic-analysis.json"),
             semantic_graph: output_dir.join("semantic-graph.json"),
             dependency_graph: output_dir.join("dependency-graph.json"),
@@ -281,7 +335,7 @@ fn build_mcp_state(
             aigiscode_report_markdown: output_dir.join("aigiscode-report.md"),
             scan_manifest: output_dir.join("scan-manifest.json"),
             output_dir,
-        }
+        }, None)
     };
     let kuzu_path = if write_kuzu {
         Some(write_semantic_graph_kuzu_artifact(
@@ -290,10 +344,10 @@ fn build_mcp_state(
             output_dir,
         )?)
     } else {
-        let candidate = default_kuzu_path(&analysis.root, output_dir);
-        candidate.exists().then_some(candidate)
+        // A database left by another revision cannot represent this snapshot.
+        None
     };
-    McpState::new(analysis, artifact_paths, kuzu_path)
+    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context)
 }
 
 impl AigiscodeMcpServer {
@@ -310,35 +364,33 @@ impl AigiscodeMcpServer {
     fn from_state(state: McpState) -> Self {
         Self {
             live: LiveState::new(Some(state)),
-            tool_router: Self::tool_router(),
-            prompt_router: Self::prompt_router(),
+            tool_router: Arc::new(Self::tool_router()),
+            prompt_router: Arc::new(Self::prompt_router()),
+            request_snapshot: None,
+            request_target: 0,
         }
     }
 
     /// A server whose initial index has not been built yet: `initialize`
-    /// answers immediately, every snapshot-reading tool waits (via `state()`)
-    /// until the background initial build publishes revision 1, and the
-    /// freshness contract reports the pending state honestly.
+    /// answers immediately; protocol reads await a bounded initial index through
+    /// for_request(), which reports pending or failed state without fabricated data.
     fn new_pending() -> Self {
         Self {
             live: LiveState::new_at(None, 0, true),
-            tool_router: Self::tool_router(),
-            prompt_router: Self::prompt_router(),
+            tool_router: Arc::new(Self::tool_router()),
+            prompt_router: Arc::new(Self::prompt_router()),
+            request_snapshot: None,
+            request_target: 0,
         }
     }
 
-    /// Latest published snapshot + the revision it represents. Awaits the
-    /// initial index when the server started pending (bounded; the initial
-    /// build failing leaves the daemon degraded and loudly logged rather than
-    /// pretending an empty repository).
+    /// Snapshot pinned by the protocol boundary, or a synchronously loaded internal server.
     async fn state(&self) -> ReadyState {
-        // Fast path: already published.
-        if self.live.load().snapshot.is_some() {
-            return ReadyState(self.live.load());
-        }
-        // Initial index still building: wait generously, then re-check.
-        let _ = self.live.wait_for_revision(1, 15 * 60 * 1000).await;
-        ReadyState(self.live.load())
+        // Protocol entrypoints establish readiness and pin one snapshot. Direct
+        // internal callers use servers constructed synchronously by load().
+        self.request_snapshot
+            .clone()
+            .unwrap_or_else(|| ReadyState(self.live.load()))
     }
 
     /// Test-only: mutate the published snapshot in place (clone → mutate → republish),
@@ -356,6 +408,7 @@ impl AigiscodeMcpServer {
 }
 
 /// A published snapshot known to contain a built index.
+#[derive(Clone)]
 struct ReadyState(Arc<live::Published<Option<McpState>>>);
 
 impl ReadyState {
@@ -363,10 +416,9 @@ impl ReadyState {
         self.0
             .snapshot
             .as_ref()
-            .expect("state() only returns after the initial index is published")
+            .expect("request boundary establishes index readiness")
     }
 
-    #[allow(dead_code)]
     fn revision(&self) -> u64 {
         self.0.revision
     }
@@ -386,22 +438,30 @@ impl AigiscodeMcpServer {
         Parameters(params): Parameters<RepoOverviewParams>,
     ) -> Json<RepoOverviewOutput> {
         let observed_at_start = self.live.observed();
-        let target = match params.consistency {
-            ConsistencyMode::WaitUntilIndexed => params.min_revision.unwrap_or(observed_at_start),
-            _ => params.min_revision.unwrap_or(0),
+        let target = if self.request_snapshot.is_some() {
+            self.request_target
+        } else {
+            match params.consistency {
+                ConsistencyMode::WaitUntilIndexed => {
+                    params.min_revision.unwrap_or(observed_at_start)
+                }
+                _ => params.min_revision.unwrap_or(0),
+            }
         };
-        let satisfied = if matches!(params.consistency, ConsistencyMode::WaitUntilIndexed) {
+        let satisfied = if self.request_snapshot.is_none()
+            && matches!(params.consistency, ConsistencyMode::WaitUntilIndexed)
+        {
             self.live
                 .wait_for_revision(target, params.wait_ms.unwrap_or(0))
                 .await
         } else {
             // latest_available / allow_stale: satisfied unless an unmet min_revision was set.
-            self.live.load().revision >= target
+            self.state().await.revision() >= target
         };
         // Wait for the initial index if it is still building, then read.
         let state = self.state().await;
         let mut overview = state.snapshot().repo_overview.clone();
-        overview.freshness = Some(self.live.freshness(satisfied));
+        overview.freshness = Some(self.freshness(satisfied));
         Json(overview)
     }
 
@@ -487,7 +547,7 @@ impl AigiscodeMcpServer {
             guard_verdict: guard.verdict.clone(),
             guard_summary: guard.summary.clone(),
             doctrine_headline,
-            freshness: Some(self.live.freshness(true)),
+            freshness: Some(self.freshness(true)),
         })
     }
 
@@ -653,7 +713,7 @@ impl AigiscodeMcpServer {
             containers: rendered,
             outbound_modules: to_module_edges(outbound),
             inbound_modules: to_module_edges(inbound),
-            freshness: self.live.actionable_freshness(true),
+            freshness: self.actionable_freshness(true),
         })
     }
 
@@ -727,7 +787,7 @@ impl AigiscodeMcpServer {
             total_matches,
             truncated: total_matches > max_items,
             matches,
-            freshness: self.live.actionable_freshness(true),
+            freshness: self.actionable_freshness(true),
         })
     }
 
@@ -746,7 +806,7 @@ impl AigiscodeMcpServer {
         let query = params.symbol.trim().to_string();
         let state = self.state().await;
         let graph = &state.snapshot().semantic_graph;
-        let freshness = self.live.actionable_freshness(true);
+        let freshness = self.actionable_freshness(true);
 
         let target = if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == query) {
             Some(symbol)
@@ -969,7 +1029,7 @@ impl AigiscodeMcpServer {
             findings_truncated: findings_total > FINDINGS_CAP,
             test_dependents,
             doctrine_refs,
-            freshness: self.live.actionable_freshness(true),
+            freshness: self.actionable_freshness(true),
         }))
     }
 
@@ -987,7 +1047,7 @@ impl AigiscodeMcpServer {
         let snapshot = state.snapshot();
 
         let (raw_scope, scope_source) = if params.paths.is_empty() {
-            (self.live.freshness(true).dirty_paths, "daemon_dirty_paths")
+            (self.freshness(true).dirty_paths, "daemon_dirty_paths")
         } else {
             (params.paths.clone(), "explicit")
         };
@@ -1044,7 +1104,7 @@ impl AigiscodeMcpServer {
                 "scope is empty — pass the paths you edited, or run under `mcp --watch` so the daemon tracks them",
             ));
         }
-        if scope_source == "daemon_dirty_paths" && self.live.freshness(true).is_stale {
+        if scope_source == "daemon_dirty_paths" && self.freshness(true).is_stale {
             honesty.push(String::from(
                 "the daemon has observed edits the current analysis does not cover yet — this delta lags your latest changes",
             ));
@@ -1063,13 +1123,13 @@ impl AigiscodeMcpServer {
             fix_count,
             truncated,
             honesty,
-            freshness: self.live.actionable_freshness(true),
+            freshness: self.actionable_freshness(true),
         })
     }
 
     #[tool(
         name = "suppress_finding",
-        description = "Accept a finding as a sanctioned pattern: writes one exclusion rule (finding type + file pattern + optional symbol + your reason) to .aigiscode/rules.json so future analyses hide it and convergence gets quieter. Detector and orphan findings only — architecture findings need a fix or a doctrine change. Takes effect on the next analysis; under `mcp --watch` that is the next observed source change."
+        description = "Accept a finding as a sanctioned pattern: writes one exclusion rule (finding type + file pattern + optional symbol + your reason) to .aigiscode/rules.json so future analyses hide it and convergence gets quieter. Detector and orphan findings only — architecture findings need a fix or a doctrine change. Takes effect on the next analysis; under `mcp --watch` the rules-file change triggers it."
     )]
     async fn suppress_finding(
         &self,
@@ -1124,12 +1184,12 @@ impl AigiscodeMcpServer {
                 crate::policy::AppendRuleOutcome::AlreadyPresent => String::from("already_present"),
             },
             takes_effect: String::from(
-                "next analysis — under `mcp --watch`, the next observed source change triggers it; or run `aigiscode analyze`",
+                "next analysis — under `mcp --watch`, the rules-file change triggers it; or run `aigiscode analyze`",
             ),
             honesty: vec![String::from(
                 "the finding stays visible in the current snapshot until the next analysis runs",
             )],
-            freshness: self.live.actionable_freshness(true),
+            freshness: self.actionable_freshness(true),
         }))
     }
 
@@ -1230,7 +1290,7 @@ impl AigiscodeMcpServer {
             may_depend_on,
             exemplar,
             honesty,
-            freshness: self.live.actionable_freshness(true),
+            freshness: self.actionable_freshness(true),
         })
     }
 
@@ -1720,10 +1780,11 @@ impl AigiscodeMcpServer {
 
     async fn read_resource_payload(&self, uri: &str) -> Result<(String, String), McpError> {
         match uri {
-            OVERVIEW_URI => Ok((
-                String::from(uri),
-                to_json_pretty(&self.state().await.snapshot().repo_overview)?,
-            )),
+            OVERVIEW_URI => {
+                let mut overview = self.state().await.snapshot().repo_overview.clone();
+                overview.freshness = Some(self.freshness(true));
+                Ok((String::from(uri), to_json_pretty(&overview)?))
+            }
             FINDINGS_URI => {
                 let state = self.state().await;
                 let summaries = &state.snapshot().finding_summaries;
@@ -1887,13 +1948,12 @@ impl McpState {
         analysis: ProjectAnalysis,
         artifact_paths: ArtifactPaths,
         kuzu_path: Option<PathBuf>,
+        prepared_context: Option<ArtifactContext>,
     ) -> Result<Self, McpServerError> {
         let surface = analysis.architecture_surface();
-        let layers = crate::doctrine::load_doctrine_registry(&analysis.root)
-            .map(|registry| registry.layers)
-            .unwrap_or_default();
+        let layers = analysis.doctrine_registry().layers.clone();
         let root = display_path(&analysis.root);
-        let review_surface = load_review_surface(&analysis)?;
+        let review_surface = build_review_surface(&analysis, &surface, analysis.policy_bundle());
         let finding_summaries = review_surface
             .findings
             .iter()
@@ -1958,41 +2018,49 @@ impl McpState {
         let evidence_graph = build_evidence_graph_artifact(&analysis.semantic_graph);
         let contract_inventory =
             ContractInventoryOutput::from_inventory(&analysis.contract_inventory);
-        let doctrine_registry = DoctrineRegistryOutput::load(&analysis.root)?;
+        let doctrine_registry = DoctrineRegistryOutput::from_registry(analysis.doctrine_registry());
         let coverage =
             CoverageReportOutput::new(&root, &surface, &review_surface, &analysis.semantic_graph);
         let quality = QualityEvaluationOutput::new(&root, &analysis, &surface, &review_surface);
-        let doctrine_registry_native =
-            load_doctrine_registry(&analysis.root).map_err(McpServerError::Doctrine)?;
+        let doctrine_registry_native = analysis.doctrine_registry();
         let handoff =
-            build_agent_handoff_artifact(&analysis, &review_surface, &doctrine_registry_native);
-        let convergence_artifact =
-            read_json_artifact::<ConvergenceHistoryArtifact>(&artifact_paths.convergence_history)
-                .unwrap_or_else(|| {
-                    crate::artifacts::build_convergence_history_artifact(
+            build_agent_handoff_artifact(&analysis, &review_surface, doctrine_registry_native);
+        let ArtifactContext {
+            convergence: convergence_artifact,
+            guard: guard_decision_artifact,
+        } = match prepared_context {
+                Some(context) => context,
+                None => {
+                    let previous_surface =
+                        read_json_artifact_if_exists(&artifact_paths.architecture_surface)
+                            .map_err(McpServerError::ReadArtifacts)?;
+                    let previous_review = read_json_artifact_if_exists(&artifact_paths.review_surface)
+                        .map_err(McpServerError::ReadArtifacts)?;
+                    let previous_contracts =
+                        read_json_artifact_if_exists(&artifact_paths.contract_inventory)
+                            .map_err(McpServerError::ReadArtifacts)?;
+                    let convergence = crate::artifacts::build_convergence_history_artifact(
                         &analysis.root,
                         &analysis.semantic_graph,
-                        None,
-                        None,
-                        None,
+                        previous_surface.as_ref(),
+                        previous_review.as_ref(),
+                        previous_contracts.as_ref(),
                         &surface,
                         &review_surface,
                         &analysis.contract_inventory,
-                        &doctrine_registry_native,
-                    )
-                });
-        let guard_decision_artifact =
-            read_json_artifact::<GuardDecisionArtifact>(&artifact_paths.guard_decision)
-                .unwrap_or_else(|| {
-                    crate::artifacts::build_guard_decision_artifact(
+                        doctrine_registry_native,
+                    );
+                    let guard = crate::artifacts::build_guard_decision_artifact(
                         &analysis.root,
-                        &convergence_artifact,
+                        &convergence,
                         &analysis.external_analysis,
-                    )
-                });
+                    );
+                    ArtifactContext { convergence, guard }
+                }
+            };
         let agentic_review = crate::agentic::build_agentic_review_artifact(
             &analysis,
-            &doctrine_registry_native,
+            doctrine_registry_native,
             &handoff,
             &guard_decision_artifact,
             &convergence_artifact,
@@ -2604,11 +2672,6 @@ fn to_json_pretty<T: Serialize>(value: &T) -> Result<String, McpError> {
     serde_json::to_string_pretty(value).map_err(|error| {
         McpError::internal_error(format!("failed to serialize MCP payload: {error}"), None)
     })
-}
-
-fn read_json_artifact<T: serde::de::DeserializeOwned>(path: &Path) -> Option<T> {
-    let payload = fs::read(path).ok()?;
-    serde_json::from_slice(&payload).ok()
 }
 
 fn symbol_kind_label(kind: crate::graph::SymbolKind) -> String {
@@ -4018,22 +4081,36 @@ fn helper() {}"#,
         let server = AigiscodeMcpServer::load(fixture.clone(), None, false, false).unwrap();
 
         super::watch::spawn_watch(std::sync::Arc::clone(&server.live), fixture.clone());
-        // Let the native watcher arm before mutating the tree.
-        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        // Attaching a watcher performs a capture of its own. Wait for that capture
+        // so it cannot be mistaken for the rebuild caused by the edit below.
+        let mut armed = false;
+        for _ in 0..120 {
+            let freshness = server.live.freshness(true);
+            armed = freshness.watcher == super::contracts::WatcherStatus::Watching
+                && !freshness.is_stale
+                && !freshness.rebuilding;
+            if armed {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+        assert!(armed, "watcher should finish its initial capture");
+        let before_edit = server.live.observed();
         fs::write(fixture.join("src/main.rs"), b"fn main() { let _x = 1; }\n").unwrap();
 
-        // Poll for the change to be observed (debounce ~300ms) and a rebuilt snapshot to
-        // be published (rev >= 2). Generous budget to stay non-flaky under load.
-        let mut indexed = 1;
+        // Require a fresh publication strictly after the pre-edit revision.
+        let mut indexed = before_edit;
+        let mut fresh = false;
         for _ in 0..120 {
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
             indexed = server.live.load().revision;
-            if indexed >= 2 {
+            fresh = !server.live.freshness(true).is_stale;
+            if indexed > before_edit && fresh {
                 break;
             }
         }
         assert!(
-            indexed >= 2,
+            indexed > before_edit && fresh,
             "watcher should observe the edit and publish a rebuilt snapshot (indexed={indexed})"
         );
     }

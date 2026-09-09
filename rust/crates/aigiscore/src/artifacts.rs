@@ -7,9 +7,7 @@ use crate::assessment::ArchitecturalAssessment;
 use crate::contracts::ContractInventory;
 use crate::detectors::dead_code::DeadCodeResult;
 use crate::detectors::hardwiring::HardwiringResult;
-use crate::doctrine::{
-    load_doctrine_registry, DoctrineDisposition, DoctrineLoadError, DoctrineRegistry,
-};
+use crate::doctrine::{DoctrineDisposition, DoctrineRegistry};
 use crate::evidence::EvidenceAnchor;
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::GraphAnalysis;
@@ -18,7 +16,6 @@ use crate::kuzu_index::{
     build_dependency_graph_artifact, build_evidence_graph_artifact, DependencyGraphArtifact,
     EvidenceGraphArtifact,
 };
-use crate::policy::{PolicyBundle, PolicyLoadError};
 use crate::review::{
     build_review_surface, ReviewFindingFamily, ReviewFindingSeverity, ReviewSurface,
 };
@@ -887,6 +884,18 @@ pub fn write_project_analysis_artifacts(
     analysis: &ProjectAnalysis,
     output_dir: Option<&Path>,
 ) -> io::Result<ArtifactPaths> {
+    write_project_analysis_artifacts_with_context(analysis, output_dir).map(|(paths, _)| paths)
+}
+
+pub(crate) struct ArtifactContext {
+    pub convergence: ConvergenceHistoryArtifact,
+    pub guard: GuardDecisionArtifact,
+}
+
+pub(crate) fn write_project_analysis_artifacts_with_context(
+    analysis: &ProjectAnalysis,
+    output_dir: Option<&Path>,
+) -> io::Result<(ArtifactPaths, ArtifactContext)> {
     trace_artifact_step("write.begin", 0);
     let output_dir = output_dir
         .map(Path::to_path_buf)
@@ -954,10 +963,10 @@ pub fn write_project_analysis_artifacts(
         read_json_artifact_if_exists::<ReviewSurface>(&paths.review_surface)?;
     let previous_contract_inventory =
         read_json_artifact_if_exists::<ContractInventory>(&paths.contract_inventory)?;
-    let policy_bundle = PolicyBundle::load(&analysis.root).map_err(policy_error_to_io)?;
-    let doctrine_registry = load_doctrine_registry(&analysis.root).map_err(doctrine_error_to_io)?;
+    let policy_bundle = analysis.policy_bundle();
+    let doctrine_registry = analysis.doctrine_registry();
     let review_started = Instant::now();
-    let review_surface = build_review_surface(analysis, &surface, &policy_bundle);
+    let review_surface = build_review_surface(analysis, &surface, policy_bundle);
     trace_artifact_step("review_surface.build", review_started.elapsed().as_millis());
     let convergence_started = Instant::now();
     let convergence_history = build_convergence_history_artifact(
@@ -969,7 +978,7 @@ pub fn write_project_analysis_artifacts(
         &surface,
         &review_surface,
         &analysis.contract_inventory,
-        &doctrine_registry,
+        doctrine_registry,
     );
     trace_artifact_step(
         "convergence.build",
@@ -984,12 +993,12 @@ pub fn write_project_analysis_artifacts(
     trace_artifact_step("guard.build", guard_started.elapsed().as_millis());
     let feedback_loop = build_feedback_loop_summary(&review_surface);
     let handoff_started = Instant::now();
-    let agent_handoff = build_agent_handoff_artifact(analysis, &review_surface, &doctrine_registry);
+    let agent_handoff = build_agent_handoff_artifact(analysis, &review_surface, doctrine_registry);
     trace_artifact_step("agent_handoff.build", handoff_started.elapsed().as_millis());
     let agentic_started = Instant::now();
     let agentic_review = build_agentic_review_artifact(
         analysis,
-        &doctrine_registry,
+        doctrine_registry,
         &agent_handoff,
         &guard_decision,
         &convergence_history,
@@ -1226,7 +1235,13 @@ pub fn write_project_analysis_artifacts(
     )?;
     trace_artifact_step("markdown.write", markdown_started.elapsed().as_millis());
 
-    Ok(paths)
+    Ok((
+        paths,
+        ArtifactContext {
+            convergence: convergence_history,
+            guard: guard_decision,
+        },
+    ))
 }
 
 fn trace_artifact_step(step: &str, elapsed_ms: u128) {
@@ -4356,14 +4371,15 @@ fn classify_convergence_status(
     }
 }
 
-fn read_json_artifact_if_exists<T>(path: &Path) -> io::Result<Option<T>>
+pub(crate) fn read_json_artifact_if_exists<T>(path: &Path) -> io::Result<Option<T>>
 where
     T: DeserializeOwned,
 {
-    if !path.exists() {
-        return Ok(None);
-    }
-    let payload = fs::read(path)?;
+    let payload = match fs::read(path) {
+        Ok(payload) => payload,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error),
+    };
     serde_json::from_slice(&payload)
         .map(Some)
         .map_err(io::Error::other)
@@ -7314,14 +7330,6 @@ fn write_markdown(path: &Path, value: &str) -> io::Result<()> {
         writer.write_all(value.as_bytes())?;
         writer.write_all(b"\n")
     })
-}
-
-fn policy_error_to_io(error: PolicyLoadError) -> io::Error {
-    io::Error::other(error)
-}
-
-fn doctrine_error_to_io(error: DoctrineLoadError) -> io::Error {
-    io::Error::other(error)
 }
 
 #[cfg(test)]

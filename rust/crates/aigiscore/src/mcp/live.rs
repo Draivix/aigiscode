@@ -17,7 +17,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use arc_swap::ArcSwap;
 use tokio::sync::watch;
 
-use super::contracts::Freshness;
+use super::contracts::{Freshness, WatcherStatus};
 
 /// Max dirty paths embedded in a [`Freshness`] response (count is always exact).
 const DIRTY_SAMPLE_CAP: usize = 50;
@@ -59,6 +59,8 @@ struct LiveMeta {
     dirty: BTreeMap<PathBuf, DirtyInfo>,
     rebuilding: bool,
     last_error: Option<String>,
+    watcher: WatcherStatus,
+    watcher_error: Option<String>,
 }
 
 /// Shared live state: an atomically-swappable published snapshot plus observed-change
@@ -98,6 +100,8 @@ impl<S> LiveState<S> {
                 dirty: BTreeMap::new(),
                 rebuilding,
                 last_error: None,
+                watcher: WatcherStatus::Disabled,
+                watcher_error: None,
             }),
             observed_atomic: AtomicU64::new(revision.max(1)),
             published_tx,
@@ -148,18 +152,20 @@ impl<S> LiveState<S> {
     /// staleness. Dirty paths changed *after* the rebuild started (observed > target) are
     /// retained so freshness stays honest under edits-during-rebuild.
     pub(super) fn publish(&self, snapshot: S, target: u64) {
+        let mut meta = self.meta.lock().unwrap();
+        if self.load().revision > target {
+            return;
+        }
         self.current.store(Arc::new(Published {
             revision: target,
             generated_at_ms: now_unix_ms(),
             snapshot,
         }));
-        {
-            let mut meta = self.meta.lock().unwrap();
-            meta.rebuilding = false;
-            meta.last_error = None;
-            meta.dirty.retain(|_, info| info.last_observed > target);
-        }
-        let _ = self.published_tx.send(target);
+        meta.rebuilding = false;
+        meta.last_error = None;
+        meta.dirty.retain(|_, info| info.last_observed > target);
+        drop(meta);
+        self.published_tx.send_replace(target);
     }
 
     /// Record a rebuild failure without replacing the published snapshot (a stale-but-good
@@ -168,22 +174,46 @@ impl<S> LiveState<S> {
         let mut meta = self.meta.lock().unwrap();
         meta.rebuilding = false;
         meta.last_error = Some(message);
+        drop(meta);
+        self.published_tx.send_modify(|_| {});
+    }
+
+    pub(super) fn last_error(&self) -> Option<String> {
+        self.meta.lock().unwrap().last_error.clone()
+    }
+
+    pub(super) fn set_watcher_status(&self, status: WatcherStatus, error: Option<String>) {
+        let mut meta = self.meta.lock().unwrap();
+        meta.watcher = status;
+        meta.watcher_error = error;
+        drop(meta);
+        self.published_tx.send_modify(|_| {});
     }
 
     /// Build the freshness contract for the current published snapshot. `consistency_satisfied`
     /// reflects whether a requested `min_revision`/wait was met by the caller.
     pub(super) fn freshness(&self, consistency_satisfied: bool) -> Freshness {
-        // Lock meta first, then load the snapshot: any interleaving publish then makes the
-        // snapshot look *newer* than the meta, which can only over-report staleness — safe.
+        self.freshness_for(&self.load(), consistency_satisfied)
+    }
+
+    pub(super) fn freshness_for(
+        &self,
+        published: &Published<S>,
+        consistency_satisfied: bool,
+    ) -> Freshness {
         let meta = self.meta.lock().unwrap();
-        let published = self.load();
         let indexed = published.revision;
         let observed = meta.observed;
+        let last_error = meta
+            .last_error
+            .clone()
+            .or_else(|| meta.watcher_error.clone());
+        let consistency_satisfied = consistency_satisfied && meta.watcher != WatcherStatus::Failed;
         Freshness {
             revision: indexed,
             indexed_revision: indexed,
             observed_revision: observed,
-            is_stale: observed > indexed || !consistency_satisfied,
+            is_stale: observed > indexed || !consistency_satisfied || last_error.is_some(),
             rebuilding: meta.rebuilding,
             consistency_satisfied,
             dirty_path_count: meta.dirty.len(),
@@ -194,6 +224,8 @@ impl<S> LiveState<S> {
                 .map(|path| path.display().to_string())
                 .collect(),
             generated_at_unix_ms: published.generated_at_ms,
+            last_error,
+            watcher: meta.watcher,
         }
     }
 
@@ -224,6 +256,12 @@ impl<S> LiveState<S> {
             loop {
                 if self.load().revision >= target {
                     return;
+                }
+                {
+                    let meta = self.meta.lock().unwrap();
+                    if !meta.rebuilding && meta.last_error.is_some() {
+                        return;
+                    }
                 }
                 if rx.changed().await.is_err() {
                     return;

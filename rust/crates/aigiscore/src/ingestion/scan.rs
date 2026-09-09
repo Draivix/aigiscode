@@ -29,6 +29,7 @@ impl Default for ScanConfig {
         Self {
             include_path_prefixes: Vec::new(),
             ignored_dir_names: HashSet::from([
+                String::from(".git"),
                 String::from("vendor"),
                 String::from("node_modules"),
                 String::from("storage"),
@@ -194,26 +195,7 @@ pub fn scan_repository(
     if !root.is_dir() {
         return Err(ScanError::RootIsNotDirectory(root));
     }
-    let mut effective_config = load_scan_config(&root, config)?;
-    for prefix in &mut effective_config.generated_path_prefixes {
-        if prefix.components().all(|part| part == Component::CurDir)
-            || prefix.components().any(|part| {
-                matches!(
-                    part,
-                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
-                )
-            })
-        {
-            return Err(ScanError::InvalidGeneratedPrefix(prefix.clone()));
-        }
-        *prefix = prefix
-            .components()
-            .filter_map(|part| match part {
-                Component::Normal(segment) => Some(segment),
-                _ => None,
-            })
-            .collect();
-    }
+    let effective_config = effective_scan_config(&root, config)?;
 
     let mut files = Vec::new();
     let skipped_dirs = Cell::new(0usize);
@@ -396,6 +378,44 @@ fn detect_repository_root(root: &Path) -> Option<PathBuf> {
     }
 }
 
+/// Watch all directories that can contribute parsed or supplemental evidence,
+/// including empty directories. Explicit control directories remain observable.
+pub(crate) fn watch_directories(
+    root: &Path,
+) -> Result<impl Iterator<Item = Result<DirEntry, walkdir::Error>>, ScanError> {
+    let mut config = effective_scan_config(root, &ScanConfig::default())?;
+    config.include_path_prefixes.clear();
+    let skipped = Cell::new(0);
+    let hidden = Cell::new(0);
+    let root = root.to_path_buf();
+    Ok(WalkDir::new(&root)
+        .follow_links(false)
+        .into_iter()
+        .filter_entry(move |entry| {
+            let relative = relative_path(&root, entry.path());
+            if relative.components().count() == 1
+                && relative.file_name().is_some_and(|name| {
+                    name.to_string_lossy().eq_ignore_ascii_case(".aigiscode")
+                        || name.to_string_lossy().eq_ignore_ascii_case(".cargo")
+                })
+            {
+                return true;
+            }
+            if relative.components().next().is_some_and(|part| {
+                part.as_os_str()
+                    .to_string_lossy()
+                    .eq_ignore_ascii_case(".aigiscode")
+            }) {
+                return false;
+            }
+            should_visit(entry, &root, &config, &skipped, &hidden)
+        })
+        .filter(|entry| match entry {
+            Ok(entry) => entry.file_type().is_dir(),
+            Err(_) => true,
+        }))
+}
+
 fn should_visit(
     entry: &DirEntry,
     root: &Path,
@@ -440,6 +460,34 @@ fn should_visit(
         return false;
     }
     true
+}
+
+pub(crate) fn effective_scan_config(
+    root: &Path,
+    config: &ScanConfig,
+) -> Result<ScanConfig, ScanError> {
+    let mut effective_config = load_scan_config(root, config)?;
+    for prefix in &mut effective_config.generated_path_prefixes {
+        if prefix.components().all(|part| part == Component::CurDir)
+            || prefix.components().any(|part| {
+                matches!(
+                    part,
+                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
+                )
+            })
+        {
+            return Err(ScanError::InvalidGeneratedPrefix(prefix.clone()));
+        }
+        *prefix = prefix
+            .components()
+            .filter_map(|part| match part {
+                Component::Normal(segment) => Some(segment),
+                _ => None,
+            })
+            .collect();
+    }
+
+    Ok(effective_config)
 }
 
 fn load_scan_config(root: &Path, base: &ScanConfig) -> Result<ScanConfig, ScanError> {

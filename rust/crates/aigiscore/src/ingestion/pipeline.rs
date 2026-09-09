@@ -2,7 +2,7 @@ use crate::assessment::{build_architectural_assessment_full, ArchitecturalAssess
 use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code_scoped, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
-use crate::doctrine::{load_doctrine_registry, DoctrineLoadError, LayerContract};
+use crate::doctrine::{load_doctrine_registry, DoctrineLoadError, DoctrineRegistry};
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::{analyze_semantic_graph, GraphAnalysis};
 use crate::graph::SemanticGraph;
@@ -10,6 +10,7 @@ use crate::ingestion::scan::{scan_repository, ScanConfig, ScanError, ScanResult}
 use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
+use crate::policy::{PolicyBundle, PolicyLoadError};
 use crate::resolve::{load_resolve_config, resolve_graph_with_config};
 use crate::scanners::ast_grep::{run_ast_grep_scan, AstGrepScanResult};
 use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
@@ -67,7 +68,9 @@ pub struct ProjectAnalysis {
     pub graph_analysis: GraphAnalysis,
     pub architectural_assessment: ArchitecturalAssessment,
     #[serde(skip)]
-    doctrine_layers: Vec<LayerContract>,
+    doctrine_registry: DoctrineRegistry,
+    #[serde(skip)]
+    policy_bundle: PolicyBundle,
     pub contract_inventory: ContractInventory,
     pub dead_code: DeadCodeResult,
     pub hardwiring: HardwiringResult,
@@ -83,6 +86,14 @@ pub struct ProjectAnalysis {
 }
 
 impl ProjectAnalysis {
+    pub fn doctrine_registry(&self) -> &DoctrineRegistry {
+        &self.doctrine_registry
+    }
+
+    pub fn policy_bundle(&self) -> &PolicyBundle {
+        &self.policy_bundle
+    }
+
     pub fn architecture_surface(&self) -> ArchitectureSurface {
         build_architecture_surface(self)
     }
@@ -98,7 +109,7 @@ impl ProjectAnalysis {
             &self.parsed_sources,
             &self.ast_grep_scan,
             Some(&self.semantic_graph),
-            &self.doctrine_layers,
+            &self.doctrine_registry.layers,
         );
     }
 }
@@ -109,6 +120,8 @@ pub enum ProjectAnalysisError {
     Scan(#[from] ScanError),
     #[error(transparent)]
     Doctrine(#[from] DoctrineLoadError),
+    #[error(transparent)]
+    Policy(#[from] PolicyLoadError),
     #[error("failed to read source file {path}: {source}")]
     ReadFile {
         path: PathBuf,
@@ -356,7 +369,8 @@ fn finish_project_analysis(
     ));
 
     let assessment_started = Instant::now();
-    let doctrine_layers = load_doctrine_registry(&root)?.layers;
+    let doctrine_registry = load_doctrine_registry(&root)?;
+    let policy_bundle = PolicyBundle::load(&root)?;
     let architectural_assessment = build_architectural_assessment_full(
         &graph_analysis,
         &dead_code,
@@ -365,7 +379,7 @@ fn finish_project_analysis(
         &parsed_sources,
         &ast_grep_scan,
         Some(&semantic_graph),
-        &doctrine_layers,
+        &doctrine_registry.layers,
     );
     trace(&format!(
         "analyze.architectural_assessment elapsed_ms={}",
@@ -396,7 +410,8 @@ fn finish_project_analysis(
         semantic_graph,
         graph_analysis,
         architectural_assessment,
-        doctrine_layers,
+        doctrine_registry,
+        policy_bundle,
         contract_inventory,
         dead_code,
         hardwiring,

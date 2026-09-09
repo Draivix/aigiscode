@@ -141,9 +141,9 @@ that correction.
    `semantic_env_revision` fingerprint of the build/workspace configuration
    separately.
 
-3. **Filesystem watcher as a hint stream, not a transaction log.** `notify` +
-   `notify-debouncer-full` populate a dirty-path set and an append-only
-   change journal — nothing parses directly from a watcher callback. Publish
+3. **Filesystem watcher as a hint stream, not a transaction log.** Raw `notify`
+   events populate a dirty-path set immediately. An append-only change journal
+   remains planned — nothing parses directly from a watcher callback. Publish
    graph updates through a single **repository-level coalescing debouncer**
    (not per-path timers, which fragment one logical edit burst into dozens of
    near-simultaneous work items), but keep **per-path stable-read
@@ -233,29 +233,52 @@ proves insufficient for a specific global query.
 
 ### Phase 1 — Revisioned, honest daemon (no incrementality yet) — SHIPPED 2026-07-02
 
-Status: implemented and verified (unit + integration + real-OS-watcher + a
-binary-level `mcp --watch` smoke run). 284 tests pass; `cargo fmt`/`clippy`
-clean.
+Historical verification on 2026-07-02 covered unit, integration, native watcher
+and binary smoke checks (284 tests). It does not validate the changes below.
+The 2026-09-09 lifecycle correction has a production build only; automated tests
+and CI are stopped at the user's request. Runtime race behavior remains unverified.
 
 - ✅ Content hash + mtime on `ScannedFile` (`src/revision.rs` identity types,
   `src/ingestion/hash.rs` xxh3) + a `semantic_env` fingerprint on `ScanResult`
   (config-change detection independent of source). Fact-level provenance
   threading (`(path, hash)` on every `ParsedFile`/`SymbolFact`) is Phase 2 prep
   and intentionally not required by the dumb-but-correct daemon.
-- ✅ `notify` + `notify-debouncer-full` `mcp --watch` mode
-  (`src/mcp/watch.rs`): native recursive watcher → ignore-filtered, access-event-
-  suppressed → repository-level coalescer → single serialized rebuild task →
-  `tokio::spawn_blocking(build_mcp_state)` → atomic publish. Re-runs the full
-  `analyze_project()` on change (no incremental resolution yet). Rebuilds never
-  write artifacts and `.aigiscode` is ignored, so the daemon never self-triggers.
+- `notify` `mcp --watch` mode (`src/mcp/watch.rs`): arm nonrecursive watches on
+  admitted directories, including empty ones, before initial capture; invalidate
+  on raw events before the 300 ms rebuild delay; coalesce wake tokens while keeping
+  dirty paths; serialize initial analysis and rebuilds through one writer. Scan
+  scope governs registration, avoiding vendor/generated trees. Access events and
+  generated `.aigiscode` artifacts are ignored; scan, policy, rules and doctrine
+  configuration remain watched. Registration is renewed before each capture;
+  topology changes during registration/build force another reconciliation pass.
+  Watcher failure or overflow marks the snapshot stale and triggers re-registration.
+  Registration failure retries after two seconds. Rebuilds still run full analysis
+  and do not write artifacts (incremental resolution remains pending).
 - ✅ Live `ArcSwap`-backed state (`src/mcp/live.rs`, generic `LiveState<S>` so the
   revision logic is unit-testable): replaces the one-shot `McpState` clone. Every
   `repo_overview` response carries a `Freshness` contract
   (`revision`/`indexed_revision`/`observed_revision`/`is_stale`/`rebuilding`/
   `dirty_paths`/`generated_at_unix_ms`) plus optional
   `min_revision`/`consistency`/`wait_ms` params with a real `wait_until_indexed`.
-  The two load-bearing honest-staleness tests (query-during-rebuild,
-  changes-during-rebuild) pass.
+  Freshness also exposes `watcher` health and `last_error`. These describe current
+  observation/rebuild health even when a request pins an older published revision.
+- Every transport tool/resource/prompt read pins one immutable snapshot. Tool and
+  resource responses carry `_meta["aigiscode/freshness"]`; overview bodies carry it
+  too. Discovery and the graph schema remain available during startup. Initial
+  index reads wait at most 30 seconds by default; explicit waits are capped at
+  120 seconds, respect request cancellation, and wake on index failure. Pending or
+  failed startup returns a structured error with `index_state`, `retryable` and
+  freshness. `allow_stale` returns immediately if startup has no snapshot. A wait
+  deadline with an existing snapshot returns it with unmet consistency reported.
+- Doctrine and policy are captured once per analysis and shared by assessment,
+  review, artifact writing and MCP. Current convergence and guard are computed
+  from the current analysis and prior baseline inputs; cached guard/convergence
+  files are never reused as current results. Artifact-writing startup hands its
+  computed context directly to MCP. Invalid/unreadable baseline JSON fails the
+  build instead of silently falling back. Missing baseline semantics and atomic
+  publication of the entire artifact family still require further work.
+- Kuzu is exposed only when materialized for the current snapshot. A database
+  left on disk by an earlier revision is unavailable after a live rebuild.
 - ⏳ Deferred (advisory, not correctness): MCP resource-subscription *push*
   (`notifications/resources/updated`). The freshness contract already covers
   correctness — a client polling `repo_overview` sees the revision change and the

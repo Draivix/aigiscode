@@ -1,41 +1,23 @@
-//! Filesystem watcher + coalescing rebuild loop for the online MCP daemon.
-//!
-//! Phase 1 is deliberately "dumb but correct": on any coalesced change the whole project
-//! is re-analyzed and the resulting snapshot is atomically published. There is no
-//! incremental resolution yet — the value here is *liveness + honest freshness*, not
-//! speed. The watcher is a hint stream feeding a dirty set, never a transaction log.
+//! One index writer, with observation armed before capture and directory watches
+//! derived from scan scope. Notifications invalidate immediately; rebuilds coalesce.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
-use notify_debouncer_full::new_debouncer;
-use notify_debouncer_full::notify::event::EventKind;
-use notify_debouncer_full::notify::RecursiveMode;
-use notify_debouncer_full::DebounceEventResult;
+use notify::event::ModifyKind;
+use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use tokio::sync::mpsc;
 
+use super::contracts::WatcherStatus;
 use super::live::{DirtyKind, LiveState};
 use super::McpState;
+use crate::ingestion::scan::{watch_directories, ScanConfig};
 
-/// Trailing debounce window the native watcher coalesces raw events into.
-const DEBOUNCE_MS: u64 = 300;
-
-/// Directory names never worth reacting to (build/artifact/vcs/dependency dirs). Includes
-/// `.aigiscode` so the daemon's own artifact writes can never retrigger it.
-const IGNORED_DIR_NAMES: &[&str] = &[
-    ".aigiscode",
-    ".git",
-    "target",
-    "node_modules",
-    "vendor",
-    "dist",
-    "build",
-    "storage",
-    "coverage",
-    "__pycache__",
-    "tmp",
-];
+const DEBOUNCE: Duration = Duration::from_millis(300);
+const WATCH_RETRY: Duration = Duration::from_secs(2);
 
 fn classify(kind: &EventKind) -> DirtyKind {
     if kind.is_create() {
@@ -49,116 +31,244 @@ fn classify(kind: &EventKind) -> DirtyKind {
     }
 }
 
-/// A path is ignored if any component under the watched root is a hidden dir or a known
-/// build/artifact directory — keeps vendored trees out of scope and avoids self-trigger.
 fn is_ignored(path: &Path, root: &Path) -> bool {
-    let relative = path.strip_prefix(root).unwrap_or(path);
-    relative.components().any(|component| {
-        let name = component.as_os_str().to_string_lossy();
-        IGNORED_DIR_NAMES.contains(&name.as_ref()) || name.starts_with('.')
-    })
+    let Ok(relative) = path.strip_prefix(root) else {
+        return true;
+    };
+    if relative.components().next().is_some_and(|part| {
+        part.as_os_str()
+            .to_string_lossy()
+            .eq_ignore_ascii_case(".aigiscode")
+    }) {
+        if relative.components().count() == 1 {
+            return false;
+        }
+        return relative.components().count() != 2
+            || !relative
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| {
+                    ["scan.json", "policy.json", "rules.json", "doctrine.json"]
+                        .iter()
+                        .any(|control| name.eq_ignore_ascii_case(control))
+                });
+    }
+
+    // File configuration extends this default set; it cannot remove these entries.
+    // Other hidden inputs are observed whenever the effective scan admits them.
+    static DEFAULT_IGNORES: OnceLock<HashSet<String>> = OnceLock::new();
+    let ignored = DEFAULT_IGNORES.get_or_init(|| ScanConfig::default().ignored_dir_names);
+    relative
+        .components()
+        .any(|part| ignored.contains(part.as_os_str().to_string_lossy().as_ref()))
 }
 
-/// Start watching `root`; each coalesced change re-analyzes the project and publishes a
-/// fresh snapshot into `live`. Returns once the watcher is armed; the rebuild loop runs on
-/// a spawned task for the daemon's lifetime. Failures to arm the watcher are logged (the
-/// server still serves the initial snapshot) rather than fatal.
-pub(super) fn spawn_watch(live: Arc<LiveState<Option<McpState>>>, root: PathBuf) {
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<(PathBuf, DirtyKind)>>();
+struct InputWatcher {
+    _watcher: RecommendedWatcher,
+    topology_changed: Arc<AtomicBool>,
+}
 
-    let filter_root = root.clone();
-    let debouncer = new_debouncer(
-        Duration::from_millis(DEBOUNCE_MS),
-        None,
-        move |result: DebounceEventResult| {
-            let Ok(events) = result else { return };
-            let mut changes: Vec<(PathBuf, DirtyKind)> = Vec::new();
-            let mut seen: HashSet<PathBuf> = HashSet::new();
-            for event in events {
-                if event.event.kind.is_access() {
-                    continue; // reads never change content
-                }
-                if std::env::var_os("AIGISCODE_WATCH_DEBUG").is_some() {
-                    eprintln!(
-                        "aigiscode watch DEBUG: kind={:?} paths={:?}",
-                        event.event.kind, event.event.paths
-                    );
-                }
-                let kind = classify(&event.event.kind);
-                for path in &event.event.paths {
-                    if is_ignored(path, &filter_root) {
-                        continue;
+impl InputWatcher {
+    fn arm(
+        live: Arc<LiveState<Option<McpState>>>,
+        root: &Path,
+        wake: mpsc::Sender<()>,
+    ) -> Result<Self, String> {
+        let topology_changed = Arc::new(AtomicBool::new(false));
+        let observed_topology = Arc::clone(&topology_changed);
+        let filter_root = root.to_path_buf();
+        let mut watcher =
+            notify::recommended_watcher(move |result: notify::Result<notify::Event>| {
+                let event = match result {
+                    Ok(event) if !event.need_rescan() => event,
+                    result => {
+                        let message = match result {
+                            Err(error) => error.to_string(),
+                            Ok(_) => {
+                                String::from("filesystem notification stream requires a rescan")
+                            }
+                        };
+                        observed_topology.store(true, Ordering::Release);
+                        live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
+                        live.set_watcher_status(WatcherStatus::Failed, Some(message));
+                        let _ = wake.try_send(());
+                        return;
                     }
-                    if seen.insert(path.clone()) {
-                        changes.push((path.clone(), kind));
-                    }
+                };
+                if event.kind.is_access() {
+                    return;
                 }
-            }
-            if !changes.is_empty() {
-                let _ = tx.send(changes);
-            }
-        },
-    );
+                let kind = classify(&event.kind);
+                let changes = event
+                    .paths
+                    .iter()
+                    .filter(|path| !is_ignored(path, &filter_root))
+                    .filter_map(|path| path.strip_prefix(&filter_root).ok())
+                    .map(|path| {
+                        (
+                            if path.as_os_str().is_empty() {
+                                PathBuf::from(".")
+                            } else {
+                                path.to_path_buf()
+                            },
+                            kind,
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                if changes.is_empty() {
+                    return;
+                }
+                // Invalidate before debounce or rebuild work, including events arriving
+                // during a build. A single wake token coalesces without losing paths.
+                let topology_event = event.kind.is_create()
+                    || event.kind.is_remove()
+                    || matches!(
+                        event.kind,
+                        EventKind::Modify(ModifyKind::Name(_)) | EventKind::Any | EventKind::Other
+                    )
+                    || changes.iter().any(|(path, _)| {
+                        path.to_string_lossy()
+                            .replace('\\', "/")
+                            .eq_ignore_ascii_case(".aigiscode/scan.json")
+                    });
+                if topology_event {
+                    observed_topology.store(true, Ordering::Release);
+                }
+                live.mark_dirty(changes);
+                let _ = wake.try_send(());
+            })
+            .map_err(|error| error.to_string())?;
 
-    let mut debouncer = match debouncer {
-        Ok(debouncer) => debouncer,
-        Err(err) => {
-            eprintln!("aigiscode watch: failed to start filesystem watcher: {err}");
-            return;
+        // Register each parent before descending into its children. No recursive
+        // registration of vendor/build trees; empty source directories still count.
+        watcher
+            .watch(root, RecursiveMode::NonRecursive)
+            .map_err(|error| error.to_string())?;
+        for entry in watch_directories(root).map_err(|error| error.to_string())? {
+            let entry = entry.map_err(|error| error.to_string())?;
+            if entry.path() != root {
+                watcher
+                    .watch(entry.path(), RecursiveMode::NonRecursive)
+                    .map_err(|error| error.to_string())?;
+            }
         }
-    };
-    if let Err(err) = debouncer.watch(&root, RecursiveMode::Recursive) {
-        eprintln!("aigiscode watch: failed to watch {}: {err}", root.display());
-        return;
+        Ok(Self {
+            _watcher: watcher,
+            topology_changed,
+        })
     }
-    eprintln!("aigiscode watch: watching {} for changes", root.display());
+}
 
-    let rebuild_root = root;
+pub(super) fn start_indexer(
+    live: Arc<LiveState<Option<McpState>>>,
+    root: PathBuf,
+    output_dir: Option<PathBuf>,
+    write_artifacts: bool,
+    write_kuzu: bool,
+    watch: bool,
+) {
+    if watch {
+        live.set_watcher_status(WatcherStatus::Starting, None);
+        if live.load().snapshot.is_some() {
+            live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
+        }
+    }
+    let (wake, mut changes) = mpsc::channel::<()>(1);
     tokio::spawn(async move {
-        // Keep the debouncer alive for the whole task; dropping it stops watching.
-        let _debouncer = debouncer;
-        while let Some(first) = rx.recv().await {
-            live.mark_dirty(first);
-            while let Ok(more) = rx.try_recv() {
-                live.mark_dirty(more);
+        let root = match root.canonicalize() {
+            Ok(root) => root,
+            Err(error) => {
+                let message = format!("cannot resolve analysis root {}: {error}", root.display());
+                if watch {
+                    live.set_watcher_status(WatcherStatus::Failed, Some(message.clone()));
+                }
+                live.record_error(message);
+                return;
             }
-            // Rebuild to the latest observed revision, repeating if edits land mid-build.
-            loop {
-                let target = live.begin_rebuild();
-                let root_for_build = rebuild_root.clone();
-                let result = tokio::task::spawn_blocking(move || {
-                    // Daemon rebuilds never write artifacts (avoids self-trigger; the
-                    // watcher ignores `.aigiscode` regardless) and skip Kuzu.
-                    super::build_mcp_state(&root_for_build, None, false, false)
-                        .map_err(|err| err.to_string())
-                })
-                .await;
-                match result {
-                    Ok(Ok(state)) => {
-                        live.publish(Some(state), target);
-                        eprintln!("aigiscode watch: published revision {target}");
-                    }
-                    Ok(Err(message)) => {
-                        eprintln!("aigiscode watch: rebuild failed: {message}");
-                        live.record_error(message);
-                    }
-                    Err(join_err) => {
-                        let message = format!("rebuild task panicked: {join_err}");
-                        eprintln!("aigiscode watch: {message}");
-                        live.record_error(message);
-                    }
-                }
-                // Absorb any changes observed during the rebuild, then decide if the
-                // freshly published revision already covers everything.
-                while let Ok(more) = rx.try_recv() {
-                    live.mark_dirty(more);
-                }
-                if live.observed() <= target {
+        };
+        let mut watcher = None::<InputWatcher>;
+        let mut immediate = true;
+        let mut watch_failed = false;
+        loop {
+            if !immediate {
+                if !watch {
                     break;
                 }
+                if watch_failed {
+                    tokio::select! {
+                        _ = tokio::time::sleep(WATCH_RETRY) => {},
+                        _ = changes.recv() => {},
+                    }
+                } else if changes.recv().await.is_none() {
+                    break;
+                }
+                tokio::time::sleep(DEBOUNCE).await;
+            }
+            while changes.try_recv().is_ok() {}
+            if watch {
+                // Keep the previous watches alive until their replacement is armed.
+                // This also repairs moved/deleted directories and changed scan scope.
+                match InputWatcher::arm(Arc::clone(&live), &root, wake.clone()) {
+                    Ok(armed) => {
+                        watcher = Some(armed);
+                        watch_failed = false;
+                        live.set_watcher_status(WatcherStatus::Watching, None);
+                    }
+                    Err(error) => {
+                        watch_failed = true;
+                        live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
+                        live.set_watcher_status(WatcherStatus::Failed, Some(error));
+                    }
+                }
+            }
+            let target = live.begin_rebuild().max(1);
+            let initial = live.load().snapshot.is_none();
+            let build_root = root.clone();
+            let build_output = output_dir.clone();
+            let result = tokio::task::spawn_blocking(move || {
+                super::build_mcp_state(
+                    &build_root,
+                    build_output.as_deref(),
+                    initial && write_artifacts,
+                    initial && write_kuzu,
+                )
+                .map_err(|error| error.to_string())
+            })
+            .await;
+            // A directory/scope event during registration may have introduced an
+            // unwatched subtree before target was sampled. Force reconciliation;
+            // never publish that capture as proven fresh.
+            if watcher
+                .as_ref()
+                .is_some_and(|watcher| watcher.topology_changed.load(Ordering::Acquire))
+            {
+                live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
+            }
+            match result {
+                Ok(Ok(state)) => {
+                    live.publish(Some(state), target);
+                    eprintln!("aigiscode mcp: published revision {target}");
+                }
+                Ok(Err(message)) => {
+                    eprintln!("aigiscode mcp: {message}");
+                    live.record_error(message);
+                }
+                Err(error) => {
+                    live.record_error(format!("analysis task failed: {error}"));
+                }
+            }
+            while changes.try_recv().is_ok() {}
+            immediate = !watch_failed && live.observed() > target;
+            if !watch {
+                break;
             }
         }
     });
+}
+
+#[cfg(test)]
+pub(super) fn spawn_watch(live: Arc<LiveState<Option<McpState>>>, root: PathBuf) {
+    start_indexer(live, root, None, false, false, true);
 }
 
 #[cfg(test)]
@@ -166,17 +276,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ignores_artifact_and_vcs_and_hidden_dirs() {
+    fn ignores_artifacts_and_vcs_but_keeps_control_and_hidden_inputs() {
         let root = Path::new("/repo");
         assert!(is_ignored(Path::new("/repo/.aigiscode/x.json"), root));
         assert!(is_ignored(Path::new("/repo/.git/HEAD"), root));
         assert!(is_ignored(Path::new("/repo/target/debug/app"), root));
         assert!(is_ignored(Path::new("/repo/node_modules/x/index.js"), root));
-        assert!(is_ignored(Path::new("/repo/.hidden/file"), root));
+        assert!(!is_ignored(Path::new("/repo/.aigiscode/scan.json"), root));
+        assert!(!is_ignored(Path::new("/repo/.aigiscode/rules.json"), root));
+        assert!(!is_ignored(Path::new("/repo/.hidden/file"), root));
         assert!(!is_ignored(Path::new("/repo/src/main.rs"), root));
-        assert!(!is_ignored(
-            Path::new("/repo/app/Http/Controller.php"),
-            root
-        ));
     }
 }

@@ -15,7 +15,6 @@ use crate::artifacts::{
     EXTERNAL_ANALYSIS_FILE, GRAPH_PACKETS_FILE, GUARD_DECISION_FILE, REPOSITORY_TOPOLOGY_FILE,
     REVIEW_SURFACE_FILE, SCAN_MANIFEST_FILE, SEMANTIC_GRAPH_FILE,
 };
-use crate::doctrine::load_doctrine_registry;
 use crate::external::collect_external_analysis;
 use crate::ingestion::pipeline::{
     analyze_project, analyze_rust_project, build_semantic_graph_project, PhaseTiming,
@@ -28,7 +27,6 @@ use crate::plugins::built_in_runtime_plugins;
 use crate::policy::tune::{
     load_or_build_review_surface, suggest_policy_patch, write_policy_suggestion,
 };
-use crate::policy::PolicyBundle;
 use crate::review::build_review_surface;
 use crate::semantic_models::built_in_semantic_model_packs;
 use serde::Serialize;
@@ -42,11 +40,8 @@ struct AgentContext {
 
 fn build_agent_context(result: &ProjectAnalysis) -> Result<AgentContext, i32> {
     let surface = result.architecture_surface();
-    let doctrine = load_doctrine_registry(&result.root).map_err(|error| {
-        eprintln!("{error}");
-        1
-    })?;
-    let review_surface = build_review_surface(result, &surface, &PolicyBundle::default());
+    let doctrine = result.doctrine_registry();
+    let review_surface = build_review_surface(result, &surface, result.policy_bundle());
     let convergence = build_convergence_history_artifact(
         &result.root,
         &result.semantic_graph,
@@ -56,12 +51,12 @@ fn build_agent_context(result: &ProjectAnalysis) -> Result<AgentContext, i32> {
         &surface,
         &review_surface,
         &result.contract_inventory,
-        &doctrine,
+        doctrine,
     );
     let guard =
         build_guard_decision_artifact(&result.root, &convergence, &result.external_analysis);
-    let handoff = build_agent_handoff_artifact(result, &review_surface, &doctrine);
-    let review = build_agentic_review_artifact(result, &doctrine, &handoff, &guard, &convergence);
+    let handoff = build_agent_handoff_artifact(result, &review_surface, doctrine);
+    let review = build_agentic_review_artifact(result, doctrine, &handoff, &guard, &convergence);
     Ok(AgentContext { review })
 }
 
