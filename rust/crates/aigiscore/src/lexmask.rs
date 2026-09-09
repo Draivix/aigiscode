@@ -28,7 +28,7 @@ pub enum MaskLanguage {
 
 impl MaskLanguage {
     pub fn from_path(path: &Path) -> Option<Self> {
-        match path.extension().and_then(|value| value.to_str()) {
+        match path.extension().and_then(|value| value.to_str()).map(str::to_ascii_lowercase).as_deref() {
             Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => Some(Self::Php),
             Some("py") => Some(Self::Python),
             Some("rb" | "rake") => Some(Self::Ruby),
@@ -137,7 +137,9 @@ pub fn mask_non_code_spans(language: MaskLanguage, source: &str) -> Vec<String> 
 
 /// Keep only language code, preserving line numbers and isolating Vue scripts.
 pub fn mask_file_non_code_spans(path: &Path, source: &str) -> Option<Vec<String>> {
-    if path.extension().is_some_and(|extension| extension == "vue") {
+    if path.extension().and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("vue"))
+    {
         let script = crate::parsing::vue::extract_script(source);
         let language = if script.is_typescript {
             MaskLanguage::TypeScript

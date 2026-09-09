@@ -539,10 +539,11 @@ family so the scanner mix is visible without opening the raw artifact.
 Vue script regions now use the existing JS/TS rules with original file positions.
 Their `scope_limited_files` records remain `vue_script_only`; template and style
 behavior is outside this scan. Extraction limitations are explicit, and partial
-coverage still blocks a clean verdict. Vue complexity clues currently remain raw
-evidence pending native assessment integration. See the
+coverage still blocks a clean verdict. Vue and module-extension complexity clues
+now feed native assessment through the shared script mask. Small primitive literal
+membership tables stay in raw evidence without becoming hotspots. See the
 [coverage contract](docs/SECONDARY_COVERAGE_CONTRACT.md) and
-[captured Draivix evidence](docs/2026-09-09-vue-script-coverage.md).
+[captured Draivix evidence](docs/2026-09-09-vue-complexity.md).
 
 `graph-packets.json` complements `agentic-review.json` with bounded,
 doctrine-aware graph neighborhoods for the current top packets and focus files.

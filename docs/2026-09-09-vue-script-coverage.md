@@ -6,6 +6,10 @@ previous raw clues and adds 46: 41 complexity and five HTML-output matches.
 Every Vue file remains explicitly `vue_script_only`; template, style and custom
 block behavior has not been audited. Secondary coverage is still incomplete.
 
+Follow-up: [complexity assessment](2026-09-09-vue-complexity.md) connects this
+script evidence to native triage and repairs its bounds, pressure and primary
+location handling. The observations below precede that integration.
+
 The [receipt](2026-09-09-vue-script-coverage-evidence.json) contains the final binary
 and artifact fingerprints, all added clues, extraction limitations, graph
 comparisons, MCP metadata and source integrity. All 23,166 files in the preserved

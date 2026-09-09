@@ -100,6 +100,8 @@ pub enum AstGrepFindingKind {
     AlgorithmicComplexity {
         subtype: AstGrepComplexitySubtype,
         loop_family: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        bounded_membership: Option<BoundedMembership>,
     },
     FrameworkMisuse {
         subtype: AstGrepFrameworkMisuseSubtype,
@@ -108,6 +110,43 @@ pub enum AstGrepFindingKind {
         category: AstGrepSecurityCategory,
         api_name: String,
     },
+}
+
+/// A direct JS/TS `.includes` call on a fixed array of primitive literals.
+/// The character column refers to the scanner input (Vue regions are masked),
+/// matching the character-preserving lexical mask used by native assessment.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BoundedMembership {
+    pub max_items: usize,
+    pub method_line: usize,
+    pub method_character_column: usize,
+}
+
+fn bounded_membership(
+    node: &ast_grep_core::Node<ast_grep_core::tree_sitter::StrDoc<SupportLang>>,
+    language: SupportLang,
+) -> Option<BoundedMembership> {
+    if !matches!(language, SupportLang::JavaScript | SupportLang::TypeScript | SupportLang::Tsx) {
+        return None;
+    }
+    let function = node.field("function")?;
+    let property = function.field("property")?;
+    if property.text() != "includes" {
+        return None;
+    }
+    let receiver = function.field("object")?;
+    if receiver.kind() != "array" || receiver.children().any(|child| {
+        child.is_named() && !matches!(child.kind().as_ref(), "string" | "number" | "true" | "false" | "null")
+    }) {
+        return None;
+    }
+    // Commas include array holes and trailing commas, so this is an upper bound.
+    let max_items = receiver.children().filter(|child| child.kind() == ",").count() + 1;
+    Some(BoundedMembership {
+        max_items,
+        method_line: property.start_pos().line() + 1,
+        method_character_column: property.start_pos().column(&property) + 1,
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -920,6 +959,9 @@ fn scan_one_source(path: &Path, source: &str, language: Option<SupportLang>) -> 
                             kind: AstGrepFindingKind::AlgorithmicComplexity {
                                 subtype: rule.subtype,
                                 loop_family: String::from(rule_set.loop_family),
+                                bounded_membership: if rule.subtype == AstGrepComplexitySubtype::CollectionScanInLoop {
+                                    bounded_membership(matched.get_node(), language)
+                                } else { None },
                             },
                         });
                     }
@@ -982,6 +1024,7 @@ fn scan_one_source(path: &Path, source: &str, language: Option<SupportLang>) -> 
                             kind: AstGrepFindingKind::AlgorithmicComplexity {
                                 subtype: rule.subtype,
                                 loop_family: String::from(loop_family_for_catalog(catalog)),
+                                bounded_membership: None,
                             },
                         });
                     }

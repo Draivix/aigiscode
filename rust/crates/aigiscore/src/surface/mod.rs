@@ -1534,7 +1534,7 @@ fn surface_finding_from_architectural_assessment(
                 confidence_millis: finding.severity_millis,
                 title: String::from("Algorithmic complexity hotspot"),
                 summary: format!(
-                    "{} contains repeated expensive loop-local work ({}) that is likely to become a scaling hotspot",
+                    "{} contains loop-local complexity observations ({}). Inspect input bounds and measure runtime cost before choosing a refactor.",
                     finding.file_path.display(),
                     finding.warning_families.join(", ")
                 ),
@@ -2443,6 +2443,9 @@ fn best_effort_anchor_for_architectural_assessment(
             label: String::from("primary"),
             ..anchor.clone()
         });
+    }
+    if let Some(anchor) = architectural_complexity_operation_anchors(finding).into_iter().next() {
+        return Some(EvidenceAnchor { label: String::from("primary"), ..anchor });
     }
     let mut tokens = finding
         .related_identifiers
@@ -3736,6 +3739,27 @@ export function load() {
             .locations
             .iter()
             .any(|anchor| anchor.file_path == PathBuf::from("src/handler.ts")));
+    }
+
+    #[test]
+    fn nested_iteration_primary_anchor_uses_the_captured_operation_line() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        fs::write(fixture.join("src/flatten.ts"), concat!(
+            "export function flatten(rows: string[][]) {\n",
+            "  const values: string[] = [];\n",
+            "  for (const row of rows) {\n",
+            "    for (const value of row) {\n",
+            "      values.push(value);\n",
+            "    }\n  }\n  return values;\n}\n",
+        )).unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+        let finding = surface.highlights.iter().find(|finding|
+            finding.id.starts_with("architecture:algorithmic-complexity:src/flatten.ts:")
+        ).expect("nested iteration evidence");
+        assert_eq!(finding.primary_anchor.as_ref().unwrap().line, Some(4));
+        assert_eq!(finding.line, Some(4));
     }
 
     #[test]

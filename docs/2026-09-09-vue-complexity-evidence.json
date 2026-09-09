@@ -1,0 +1,1288 @@
+{
+  "observed_at": "2026-09-09T19:57:00.892Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-complexity-final",
+    "sha256": "b7c431eacdb2e7758e05fb4aebdc86ee5358920fbe03cb47f47c8187f55a17da",
+    "build_log": "target/reliability-2026-09-09/complexity-final-build.txt",
+    "production_build_succeeded": true,
+    "new_regressions_written": 8,
+    "existing_tests_relocated": 2,
+    "tests_run": false,
+    "ci_run": false
+  },
+  "source": {
+    "root": "target/reliability-2026-09-09/draivix-full-source",
+    "inventory_sha256": "641e95edcc61e43807f7e5dc2648bdb23ea8d87f610f17a7c562ace317518e68",
+    "files": 23166,
+    "mismatches": [],
+    "missing": [],
+    "live_original_edited": false,
+    "scope": "Preserved source capture; subsequent live Mitel edits are not included. This is not current-live-tree acceptance.",
+    "selected_files": [
+      {
+        "path": "resources/js/Components/Search/GlobalSearch.vue",
+        "sha256": "ecbb0dcba15968845e2a554aa4f40a59927567d3590b193a96edd604ebaa55af"
+      },
+      {
+        "path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "sha256": "61b05ebb0cd159b4d329b2eebf9e1d4c83e3d94717575f5096396263b493e7a2"
+      },
+      {
+        "path": "scripts/build-native-shell.mjs",
+        "sha256": "2d1689fec8c31b8e017635924d5911c7fe6cacac8f306fc30097a3102fccab2b"
+      },
+      {
+        "path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+        "sha256": "7dfa01c7d465f3e32ceb1bd3bdba7809adba65cc62a514414bf4cf2ded5a6cc1"
+      },
+      {
+        "path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+        "sha256": "baf6a4b59995a55203dd728283d25e8669ebd659316e8e5c6b33b516b09734d6"
+      },
+      {
+        "path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+        "sha256": "1f2349be54c60ffb29344f4e72956f79ff075a9a3a32163eaaab27dc1323d8de"
+      }
+    ]
+  },
+  "snapshot_identity": {
+    "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+    "engine_version": "0.1.0",
+    "engine_fingerprint": "de941ce266f2f712",
+    "semantic_revision": 11,
+    "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+    "input_inventory_fingerprint": "55327d3f0dae4cc7",
+    "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+    "resolve_config_fingerprint": "50854948b7f43ebe",
+    "assessment_config_fingerprint": "15d53a85edc70ec3",
+    "external_tools": [],
+    "external_checks_complete": true
+  },
+  "measurement": {
+    "time_file": "target/reliability-2026-09-09/draivix-complexity-final-time.txt",
+    "trace_file": "target/reliability-2026-09-09/draivix-complexity-final-trace.txt",
+    "elapsed": "1:26.16",
+    "peak_rss_kib": 3506168,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8362 findings=9978 elapsed_ms=20632"
+    ]
+  },
+  "baseline_measurement": {
+    "time_file": "target/reliability-2026-09-09/draivix-vue-script-final-time.txt",
+    "trace_file": "target/reliability-2026-09-09/draivix-vue-script-final-trace.txt",
+    "elapsed": "1:24.48",
+    "peak_rss_kib": 3494756,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8362 findings=9978 elapsed_ms=18906"
+    ]
+  },
+  "semantic_graph": {
+    "baseline_sha256": "b43e7ae13b1db73f1bc95daf56d45a4693017e1a6ec0a894b7372cfacf05e8a8",
+    "current_sha256": "b43e7ae13b1db73f1bc95daf56d45a4693017e1a6ec0a894b7372cfacf05e8a8"
+  },
+  "coverage": {
+    "status": "incomplete",
+    "input_files": 17013,
+    "scanned_files": 8362,
+    "prefiltered_files": 8651,
+    "oversized_files": 0,
+    "unsupported_files": 0,
+    "other_gap_files": 0,
+    "scope_limited_files": 792,
+    "gap_bytes": 12818568,
+    "gap_files_preview": [
+      {
+        "file_path": "resources/js/Components/Email/EmailPreview.vue",
+        "bytes": 204305,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "resources/js/Pages/Email/Index.vue",
+        "bytes": 198406,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+        "bytes": 195802,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+        "bytes": 147303,
+        "reason": "vue_script_only"
+      },
+      {
+        "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+        "bytes": 144848,
+        "reason": "vue_script_only"
+      }
+    ]
+  },
+  "coverage_projections": {
+    "cli": true,
+    "report": true,
+    "surface": true
+  },
+  "complexity": {
+    "before": 1536,
+    "after": 1599,
+    "added": 64,
+    "added_by_extension": {
+      "mjs": 5,
+      "vue": 59
+    },
+    "removed": [
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+        "related_identifiers": [
+          ".includes(",
+          "['equals', '=', 'eq'].includes(operator)",
+          "['in', 'anyof', 'any_of'].includes(operator)",
+          "['not_in', 'notin', 'nin', 'noneof', 'none_of'].includes(operator)"
+        ],
+        "warning_count": 6,
+        "warning_weight": 12,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:collection_scan_in_loop",
+          "scanner:ast_grep"
+        ],
+        "severity_millis": 670,
+        "expensive_operation_sites": [
+          {
+            "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+            "line": 35,
+            "subtype": "collection_scan_in_loop",
+            "token": "['not_in', 'notin', 'nin', 'noneof', 'none_of'].includes(operator)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+            "line": 37,
+            "subtype": "collection_scan_in_loop",
+            "token": "['in', 'anyof', 'any_of'].includes(operator)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+            "line": 39,
+            "subtype": "collection_scan_in_loop",
+            "token": "['equals', '=', 'eq'].includes(operator)",
+            "source": "AstGrep"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+            "line": 35,
+            "subtype": "collection_scan_in_loop",
+            "token": "['not_in', 'notin', 'nin', 'noneof', 'none_of'].includes(operator)",
+            "evidence_source": "AstGrep"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Dashboard/widgets/counterWidgetState.ts|.includes(|['equals', '=', 'eq'].includes(operator)|['in', 'anyof', 'any_of'].includes(operator)|['not_in', 'notin', 'nin', 'noneof', 'none_of'].includes(operator)|complexity:collection_scan_in_loop|scanner:ast_grep"
+      }
+    ],
+    "raw_clues": {
+      "before": 9978,
+      "after": 9978,
+      "removed": 0,
+      "added": 0,
+      "bounded": [
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+          "line": 962,
+          "token": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 6,
+              "method_line": 962,
+              "method_character_column": 93
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+          "line": 1192,
+          "token": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['quantity', 'unitPrice', 'discountPercent', 'taxRate', 'position', 'sourceId'].includes(itemField)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 6,
+              "method_line": 1192,
+              "method_character_column": 97
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "clients/gavona/e2e/specs/gavona-all-entities-crud.spec.ts",
+          "line": 574,
+          "token": "['manyToMany', 'belongsToMany'].includes(metadata.relation ?? '')",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['manyToMany', 'belongsToMany'].includes(metadata.relation ?? '')",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 2,
+              "method_line": 574,
+              "method_character_column": 48
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+          "line": 35,
+          "token": "['not_in', 'notin', 'nin', 'noneof', 'none_of'].includes(operator)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['not_in', 'notin', 'nin', 'noneof', 'none_of'].includes(operator)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 5,
+              "method_line": 35,
+              "method_character_column": 65
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+          "line": 37,
+          "token": "['in', 'anyof', 'any_of'].includes(operator)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['in', 'anyof', 'any_of'].includes(operator)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 3,
+              "method_line": 37,
+              "method_character_column": 50
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+          "line": 39,
+          "token": "['equals', '=', 'eq'].includes(operator)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['equals', '=', 'eq'].includes(operator)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 3,
+              "method_line": 39,
+              "method_character_column": 46
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "resources/js/__tests__/fast/Components/Core/ItemsGridBehavior.spec.ts",
+          "line": 277,
+          "token": "['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['INPUT', 'TEXTAREA', 'SELECT'].includes(node.tagName)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 3,
+              "method_line": 277,
+              "method_character_column": 45
+            }
+          }
+        },
+        {
+          "rule_id": "complexity/javascript/collection_scan_in_loop",
+          "family": "algorithmic_complexity",
+          "language": "typescript",
+          "provenance": "ast_grep.pattern",
+          "file_path": "resources/js/__tests__/fast/Pages/CalendarMobilePeopleScopeContract.spec.ts",
+          "line": 154,
+          "token": "['else', 'else-if'].includes(directive.key.name.name)",
+          "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+          "matched_text": "['else', 'else-if'].includes(directive.key.name.name)",
+          "kind": {
+            "kind": "algorithmic_complexity",
+            "subtype": "collection_scan_in_loop",
+            "loop_family": "brace_loop",
+            "bounded_membership": {
+              "max_items": 2,
+              "method_line": 154,
+              "method_character_column": 52
+            }
+          }
+        }
+      ]
+    },
+    "negative_controls": [
+      {
+        "path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+        "all_complexity_records": 0
+      },
+      {
+        "path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+        "all_complexity_records": 0
+      },
+      {
+        "path": "resources/js/chat/agent-ui/runtime/components/StackNode.vue",
+        "all_complexity_records": 0
+      },
+      {
+        "path": "resources/js/chat/components/CleanRoomIcon.vue",
+        "all_complexity_records": 0
+      }
+    ],
+    "source_examples": [
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+        "related_identifiers": [
+          "loop"
+        ],
+        "warning_count": 3,
+        "warning_weight": 9,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:nested_iteration"
+        ],
+        "severity_millis": 600,
+        "expensive_operation_sites": [
+          {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "line": 268,
+            "subtype": "nested_iteration",
+            "token": "loop",
+            "source": "Native"
+          },
+          {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "line": 433,
+            "subtype": "nested_iteration",
+            "token": "loop",
+            "source": "Native"
+          },
+          {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "line": 649,
+            "subtype": "nested_iteration",
+            "token": "loop",
+            "source": "Native"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "line": 268,
+            "subtype": "nested_iteration",
+            "token": "loop",
+            "evidence_source": "Native"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Search/GlobalSearch.vue|loop|complexity:nested_iteration"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+        "related_identifiers": [
+          "new RegExp(",
+          "new RegExp(`(${escapeRegex(word)})`, 'gi')"
+        ],
+        "warning_count": 2,
+        "warning_weight": 4,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:regex_compile_in_loop",
+          "scanner:ast_grep"
+        ],
+        "severity_millis": 590,
+        "expensive_operation_sites": [
+          {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "line": 1143,
+            "subtype": "regex_compile_in_loop",
+            "token": "new RegExp(`(${escapeRegex(word)})`, 'gi')",
+            "source": "AstGrep"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "line": 1143,
+            "subtype": "regex_compile_in_loop",
+            "token": "new RegExp(`(${escapeRegex(word)})`, 'gi')",
+            "evidence_source": "AstGrep"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Search/GlobalSearch.vue|new RegExp(|new RegExp(`(${escapeRegex(word)})`, 'gi')|complexity:regex_compile_in_loop|scanner:ast_grep"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "related_identifiers": [
+          ".find(",
+          "existing.some((value) => String(value) === String(id))",
+          "props.fields.find((item) => item.name === condition.field)",
+          "props.fields.find((item) => item.name === selection.fieldName)"
+        ],
+        "warning_count": 5,
+        "warning_weight": 10,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:collection_scan_in_loop",
+          "scanner:ast_grep"
+        ],
+        "severity_millis": 640,
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 98,
+            "subtype": "collection_scan_in_loop",
+            "token": "props.fields.find((item) => item.name === condition.field)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 104,
+            "subtype": "collection_scan_in_loop",
+            "token": "existing.some((value) => String(value) === String(id))",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 124,
+            "subtype": "collection_scan_in_loop",
+            "token": "props.fields.find((item) => item.name === selection.fieldName)",
+            "source": "AstGrep"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 98,
+            "subtype": "collection_scan_in_loop",
+            "token": "props.fields.find((item) => item.name === condition.field)",
+            "evidence_source": "AstGrep"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue|.find(|existing.some((value) => String(value) === String(id))|props.fields.find((item) => item.name === condition.field)|props.fields.find((item) => item.name === selection.fieldName)|complexity:collection_scan_in_loop|scanner:ast_grep"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "related_identifiers": [
+          ".sort(",
+          "selection.ids.map((id) => String(id)).sort()"
+        ],
+        "warning_count": 2,
+        "warning_weight": 6,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:sort_in_loop",
+          "scanner:ast_grep"
+        ],
+        "severity_millis": 610,
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 128,
+            "subtype": "sort_in_loop",
+            "token": "selection.ids.map((id) => String(id)).sort()",
+            "source": "AstGrep"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 128,
+            "subtype": "sort_in_loop",
+            "token": "selection.ids.map((id) => String(id)).sort()",
+            "evidence_source": "AstGrep"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue|.sort(|selection.ids.map((id) => String(id)).sort()|complexity:sort_in_loop|scanner:ast_grep"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+        "related_identifiers": [
+          "loop"
+        ],
+        "warning_count": 1,
+        "warning_weight": 3,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:nested_iteration"
+        ],
+        "severity_millis": 540,
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 103,
+            "subtype": "nested_iteration",
+            "token": "loop",
+            "source": "Native"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "line": 103,
+            "subtype": "nested_iteration",
+            "token": "loop",
+            "evidence_source": "Native"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue|loop|complexity:nested_iteration"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "scripts/build-native-shell.mjs",
+        "related_identifiers": [
+          "fs.existsSync(",
+          "fs.existsSync(src)"
+        ],
+        "warning_count": 4,
+        "warning_weight": 8,
+        "bottleneck_centrality_millis": 0,
+        "warning_families": [
+          "complexity:filesystem_read_in_loop",
+          "scanner:ast_grep"
+        ],
+        "severity_millis": 750,
+        "expensive_operation_sites": [
+          {
+            "file_path": "scripts/build-native-shell.mjs",
+            "line": 30,
+            "subtype": "filesystem_read_in_loop",
+            "token": "fs.existsSync(src)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "scripts/build-native-shell.mjs",
+            "line": 37,
+            "subtype": "filesystem_read_in_loop",
+            "token": "fs.existsSync(src)",
+            "source": "AstGrep"
+          }
+        ],
+        "expensive_operation_flow": [
+          {
+            "kind": "OperationSite",
+            "file_path": "scripts/build-native-shell.mjs",
+            "line": 30,
+            "subtype": "filesystem_read_in_loop",
+            "token": "fs.existsSync(src)",
+            "evidence_source": "AstGrep"
+          }
+        ],
+        "fingerprint": "architecture|algorithmic-complexity-hotspot|scripts/build-native-shell.mjs|fs.existsSync(|fs.existsSync(src)|complexity:filesystem_read_in_loop|scanner:ast_grep"
+      }
+    ],
+    "anchor_checks": {
+      "checked": 1599,
+      "mismatches": []
+    }
+  },
+  "graph_pressure": {
+    "findings_with_paths": 496,
+    "transitions": 1157,
+    "unique_hops": 513,
+    "missing": [],
+    "weak_or_type_only": [],
+    "excluded_paths": [],
+    "scope": "Every published complexity path transition matched by source/target file, source line and relation to at least one non-inferred non-type-only native edge; path files checked against the documented non-runtime classification.",
+    "comparison_reference": "target/reliability-2026-09-09/draivix-vue-complexity/deterministic-findings.json",
+    "changed_records": 542,
+    "lower_severity": 254,
+    "higher_severity": 90,
+    "same_severity_changed_path": 198,
+    "examples": [
+      {
+        "path": "resources/js/Components/Search/GlobalSearch.vue",
+        "subtype": "complexity:nested_iteration",
+        "before_severity": 720,
+        "after_severity": 600,
+        "before_path": [
+          {
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/tests/popup/app.test.ts",
+            "line": 10,
+            "relation_to_next": "Call",
+            "target_symbol": "setupPopup"
+          },
+          {
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "line": 244,
+            "relation_to_next": "Call",
+            "source_symbol": "setupPopup",
+            "target_symbol": "copyText"
+          },
+          {
+            "file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+            "line": 30,
+            "relation_to_next": "Import",
+            "target_symbol": "MainLayout"
+          },
+          {
+            "file_path": "resources/js/Layouts/MainLayout.vue",
+            "line": 65,
+            "relation_to_next": "Import",
+            "target_symbol": "GlobalSearch"
+          },
+          {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue"
+          }
+        ],
+        "after_path": []
+      },
+      {
+        "path": "resources/js/Components/Search/GlobalSearch.vue",
+        "subtype": "complexity:regex_compile_in_loop",
+        "before_severity": 710,
+        "after_severity": 590,
+        "before_path": [
+          {
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/tests/popup/app.test.ts",
+            "line": 10,
+            "relation_to_next": "Call",
+            "target_symbol": "setupPopup"
+          },
+          {
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "line": 244,
+            "relation_to_next": "Call",
+            "source_symbol": "setupPopup",
+            "target_symbol": "copyText"
+          },
+          {
+            "file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+            "line": 30,
+            "relation_to_next": "Import",
+            "target_symbol": "MainLayout"
+          },
+          {
+            "file_path": "resources/js/Layouts/MainLayout.vue",
+            "line": 65,
+            "relation_to_next": "Import",
+            "target_symbol": "GlobalSearch"
+          },
+          {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue"
+          }
+        ],
+        "after_path": []
+      }
+    ],
+    "rejected_weak_edges": [
+      {
+        "source_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+        "source_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+        "target_file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+        "target_symbol_id": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+        "reference_target_name": "copyText",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Inferred",
+        "origin": "Resolver",
+        "resolution_tier": "Global",
+        "confidence_millis": 500,
+        "reason": "call:global",
+        "line": 244,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+        "source_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+        "target_file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+        "target_symbol_id": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+        "reference_target_name": "copyText",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Inferred",
+        "origin": "Resolver",
+        "resolution_tier": "Global",
+        "confidence_millis": 500,
+        "reason": "call:global",
+        "line": 396,
+        "occurrence_index": 0
+      }
+    ],
+    "comparison_note": "Intermediate language-integration observation isolates the pressure-filter change; it is not the preceding committed product baseline."
+  },
+  "other_analysis_sections_equal": {
+    "graph_analysis": true,
+    "security_analysis": true,
+    "hardwiring": true
+  },
+  "mcp": {
+    "responses": "target/reliability-2026-09-09/complexity-final-mcp-responses.jsonl",
+    "responses_sha256": "f20e299f7f2d150582edfede22228aff968c45a59b2e149da491673131e0c9c9",
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "queries": [
+        {
+          "name": "repo_overview",
+          "arguments": {}
+        },
+        {
+          "name": "list_findings",
+          "arguments": {
+            "family": "graph",
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "max_items": 500
+          }
+        },
+        {
+          "name": "explain_finding",
+          "arguments": {
+            "finding_id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:new RegExp(+new RegExp(`(${escapeRegex(word)})`, 'gi')"
+          }
+        },
+        {
+          "name": "explain_finding",
+          "arguments": {
+            "finding_id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:loop"
+          }
+        },
+        {
+          "name": "explain_finding",
+          "arguments": {
+            "finding_id": "architecture:algorithmic-complexity:app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:.find(+existing.some((value) => String(value) === String(id))+props.fields.find((item) => item.name === condition.field)+props.fields.find((item) => item.name === selection.fieldName)"
+          }
+        },
+        {
+          "name": "list_findings",
+          "arguments": {
+            "family": "graph",
+            "file_path": "app/Modules/Accounting/resources/js/components/ItemsGrid.vue",
+            "max_items": 500
+          }
+        },
+        {
+          "name": "list_findings",
+          "arguments": {
+            "family": "graph",
+            "file_path": "resources/js/Components/Dashboard/widgets/counterWidgetState.ts",
+            "max_items": 500
+          }
+        },
+        {
+          "name": "quality_evaluation",
+          "arguments": {}
+        },
+        {
+          "name": "coverage_report",
+          "arguments": {}
+        }
+      ],
+      "elapsed_ms": 45572.630818,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 9.855410000000006,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30011.435138,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788983343134,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 45115.326028999996,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "list_findings",
+          "elapsed_ms": 45116.183856999996,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "explain_finding",
+          "elapsed_ms": 45116.481366,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "explain_finding",
+          "elapsed_ms": 45116.619307999994,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 6,
+          "tool": "explain_finding",
+          "elapsed_ms": 45116.839214,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 7,
+          "tool": "list_findings",
+          "elapsed_ms": 45117.467452,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 8,
+          "tool": "list_findings",
+          "elapsed_ms": 45118.023642,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 9,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 45118.424462999996,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 10,
+          "tool": "coverage_report",
+          "elapsed_ms": 45118.845155999996,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "target/reliability-2026-09-09/draivix-complexity-final/.generations/18d3bed7ab8b7419-20706e-0",
+        "generation": "18d3bed7ab8b7419-20706e-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788983388240,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    "all_requests_same_metadata": true,
+    "examples": [
+      {
+        "id": 4,
+        "finding": {
+          "confidence_millis": 590,
+          "doctrine_refs": [
+            "performance.scaling",
+            "guardian.superlinear-risk"
+          ],
+          "evidence_anchors": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:regex_compile_in_loop",
+              "line": 1143
+            }
+          ],
+          "family": "graph",
+          "file_paths": [
+            "resources/js/Components/Search/GlobalSearch.vue"
+          ],
+          "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Search/GlobalSearch.vue|new RegExp(|new RegExp(`(${escapeRegex(word)})`, 'gi')|complexity:regex_compile_in_loop|scanner:ast_grep",
+          "id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:new RegExp(+new RegExp(`(${escapeRegex(word)})`, 'gi')",
+          "is_visible": true,
+          "languages": [
+            "vue"
+          ],
+          "line": 1143,
+          "locations": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "primary",
+              "line": 1143
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:regex_compile_in_loop",
+              "line": 1143
+            }
+          ],
+          "phase": "implementation",
+          "policy_status": "none",
+          "precision": "heuristic",
+          "primary_anchor": {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "label": "primary",
+            "line": 1143
+          },
+          "provenance": [
+            "architectural_assessment",
+            "parsed_sources",
+            "graph_analysis"
+          ],
+          "severity": "high",
+          "summary": "resources/js/Components/Search/GlobalSearch.vue contains loop-local complexity observations (complexity:regex_compile_in_loop, scanner:ast_grep). Inspect input bounds and measure runtime cost before choosing a refactor.",
+          "supporting_context": [
+            "scanner:ast_grep",
+            "expensive_operation_sites: regex_compile_in_loop@1143:ast_grep:new RegExp(`(${escapeRegex(word)})`, 'gi')",
+            "expensive_operation_flow: resources/js/Components/Search/GlobalSearch.vue:1143:regex_compile_in_loop"
+          ],
+          "title": "Algorithmic complexity hotspot"
+        },
+        "explanation": "resources/js/Components/Search/GlobalSearch.vue contains loop-local complexity observations (complexity:regex_compile_in_loop, scanner:ast_grep). Inspect input bounds and measure runtime cost before choosing a refactor. Primary anchor: resources/js/Components/Search/GlobalSearch.vue:1143. 1 supporting evidence anchor(s) are attached."
+      },
+      {
+        "id": 5,
+        "finding": {
+          "confidence_millis": 600,
+          "doctrine_refs": [
+            "performance.scaling",
+            "guardian.superlinear-risk"
+          ],
+          "evidence_anchors": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 268
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 433
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 649
+            }
+          ],
+          "family": "graph",
+          "file_paths": [
+            "resources/js/Components/Search/GlobalSearch.vue"
+          ],
+          "fingerprint": "architecture|algorithmic-complexity-hotspot|resources/js/Components/Search/GlobalSearch.vue|loop|complexity:nested_iteration",
+          "id": "architecture:algorithmic-complexity:resources/js/Components/Search/GlobalSearch.vue:loop",
+          "is_visible": true,
+          "languages": [
+            "vue"
+          ],
+          "line": 268,
+          "locations": [
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "primary",
+              "line": 268
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 268
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 433
+            },
+            {
+              "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+              "label": "operation:nested_iteration",
+              "line": 649
+            }
+          ],
+          "phase": "implementation",
+          "policy_status": "none",
+          "precision": "heuristic",
+          "primary_anchor": {
+            "file_path": "resources/js/Components/Search/GlobalSearch.vue",
+            "label": "primary",
+            "line": 268
+          },
+          "provenance": [
+            "architectural_assessment",
+            "parsed_sources",
+            "graph_analysis"
+          ],
+          "severity": "high",
+          "summary": "resources/js/Components/Search/GlobalSearch.vue contains loop-local complexity observations (complexity:nested_iteration). Inspect input bounds and measure runtime cost before choosing a refactor.",
+          "supporting_context": [
+            "expensive_operation_sites: nested_iteration@268:native:loop | nested_iteration@433:native:loop | nested_iteration@649:native:loop",
+            "expensive_operation_flow: resources/js/Components/Search/GlobalSearch.vue:268:nested_iteration"
+          ],
+          "title": "Algorithmic complexity hotspot"
+        },
+        "explanation": "resources/js/Components/Search/GlobalSearch.vue contains loop-local complexity observations (complexity:nested_iteration). Inspect input bounds and measure runtime cost before choosing a refactor. Primary anchor: resources/js/Components/Search/GlobalSearch.vue:268. 3 supporting evidence anchor(s) are attached."
+      },
+      {
+        "id": 6,
+        "finding": {
+          "confidence_millis": 640,
+          "doctrine_refs": [
+            "performance.scaling",
+            "guardian.superlinear-risk"
+          ],
+          "evidence_anchors": [
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 98
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 104
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 124
+            }
+          ],
+          "family": "graph",
+          "file_paths": [
+            "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue"
+          ],
+          "fingerprint": "architecture|algorithmic-complexity-hotspot|app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue|.find(|existing.some((value) => String(value) === String(id))|props.fields.find((item) => item.name === condition.field)|props.fields.find((item) => item.name === selection.fieldName)|complexity:collection_scan_in_loop|scanner:ast_grep",
+          "id": "architecture:algorithmic-complexity:app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:.find(+existing.some((value) => String(value) === String(id))+props.fields.find((item) => item.name === condition.field)+props.fields.find((item) => item.name === selection.fieldName)",
+          "is_visible": true,
+          "languages": [
+            "vue"
+          ],
+          "line": 98,
+          "locations": [
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "primary",
+              "line": 98
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 98
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 104
+            },
+            {
+              "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+              "label": "operation:collection_scan_in_loop",
+              "line": 124
+            }
+          ],
+          "phase": "implementation",
+          "policy_status": "none",
+          "precision": "heuristic",
+          "primary_anchor": {
+            "file_path": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue",
+            "label": "primary",
+            "line": 98
+          },
+          "provenance": [
+            "architectural_assessment",
+            "parsed_sources",
+            "graph_analysis"
+          ],
+          "severity": "high",
+          "summary": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue contains loop-local complexity observations (complexity:collection_scan_in_loop, scanner:ast_grep). Inspect input bounds and measure runtime cost before choosing a refactor.",
+          "supporting_context": [
+            "scanner:ast_grep",
+            "expensive_operation_sites: collection_scan_in_loop@98:ast_grep:props.fields.find((item) => item.name === condition.field) | collection_scan_in_loop@104:ast_grep:existing.some((value) => String(value) === String(id)) | collection_scan_in_loop@124:ast_grep:props.fields.find((item) => item.name === selection.fieldName)",
+            "expensive_operation_flow: app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:98:collection_scan_in_loop"
+          ],
+          "title": "Algorithmic complexity hotspot"
+        },
+        "explanation": "app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue contains loop-local complexity observations (complexity:collection_scan_in_loop, scanner:ast_grep). Inspect input bounds and measure runtime cost before choosing a refactor. Primary anchor: app/Modules/Advanced/resources/js/components/report/ReportFilterEditor.vue:98. 3 supporting evidence anchor(s) are attached."
+      }
+    ],
+    "items_grid_query": {
+      "total": 8,
+      "truncated": false,
+      "owned_complexity_records": 0,
+      "note": "Path filtering includes related files; returned findings are owned by other files."
+    },
+    "counter_widget_query": {
+      "total": 0,
+      "truncated": false,
+      "owned_complexity_records": 0
+    }
+  },
+  "guard": {
+    "verdict": "Block",
+    "reasons": [
+      "No verified comparable baseline is available; current observations do not establish a regression or improvement.",
+      "Current snapshot contains 17 visible high-severity security finding(s); this is an observed risk, not a claim about when it was introduced.",
+      "Native input coverage is incomplete; absence-based checks are deferred.",
+      "Secondary rule coverage Incomplete: 8362 scanned, 8651 prefiltered, 0 oversized, 0 without language rules, 0 other gaps, 792 scope-limited files. See ast-grep-scan.json; this does not establish absence of defects.",
+      "10 doctrine-backed attention item(s) need review."
+    ]
+  },
+  "self": {
+    "time_file": "target/reliability-2026-09-09/self-complexity-final-time.txt",
+    "trace_file": "target/reliability-2026-09-09/self-complexity-final-trace.txt",
+    "elapsed": "0:02.99",
+    "peak_rss_kib": 158372,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=57 findings=53 elapsed_ms=783"
+    ],
+    "coverage": {
+      "status": "complete",
+      "input_files": 118,
+      "scanned_files": 57,
+      "prefiltered_files": 61,
+      "oversized_files": 0,
+      "unsupported_files": 0,
+      "other_gap_files": 0,
+      "scope_limited_files": 0,
+      "gap_bytes": 0,
+      "gap_files_preview": []
+    },
+    "native_status": "incomplete"
+  },
+  "artifacts": [
+    {
+      "name": "ast-grep-scan.json",
+      "sha256": "e585686941ae41337c1ae67886527edb8409d6bc6dfc7daee3c336b76232213b"
+    },
+    {
+      "name": "deterministic-findings.json",
+      "sha256": "7822147f1bb9522b736c55787d0bd0003249b3e104691690cfe5519ff4d38401"
+    },
+    {
+      "name": "aigiscode-report.json",
+      "sha256": "6127bb362c8448ccf15cfa1e882b34e492c038220c8a516e93a33551cb79c568"
+    },
+    {
+      "name": "review-surface.json",
+      "sha256": "f09ebc33583f18a39954ae6600ea6a6ddfd99f9250bfdbd3b5b8390f6536d141"
+    },
+    {
+      "name": "architecture-surface.json",
+      "sha256": "f47877cd844174ec5bfe2007a7dedaa979c2d245a7a0f77c7c9a9b5318c87d1e"
+    },
+    {
+      "name": "repository-topology.json",
+      "sha256": "7387f493f645fe3d60bc0249def8fd3222b002ebdad0264e07a6a2ec8ad68589"
+    },
+    {
+      "name": "guard-decision.json",
+      "sha256": "a6d83f4cba69a72bc411fed3e5568a89fb8bcf391d4c41097ce843f89414a182"
+    },
+    {
+      "name": "convergence-history.json",
+      "sha256": "f689afaaaccd3d0b5b0c01e088d7a73b67a60e46d326b395edb2237c9e1434de"
+    },
+    {
+      "name": "scan-manifest.json",
+      "sha256": "cd70cb63ea2e171ccab70bc5f532a1af8bf9245d668795206f9ef1d9de4bab20"
+    }
+  ],
+  "limits": [
+    "Findings are heuristic review candidates, not measured performance defects. Nested traversal of child lists can be linear in total input size.",
+    "Build/proof script context still needs review; adding module extensions does not establish request-time relevance for every new record.",
+    "Bounded-membership filtering applies only to direct primitive literal arrays with upper bound <=16; absent metadata means unknown. Unicode and mixed-call regressions are written but not run.",
+    "Pressure-path verification checks source/target file, line and relation against eligible edges. Modeled runtime edges remain possible; dependency reachability is not execution proof.",
+    "The weak global copyText resolution remains in the raw graph; this change prevents using it as runtime pressure evidence, rather than claiming the underlying binding is repaired.",
+    "Eight new regressions and approved CI remain outstanding under the user pause.",
+    "Timings are individual shared-host observations. Intermediate runs exposed the weak-path and primary-anchor issues corrected before final verification.",
+    "Source capture remains frozen; this is not a fresh audit of the current live repository."
+  ]
+}

@@ -78,6 +78,25 @@ input to avoid premature end-of-input; extracted JS/TS keeps the original bytes
 and the extraction gap remains visible.
 Missing legacy scope counters deserialize as zero.
 
+Complexity assessment accepts these Vue scripts and the shared JS/TS module
+extensions. Native line analysis uses the same script-aware mask, so template,
+style and comment text cannot supply native loop observations. JS/TS `.includes`
+clues can carry `bounded_membership` when their receiver is a direct array of
+primitive literals: an upper bound on element count and the method's location.
+The method column counts Unicode characters in the scanner input, matching the
+native lexical mask; for Vue, non-script regions have already been blanked.
+
+Assessment suppresses membership pressure only for these proven small tables
+(upper bound at most 16), while retaining the raw clue. Native filtering matches
+the particular method position, so another call on that line or inside its
+arguments is not suppressed. Spreads, computed entries, callbacks and larger
+tables remain reviewable. An absent bound means unknown, not unbounded.
+
+Runtime-entry pressure ignores inferred and type-only edges, and paths through
+tests, migrations or seeders. Supported modeled runtime relations can still
+contribute. The raw semantic graph remains available; a pressure path is a graph
+dependency explanation, not proof of execution or measured runtime cost.
+
 Backend, prefilter and built-in rule-family selection share one language mapping.
 JavaScript includes `.js`, `.jsx`, `.mjs` and `.cjs`; TypeScript includes `.ts`,
 `.mts` and `.cts`, with `.tsx` using its TSX parser. Extensions are case-insensitive.
