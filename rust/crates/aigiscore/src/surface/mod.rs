@@ -2425,6 +2425,16 @@ fn best_effort_anchor_for_architectural_assessment(
     analysis: &ProjectAnalysis,
     context: &SurfaceBuildContext<'_>,
 ) -> Option<EvidenceAnchor> {
+    if let Some(anchor) = finding
+        .evidence_anchors
+        .iter()
+        .find(|anchor| anchor.file_path == finding.file_path)
+    {
+        return Some(EvidenceAnchor {
+            label: String::from("primary"),
+            ..anchor.clone()
+        });
+    }
     let mut tokens = finding
         .related_identifiers
         .iter()
@@ -2479,7 +2489,20 @@ fn supporting_anchors_for_architectural_assessment(
         .related_file_paths
         .iter()
         .filter(|path| !pressure_files.contains(path.as_path()))
-        .filter_map(|path| best_effort_anchor_for_file(path, analysis, context, "supporting"))
+        .filter_map(|path| {
+            if finding.evidence_anchors.is_empty() {
+                best_effort_anchor_for_file(path, analysis, context, "supporting")
+            } else {
+                finding
+                    .evidence_anchors
+                    .iter()
+                    .find(|anchor| &anchor.file_path == path)
+                    .map(|anchor| EvidenceAnchor {
+                        label: String::from("supporting"),
+                        ..anchor.clone()
+                    })
+            }
+        })
         .collect::<Vec<_>>();
     for hop in architectural_pressure_supporting_anchors(finding) {
         if !anchors.contains(&hop) {
@@ -2905,6 +2928,33 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn naming_findings_preserve_detector_locations_through_the_surface() {
+        let fixture = create_fixture();
+        fs::write(
+            fixture.join("one.py"),
+            "# assignedUser assignedUserId assigned_user_id\n\ndef legacy(assignedUser, assignedUserId, assigned_user_id):\n    return assignedUserId or assigned_user_id or assignedUser\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("two.py"),
+            "# assignedUser assigned_user_id\ndef convert(assignedUser, assigned_user_id):\n    return assignedUser or assigned_user_id\n",
+        )
+        .unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+        let finding = surface
+            .highlights
+            .iter()
+            .find(|finding| finding.title == "Split identity model")
+            .unwrap();
+        assert_eq!(finding.primary_anchor.as_ref().unwrap().line, Some(3));
+        assert!(finding
+            .locations
+            .iter()
+            .any(|anchor| { anchor.file_path == Path::new("two.py") && anchor.line == Some(2) }));
+    }
 
     #[test]
     fn builds_an_architecture_surface_from_project_analysis() {

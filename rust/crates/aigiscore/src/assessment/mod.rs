@@ -1,5 +1,6 @@
 use crate::detectors::dead_code::DeadCodeResult;
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringResult};
+use crate::evidence::EvidenceAnchor;
 use crate::external::{ExternalAnalysisResult, ExternalSeverity};
 use crate::graph::analysis::{BottleneckFile, GraphAnalysis};
 use crate::graph::{RelationKind, SemanticGraph, SymbolKind, Visibility};
@@ -41,6 +42,9 @@ pub struct ArchitecturalAssessmentFinding {
     pub related_file_paths: Vec<PathBuf>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub related_identifiers: Vec<String>,
+    /// Source locations captured by the detector rather than guessed by a renderer.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence_anchors: Vec<EvidenceAnchor>,
     pub warning_count: usize,
     pub warning_weight: usize,
     pub bottleneck_centrality_millis: u32,
@@ -619,6 +623,7 @@ fn detect_warning_heavy_hotspots(
         .into_iter()
         .map(
             |(bottleneck, count, weight, _family_count)| ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::WarningHeavyHotspot,
                 file_path: bottleneck.file_path.clone(),
                 related_file_paths: Vec::new(),
@@ -756,6 +761,7 @@ fn detect_layer_contract_violations(
             ];
             related_identifiers.extend(violation.sample_sites);
             ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::LayerContractViolation,
                 file_path: source,
                 related_file_paths: vec![target],
@@ -898,6 +904,7 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
             );
             let raw = effective_methods.min(80) * 8 + dependent_files.min(100) * 4;
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::GodClass,
                 file_path: container.file_path.clone(),
                 related_file_paths: Vec::new(),
@@ -1065,6 +1072,7 @@ fn detect_unwired_framework_artifacts(
                     continue;
                 }
                 let mut finding = ArchitecturalAssessmentFinding {
+                    evidence_anchors: Vec::new(),
                     kind: ArchitecturalAssessmentKind::UnwiredFrameworkArtifact,
                     file_path: path.clone(),
                     related_file_paths: Vec::new(),
@@ -1244,6 +1252,7 @@ fn detect_algorithmic_complexity_hotspots(
                 warning_families.push(String::from("scanner:ast_grep"));
             }
             findings.push(ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot,
                 file_path: path.clone(),
                 related_file_paths: Vec::new(),
@@ -1825,6 +1834,7 @@ struct IdentityVariantAccumulator {
     identity_occurrences: usize,
     variant_counts: HashMap<String, usize>,
     file_counts: HashMap<PathBuf, usize>,
+    first_evidence_line: HashMap<PathBuf, usize>,
     code_styles_by_file: HashMap<PathBuf, HashSet<IdentifierStyle>>,
 }
 
@@ -1843,151 +1853,6 @@ fn is_member_access_position(masked: &str, start: usize) -> bool {
         // A single `.` preceding the identifier is member access; guard against
         // `..`/`...` (ranges, spreads) which are not field reads.
         || (prefix.ends_with('.') && !prefix.ends_with(".."))
-}
-
-// Blank every non-code region — string literals (including multi-line and
-// heredoc/nowdoc bodies) and comments — to spaces while preserving newlines so
-// line numbers stay aligned. Identifiers are only extracted from the code that
-// survives. This matters for naming-drift detection: without it, snake_case
-// database column names embedded in SQL heredocs and multi-line query strings
-// leak out as if they were code identifiers sitting next to their camelCase
-// entity properties, which is the normal ORM boundary, not drift. Comments are
-// masked too so an apostrophe in a comment cannot open a phantom string.
-fn mask_string_literals(content: &str) -> String {
-    enum State {
-        Normal,
-        LineComment,
-        BlockComment,
-        Quote(char),
-        Heredoc,
-    }
-    let chars: Vec<char> = content.chars().collect();
-    let mut masked = String::with_capacity(content.len());
-    let mut state = State::Normal;
-    let mut escaped = false;
-    let mut heredoc_label = String::new();
-    let mut i = 0usize;
-    let blank = |ch: char| if ch == '\n' { '\n' } else { ' ' };
-    while i < chars.len() {
-        let ch = chars[i];
-        match state {
-            State::Normal => {
-                if ch == '/' && chars.get(i + 1) == Some(&'/') {
-                    state = State::LineComment;
-                    masked.push_str("  ");
-                    i += 2;
-                } else if ch == '/' && chars.get(i + 1) == Some(&'*') {
-                    state = State::BlockComment;
-                    masked.push_str("  ");
-                    i += 2;
-                } else if ch == '#' && !matches!(chars.get(i + 1), Some('[') | Some('!')) {
-                    // PHP/Python/Ruby/shell line comment (but not Rust `#[`/`#!`).
-                    state = State::LineComment;
-                    masked.push(' ');
-                    i += 1;
-                } else if ch == '<'
-                    && chars.get(i + 1) == Some(&'<')
-                    && chars.get(i + 2) == Some(&'<')
-                {
-                    // Heredoc / nowdoc: `<<<LABEL`, `<<<'LABEL'`, `<<<"LABEL"`.
-                    let mut j = i + 3;
-                    while matches!(chars.get(j), Some(' ') | Some('\t')) {
-                        j += 1;
-                    }
-                    let opened_quote = matches!(chars.get(j), Some('\'') | Some('"'));
-                    if opened_quote {
-                        j += 1;
-                    }
-                    let label_start = j;
-                    while chars
-                        .get(j)
-                        .is_some_and(|c| c.is_alphanumeric() || *c == '_')
-                    {
-                        j += 1;
-                    }
-                    if j > label_start {
-                        heredoc_label = chars[label_start..j].iter().collect();
-                        if opened_quote && matches!(chars.get(j), Some('\'') | Some('"')) {
-                            j += 1;
-                        }
-                        for &c in &chars[i..j] {
-                            masked.push(blank(c));
-                        }
-                        i = j;
-                        state = State::Heredoc;
-                    } else {
-                        masked.push(ch);
-                        i += 1;
-                    }
-                } else if matches!(ch, '"' | '\'' | '`') {
-                    state = State::Quote(ch);
-                    escaped = false;
-                    masked.push(' ');
-                    i += 1;
-                } else {
-                    masked.push(ch);
-                    i += 1;
-                }
-            }
-            State::LineComment => {
-                if ch == '\n' {
-                    state = State::Normal;
-                    masked.push('\n');
-                } else {
-                    masked.push(' ');
-                }
-                i += 1;
-            }
-            State::BlockComment => {
-                if ch == '*' && chars.get(i + 1) == Some(&'/') {
-                    state = State::Normal;
-                    masked.push_str("  ");
-                    i += 2;
-                } else {
-                    masked.push(blank(ch));
-                    i += 1;
-                }
-            }
-            State::Quote(quote) => {
-                // Strings span newlines (masked across them); comment masking
-                // above prevents a stray apostrophe from opening a phantom one.
-                if !escaped && ch == quote {
-                    state = State::Normal;
-                }
-                escaped = !escaped && ch == '\\';
-                masked.push(blank(ch));
-                i += 1;
-            }
-            State::Heredoc => {
-                let at_line_start = i == 0 || chars[i - 1] == '\n';
-                if at_line_start {
-                    let mut j = i;
-                    while matches!(chars.get(j), Some(' ') | Some('\t')) {
-                        j += 1;
-                    }
-                    let token_start = j;
-                    while chars
-                        .get(j)
-                        .is_some_and(|c| c.is_alphanumeric() || *c == '_')
-                    {
-                        j += 1;
-                    }
-                    let candidate: String = chars[token_start..j].iter().collect();
-                    if candidate == heredoc_label {
-                        for &c in &chars[i..j] {
-                            masked.push(blank(c));
-                        }
-                        i = j;
-                        state = State::Normal;
-                        continue;
-                    }
-                }
-                masked.push(blank(ch));
-                i += 1;
-            }
-        }
-    }
-    masked
 }
 
 // Generated artifacts legitimately mirror both storage and code spellings;
@@ -2017,13 +1882,26 @@ fn detect_split_identity_models(
         if is_generated_source(content) {
             continue;
         }
-        let masked = mask_string_literals(content);
+        let Some(masked_lines) = crate::lexmask::mask_file_non_code_spans(path, content) else {
+            continue;
+        };
+        let masked = masked_lines.join("\n");
         for occurrence in identifier_pattern().find_iter(&masked) {
             let identifier = occurrence.as_str();
             let Some((stem, variant_kind)) = classify_identity_variant(identifier) else {
                 continue;
             };
             let group = groups.entry(stem).or_default();
+            group
+                .first_evidence_line
+                .entry(path.clone())
+                .or_insert_with(|| {
+                    masked[..occurrence.start()]
+                        .bytes()
+                        .filter(|byte| *byte == b'\n')
+                        .count()
+                        + 1
+                });
             match variant_kind {
                 IdentityVariantKind::Base => group.base_occurrences += 1,
                 IdentityVariantKind::Identity => group.identity_occurrences += 1,
@@ -2122,6 +2000,17 @@ fn detect_split_identity_models(
             );
 
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: file_counts
+                    .iter()
+                    .take(6)
+                    .filter_map(|(path, _)| {
+                        Some(EvidenceAnchor {
+                            file_path: path.clone(),
+                            line: Some(*group.first_evidence_line.get(path)?),
+                            label: String::from("identifier"),
+                        })
+                    })
+                    .collect(),
                 kind: ArchitecturalAssessmentKind::SplitIdentityModel,
                 file_path: primary_file.clone(),
                 related_file_paths,
@@ -2174,7 +2063,13 @@ fn detect_compatibility_scars(
         .filter_map(|(file_path, split_findings)| {
             let keyword_hits = content_by_path
                 .get(&file_path)
-                .map(|content| compatibility_keyword_pattern().find_iter(content).count())
+                .and_then(|content| crate::lexmask::mask_file_non_code_spans(&file_path, content))
+                .map(|lines| {
+                    lines
+                        .iter()
+                        .map(|line| compatibility_keyword_pattern().find_iter(line).count())
+                        .sum::<usize>()
+                })
                 .unwrap_or_default();
             if split_findings.len() < 2 && keyword_hits < 2 {
                 return None;
@@ -2221,6 +2116,10 @@ fn detect_compatibility_scars(
             );
 
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: split_findings
+                    .iter()
+                    .flat_map(|finding| finding.evidence_anchors.iter().cloned())
+                    .collect(),
                 kind: ArchitecturalAssessmentKind::CompatibilityScar,
                 file_path,
                 related_file_paths,
@@ -2373,6 +2272,7 @@ fn detect_duplicate_mechanisms(
             );
 
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::DuplicateMechanism,
                 file_path: primary_file.clone(),
                 related_file_paths,
@@ -2546,6 +2446,7 @@ fn detect_sanctioned_path_bypasses(
             let warning_count = warning_lines.len();
 
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::SanctionedPathBypass,
                 file_path: path.clone(),
                 related_file_paths: Vec::new(),
@@ -2704,6 +2605,7 @@ fn detect_abstraction_sprawl(
             );
 
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::AbstractionSprawl,
                 file_path: primary_file.clone(),
                 related_file_paths,
@@ -2926,6 +2828,7 @@ fn detect_hand_rolled_parsing(
             );
 
             Some(ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::HandRolledParsing,
                 file_path: primary_file.clone(),
                 related_file_paths,
@@ -3066,6 +2969,7 @@ fn detect_scheduler_dsl_stacks(
     );
 
     vec![ArchitecturalAssessmentFinding {
+        evidence_anchors: Vec::new(),
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
         file_path: primary_file.clone(),
         related_file_paths,
@@ -3211,6 +3115,7 @@ fn detect_filesystem_page_resolution_stacks(
     );
 
     vec![ArchitecturalAssessmentFinding {
+        evidence_anchors: Vec::new(),
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
         file_path: primary_file.clone(),
         related_file_paths,
@@ -3345,6 +3250,7 @@ fn detect_manifest_backed_policy_engine_stacks(
     );
 
     vec![ArchitecturalAssessmentFinding {
+        evidence_anchors: Vec::new(),
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
         file_path: primary_file.clone(),
         related_file_paths,
@@ -4540,6 +4446,43 @@ mod tests {
         assert!(split
             .related_identifiers
             .contains(&String::from("assignedUserId")));
+    }
+
+    #[test]
+    fn embedded_examples_in_real_rust_sources_do_not_create_identity_models() {
+        let sources = vec![
+            (
+                PathBuf::from("engine/artifacts.rs"),
+                include_str!("../artifacts.rs").to_owned(),
+            ),
+            (
+                PathBuf::from("engine/assessment.rs"),
+                include_str!("mod.rs").to_owned(),
+            ),
+        ];
+        let findings = super::detect_split_identity_models(&sources);
+        assert!(findings.is_empty(), "{findings:#?}");
+    }
+
+    #[test]
+    fn naming_evidence_anchors_point_to_code_instead_of_prose() {
+        let sources = vec![
+            (
+                PathBuf::from("src/one.py"),
+                String::from("# assignedUser assignedUserId assigned_user_id\n\ndef legacy(assignedUser, assignedUserId, assigned_user_id):\n    return assignedUserId or assigned_user_id or assignedUser\n"),
+            ),
+            (
+                PathBuf::from("src/two.py"),
+                String::from("# assignedUser assigned_user_id\ndef convert(assignedUser, assigned_user_id):\n    return assignedUser or assigned_user_id\n"),
+            ),
+        ];
+        let findings = super::detect_split_identity_models(&sources);
+        assert_eq!(findings.len(), 1);
+        let finding = &findings[0];
+        assert_eq!(finding.file_path, Path::new("src/one.py"));
+        assert_eq!(finding.evidence_anchors.len(), 2);
+        assert_eq!(finding.evidence_anchors[0].line, Some(3));
+        assert_eq!(finding.evidence_anchors[1].line, Some(2));
     }
 
     #[test]

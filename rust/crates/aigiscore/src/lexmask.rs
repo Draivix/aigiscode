@@ -29,11 +29,11 @@ pub enum MaskLanguage {
 impl MaskLanguage {
     pub fn from_path(path: &Path) -> Option<Self> {
         match path.extension().and_then(|value| value.to_str()) {
-            Some("php") => Some(Self::Php),
+            Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8") => Some(Self::Php),
             Some("py") => Some(Self::Python),
-            Some("rb") => Some(Self::Ruby),
+            Some("rb" | "rake") => Some(Self::Ruby),
             Some("js" | "jsx" | "mjs" | "cjs") => Some(Self::JavaScript),
-            Some("ts" | "tsx") => Some(Self::TypeScript),
+            Some("ts" | "tsx" | "mts" | "cts") => Some(Self::TypeScript),
             Some("rs") => Some(Self::Rust),
             _ => None,
         }
@@ -133,6 +133,20 @@ enum Carry {
 /// Blank string-literal and comment interiors of `source` line by line.
 pub fn mask_non_code_spans(language: MaskLanguage, source: &str) -> Vec<String> {
     mask(language, source, true)
+}
+
+/// Keep only language code, preserving line numbers and isolating Vue scripts.
+pub fn mask_file_non_code_spans(path: &Path, source: &str) -> Option<Vec<String>> {
+    if path.extension().is_some_and(|extension| extension == "vue") {
+        let script = crate::parsing::vue::extract_script(source);
+        let language = if script.is_typescript {
+            MaskLanguage::TypeScript
+        } else {
+            MaskLanguage::JavaScript
+        };
+        return Some(mask_non_code_spans(language, &script.masked_source));
+    }
+    MaskLanguage::from_path(path).map(|language| mask_non_code_spans(language, source))
 }
 
 /// Blank only comment interiors, leaving string literals intact. For detectors

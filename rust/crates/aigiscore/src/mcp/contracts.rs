@@ -3548,6 +3548,7 @@ final class OrderByValidator {
         let mut analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
         analysis.architectural_assessment = ArchitecturalAssessment {
             findings: vec![ArchitecturalAssessmentFinding {
+                evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::HandRolledParsing,
                 file_path: PathBuf::from("app/Services/Filter/QueryContractParser.php"),
                 related_file_paths: vec![
