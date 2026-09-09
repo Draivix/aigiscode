@@ -311,6 +311,12 @@ coverage continues to describe all current inputs, including retained gaps.
 This also remains experimental pending approved CI; see the
 [real source-refresh measurements](docs/2026-09-09-incremental-scanning.md).
 
+After saving edits under `--watch`, call `record_changed_paths` with their relative
+paths. Pass its returned `paths` and `min_revision` to `verify_change` with a wait
+budget; this avoids relying on notification delivery to identify your edit.
+Freshness and baseline comparability still govern whether a delta is usable.
+See the [edit receipt contract](docs/MCP_EDIT_RECEIPTS.md).
+
 Full dependency/evidence resources are built from the request's pinned semantic
 graph when read. MCP no longer retains those two complete copies in every live
 snapshot, but exporting either resource still requires a large JSON payload.

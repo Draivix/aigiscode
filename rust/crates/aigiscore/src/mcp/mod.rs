@@ -1,4 +1,5 @@
 mod contracts;
+mod edits;
 mod live;
 mod request;
 mod watch;
@@ -15,7 +16,8 @@ use self::contracts::{
     FindingSummaryOutput, GuardDecisionOutput, HotspotOutput, HotspotsOutput, ImpactRadiusOutput,
     ImpactRadiusParams, ListFindingsOutput, ListFindingsParams, ModuleDesignOutput,
     ModuleDesignParams, ModuleEdgeOutput, PrepareChangeOutput, PrepareChangeParams,
-    QualityEvaluationOutput, RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
+    QualityEvaluationOutput, RecordChangedPathsOutput, RecordChangedPathsParams,
+    RepoBriefOutput, RepoOverviewOutput, RepoOverviewParams,
     ReviewRadiusFileOutput, ShowCyclesParams, ShowHotspotsParams, SuppressFindingOutput,
     SuppressFindingParams, SymbolMatchOutput, SymbolUsagesOutput, SymbolUsagesParams,
     UsageSiteOutput, VerifyChangeOutput, VerifyChangeParams,
@@ -148,19 +150,30 @@ impl ServerHandler for AigiscodeMcpServer {
         if !self.tool_router.has_route(&request.name) {
             return Err(McpError::invalid_params("tool not found", None));
         }
-        let params = if request.name == "repo_overview" {
-            Some(
-                serde_json::from_value::<RepoOverviewParams>(serde_json::Value::Object(
-                    request.arguments.clone().unwrap_or_default(),
-                ))
-                .map_err(|error| McpError::invalid_params(error.to_string(), None))?,
-            )
-        } else {
-            None
+        let params = match request.name.as_ref() {
+            "repo_overview" => Some(serde_json::from_value::<RepoOverviewParams>(
+                serde_json::Value::Object(request.arguments.clone().unwrap_or_default()),
+            ).map_err(|error| McpError::invalid_params(error.to_string(), None))?),
+            "verify_change" => {
+                let params = serde_json::from_value::<VerifyChangeParams>(
+                    serde_json::Value::Object(request.arguments.clone().unwrap_or_default()),
+                ).map_err(|error| McpError::invalid_params(error.to_string(), None))?;
+                Some(RepoOverviewParams {
+                    min_revision: params.min_revision,
+                    consistency: ConsistencyMode::WaitUntilIndexed,
+                    wait_ms: params.wait_ms,
+                })
+            }
+            _ => None,
         };
-        let view = tokio::select! {
-            result = self.for_request(params.as_ref()) => result?,
-            _ = context.ct.cancelled() => return Err(McpError::internal_error("request cancelled", None)),
+        let view = if request.name == "record_changed_paths" {
+            // An edit receipt must be usable while the first index is still building.
+            self.clone()
+        } else {
+            tokio::select! {
+                result = self.for_request(params.as_ref()) => result?,
+                _ = context.ct.cancelled() => return Err(McpError::internal_error("request cancelled", None)),
+            }
         };
         let call = rmcp::handler::server::tool::ToolCallContext::new(&view, request, context);
         let mut result = self.tool_router.call(call).await?;
@@ -1052,8 +1065,19 @@ impl AigiscodeMcpServer {
     }
 
     #[tool(
+        name = "record_changed_paths",
+        description = "After saving an edit batch, immediately record its repository-relative paths and wake the mcp --watch indexer, even during initial indexing. Returns a min_revision receipt for repo_overview or verify_change. This declares saved changes; it does not edit files, expand scan scope, or prove coverage."
+    )]
+    async fn record_changed_paths(
+        &self,
+        Parameters(params): Parameters<RecordChangedPathsParams>,
+    ) -> Result<Json<RecordChangedPathsOutput>, String> {
+        self.record_edits(&params.paths).map(Json)
+    }
+
+    #[tool(
         name = "verify_change",
-        description = "Post-edit check scoped to the paths you touched (or, under `mcp --watch` with empty paths, the daemon's observed dirty paths): new/worsened findings in scope versus resolved/improved ones, plus honesty notes when the analysis has not caught up with the edits. Ask about YOUR change, not the whole repo."
+        description = "Post-edit check scoped to your paths (or observed dirty paths when empty). After saving, call record_changed_paths and pass its min_revision with wait_ms to wait for the corresponding index. Reports baseline comparability, regressions/fixes and explicit freshness when a requested revision is not ready."
     )]
     async fn verify_change(
         &self,
@@ -1065,7 +1089,7 @@ impl AigiscodeMcpServer {
         let snapshot = state.snapshot();
 
         let (raw_scope, scope_source) = if params.paths.is_empty() {
-            (self.freshness(true).dirty_paths, "daemon_dirty_paths")
+            (self.live.dirty_paths().iter().map(|path| display_path(path)).collect(), "daemon_dirty_paths")
         } else {
             (params.paths.clone(), "explicit")
         };
@@ -1082,8 +1106,7 @@ impl AigiscodeMcpServer {
         let in_scope = |finding: &ConvergenceFindingOutput| {
             finding.file_paths.iter().any(|file_path| {
                 scope.iter().any(|scope_path| {
-                    !scope_path.is_empty()
-                        && (file_path.contains(scope_path) || scope_path.contains(file_path))
+                    edits::path_in_scope(file_path, scope_path)
                 })
             })
         };
@@ -1112,7 +1135,7 @@ impl AigiscodeMcpServer {
         });
         let regression_count = regressions.len();
         let fix_count = fixes.len();
-        let truncated = regression_count > max_items || fix_count > max_items;
+        let truncated = regression_count > max_items || fix_count > max_items || scope.len() > SCOPE_CAP;
         regressions.truncate(max_items);
         fixes.truncate(max_items);
 
@@ -1122,16 +1145,18 @@ impl AigiscodeMcpServer {
                 "scope is empty — pass the paths you edited, or run under `mcp --watch` so the daemon tracks them",
             ));
         }
-        if scope_source == "daemon_dirty_paths" && self.freshness(true).is_stale {
+        if self.freshness(true).is_stale {
             honesty.push(String::from(
-                "the daemon has observed edits the current analysis does not cover yet — this delta lags your latest changes",
+                "the returned snapshot does not satisfy the requested or observed revision; this delta is not a completed post-edit verification",
             ));
         }
         honesty.push(String::from(
-            "convergence compares the last two analyses; changes never analyzed are invisible to this delta",
+            "convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes",
         ));
 
         Json(VerifyChangeOutput {
+            baseline: snapshot.convergence.baseline.clone(),
+            scope_path_count: Some(scope.len()),
             scope_paths: scope.into_iter().take(SCOPE_CAP).collect(),
             scope_source: scope_source.to_string(),
             guard_verdict: snapshot.guard_decision.verdict.clone(),
@@ -3171,21 +3196,19 @@ fn main() {
 
         let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
-        // Explicit scope: first analysis has no baseline, so every finding in
-        // scope shows up as new — the honest "you own these now" answer.
+        // First observation has no comparable baseline and establishes no regression.
         let scoped = server
             .verify_change(Parameters(super::VerifyChangeParams {
                 paths: vec![String::from("src/main.rs")],
                 max_items: None,
+                ..Default::default()
             }))
             .await
             .0;
         assert_eq!(scoped.scope_source, "explicit");
         assert_eq!(scoped.scope_paths, vec![String::from("src/main.rs")]);
-        assert!(
-            scoped.regression_count >= 1,
-            "first-run findings in the touched file must surface as regressions"
-        );
+        assert_eq!(scoped.regression_count, 0);
+        assert!(!scoped.baseline.is_comparable());
         assert_eq!(scoped.regression_count, scoped.regressions.len());
 
         // Out-of-scope path: nothing should match.
@@ -3193,6 +3216,7 @@ fn main() {
             .verify_change(Parameters(super::VerifyChangeParams {
                 paths: vec![String::from("src/elsewhere.rs")],
                 max_items: None,
+                ..Default::default()
             }))
             .await
             .0;
@@ -3222,11 +3246,68 @@ fn main() {
             .await
             .0;
         assert_eq!(dirty.scope_paths, vec![String::from("src/main.rs")]);
-        assert!(dirty.regression_count >= 1);
+        assert_eq!(dirty.regression_count, 0);
         let freshness = dirty
             .freshness
             .expect("dirty snapshot must report actionable freshness");
         assert!(freshness.is_stale);
+    }
+
+    #[tokio::test]
+    async fn verify_change_preserves_real_regressions_with_a_comparable_baseline() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        let file = fixture.join("src/main.rs");
+        fs::write(&file, "fn main() {}\n").unwrap();
+        AigiscodeMcpServer::load(fixture.clone(), None, true, false).unwrap();
+        fs::write(&file, "fn main() { let _ = \"https://services.internal/api/v2\"; }\n").unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, false).unwrap();
+        let scoped = server.verify_change(Parameters(super::VerifyChangeParams {
+            paths: vec![String::from("src/main.rs")], ..Default::default()
+        })).await.0;
+        assert!(scoped.baseline.is_comparable());
+        assert!(scoped.regression_count > 0);
+        let substring = server.verify_change(Parameters(super::VerifyChangeParams {
+            paths: vec![String::from("src/main")], ..Default::default()
+        })).await.0;
+        assert_eq!(substring.regression_count, 0);
+
+        // Dirty-path metadata is only a 50-path preview; verification must still
+        // include the touched file after that preview and report its scope cap.
+        let mut dirty = (0..60).map(|index| (PathBuf::from(format!("a/{index}.rs")), super::live::DirtyKind::Other))
+            .collect::<Vec<_>>();
+        dirty.push((PathBuf::from("src/main.rs"), super::live::DirtyKind::Modified));
+        server.live.mark_dirty(dirty);
+        let inferred = server.verify_change(Parameters(super::VerifyChangeParams::default())).await.0;
+        assert_eq!(inferred.scope_path_count, Some(61));
+        assert_eq!(inferred.scope_paths.len(), 50);
+        assert!(inferred.truncated);
+        assert!(inferred.regression_count > 0);
+    }
+
+    #[tokio::test]
+    async fn edit_receipts_are_available_before_initial_index_publication() {
+        let fixture = create_fixture();
+        fs::write(fixture.join("main.rs"), "fn main() {}\n").unwrap();
+        let server = AigiscodeMcpServer::new_pending();
+        super::watch::spawn_watch(std::sync::Arc::clone(&server.live), fixture);
+        let receipt = server.record_changed_paths(Parameters(super::RecordChangedPathsParams {
+            paths: vec![String::from("main.rs")],
+        })).await.unwrap().0;
+        assert_eq!(receipt.freshness.indexed_revision, 0);
+        assert!(receipt.freshness.is_stale);
+        assert!(server.live.wait_for_revision(receipt.min_revision, 12_000).await);
+        let view = server.for_request(Some(&super::RepoOverviewParams {
+            min_revision: Some(receipt.min_revision),
+            consistency: super::ConsistencyMode::WaitUntilIndexed,
+            wait_ms: Some(12_000),
+        })).await.unwrap();
+        let checked = view.verify_change(Parameters(super::VerifyChangeParams {
+            paths: receipt.paths, min_revision: Some(receipt.min_revision), ..Default::default()
+        })).await.0;
+        assert!(view.state().await.revision() >= receipt.min_revision);
+        assert_eq!(checked.regression_count, 0);
+        assert!(!checked.baseline.is_comparable());
     }
 
     #[tokio::test]

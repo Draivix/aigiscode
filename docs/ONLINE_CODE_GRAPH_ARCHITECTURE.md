@@ -148,10 +148,13 @@ that correction.
    (not per-path timers, which fragment one logical edit burst into dozens of
    near-simultaneous work items), but keep **per-path stable-read
    verification** so a truncate-then-write or temp-file-then-rename save is
-   never parsed mid-write. Add explicit agent-facing hooks
-   (`begin_edit_epoch` / `record_changed_paths` / `end_edit_epoch`) — an
-   autonomous agent usually knows edit-transaction boundaries more precisely
-   than filesystem events ever will.
+   never parsed mid-write. `record_changed_paths` now supplies an explicit
+   post-save revision receipt and wakes indexing before filesystem notification
+   delivery. `verify_change` accepts its revision floor and wait budget; see the
+   [edit receipt contract](MCP_EDIT_RECEIPTS.md). Begin/end edit epochs remain
+   planned: an autonomous agent usually knows edit-transaction boundaries more
+   precisely than filesystem events ever will, but this receipt is not a
+   transaction or a stable-read proof.
 
 4. **Parallel compute, serialized commit, atomic publish** — not a single
    task processing changed files one at a time. Read/hash/parse/extract runs

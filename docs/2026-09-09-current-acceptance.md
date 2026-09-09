@@ -9,6 +9,12 @@ Tento dokument aktualizuje stav [původních podmínek](2026-09-09-quality-reaud
 nemění jejich rozsah. Podrobnosti a otisky zachycuje
 [strojový doklad](2026-09-09-current-acceptance-evidence.json).
 
+[Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
+ještě před doručením filesystemové události; `verify_change` umí počkat na tuto
+revizi a zveřejňuje skutečný stav baseline. Reálný MCP běh potvrdil chování při
+startu i po zápisu do běžícího indexu. Stabilita capture, chybové/souběžné scénáře
+a schválené CI zůstávají součástí otevřené akceptace.
+
 Navazující [inkrementální sekundární scan](2026-09-09-incremental-scanning.md)
 zkrátil dvě řízené aktualizace ze zhruba 80 na 58 sekund při zachování porovnaných
 MCP dat. Je volitelný a dosud bez schváleného CI; Q11 i celková akceptace zůstávají

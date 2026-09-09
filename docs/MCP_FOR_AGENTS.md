@@ -76,13 +76,16 @@ orient → locate → plan the change → make the change → verify the change
 | Locate | "Who calls / uses X?" | `symbol_usages` ✅ — inbound edges *at symbol granularity*, grouped by caller file | keep |
 | Plan | "What breaks if I change X?" | `prepare_change` ✅ — one call: blast radius + findings already in the radius + test dependents + doctrine refs | keep |
 | Plan | "What is the sanctioned way to do Y here?" | `convention_for` ✅ — doctrine clauses + preferred mechanism + declared layer context + one clean in-repo exemplar | keep |
-| Change | — (agent edits via its own tools) | — | — |
-| Verify | "Did I make it worse?" | `verify_change` ✅ — diff-scoped delta over the touched paths (or the daemon's dirty paths), regressions vs fixes, freshness honest about lag | keep |
+| Change | "Has the daemon registered my saved edit?" | `record_changed_paths` under `--watch` returns a revision floor and wakes indexing, including during startup | keep |
+| Verify | "Did I make it worse?" | `verify_change` accepts that revision floor and a wait budget, reports baseline comparability and deltas over touched paths | keep |
 | Verify | "Did my delete leave second-order dead code?" | re-run analyze + orphans ✅ (proven today: deleting 16 orphans exposed 3 more) | keep; document the loop |
 
 The loop is fully tool-backed: orient (`repo_brief`) → locate (`find_symbol` /
-`symbol_usages`) → plan (`prepare_change`, `convention_for`) → verify
-(`verify_change`) → converge (`suppress_finding`).
+`symbol_usages`) → plan (`prepare_change`, `convention_for`) → save edits → record
+(`record_changed_paths`, under `--watch`) → verify (`verify_change` with the returned
+paths/revision) → converge (`suppress_finding`). See the
+[edit receipt contract](MCP_EDIT_RECEIPTS.md); zero deltas without a comparable
+baseline do not establish that an edit is safe.
 
 ## Findings from Dogfooding (2026-07-03)
 
@@ -142,9 +145,13 @@ Convention:
   from contract usage (heaviest user with zero visible findings).
 
 Verify:
-- `verify_change(paths?)` — diff-scoped delta: regressions (new+worsened) vs
+- `record_changed_paths(paths)` — after saving an edit batch under `--watch`,
+  advance the observed revision and wake the writer without waiting for filesystem
+  notification delivery; returns the paths and `min_revision` to use next.
+- `verify_change(paths?, min_revision?, wait_ms?)` — diff-scoped delta: regressions (new+worsened) vs
   fixes (resolved+improved) over the touched paths, or the daemon's observed
-  dirty paths when called empty under `--watch`.
+  dirty paths when called empty under `--watch`. Waits for the requested floor and
+  reports stale/unsatisfied results explicitly; includes the actual baseline state.
 
 Converge:
 - `suppress_finding(finding_id, reason)` — accept a detector/orphan finding as

@@ -58,7 +58,8 @@ struct LiveMeta {
     observed: u64,
     dirty: BTreeMap<PathBuf, DirtyInfo>,
     rebuilding: bool,
-    last_error: Option<String>,
+    active_revision: Option<u64>,
+    last_error: Option<(u64, String)>,
     watcher: WatcherStatus,
     watcher_error: Option<String>,
 }
@@ -75,6 +76,8 @@ pub(super) struct LiveState<S> {
     /// Fires with the indexed revision on every successful publish, so waiters can block
     /// until a target revision is indexed.
     published_tx: watch::Sender<u64>,
+    /// Coalesced wakeups for the single writer, from filesystem or agent observations.
+    changed_tx: watch::Sender<u64>,
 }
 
 impl<S> LiveState<S> {
@@ -89,6 +92,7 @@ impl<S> LiveState<S> {
     /// freshness contract reports the truth (nothing indexed yet).
     pub(super) fn new_at(initial: S, revision: u64, rebuilding: bool) -> Arc<Self> {
         let (published_tx, _rx) = watch::channel(revision);
+        let (changed_tx, _changes) = watch::channel(revision);
         Arc::new(Self {
             current: ArcSwap::from_pointee(Published {
                 revision,
@@ -99,12 +103,14 @@ impl<S> LiveState<S> {
                 observed: revision.max(1),
                 dirty: BTreeMap::new(),
                 rebuilding,
+                active_revision: None,
                 last_error: None,
                 watcher: WatcherStatus::Disabled,
                 watcher_error: None,
             }),
             observed_atomic: AtomicU64::new(revision.max(1)),
             published_tx,
+            changed_tx,
         })
     }
 
@@ -118,7 +124,7 @@ impl<S> LiveState<S> {
         self.observed_atomic.load(Ordering::Acquire)
     }
 
-    /// Record observed filesystem changes; advances and returns the observed revision.
+    /// Record filesystem observations or saved edit receipts and wake the writer.
     pub(super) fn mark_dirty(
         &self,
         changes: impl IntoIterator<Item = (PathBuf, DirtyKind)>,
@@ -136,7 +142,21 @@ impl<S> LiveState<S> {
             );
         }
         self.observed_atomic.store(next, Ordering::Release);
+        drop(meta);
+        self.changed_tx.send_replace(next);
         next
+    }
+
+    pub(super) fn subscribe_changes(&self) -> watch::Receiver<u64> {
+        self.changed_tx.subscribe()
+    }
+
+    pub(super) fn has_index_writer(&self) -> bool {
+        self.changed_tx.receiver_count() > 0
+    }
+
+    pub(super) fn dirty_paths(&self) -> Vec<PathBuf> {
+        self.meta.lock().unwrap().dirty.keys().cloned().collect()
     }
 
     /// Mark a rebuild as in flight; returns the target revision it will represent (the
@@ -144,6 +164,7 @@ impl<S> LiveState<S> {
     pub(super) fn begin_rebuild(&self) -> u64 {
         let mut meta = self.meta.lock().unwrap();
         meta.rebuilding = true;
+        meta.active_revision = Some(meta.observed);
         meta.observed
     }
 
@@ -162,6 +183,7 @@ impl<S> LiveState<S> {
             snapshot,
         }));
         meta.rebuilding = false;
+        meta.active_revision = None;
         meta.last_error = None;
         meta.dirty.retain(|_, info| info.last_observed > target);
         drop(meta);
@@ -173,13 +195,19 @@ impl<S> LiveState<S> {
     pub(super) fn record_error(&self, message: String) {
         let mut meta = self.meta.lock().unwrap();
         meta.rebuilding = false;
-        meta.last_error = Some(message);
+        let failed_revision = meta.active_revision.take().unwrap_or(meta.observed);
+        meta.last_error = Some((failed_revision, message));
         drop(meta);
         self.published_tx.send_modify(|_| {});
     }
 
-    pub(super) fn last_error(&self) -> Option<String> {
-        self.meta.lock().unwrap().last_error.clone()
+    /// A failed attempt must not cancel waiting for an already queued newer edit.
+    /// Freshness retains the diagnostic until a successful publication.
+    pub(super) fn blocking_error(&self) -> Option<String> {
+        let meta = self.meta.lock().unwrap();
+        meta.last_error.as_ref()
+            .filter(|(revision, _)| !meta.rebuilding && *revision >= meta.observed)
+            .map(|(_, message)| message.clone())
     }
 
     pub(super) fn set_watcher_status(&self, status: WatcherStatus, error: Option<String>) {
@@ -206,7 +234,8 @@ impl<S> LiveState<S> {
         let observed = meta.observed;
         let last_error = meta
             .last_error
-            .clone()
+            .as_ref()
+            .map(|(_, message)| message.clone())
             .or_else(|| meta.watcher_error.clone());
         let consistency_satisfied = consistency_satisfied && meta.watcher != WatcherStatus::Failed;
         Freshness {
@@ -257,11 +286,8 @@ impl<S> LiveState<S> {
                 if self.load().revision >= target {
                     return;
                 }
-                {
-                    let meta = self.meta.lock().unwrap();
-                    if !meta.rebuilding && meta.last_error.is_some() {
-                        return;
-                    }
+                if self.blocking_error().is_some() {
+                    return;
                 }
                 if rx.changed().await.is_err() {
                     return;
@@ -279,6 +305,54 @@ mod tests {
 
     fn p(s: &str) -> PathBuf {
         PathBuf::from(s)
+    }
+
+    #[tokio::test]
+    async fn newer_edits_can_wait_past_a_failed_attempt_without_losing_its_diagnostic() {
+        let live = LiveState::new_at(None::<()>, 0, true);
+        let failed = live.begin_rebuild();
+        let newer = live.mark_dirty([(p("src/fixed.rs"), DirtyKind::Modified)]);
+        live.record_error(String::from("failed previous capture"));
+        assert!(newer > failed);
+        assert!(live.blocking_error().is_none());
+        assert_eq!(live.freshness(true).last_error.as_deref(), Some("failed previous capture"));
+        let writer = Arc::clone(&live);
+        let publish = tokio::spawn(async move {
+            tokio::task::yield_now().await;
+            let target = writer.begin_rebuild();
+            writer.publish(Some(()), target);
+        });
+        assert!(live.wait_for_revision(newer, 1_000).await);
+        publish.await.unwrap();
+        assert!(live.freshness(true).last_error.is_none());
+
+        live.begin_rebuild();
+        live.record_error(String::from("latest capture failed"));
+        assert!(live.blocking_error().is_some());
+        live.mark_dirty([(p("src/fixed-again.rs"), DirtyKind::Modified)]);
+        assert!(live.blocking_error().is_none());
+    }
+
+    #[tokio::test]
+    async fn dirty_observations_wake_the_writer_and_coalesce_without_losing_paths() {
+        let live = LiveState::new(());
+        assert!(!live.has_index_writer());
+        let mut changes = live.subscribe_changes();
+        assert!(live.has_index_writer());
+        live.mark_dirty([(p("src/a.rs"), DirtyKind::Modified)]);
+        let target = live.mark_dirty([(p("src/b.rs"), DirtyKind::Created)]);
+        assert!(changes.has_changed().unwrap());
+        changes.changed().await.unwrap();
+        assert_eq!(live.begin_rebuild(), target);
+        let newer = live.mark_dirty([(p("src/c.rs"), DirtyKind::Deleted)]);
+        live.publish((), target);
+        assert!(changes.has_changed().unwrap());
+        let freshness = live.freshness(true);
+        assert_eq!(freshness.observed_revision, newer);
+        assert_eq!(freshness.dirty_paths, vec![String::from("src/c.rs")]);
+        assert!(freshness.is_stale);
+        drop(changes);
+        assert!(!live.has_index_writer());
     }
 
     #[test]

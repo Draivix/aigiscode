@@ -45,6 +45,12 @@ returns a `Freshness` contract (`revision`/`indexed_revision`/`observed_revision
 `min_revision`/`consistency`/`wait_ms` params, so an agent editing files is never
 silently served a stale graph. See `docs/ONLINE_CODE_GRAPH_ARCHITECTURE.md`.
 
+After saving an edit batch under `mcp --watch`, call `record_changed_paths` and
+pass its returned `paths` and `min_revision` to `verify_change` with a wait budget.
+Filesystem delivery is asynchronous: a receipt establishes the agent's explicit
+revision floor. Check freshness, coverage and baseline comparability before treating
+the delta as completed verification. See `docs/MCP_EDIT_RECEIPTS.md`.
+
 `analyze` writes:
 
 - `.aigiscode/deterministic-analysis.json`

@@ -200,14 +200,41 @@ pub struct VerifyChangeParams {
     pub paths: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max_items: Option<usize>,
+    /// Revision returned by record_changed_paths after saving the edit batch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_revision: Option<u64>,
+    /// Wait budget for that revision, bounded to 120 seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct RecordChangedPathsParams {
+    /// One to 128 saved repo-relative paths; deleted paths and directories are valid.
+    /// Use "." for the whole repository. Absolute paths and traversal are rejected.
+    pub paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct RecordChangedPathsOutput {
+    /// Pass this floor to repo_overview or verify_change before using post-edit results.
+    pub min_revision: u64,
+    pub paths: Vec<String>,
+    pub freshness: Freshness,
 }
 
 /// Post-edit answer: did *my* change make things worse, scoped to the touched
 /// paths — not a whole-repo convergence dump.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct VerifyChangeOutput {
+    /// Identity and comparability of the artifact baseline used for this delta.
+    #[serde(default)]
+    pub baseline: crate::artifacts::BaselineAssessment,
     /// Effective scope the delta was computed over (repo-relative, capped).
     pub scope_paths: Vec<String>,
+    /// Total effective scope before the display cap; absent in older responses.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope_path_count: Option<usize>,
     /// explicit | daemon_dirty_paths
     pub scope_source: String,
     /// Overall guard verdict for the current run (context, not scoped).
@@ -543,7 +570,7 @@ pub struct Freshness {
     pub revision: u64,
     /// Highest repository revision represented by the published snapshot.
     pub indexed_revision: u64,
-    /// Highest repository revision the daemon has observed on disk at answer time.
+    /// Highest revision observed through filesystem events or explicit edit receipts.
     pub observed_revision: u64,
     /// True when `observed_revision > indexed_revision`, or a requested `min_revision`
     /// was not satisfied within the wait budget.

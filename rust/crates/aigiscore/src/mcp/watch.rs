@@ -9,7 +9,6 @@ use std::time::Duration;
 
 use notify::event::ModifyKind;
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use tokio::sync::mpsc;
 
 use super::contracts::WatcherStatus;
 use super::live::{DirtyKind, LiveState};
@@ -73,7 +72,6 @@ impl InputWatcher {
     fn arm(
         live: Arc<LiveState<Option<McpState>>>,
         root: &Path,
-        wake: mpsc::Sender<()>,
     ) -> Result<Self, String> {
         let topology_changed = Arc::new(AtomicBool::new(false));
         let observed_topology = Arc::clone(&topology_changed);
@@ -94,7 +92,6 @@ impl InputWatcher {
                         observed_topology.store(true, Ordering::Release);
                         live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
                         live.set_watcher_status(WatcherStatus::Failed, Some(message));
-                        let _ = wake.try_send(());
                         return;
                     }
                 };
@@ -142,7 +139,6 @@ impl InputWatcher {
                     observed_topology.store(true, Ordering::Release);
                 }
                 live.mark_dirty(changes);
-                let _ = wake.try_send(());
             })
             .map_err(|error| error.to_string())?;
 
@@ -205,7 +201,7 @@ pub(super) fn start_indexer(
             live.mark_dirty([(PathBuf::from("."), DirtyKind::Other)]);
         }
     }
-    let (wake, mut changes) = mpsc::channel::<()>(1);
+    let mut changes = live.subscribe_changes();
     tokio::spawn(async move {
         let root = match root.canonicalize() {
             Ok(root) => root,
@@ -234,18 +230,18 @@ pub(super) fn start_indexer(
                 if watch_failed {
                     tokio::select! {
                         _ = tokio::time::sleep(WATCH_RETRY) => {},
-                        _ = changes.recv() => {},
+                        _ = changes.changed() => {},
                     }
-                } else if changes.recv().await.is_none() {
+                } else if changes.changed().await.is_err() {
                     break;
                 }
                 tokio::time::sleep(DEBOUNCE).await;
             }
-            while changes.try_recv().is_ok() {}
+            changes.borrow_and_update();
             if watch {
                 // Keep the previous watches alive until their replacement is armed.
                 // This also repairs moved/deleted directories and changed scan scope.
-                match InputWatcher::arm(Arc::clone(&live), &root, wake.clone()) {
+                match InputWatcher::arm(Arc::clone(&live), &root) {
                     Ok(armed) => {
                         watcher = Some(armed);
                         watch_failed = false;
@@ -305,7 +301,7 @@ pub(super) fn start_indexer(
                     live.record_error(format!("analysis task failed: {error}"));
                 }
             }
-            while changes.try_recv().is_ok() {}
+            changes.borrow_and_update();
             immediate = !watch_failed && live.observed() > target;
             if !watch {
                 break;

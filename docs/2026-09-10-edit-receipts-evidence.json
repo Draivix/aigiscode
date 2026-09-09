@@ -1,0 +1,3898 @@
+{
+  "recorded_at": "2026-09-09T22:21:20.599Z",
+  "report_timezone": "Europe/Prague",
+  "base_commit": "7bc71f7e02455d07f3378397a45aac2c125d1b43",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-edit-receipt",
+    "bytes": 94797336,
+    "sha256": "aa5e0022c7b5aed26323baf3403bb51c5d7cd1ff29e8f2a6c176d0862c798bd1"
+  },
+  "source_files": [
+    {
+      "path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+      "bytes": 154884,
+      "sha256": "ef3dfe9863ace40a254108060200f2af7657dbd9329e953bfc8601a2cc47e33d"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/edits.rs",
+      "bytes": 5247,
+      "sha256": "eb953f0eb3157a2e619beeee4712bbe42e2c984735cca78e0f83c3b5f7752087"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/live.rs",
+      "bytes": 17807,
+      "sha256": "034c8a8b8bc9f7b7c3e65f9f530358dd10777400b72edbf0898ca799af8aec9c"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/mod.rs",
+      "bytes": 165948,
+      "sha256": "927ef268a49dc43f5d3a142ba107d05d33725b64b0764bebaadd2aeb4051b44c"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/request.rs",
+      "bytes": 5062,
+      "sha256": "d1e246a86f6f4f501c29414eaebfa38b2bc911189256ab53b8c5057dfdf188ec"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/watch.rs",
+      "bytes": 14421,
+      "sha256": "23d752b2946cc8126e35e524bb9200d8b519d8de033bc5dd46ec61473fb37afb"
+    }
+  ],
+  "build": {
+    "production_release_succeeded": true,
+    "elapsed_seconds": 53.3,
+    "receipt": {
+      "path": "target/reliability-2026-09-09/edit-receipt-build.txt",
+      "bytes": 156,
+      "sha256": "dc7cd824cd385fcffa5c387eba9d8445c8684c3f40cc578f7eca5e3d9164a715"
+    }
+  },
+  "regressions": {
+    "added": 7,
+    "updated": 1,
+    "tests_run": false,
+    "ci_run": false
+  },
+  "capture": {
+    "created_at": "2026-09-09T21:37:42.079Z",
+    "copies": [
+      {
+        "mode": "source",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+        "files": 23296,
+        "mismatches": []
+      }
+    ],
+    "updates": [
+      {
+        "path": "clients/mitel/Entities/Task/Task.hooks.php",
+        "initial_sha256": "a9c4768732dde9bcf0ae54204948fae663e5975073147fc4e4afd48d86eb226f",
+        "final_sha256": "75c533d22d3b595943b99f467c714b01ecba693eeed32875932e0ed56c29753f",
+        "initial_bytes": 35567,
+        "final_bytes": 883
+      },
+      {
+        "path": "clients/mitel/Services/MitelShowcaseFixtureService.php",
+        "initial_sha256": "d54035e0077c8281127910b7061df40ad55b478a5bae9943556f2f07f30056a8",
+        "final_sha256": "74d105a88ad36b6dffa078aafb61ef1bc244a812ce7c95aeb9b51ad25c802daa",
+        "initial_bytes": 112737,
+        "final_bytes": 191010
+      }
+    ],
+    "scope": "Fresh 23,296-file capture, initially with exactly two older captured files; each receives its newer captured version in order. Original Draivix and both preserved captures are read only."
+  },
+  "source_integrity": {
+    "completed_at": "2026-09-09T22:11:26.454Z",
+    "copies": [
+      {
+        "mode": "source",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ],
+    "preserved_capture_delta": {
+      "added": [],
+      "removed": [],
+      "changed": []
+    },
+    "preserved_capture_inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456"
+  },
+  "process": {
+    "pid": 2777201,
+    "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-edit-receipt",
+    "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+    "started_at": "2026-09-09T22:03:29.720Z"
+  },
+  "command": [
+    "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-edit-receipt",
+    "mcp",
+    "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+    "--output-dir",
+    "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/edit-receipt-mcp/artifacts",
+    "--watch",
+    "--no-write"
+  ],
+  "environment": {
+    "AIGISCORE_TRACE": "1",
+    "AIGISCORE_INCREMENTAL_SCAN": "1",
+    "AIGISCORE_INCREMENTAL_RESOLVE": null,
+    "AIGISCORE_FAST_LOAD": null
+  },
+  "requests": [
+    {
+      "id": 1,
+      "label": "initialize",
+      "method": "initialize",
+      "params": {
+        "protocolVersion": "2024-11-05",
+        "capabilities": {},
+        "clientInfo": {
+          "name": "aigiscode-saved-edit-review",
+          "version": "1"
+        }
+      },
+      "sent_ms": 5.719272,
+      "received_ms": 13.608941999999999,
+      "elapsed_ms": 7.889669999999999,
+      "error": null,
+      "is_error": false
+    },
+    {
+      "id": 2,
+      "label": "tools-list",
+      "method": "tools/list",
+      "params": {},
+      "sent_ms": 14.034385999999998,
+      "received_ms": 21.273477999999997,
+      "elapsed_ms": 7.239091999999999,
+      "error": null,
+      "is_error": false
+    },
+    {
+      "id": 3,
+      "label": "refresh-1-receipt",
+      "method": "tools/call",
+      "params": {
+        "name": "record_changed_paths",
+        "arguments": {
+          "paths": [
+            "clients/mitel/Entities/Task/Task.hooks.php"
+          ]
+        }
+      },
+      "sent_ms": 22.584429,
+      "received_ms": 22.976971,
+      "elapsed_ms": 0.39254199999999884,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 1,
+        "dirty_paths": [
+          "clients/mitel/Entities/Task/Task.hooks.php"
+        ],
+        "generated_at_unix_ms": 1788991409721,
+        "indexed_revision": 0,
+        "is_stale": true,
+        "observed_revision": 2,
+        "rebuilding": true,
+        "revision": 0,
+        "watcher": "starting"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": null,
+        "recovered_source_files": null,
+        "scope_limited_files": null,
+        "status": "unknown",
+        "unsupported_source_files": null
+      },
+      "secondary_coverage": {
+        "other_gap_files": null,
+        "oversized_files": null,
+        "scope_limited_files": null,
+        "status": "unknown",
+        "unsupported_files": null
+      }
+    },
+    {
+      "id": 4,
+      "label": "refresh-1-immediate",
+      "method": "tools/call",
+      "params": {
+        "name": "verify_change",
+        "arguments": {
+          "paths": [
+            "clients/mitel/Entities/Task/Task.hooks.php"
+          ],
+          "min_revision": 2,
+          "wait_ms": 0
+        }
+      },
+      "sent_ms": 23.264116,
+      "received_ms": 23.415751,
+      "elapsed_ms": 0.15163499999999885,
+      "error": {
+        "code": -32603,
+        "message": "Initial index is still building; retry when ready",
+        "data": {
+          "freshness": {
+            "consistency_satisfied": false,
+            "dirty_path_count": 1,
+            "dirty_paths": [
+              "clients/mitel/Entities/Task/Task.hooks.php"
+            ],
+            "generated_at_unix_ms": 1788991409721,
+            "indexed_revision": 0,
+            "is_stale": true,
+            "observed_revision": 2,
+            "rebuilding": true,
+            "revision": 0,
+            "watcher": "starting"
+          },
+          "index_state": "indexing",
+          "retryable": true
+        }
+      },
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": false,
+        "dirty_path_count": 1,
+        "dirty_paths": [
+          "clients/mitel/Entities/Task/Task.hooks.php"
+        ],
+        "generated_at_unix_ms": 1788991409721,
+        "indexed_revision": 0,
+        "is_stale": true,
+        "observed_revision": 2,
+        "rebuilding": true,
+        "revision": 0,
+        "watcher": "starting"
+      }
+    },
+    {
+      "id": 5,
+      "label": "refresh-1-verified-0",
+      "method": "tools/call",
+      "params": {
+        "name": "verify_change",
+        "arguments": {
+          "paths": [
+            "clients/mitel/Entities/Task/Task.hooks.php"
+          ],
+          "min_revision": 2,
+          "wait_ms": 120000
+        }
+      },
+      "sent_ms": 23.639272,
+      "received_ms": 76059.649277,
+      "elapsed_ms": 76036.010005,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 6,
+      "label": "refresh-1-overview",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/overview"
+      },
+      "sent_ms": 76060.34221700001,
+      "received_ms": 76062.735111,
+      "elapsed_ms": 2.39289399998961,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 7,
+      "label": "refresh-1-findings",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/findings"
+      },
+      "sent_ms": 76063.946031,
+      "received_ms": 76105.138397,
+      "elapsed_ms": 41.19236600000295,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 8,
+      "label": "refresh-1-coverage",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/coverage"
+      },
+      "sent_ms": 76121.373189,
+      "received_ms": 76121.83207,
+      "elapsed_ms": 0.45888099999865517,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 9,
+      "label": "refresh-1-quality",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/quality"
+      },
+      "sent_ms": 76122.16922200001,
+      "received_ms": 76122.484706,
+      "elapsed_ms": 0.31548399999155663,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 10,
+      "label": "refresh-1-contracts",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/contracts"
+      },
+      "sent_ms": 76122.68436,
+      "received_ms": 76124.00785400001,
+      "elapsed_ms": 1.3234940000111237,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 11,
+      "label": "refresh-1-guard",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/guard"
+      },
+      "sent_ms": 76124.61204800001,
+      "received_ms": 76125.084952,
+      "elapsed_ms": 0.47290399999474175,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 12,
+      "label": "refresh-1-convergence",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/convergence"
+      },
+      "sent_ms": 76125.38303900001,
+      "received_ms": 76153.91412300001,
+      "elapsed_ms": 28.53108400000201,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 13,
+      "label": "refresh-1-graph-packets",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/graph-packets"
+      },
+      "sent_ms": 76167.21954,
+      "received_ms": 76168.824456,
+      "elapsed_ms": 1.6049159999965923,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 14,
+      "label": "refresh-1-repository-topology",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/repository-topology"
+      },
+      "sent_ms": 76169.492125,
+      "received_ms": 76177.36230800001,
+      "elapsed_ms": 7.870183000006364,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 15,
+      "label": "refresh-2-receipt",
+      "method": "tools/call",
+      "params": {
+        "name": "record_changed_paths",
+        "arguments": {
+          "paths": [
+            "clients/mitel/Services/MitelShowcaseFixtureService.php"
+          ]
+        }
+      },
+      "sent_ms": 76183.64968100001,
+      "received_ms": 76184.037003,
+      "elapsed_ms": 0.3873219999950379,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 1,
+        "dirty_paths": [
+          "clients/mitel/Services/MitelShowcaseFixtureService.php"
+        ],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": true,
+        "observed_revision": 3,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 16,
+      "label": "refresh-2-immediate",
+      "method": "tools/call",
+      "params": {
+        "name": "verify_change",
+        "arguments": {
+          "paths": [
+            "clients/mitel/Services/MitelShowcaseFixtureService.php"
+          ],
+          "min_revision": 3,
+          "wait_ms": 0
+        }
+      },
+      "sent_ms": 76184.295735,
+      "received_ms": 76185.72322100001,
+      "elapsed_ms": 1.4274860000004992,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": false,
+        "dirty_path_count": 1,
+        "dirty_paths": [
+          "clients/mitel/Services/MitelShowcaseFixtureService.php"
+        ],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": true,
+        "observed_revision": 3,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 17,
+      "label": "refresh-2-verified-0",
+      "method": "tools/call",
+      "params": {
+        "name": "verify_change",
+        "arguments": {
+          "paths": [
+            "clients/mitel/Services/MitelShowcaseFixtureService.php"
+          ],
+          "min_revision": 3,
+          "wait_ms": 120000
+        }
+      },
+      "sent_ms": 76185.915684,
+      "received_ms": 134727.40183400002,
+      "elapsed_ms": 58541.48615000001,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 18,
+      "label": "refresh-2-overview",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/overview"
+      },
+      "sent_ms": 134727.72518900002,
+      "received_ms": 134730.071281,
+      "elapsed_ms": 2.3460919999924954,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 19,
+      "label": "refresh-2-findings",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/findings"
+      },
+      "sent_ms": 134731.086381,
+      "received_ms": 134778.11303100002,
+      "elapsed_ms": 47.02665000001434,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 20,
+      "label": "refresh-2-coverage",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/coverage"
+      },
+      "sent_ms": 134799.218813,
+      "received_ms": 134801.883823,
+      "elapsed_ms": 2.6650099999969825,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 21,
+      "label": "refresh-2-quality",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/quality"
+      },
+      "sent_ms": 134802.16874,
+      "received_ms": 134802.51511,
+      "elapsed_ms": 0.34637000001384877,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 22,
+      "label": "refresh-2-contracts",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/contracts"
+      },
+      "sent_ms": 134802.698834,
+      "received_ms": 134804.214611,
+      "elapsed_ms": 1.5157769999932498,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 23,
+      "label": "refresh-2-guard",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/guard"
+      },
+      "sent_ms": 134804.821185,
+      "received_ms": 134805.282579,
+      "elapsed_ms": 0.46139399998355657,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 24,
+      "label": "refresh-2-convergence",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/convergence"
+      },
+      "sent_ms": 134805.57591400002,
+      "received_ms": 134837.21333600002,
+      "elapsed_ms": 31.637421999999788,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 25,
+      "label": "refresh-2-graph-packets",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/graph-packets"
+      },
+      "sent_ms": 134855.042676,
+      "received_ms": 134857.343367,
+      "elapsed_ms": 2.30069099998218,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    },
+    {
+      "id": 26,
+      "label": "refresh-2-repository-topology",
+      "method": "resources/read",
+      "params": {
+        "uri": "aigiscode://repo/current/repository-topology"
+      },
+      "sent_ms": 134858.449705,
+      "received_ms": 134869.50104,
+      "elapsed_ms": 11.05133499999647,
+      "error": null,
+      "is_error": false,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      },
+      "secondary_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      }
+    }
+  ],
+  "expected_initial_indexing_response_count": 1,
+  "unexpected_error_count": 0,
+  "stages": [
+    {
+      "stage": "refresh-1",
+      "receipt_revision": 2,
+      "saved_ms": 22.396385000000002,
+      "verified_ms": 76059.84277,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991485773,
+        "indexed_revision": 2,
+        "is_stale": false,
+        "observed_revision": 2,
+        "rebuilding": false,
+        "revision": 2,
+        "watcher": "watching"
+      },
+      "baseline": {
+        "availability": "missing",
+        "comparison": "initial_snapshot",
+        "current": {
+          "assessment_config_fingerprint": "15d53a85edc70ec3",
+          "engine_fingerprint": "e2bde16826d3f3f1",
+          "engine_version": "0.1.0",
+          "external_checks_complete": true,
+          "external_tools": [],
+          "input_inventory_fingerprint": "bb503f397a6b2d48",
+          "resolve_config_fingerprint": "a3dd5a75bf756633",
+          "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+          "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+          "semantic_revision": 11,
+          "source_fingerprint": "e112a0e14830d5edf10f6c102d5fe3c7"
+        },
+        "previous": null,
+        "reasons": [
+          "no_baseline",
+          "current_inputs_incomplete",
+          "current_secondary_checks_incomplete"
+        ]
+      },
+      "scope_paths": [
+        "clients/mitel/Entities/Task/Task.hooks.php"
+      ],
+      "scope_path_count": 1,
+      "regression_count": 0,
+      "fix_count": 0,
+      "honesty": [
+        "convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes"
+      ],
+      "receipt": {
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/Entities/Task/Task.hooks.php"
+          ],
+          "generated_at_unix_ms": 1788991409721,
+          "indexed_revision": 0,
+          "is_stale": true,
+          "observed_revision": 2,
+          "rebuilding": true,
+          "revision": 0,
+          "watcher": "starting"
+        },
+        "min_revision": 2,
+        "paths": [
+          "clients/mitel/Entities/Task/Task.hooks.php"
+        ]
+      },
+      "immediate_response": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "error": {
+          "code": -32603,
+          "message": "Initial index is still building; retry when ready",
+          "data": {
+            "freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 1,
+              "dirty_paths": [
+                "clients/mitel/Entities/Task/Task.hooks.php"
+              ],
+              "generated_at_unix_ms": 1788991409721,
+              "indexed_revision": 0,
+              "is_stale": true,
+              "observed_revision": 2,
+              "rebuilding": true,
+              "revision": 0,
+              "watcher": "starting"
+            },
+            "index_state": "indexing",
+            "retryable": true
+          }
+        }
+      },
+      "verified": {
+        "baseline": {
+          "availability": "missing",
+          "comparison": "initial_snapshot",
+          "current": {
+            "assessment_config_fingerprint": "15d53a85edc70ec3",
+            "engine_fingerprint": "e2bde16826d3f3f1",
+            "engine_version": "0.1.0",
+            "external_checks_complete": true,
+            "external_tools": [],
+            "input_inventory_fingerprint": "bb503f397a6b2d48",
+            "resolve_config_fingerprint": "a3dd5a75bf756633",
+            "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+            "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+            "semantic_revision": 11,
+            "source_fingerprint": "e112a0e14830d5edf10f6c102d5fe3c7"
+          },
+          "previous": null,
+          "reasons": [
+            "no_baseline",
+            "current_inputs_incomplete",
+            "current_secondary_checks_incomplete"
+          ]
+        },
+        "fix_count": 0,
+        "fixes": [],
+        "guard_verdict": "block",
+        "honesty": [
+          "convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes"
+        ],
+        "regression_count": 0,
+        "regressions": [],
+        "scope_path_count": 1,
+        "scope_paths": [
+          "clients/mitel/Entities/Task/Task.hooks.php"
+        ],
+        "scope_source": "explicit",
+        "truncated": false
+      },
+      "overview_counts": {
+        "ast_grep_coverage": {
+          "status": "incomplete",
+          "input_files": 17067,
+          "scanned_files": 8404,
+          "prefiltered_files": 8663,
+          "oversized_files": 0,
+          "unsupported_files": 0,
+          "other_gap_files": 0,
+          "scope_limited_files": 792,
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "bytes": 204305,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "bytes": 198406,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "bytes": 195802,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "bytes": 147303,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "bytes": 144848,
+              "reason": "vue_script_only"
+            }
+          ]
+        },
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17067,
+          "parsed_source_files": 17067,
+          "recovered_source_files": 80,
+          "scope_limited_files": 792,
+          "files_without_parse_evidence": 0,
+          "unsupported_source_files": 146,
+          "other_input_files": 6083,
+          "diagnostic_count": 810,
+          "parse_issues_preview": [
+            {
+              "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+              "parser": "tree-sitter-php",
+              "scope": "source",
+              "required_recovery": true,
+              "diagnostic_count": 3,
+              "diagnostics": [
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 386,
+                  "start_column": 20,
+                  "end_line": 389,
+                  "end_column": 1
+                },
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 409,
+                  "start_column": 20,
+                  "end_line": 409,
+                  "end_column": 24
+                },
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 411,
+                  "start_column": 6,
+                  "end_line": 453,
+                  "end_column": 2
+                }
+              ],
+              "diagnostics_truncated": false
+            },
+            {
+              "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+              "parser": "tree-sitter-php",
+              "scope": "source",
+              "required_recovery": true,
+              "diagnostic_count": 52,
+              "diagnostics": [
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 266,
+                  "start_column": 16,
+                  "end_line": 276,
+                  "end_column": 1
+                },
+                {
+                  "kind": "missing_node",
+                  "node_kind": ";",
+                  "start_line": 288,
+                  "start_column": 6,
+                  "end_line": 288,
+                  "end_column": 6
+                },
+                {
+                  "kind": "missing_node",
+                  "node_kind": ";",
+                  "start_line": 288,
+                  "start_column": 19,
+                  "end_line": 288,
+                  "end_column": 19
+                }
+              ],
+              "diagnostics_truncated": true
+            },
+            {
+              "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "scope": "vue_script_only",
+              "required_recovery": false,
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false
+            },
+            {
+              "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "scope": "vue_script_only",
+              "required_recovery": false,
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false
+            },
+            {
+              "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "scope": "vue_script_only",
+              "required_recovery": false,
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false
+            }
+          ],
+          "unsupported_sources_preview": [
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+              "extension": "go"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+              "extension": "go"
+            },
+            {
+              "file_path": "ci/overlay/baseline-guard.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/bump.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/frontend.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/gates.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/legacy-view-config.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/lib.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/mount.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/tests.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_order_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_product_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_production_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_role_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_user_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+              "extension": "sh"
+            }
+          ],
+          "deferred_checks": [
+            "unused_imports",
+            "unused_private_functions",
+            "orphan_modules",
+            "confirmed_orphan_files"
+          ]
+        },
+        "generated_path_prefixes": [
+          "phpstan/cache",
+          "phpstan/resultCache.php",
+          "android/app/src/main/assets/public"
+        ],
+        "scanned_files": 23296,
+        "analyzed_files": 17067,
+        "symbols": 130054,
+        "references": 1091991,
+        "resolved_edges": 327685,
+        "unresolved_reference_sites": 691265,
+        "strong_cycle_count": 19,
+        "total_cycle_count": 29,
+        "bottleneck_count": 20,
+        "orphan_count": 0,
+        "boundary_truncated_count": 0,
+        "runtime_entry_count": 2289,
+        "boundary_truth": "complete_repository",
+        "boundary_reasons": [],
+        "dead_code_count": 0,
+        "hardwiring_count": 1727,
+        "security_finding_count": 66,
+        "external_finding_count": 0,
+        "external_tool_run_count": 0,
+        "external_checks": {
+          "status": "not_requested",
+          "requested": 0,
+          "completed": 0,
+          "failed": 0,
+          "unavailable": 0
+        },
+        "override_edge_count": 2555,
+        "architectural_smell_count": 4,
+        "hub_like_dependency_count": 1,
+        "unstable_dependency_count": 3,
+        "warning_heavy_hotspot_count": 0,
+        "split_identity_model_count": 20,
+        "compatibility_scar_count": 10,
+        "duplicate_mechanism_count": 22,
+        "sanctioned_path_bypass_count": 266,
+        "hand_rolled_parsing_count": 19,
+        "abstraction_sprawl_count": 25,
+        "algorithmic_complexity_hotspot_count": 1604,
+        "ast_grep_finding_count": 10029,
+        "ast_grep_algorithmic_complexity_count": 2607,
+        "ast_grep_security_dangerous_api_count": 256,
+        "ast_grep_framework_misuse_count": 7166,
+        "ast_grep_skipped_file_count": 8663,
+        "ast_grep_skipped_bytes": 28666536,
+        "ast_grep_skipped_files_preview": [
+          {
+            "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+            "bytes": 962,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+            "bytes": 1116,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+            "bytes": 1793,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+            "bytes": 854,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+            "bytes": 600,
+            "reason": "no_family_prefilter_hit"
+          }
+        ],
+        "route_contract_count": 521,
+        "hook_contract_count": 26,
+        "registered_key_count": 13,
+        "symbolic_literal_count": 1072,
+        "env_key_count": 547,
+        "config_key_count": 343
+      },
+      "scanner_work": {
+        "files_processed": 17067,
+        "files_reused": 0,
+        "bytes_processed": 123064654,
+        "bytes_reused": 0
+      }
+    },
+    {
+      "stage": "refresh-2",
+      "receipt_revision": 3,
+      "saved_ms": 76183.23210400001,
+      "verified_ms": 134727.551207,
+      "freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1788991543826,
+        "indexed_revision": 6,
+        "is_stale": false,
+        "observed_revision": 6,
+        "rebuilding": false,
+        "revision": 6,
+        "watcher": "watching"
+      },
+      "baseline": {
+        "availability": "missing",
+        "comparison": "initial_snapshot",
+        "current": {
+          "assessment_config_fingerprint": "15d53a85edc70ec3",
+          "engine_fingerprint": "e2bde16826d3f3f1",
+          "engine_version": "0.1.0",
+          "external_checks_complete": true,
+          "external_tools": [],
+          "input_inventory_fingerprint": "cfca57f2dc4e058e",
+          "resolve_config_fingerprint": "a3dd5a75bf756633",
+          "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+          "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+          "semantic_revision": 11,
+          "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f"
+        },
+        "previous": null,
+        "reasons": [
+          "no_baseline",
+          "current_inputs_incomplete",
+          "current_secondary_checks_incomplete"
+        ]
+      },
+      "scope_paths": [
+        "clients/mitel/Services/MitelShowcaseFixtureService.php"
+      ],
+      "scope_path_count": 1,
+      "regression_count": 0,
+      "fix_count": 0,
+      "honesty": [
+        "convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes"
+      ],
+      "receipt": {
+        "freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 1,
+          "dirty_paths": [
+            "clients/mitel/Services/MitelShowcaseFixtureService.php"
+          ],
+          "generated_at_unix_ms": 1788991485773,
+          "indexed_revision": 2,
+          "is_stale": true,
+          "observed_revision": 3,
+          "rebuilding": false,
+          "revision": 2,
+          "watcher": "watching"
+        },
+        "min_revision": 3,
+        "paths": [
+          "clients/mitel/Services/MitelShowcaseFixtureService.php"
+        ]
+      },
+      "immediate_response": {
+        "jsonrpc": "2.0",
+        "id": 16,
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"baseline\":{\"availability\":\"missing\",\"comparison\":\"initial_snapshot\",\"current\":{\"assessment_config_fingerprint\":\"15d53a85edc70ec3\",\"engine_fingerprint\":\"e2bde16826d3f3f1\",\"engine_version\":\"0.1.0\",\"external_checks_complete\":true,\"external_tools\":[],\"input_inventory_fingerprint\":\"bb503f397a6b2d48\",\"resolve_config_fingerprint\":\"a3dd5a75bf756633\",\"root\":\"/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source\",\"scope_fingerprint\":\"edd6652d1978e39181c3cf60c26ad9df\",\"semantic_revision\":11,\"source_fingerprint\":\"e112a0e14830d5edf10f6c102d5fe3c7\"},\"previous\":null,\"reasons\":[\"no_baseline\",\"current_inputs_incomplete\",\"current_secondary_checks_incomplete\"]},\"fix_count\":0,\"fixes\":[],\"freshness\":{\"consistency_satisfied\":false,\"dirty_path_count\":1,\"dirty_paths\":[\"clients/mitel/Services/MitelShowcaseFixtureService.php\"],\"generated_at_unix_ms\":1788991485773,\"indexed_revision\":2,\"is_stale\":true,\"observed_revision\":3,\"rebuilding\":false,\"revision\":2,\"watcher\":\"watching\"},\"guard_verdict\":\"block\",\"honesty\":[\"the returned snapshot does not satisfy the requested or observed revision; this delta is not a completed post-edit verification\",\"convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes\"],\"regression_count\":0,\"regressions\":[],\"scope_path_count\":1,\"scope_paths\":[\"clients/mitel/Services/MitelShowcaseFixtureService.php\"],\"scope_source\":\"explicit\",\"truncated\":false}"
+            }
+          ],
+          "structuredContent": {
+            "baseline": {
+              "availability": "missing",
+              "comparison": "initial_snapshot",
+              "current": {
+                "assessment_config_fingerprint": "15d53a85edc70ec3",
+                "engine_fingerprint": "e2bde16826d3f3f1",
+                "engine_version": "0.1.0",
+                "external_checks_complete": true,
+                "external_tools": [],
+                "input_inventory_fingerprint": "bb503f397a6b2d48",
+                "resolve_config_fingerprint": "a3dd5a75bf756633",
+                "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+                "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+                "semantic_revision": 11,
+                "source_fingerprint": "e112a0e14830d5edf10f6c102d5fe3c7"
+              },
+              "previous": null,
+              "reasons": [
+                "no_baseline",
+                "current_inputs_incomplete",
+                "current_secondary_checks_incomplete"
+              ]
+            },
+            "fix_count": 0,
+            "fixes": [],
+            "freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 1,
+              "dirty_paths": [
+                "clients/mitel/Services/MitelShowcaseFixtureService.php"
+              ],
+              "generated_at_unix_ms": 1788991485773,
+              "indexed_revision": 2,
+              "is_stale": true,
+              "observed_revision": 3,
+              "rebuilding": false,
+              "revision": 2,
+              "watcher": "watching"
+            },
+            "guard_verdict": "block",
+            "honesty": [
+              "the returned snapshot does not satisfy the requested or observed revision; this delta is not a completed post-edit verification",
+              "convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes"
+            ],
+            "regression_count": 0,
+            "regressions": [],
+            "scope_path_count": 1,
+            "scope_paths": [
+              "clients/mitel/Services/MitelShowcaseFixtureService.php"
+            ],
+            "scope_source": "explicit",
+            "truncated": false
+          },
+          "isError": false,
+          "_meta": {
+            "aigiscode/artifact_generation": {
+              "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/edit-receipt-mcp/artifacts",
+              "generation": null,
+              "inputs_match_index": null
+            },
+            "aigiscode/ast_grep_coverage": {
+              "other_gap_files": 0,
+              "oversized_files": 0,
+              "scope_limited_files": 792,
+              "status": "incomplete",
+              "unsupported_files": 0
+            },
+            "aigiscode/freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 1,
+              "dirty_paths": [
+                "clients/mitel/Services/MitelShowcaseFixtureService.php"
+              ],
+              "generated_at_unix_ms": 1788991485773,
+              "indexed_revision": 2,
+              "is_stale": true,
+              "observed_revision": 3,
+              "rebuilding": false,
+              "revision": 2,
+              "watcher": "watching"
+            },
+            "aigiscode/input_coverage": {
+              "files_without_parse_evidence": 0,
+              "recovered_source_files": 80,
+              "scope_limited_files": 792,
+              "status": "incomplete",
+              "unsupported_source_files": 146
+            }
+          }
+        }
+      },
+      "verified": {
+        "baseline": {
+          "availability": "missing",
+          "comparison": "initial_snapshot",
+          "current": {
+            "assessment_config_fingerprint": "15d53a85edc70ec3",
+            "engine_fingerprint": "e2bde16826d3f3f1",
+            "engine_version": "0.1.0",
+            "external_checks_complete": true,
+            "external_tools": [],
+            "input_inventory_fingerprint": "cfca57f2dc4e058e",
+            "resolve_config_fingerprint": "a3dd5a75bf756633",
+            "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-edit-receipt-source",
+            "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+            "semantic_revision": 11,
+            "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f"
+          },
+          "previous": null,
+          "reasons": [
+            "no_baseline",
+            "current_inputs_incomplete",
+            "current_secondary_checks_incomplete"
+          ]
+        },
+        "fix_count": 0,
+        "fixes": [],
+        "guard_verdict": "block",
+        "honesty": [
+          "convergence uses the verified artifact baseline, not necessarily the preceding watch revision; an unavailable or incomparable baseline establishes no regressions or fixes"
+        ],
+        "regression_count": 0,
+        "regressions": [],
+        "scope_path_count": 1,
+        "scope_paths": [
+          "clients/mitel/Services/MitelShowcaseFixtureService.php"
+        ],
+        "scope_source": "explicit",
+        "truncated": false
+      },
+      "overview_counts": {
+        "ast_grep_coverage": {
+          "status": "incomplete",
+          "input_files": 17067,
+          "scanned_files": 8404,
+          "prefiltered_files": 8663,
+          "oversized_files": 0,
+          "unsupported_files": 0,
+          "other_gap_files": 0,
+          "scope_limited_files": 792,
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "bytes": 204305,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "bytes": 198406,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "bytes": 195802,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "bytes": 147303,
+              "reason": "vue_script_only"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "bytes": 144848,
+              "reason": "vue_script_only"
+            }
+          ]
+        },
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17067,
+          "parsed_source_files": 17067,
+          "recovered_source_files": 80,
+          "scope_limited_files": 792,
+          "files_without_parse_evidence": 0,
+          "unsupported_source_files": 146,
+          "other_input_files": 6083,
+          "diagnostic_count": 810,
+          "parse_issues_preview": [
+            {
+              "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+              "parser": "tree-sitter-php",
+              "scope": "source",
+              "required_recovery": true,
+              "diagnostic_count": 3,
+              "diagnostics": [
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 386,
+                  "start_column": 20,
+                  "end_line": 389,
+                  "end_column": 1
+                },
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 409,
+                  "start_column": 20,
+                  "end_line": 409,
+                  "end_column": 24
+                },
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 411,
+                  "start_column": 6,
+                  "end_line": 453,
+                  "end_column": 2
+                }
+              ],
+              "diagnostics_truncated": false
+            },
+            {
+              "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+              "parser": "tree-sitter-php",
+              "scope": "source",
+              "required_recovery": true,
+              "diagnostic_count": 52,
+              "diagnostics": [
+                {
+                  "kind": "error_node",
+                  "node_kind": "ERROR",
+                  "start_line": 266,
+                  "start_column": 16,
+                  "end_line": 276,
+                  "end_column": 1
+                },
+                {
+                  "kind": "missing_node",
+                  "node_kind": ";",
+                  "start_line": 288,
+                  "start_column": 6,
+                  "end_line": 288,
+                  "end_column": 6
+                },
+                {
+                  "kind": "missing_node",
+                  "node_kind": ";",
+                  "start_line": 288,
+                  "start_column": 19,
+                  "end_line": 288,
+                  "end_column": 19
+                }
+              ],
+              "diagnostics_truncated": true
+            },
+            {
+              "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "scope": "vue_script_only",
+              "required_recovery": false,
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false
+            },
+            {
+              "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "scope": "vue_script_only",
+              "required_recovery": false,
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false
+            },
+            {
+              "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+              "parser": "tree-sitter-typescript",
+              "scope": "vue_script_only",
+              "required_recovery": false,
+              "diagnostic_count": 0,
+              "diagnostics": [],
+              "diagnostics_truncated": false
+            }
+          ],
+          "unsupported_sources_preview": [
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+              "extension": "java"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+              "extension": "go"
+            },
+            {
+              "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+              "extension": "go"
+            },
+            {
+              "file_path": "ci/overlay/baseline-guard.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/bump.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/frontend.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/gates.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/legacy-view-config.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/lib.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/mount.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "ci/overlay/tests.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_order_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_product_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_production_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_role_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_user_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+              "extension": "sql"
+            },
+            {
+              "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+              "extension": "sh"
+            },
+            {
+              "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+              "extension": "sh"
+            }
+          ],
+          "deferred_checks": [
+            "unused_imports",
+            "unused_private_functions",
+            "orphan_modules",
+            "confirmed_orphan_files"
+          ]
+        },
+        "generated_path_prefixes": [
+          "phpstan/cache",
+          "phpstan/resultCache.php",
+          "android/app/src/main/assets/public"
+        ],
+        "scanned_files": 23296,
+        "analyzed_files": 17067,
+        "symbols": 130081,
+        "references": 1092834,
+        "resolved_edges": 328144,
+        "unresolved_reference_sites": 691530,
+        "strong_cycle_count": 19,
+        "total_cycle_count": 29,
+        "bottleneck_count": 20,
+        "orphan_count": 0,
+        "boundary_truncated_count": 0,
+        "runtime_entry_count": 2289,
+        "boundary_truth": "complete_repository",
+        "boundary_reasons": [],
+        "dead_code_count": 0,
+        "hardwiring_count": 1727,
+        "security_finding_count": 66,
+        "external_finding_count": 0,
+        "external_tool_run_count": 0,
+        "external_checks": {
+          "status": "not_requested",
+          "requested": 0,
+          "completed": 0,
+          "failed": 0,
+          "unavailable": 0
+        },
+        "override_edge_count": 2555,
+        "architectural_smell_count": 4,
+        "hub_like_dependency_count": 1,
+        "unstable_dependency_count": 3,
+        "warning_heavy_hotspot_count": 0,
+        "split_identity_model_count": 20,
+        "compatibility_scar_count": 10,
+        "duplicate_mechanism_count": 22,
+        "sanctioned_path_bypass_count": 266,
+        "hand_rolled_parsing_count": 19,
+        "abstraction_sprawl_count": 25,
+        "algorithmic_complexity_hotspot_count": 1606,
+        "ast_grep_finding_count": 10031,
+        "ast_grep_algorithmic_complexity_count": 2609,
+        "ast_grep_security_dangerous_api_count": 256,
+        "ast_grep_framework_misuse_count": 7166,
+        "ast_grep_skipped_file_count": 8663,
+        "ast_grep_skipped_bytes": 28666536,
+        "ast_grep_skipped_files_preview": [
+          {
+            "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+            "bytes": 962,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+            "bytes": 1116,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+            "bytes": 1793,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+            "bytes": 854,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+            "bytes": 600,
+            "reason": "no_family_prefilter_hit"
+          }
+        ],
+        "route_contract_count": 521,
+        "hook_contract_count": 26,
+        "registered_key_count": 13,
+        "symbolic_literal_count": 1072,
+        "env_key_count": 547,
+        "config_key_count": 343
+      },
+      "scanner_work": {
+        "files_processed": 1,
+        "files_reused": 17066,
+        "bytes_processed": 191010,
+        "bytes_reused": 122951917
+      }
+    }
+  ],
+  "tool_contracts": [
+    {
+      "name": "record_changed_paths",
+      "description": "After saving an edit batch, immediately record its repository-relative paths and wake the mcp --watch indexer, even during initial indexing. Returns a min_revision receipt for repo_overview or verify_change. This declares saved changes; it does not edit files, expand scan scope, or prove coverage.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "paths": {
+            "description": "One to 128 saved repo-relative paths; deleted paths and directories are valid.\nUse \".\" for the whole repository. Absolute paths and traversal are rejected.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "paths"
+        ],
+        "title": "RecordChangedPathsParams",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "Freshness": {
+            "description": "Freshness contract attached to graph-sensitive responses. The load-bearing invariant\nof the online daemon: a query always reads the latest published snapshot immediately,\nbut is told when the daemon has observed newer changes than that snapshot represents.",
+            "properties": {
+              "consistency_satisfied": {
+                "description": "True if this response satisfied the requested `min_revision`/consistency (always\ntrue for `latest_available`/`allow_stale` with no `min_revision`).",
+                "type": "boolean"
+              },
+              "dirty_path_count": {
+                "description": "Total number of paths observed changed since the snapshot (even if the list below\nis capped).",
+                "format": "uint",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "dirty_paths": {
+                "description": "Capped sample of dirty paths, for response-size safety.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "generated_at_unix_ms": {
+                "description": "Milliseconds since the Unix epoch when the snapshot was generated.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "indexed_revision": {
+                "description": "Highest repository revision represented by the published snapshot.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "is_stale": {
+                "description": "True when `observed_revision > indexed_revision`, or a requested `min_revision`\nwas not satisfied within the wait budget.",
+                "type": "boolean"
+              },
+              "last_error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "observed_revision": {
+                "description": "Highest revision observed through filesystem events or explicit edit receipts.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "rebuilding": {
+                "description": "True when a rebuild is in flight right now.",
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "Alias for `indexed_revision` — the revision this answer's snapshot represents.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "watcher": {
+                "$ref": "#/$defs/WatcherStatus",
+                "default": "unknown"
+              }
+            },
+            "required": [
+              "revision",
+              "indexed_revision",
+              "observed_revision",
+              "is_stale",
+              "rebuilding",
+              "consistency_satisfied",
+              "dirty_path_count",
+              "dirty_paths",
+              "generated_at_unix_ms"
+            ],
+            "type": "object"
+          },
+          "WatcherStatus": {
+            "enum": [
+              "unknown",
+              "disabled",
+              "starting",
+              "watching",
+              "failed"
+            ],
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "freshness": {
+            "$ref": "#/$defs/Freshness"
+          },
+          "min_revision": {
+            "description": "Pass this floor to repo_overview or verify_change before using post-edit results.",
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "min_revision",
+          "paths",
+          "freshness"
+        ],
+        "title": "RecordChangedPathsOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "verify_change",
+      "description": "Post-edit check scoped to your paths (or observed dirty paths when empty). After saving, call record_changed_paths and pass its min_revision with wait_ms to wait for the corresponding index. Reports baseline comparability, regressions/fixes and explicit freshness when a requested revision is not ready.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "max_items": {
+            "format": "uint",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "min_revision": {
+            "description": "Revision returned by record_changed_paths after saving the edit batch.",
+            "format": "uint64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "paths": {
+            "default": [],
+            "description": "Repo-relative paths the agent touched. Empty means \"use the paths the\ndaemon observed as changed since the snapshot\" (`mcp --watch`).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "wait_ms": {
+            "description": "Wait budget for that revision, bounded to 120 seconds.",
+            "format": "uint64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "title": "VerifyChangeParams",
+        "type": "object"
+      },
+      "outputSchema": {
+        "$defs": {
+          "BaselineAssessment": {
+            "properties": {
+              "availability": {
+                "$ref": "#/$defs/BaselineAvailability"
+              },
+              "comparison": {
+                "$ref": "#/$defs/BaselineComparison"
+              },
+              "current": {
+                "$ref": "#/$defs/SnapshotIdentity"
+              },
+              "previous": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/SnapshotIdentity"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reasons": {
+                "items": {
+                  "$ref": "#/$defs/BaselineReason"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "availability",
+              "comparison",
+              "current",
+              "reasons"
+            ],
+            "type": "object"
+          },
+          "BaselineAvailability": {
+            "enum": [
+              "missing",
+              "partial",
+              "unverified",
+              "inconsistent",
+              "verified",
+              "unknown"
+            ],
+            "type": "string"
+          },
+          "BaselineComparison": {
+            "enum": [
+              "initial_snapshot",
+              "comparable",
+              "not_compared"
+            ],
+            "type": "string"
+          },
+          "BaselineReason": {
+            "enum": [
+              "no_baseline",
+              "missing_family_member",
+              "missing_seal",
+              "hash_mismatch",
+              "manifest_changed",
+              "different_root",
+              "different_engine",
+              "different_scope",
+              "different_external_tools",
+              "current_inputs_incomplete",
+              "previous_inputs_incomplete",
+              "current_secondary_checks_incomplete",
+              "previous_secondary_checks_incomplete",
+              "external_checks_incomplete"
+            ],
+            "type": "string"
+          },
+          "ConvergenceFindingOutput": {
+            "properties": {
+              "current_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "current_occurrences": {
+                "default": null,
+                "format": "uint",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "current_severity": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "current_visible": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "family": {
+                "type": "string"
+              },
+              "file_paths": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "previous_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "previous_occurrences": {
+                "default": null,
+                "format": "uint",
+                "minimum": 0,
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "previous_severity": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "previous_visible": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "fingerprint",
+              "title",
+              "family",
+              "status",
+              "file_paths"
+            ],
+            "type": "object"
+          },
+          "Freshness": {
+            "description": "Freshness contract attached to graph-sensitive responses. The load-bearing invariant\nof the online daemon: a query always reads the latest published snapshot immediately,\nbut is told when the daemon has observed newer changes than that snapshot represents.",
+            "properties": {
+              "consistency_satisfied": {
+                "description": "True if this response satisfied the requested `min_revision`/consistency (always\ntrue for `latest_available`/`allow_stale` with no `min_revision`).",
+                "type": "boolean"
+              },
+              "dirty_path_count": {
+                "description": "Total number of paths observed changed since the snapshot (even if the list below\nis capped).",
+                "format": "uint",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "dirty_paths": {
+                "description": "Capped sample of dirty paths, for response-size safety.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "generated_at_unix_ms": {
+                "description": "Milliseconds since the Unix epoch when the snapshot was generated.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "indexed_revision": {
+                "description": "Highest repository revision represented by the published snapshot.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "is_stale": {
+                "description": "True when `observed_revision > indexed_revision`, or a requested `min_revision`\nwas not satisfied within the wait budget.",
+                "type": "boolean"
+              },
+              "last_error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "observed_revision": {
+                "description": "Highest revision observed through filesystem events or explicit edit receipts.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "rebuilding": {
+                "description": "True when a rebuild is in flight right now.",
+                "type": "boolean"
+              },
+              "revision": {
+                "description": "Alias for `indexed_revision` — the revision this answer's snapshot represents.",
+                "format": "uint64",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "watcher": {
+                "$ref": "#/$defs/WatcherStatus",
+                "default": "unknown"
+              }
+            },
+            "required": [
+              "revision",
+              "indexed_revision",
+              "observed_revision",
+              "is_stale",
+              "rebuilding",
+              "consistency_satisfied",
+              "dirty_path_count",
+              "dirty_paths",
+              "generated_at_unix_ms"
+            ],
+            "type": "object"
+          },
+          "SnapshotIdentity": {
+            "properties": {
+              "assessment_config_fingerprint": {
+                "default": "",
+                "type": "string"
+              },
+              "engine_fingerprint": {
+                "default": "",
+                "type": "string"
+              },
+              "engine_version": {
+                "type": "string"
+              },
+              "external_checks_complete": {
+                "type": "boolean"
+              },
+              "external_tools": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "input_inventory_fingerprint": {
+                "default": "",
+                "type": "string"
+              },
+              "resolve_config_fingerprint": {
+                "type": "string"
+              },
+              "root": {
+                "type": "string"
+              },
+              "scope_fingerprint": {
+                "type": "string"
+              },
+              "semantic_revision": {
+                "format": "uint32",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "source_fingerprint": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "root",
+              "engine_version",
+              "semantic_revision",
+              "source_fingerprint",
+              "scope_fingerprint",
+              "resolve_config_fingerprint",
+              "external_tools",
+              "external_checks_complete"
+            ],
+            "type": "object"
+          },
+          "WatcherStatus": {
+            "enum": [
+              "unknown",
+              "disabled",
+              "starting",
+              "watching",
+              "failed"
+            ],
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "Post-edit answer: did *my* change make things worse, scoped to the touched\npaths — not a whole-repo convergence dump.",
+        "properties": {
+          "baseline": {
+            "$ref": "#/$defs/BaselineAssessment",
+            "default": {
+              "availability": "unknown",
+              "comparison": "not_compared",
+              "current": {
+                "assessment_config_fingerprint": "",
+                "engine_fingerprint": "",
+                "engine_version": "",
+                "external_checks_complete": false,
+                "external_tools": [],
+                "input_inventory_fingerprint": "",
+                "resolve_config_fingerprint": "",
+                "root": "",
+                "scope_fingerprint": "",
+                "semantic_revision": 0,
+                "source_fingerprint": ""
+              },
+              "previous": null,
+              "reasons": []
+            },
+            "description": "Identity and comparability of the artifact baseline used for this delta."
+          },
+          "fix_count": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "fixes": {
+            "description": "resolved + improved findings touching the scope (capped).",
+            "items": {
+              "$ref": "#/$defs/ConvergenceFindingOutput"
+            },
+            "type": "array"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Freshness"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "guard_verdict": {
+            "description": "Overall guard verdict for the current run (context, not scoped).",
+            "type": "string"
+          },
+          "honesty": {
+            "description": "Caveats the agent must not miss (e.g. edits the analysis has not seen).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "regression_count": {
+            "format": "uint",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "regressions": {
+            "description": "new + worsened findings touching the scope, severity-first (capped).",
+            "items": {
+              "$ref": "#/$defs/ConvergenceFindingOutput"
+            },
+            "type": "array"
+          },
+          "scope_path_count": {
+            "description": "Total effective scope before the display cap; absent in older responses.",
+            "format": "uint",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "scope_paths": {
+            "description": "Effective scope the delta was computed over (repo-relative, capped).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "scope_source": {
+            "description": "explicit | daemon_dirty_paths",
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "scope_paths",
+          "scope_source",
+          "guard_verdict",
+          "regressions",
+          "fixes",
+          "regression_count",
+          "fix_count",
+          "truncated",
+          "honesty"
+        ],
+        "title": "VerifyChangeOutput",
+        "type": "object"
+      }
+    }
+  ],
+  "comparison": {
+    "normalization": "Complete arrays/order retained; sorted object keys; known root/output prefix substitutions; freshness and work fields kept separately in raw receipts. Additional exact listed metadata paths differ because these are different engine builds/root directories/generation times.",
+    "comparisons": [
+      {
+        "stage": "refresh-1",
+        "resource": "overview",
+        "strict_equal": false,
+        "sha256": [
+          "190cf57d02e7285e72435d654287ed1a7c555115f4b238998a71081909f1fac8",
+          "4e3566cc4b7babf33c3620f284c690480b5303903c2f897a6381957dc235a148"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/guard_decision/baseline/current/engine_fingerprint",
+            "values": [
+              "90d34314f7f52161",
+              "e2bde16826d3f3f1"
+            ]
+          },
+          {
+            "path": "/guard_decision/baseline/current/resolve_config_fingerprint",
+            "values": [
+              "e09f2b4b342f5a44",
+              "a3dd5a75bf756633"
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "834172158006a994434274d45d075d6dfa65174e63b5d1af85603fc8648b7044",
+          "834172158006a994434274d45d075d6dfa65174e63b5d1af85603fc8648b7044"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "findings",
+        "strict_equal": true,
+        "sha256": [
+          "f119fbf4a4a1f12fdbaeb8bf21bbf16ef7e4cb90cb778699343e5d230f359065",
+          "f119fbf4a4a1f12fdbaeb8bf21bbf16ef7e4cb90cb778699343e5d230f359065"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "f119fbf4a4a1f12fdbaeb8bf21bbf16ef7e4cb90cb778699343e5d230f359065",
+          "f119fbf4a4a1f12fdbaeb8bf21bbf16ef7e4cb90cb778699343e5d230f359065"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "coverage",
+        "strict_equal": true,
+        "sha256": [
+          "ef618aebcaafb8ee40f97c01e1d05a521841d6256c81b3199a5d8cafa07f180f",
+          "ef618aebcaafb8ee40f97c01e1d05a521841d6256c81b3199a5d8cafa07f180f"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "ef618aebcaafb8ee40f97c01e1d05a521841d6256c81b3199a5d8cafa07f180f",
+          "ef618aebcaafb8ee40f97c01e1d05a521841d6256c81b3199a5d8cafa07f180f"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "quality",
+        "strict_equal": true,
+        "sha256": [
+          "b1a3a5738e0e391e16f3f767820ca79f73897f411de27001bbea0392632debc1",
+          "b1a3a5738e0e391e16f3f767820ca79f73897f411de27001bbea0392632debc1"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "b1a3a5738e0e391e16f3f767820ca79f73897f411de27001bbea0392632debc1",
+          "b1a3a5738e0e391e16f3f767820ca79f73897f411de27001bbea0392632debc1"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "contracts",
+        "strict_equal": true,
+        "sha256": [
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e",
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e",
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "guard",
+        "strict_equal": false,
+        "sha256": [
+          "506665761ea023dcf3326c7ebbe9606b41345b79da8e3adae8215db03f44626d",
+          "39890037e734fe322b60feac2404c33b88f89574562be4d1aa14f82f5fae6778"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/baseline/current/engine_fingerprint",
+            "values": [
+              "90d34314f7f52161",
+              "e2bde16826d3f3f1"
+            ]
+          },
+          {
+            "path": "/baseline/current/resolve_config_fingerprint",
+            "values": [
+              "e09f2b4b342f5a44",
+              "a3dd5a75bf756633"
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "8332f8a33b0ddf6174ae7790a07f3d0229d57e6998bec156e4a51e228b47be65",
+          "8332f8a33b0ddf6174ae7790a07f3d0229d57e6998bec156e4a51e228b47be65"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "convergence",
+        "strict_equal": false,
+        "sha256": [
+          "4e38119f98bc9f44fe21f0864098cf572bb65c1ef4fb323e14f5a0ecf7f7e2ed",
+          "79d6e7982bd58993465ee18ab3b67241d8dc73e725ae0595afba27d2cce23930"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/baseline/current/engine_fingerprint",
+            "values": [
+              "90d34314f7f52161",
+              "e2bde16826d3f3f1"
+            ]
+          },
+          {
+            "path": "/baseline/current/resolve_config_fingerprint",
+            "values": [
+              "e09f2b4b342f5a44",
+              "a3dd5a75bf756633"
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "6dbbd57165c644672a01e068555c4b3b74bebcd50286e8e0a3150d98def0d331",
+          "6dbbd57165c644672a01e068555c4b3b74bebcd50286e8e0a3150d98def0d331"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "graph-packets",
+        "strict_equal": true,
+        "sha256": [
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080",
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080",
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-1",
+        "resource": "repository-topology",
+        "strict_equal": false,
+        "sha256": [
+          "b776f6ab511df37d1246757bcb6aa8cc9dace14181a90203719821e84eb80706",
+          "d20bbb50f9dc3938b519ab416fb2e0962a37a218329d9662e25d50d24b9b89d9"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/generated_at_unix_ms",
+            "values": [
+              1788987918990,
+              1788991485656
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "6688fbe7972389b5428408bd923d20f0df3dfa387ecb3ba1492b98ac493da02c",
+          "6688fbe7972389b5428408bd923d20f0df3dfa387ecb3ba1492b98ac493da02c"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "overview",
+        "strict_equal": false,
+        "sha256": [
+          "dae9c7d04f69af44c03215ad04631f3175af08034160d319f67b159e33d589ae",
+          "23e23e7882eed25e139e2135d6e0521062b4e4d6afb94b81ad8b047bcdf2e8d8"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/guard_decision/baseline/current/engine_fingerprint",
+            "values": [
+              "90d34314f7f52161",
+              "e2bde16826d3f3f1"
+            ]
+          },
+          {
+            "path": "/guard_decision/baseline/current/resolve_config_fingerprint",
+            "values": [
+              "e09f2b4b342f5a44",
+              "a3dd5a75bf756633"
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "0be322f681a9165b63d7650095d412081c89cb5852b8d6c677b56ffe18c0c588",
+          "0be322f681a9165b63d7650095d412081c89cb5852b8d6c677b56ffe18c0c588"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "findings",
+        "strict_equal": true,
+        "sha256": [
+          "6805efd4d76e2381d15b2a7f7661898edf95dc0e48f66492d484e4621d1a9b77",
+          "6805efd4d76e2381d15b2a7f7661898edf95dc0e48f66492d484e4621d1a9b77"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "6805efd4d76e2381d15b2a7f7661898edf95dc0e48f66492d484e4621d1a9b77",
+          "6805efd4d76e2381d15b2a7f7661898edf95dc0e48f66492d484e4621d1a9b77"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "coverage",
+        "strict_equal": true,
+        "sha256": [
+          "999e3761194ede6c576e7db038b87eeccbc3448e4b1fdd5660a143e111357545",
+          "999e3761194ede6c576e7db038b87eeccbc3448e4b1fdd5660a143e111357545"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "999e3761194ede6c576e7db038b87eeccbc3448e4b1fdd5660a143e111357545",
+          "999e3761194ede6c576e7db038b87eeccbc3448e4b1fdd5660a143e111357545"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "quality",
+        "strict_equal": true,
+        "sha256": [
+          "eb4a191d43db41c45f04f43a64104374c18ee9df349b1f1a29888cf06b71f2f7",
+          "eb4a191d43db41c45f04f43a64104374c18ee9df349b1f1a29888cf06b71f2f7"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "eb4a191d43db41c45f04f43a64104374c18ee9df349b1f1a29888cf06b71f2f7",
+          "eb4a191d43db41c45f04f43a64104374c18ee9df349b1f1a29888cf06b71f2f7"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "contracts",
+        "strict_equal": true,
+        "sha256": [
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e",
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e",
+          "0c4c7c52ddd0bd67be3c4824dfb46887d89ed3fc593fce481e79ccca91b94e0e"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "guard",
+        "strict_equal": false,
+        "sha256": [
+          "ba399e653d3d7e2ff11fe4f42348c18f95c7e0a5115ae4a9bc1a09867db6c6f8",
+          "9e32770708374e4b0d99aec824813b17183a160726cd652f4bf7420d6a675936"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/baseline/current/engine_fingerprint",
+            "values": [
+              "90d34314f7f52161",
+              "e2bde16826d3f3f1"
+            ]
+          },
+          {
+            "path": "/baseline/current/resolve_config_fingerprint",
+            "values": [
+              "e09f2b4b342f5a44",
+              "a3dd5a75bf756633"
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "e4dfd4d0a6c1a03f9d485cad75b27ac523a5d64557118aef037ca198c929a18c",
+          "e4dfd4d0a6c1a03f9d485cad75b27ac523a5d64557118aef037ca198c929a18c"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "convergence",
+        "strict_equal": false,
+        "sha256": [
+          "07d678c57ec2c31141a1840e5db7b2861697e6cca5974e6d508fe7cbe70b710f",
+          "fd260e37e8fa930a9d7cda2ca3777011323d53f4797a5e57567e8e6809837ee8"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/baseline/current/engine_fingerprint",
+            "values": [
+              "90d34314f7f52161",
+              "e2bde16826d3f3f1"
+            ]
+          },
+          {
+            "path": "/baseline/current/resolve_config_fingerprint",
+            "values": [
+              "e09f2b4b342f5a44",
+              "a3dd5a75bf756633"
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "52f2536167fa8cbb963e0398f671d9e24c18f0311edc55755751a14f31e8530d",
+          "52f2536167fa8cbb963e0398f671d9e24c18f0311edc55755751a14f31e8530d"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "graph-packets",
+        "strict_equal": true,
+        "sha256": [
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080",
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080"
+        ],
+        "metadata_exclusions": [],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080",
+          "9f7ac911c68f648254a34d985ca5bb7ea97c81909ad1d162c2157645dc3ad080"
+        ],
+        "difference_after_metadata_exclusions": null
+      },
+      {
+        "stage": "refresh-2",
+        "resource": "repository-topology",
+        "strict_equal": false,
+        "sha256": [
+          "0b4bb988025aa6f36df4f2805e6ba45eff23133c20bcc64c99ec6dab3c826822",
+          "826a2d765b051c46b822f984981f6b724e3890c07989b575b243be81980a8f17"
+        ],
+        "metadata_exclusions": [
+          {
+            "path": "/generated_at_unix_ms",
+            "values": [
+              1788987977825,
+              1788991543691
+            ]
+          }
+        ],
+        "equal_after_metadata_exclusions": true,
+        "sha256_after_metadata_exclusions": [
+          "1bde77a7625eee17f2cfb4ae9f044559701b8a294ea6e9586f33160687256657",
+          "1bde77a7625eee17f2cfb4ae9f044559701b8a294ea6e9586f33160687256657"
+        ],
+        "difference_after_metadata_exclusions": null
+      }
+    ]
+  },
+  "raw_session_files": [
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/1.json",
+      "bytes": 523,
+      "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/10.json",
+      "bytes": 158807,
+      "sha256": "f21699311a679a29bb6c752fe5bb1ea4d30208de2b519383277ade071f794de8"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/11.json",
+      "bytes": 59378,
+      "sha256": "e5242f39b388d5ac82237641bd1e33a5e9d20d62f0cdd4146e2e83f88e934274"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/12.json",
+      "bytes": 3417872,
+      "sha256": "7da000004224110e68d91a406026d4077fdcdcc4a2f0ec317031ee848d055810"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/13.json",
+      "bytes": 184525,
+      "sha256": "2b64dd27aa788dd82d1c6be3b2b46541cbe831b3be928ce4203752794a01d6a0"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/14.json",
+      "bytes": 1014709,
+      "sha256": "650bfbcbb6f89cc6f211d799fd6febf4c0bb0b4cad34f16842acb90604ade054"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/15.json",
+      "bytes": 1691,
+      "sha256": "db50c668c439a2f8e7f4699da55a40527370e95a6c8590042a1421951ae6bc5e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/16.json",
+      "bytes": 4080,
+      "sha256": "021f940185af0bdc6f2e6c75a88c5545706dcc01edd5475bc70790613ee22211"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/17.json",
+      "bytes": 3162,
+      "sha256": "6887193928f298fd2a64123e2f6fc389294d9295477b0255a5a40476bd6a7409"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/18.json",
+      "bytes": 210780,
+      "sha256": "76262062fd76a9dd7c27bd6a06b5161bdb1f19c4b8062fffe9b36795a1b3a005"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/19.json",
+      "bytes": 3261779,
+      "sha256": "7eeb8cd6a744ae03a9ab5ca48aeefc452be5d601c948d31e2e7bfe5945bc5d11"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/2.json",
+      "bytes": 160584,
+      "sha256": "f6303cbf6f823bebee003ee98eb8ad50032aea1de8c1d8c44601431526072b46"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/20.json",
+      "bytes": 15883,
+      "sha256": "fc6c9b76c03e9fc14ab0973d7bbe95db49b19dd36e5588a3cc527a09db378502"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/21.json",
+      "bytes": 19517,
+      "sha256": "5fdcc6a31c409e10a4e35b2a3d83334b0a2f8d312a621cf8a0fd494c751c8645"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/22.json",
+      "bytes": 158807,
+      "sha256": "0663237bbe2f348a1f37d40f8055639986e2a9cb54c65599661f8aaf40965ec6"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/23.json",
+      "bytes": 59378,
+      "sha256": "aacf9667005611b9f2e47f52f67bd00202d9aed392891c383edb30e36137a960"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/24.json",
+      "bytes": 3419555,
+      "sha256": "e51906e56cf86486531d4d25ec2394043aa4c9ffc27f0095f1d20459aea1749f"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/25.json",
+      "bytes": 184525,
+      "sha256": "75e859f759975a00f8ed5044dc1972408b6c5f626e8f0ca1d064e58a43df37c2"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/26.json",
+      "bytes": 1014709,
+      "sha256": "cf108fa4b36888c7c717328d94f4aa2e69cb9b49f3d301503eaeda7596f4c10e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/3.json",
+      "bytes": 1487,
+      "sha256": "8678ab44342d416de181527acb4a0bd041d667a12748be7e042bb5ffcaa56863"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/4.json",
+      "bytes": 436,
+      "sha256": "cd74da0ca864006739af80519f1052920507d0ad29068c694264dda363d69f44"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/5.json",
+      "bytes": 3137,
+      "sha256": "d0d1119af514c22c984d27b039c12c9c2e272b7fac56b6f96b498e53133fa493"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/6.json",
+      "bytes": 210774,
+      "sha256": "87834b4483506d88ec0a66679a96addf38918a92c4b556ef1ad06f167e3f8a98"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/7.json",
+      "bytes": 3260197,
+      "sha256": "0ee7edea8daa2c112ae054fa1cc92f9d5cc550fec8f7ab40c260618a1b976605"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/8.json",
+      "bytes": 15882,
+      "sha256": "d0144e6d66d08468a8d8d570a2bd76f40b10cb5f1791e987cbb3e71b10e2cfc0"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/9.json",
+      "bytes": 19516,
+      "sha256": "b8b6ace4b17e28ebf1ead9a3304b0e1769d372c4655f388ce0e417626c7ed79b"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/exit.json",
+      "bytes": 51,
+      "sha256": "621793533abc86762b709729b64469e8c975b390fce5e8f1d0f165cb2072cec3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/mutations.jsonl",
+      "bytes": 483,
+      "sha256": "fa92839893878707e1034ec554336a7b39a64996265ab89bfe513f327c23cd3f"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/process.json",
+      "bytes": 281,
+      "sha256": "7d2f6c5aa497554dc7fdff965029552c8af5ce7b05d86525482569b68fec139e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-contracts.json",
+      "bytes": 90005,
+      "sha256": "d91299e4ad5328d8d42a65efe261c8e9c9b5903c483244f3089bc5d482648c5a"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-convergence.json",
+      "bytes": 2740908,
+      "sha256": "2ecb4408c320b30fdbebe035e9bdb42c985acad3aeeb877d0b327eb8a06b7bad"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-coverage.json",
+      "bytes": 9556,
+      "sha256": "72af87e5853b66480500c3418713f152c0eb71054b0be80db1b98dde8c6e9a25"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-findings.json",
+      "bytes": 2512524,
+      "sha256": "5b746b3f7e3d2d581cabda1cee99f091f72b58b521d53f6b2529195586b44e75"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-graph-packets.json",
+      "bytes": 131583,
+      "sha256": "e751b47759f10823ce766be2e09596d057e148eb68223062b1b31b90d3145cf3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-guard.json",
+      "bytes": 50827,
+      "sha256": "01718432fdb5fcd392d9aac5e18b457a8f6006b9e659022b65c32b597f55c2b5"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-immediate.json",
+      "bytes": 435,
+      "sha256": "ecf758d309d94ba9fd7c4bca15a95a78fc79a6ae11c3d6757d7b3760644123fc"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-overview.json",
+      "bytes": 139863,
+      "sha256": "20afaba41a4a4fe25ca59c2dd3c88d041aa8cf99c6003c63188152ef39fa4462"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-quality.json",
+      "bytes": 12693,
+      "sha256": "b2c4897874cf1779c489d595fff4584b305714abe4a7541b009da6d89d5f6b9f"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-receipt.json",
+      "bytes": 346,
+      "sha256": "27d706d73e94547a08131c813e82433a189acc7e0572ef642066ec2234d4f268"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-repository-topology.json",
+      "bytes": 703814,
+      "sha256": "94f8b3964333c241eb15667605e8eec1e69c28e74f677697a630b8cb515f1927"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-1-verified.json",
+      "bytes": 1094,
+      "sha256": "edefef9456b6bd85947655fca39e1a232908c35fce37049ace9bc5f998245eb3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-contracts.json",
+      "bytes": 90005,
+      "sha256": "d91299e4ad5328d8d42a65efe261c8e9c9b5903c483244f3089bc5d482648c5a"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-convergence.json",
+      "bytes": 2742217,
+      "sha256": "8fa37180da9232c1726cca39f6aa40a70bf1e1032369b549e8a045cbade776c0"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-coverage.json",
+      "bytes": 9556,
+      "sha256": "043123fea4a4efb1be2b8de9e3408546d6e781a4d4a4ce440ad09ebd9d1a259d"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-findings.json",
+      "bytes": 2513767,
+      "sha256": "c7804eb27f18cd44448f85c3b6cbc58addddb827b4492e425b49f1f2b6d7e267"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-graph-packets.json",
+      "bytes": 131583,
+      "sha256": "e751b47759f10823ce766be2e09596d057e148eb68223062b1b31b90d3145cf3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-guard.json",
+      "bytes": 50827,
+      "sha256": "3bfbd79efc2dbdae8e0521bf698e04a09a1dd2e6e72a526083e109db70b9239e"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-immediate.json",
+      "bytes": 4079,
+      "sha256": "189e724844d6a6181c65b1f438d81d28448cff1e4326f7728e1696604f97d7c5"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-overview.json",
+      "bytes": 139868,
+      "sha256": "2a4660ae01f9c8d8b3850dc9897ad1b2af1c7a84ad79f71beff9e805abd1c3d9"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-quality.json",
+      "bytes": 12693,
+      "sha256": "783b22d741c7d747b2ecedf106c0119a25266047d988af9cb0f2e83686cccbf1"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-receipt.json",
+      "bytes": 371,
+      "sha256": "251e3ce9f8ec50d226c60fdb5dc6be436b228865ac73b67a31159969efd49042"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-repository-topology.json",
+      "bytes": 703814,
+      "sha256": "5141a53dec2d768b2881cd36c4646a90f1e4a59b13ba188731ee5d68ea2c697f"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/refresh-2-verified.json",
+      "bytes": 1106,
+      "sha256": "83fdf65fa31c30c929f0dfd972de0ae82c969e0954c2630b0a323f099adb3ff0"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/requests.json",
+      "bytes": 13777,
+      "sha256": "6a9121ac71423649052ac1b4389b68ff49244d517a18bd95908ff4a488f0d1be"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/stages.json",
+      "bytes": 3423,
+      "sha256": "a8e54f8c8f570832b01e0f3e8854a5e2f07a0b05b6dad4431f3acf4863e97b92"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/stderr.txt",
+      "bytes": 15730298,
+      "sha256": "145050100ac85d18e6b1b1c814c26176f68e4064f0c161b182abaa9215725c87"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-mcp/tools.json",
+      "bytes": 160549,
+      "sha256": "38d5951b4bfa83e1f894c988374126c69111ffcdafa11ccbbbe60beddad8468d"
+    }
+  ],
+  "exit": {
+    "code": 0,
+    "signal": null,
+    "elapsed_ms": 135687.912358
+  },
+  "self_audit": {
+    "elapsed_seconds": 2.96,
+    "peak_rss_kib": 160408,
+    "exit_code": 1,
+    "scanned_files": 245,
+    "analyzed_files": 119,
+    "input_coverage": {
+      "status": "incomplete",
+      "supported_source_files": 119,
+      "parsed_source_files": 119,
+      "recovered_source_files": 2,
+      "scope_limited_files": 0,
+      "files_without_parse_evidence": 0,
+      "unsupported_source_files": 2,
+      "other_input_files": 124,
+      "diagnostic_count": 2,
+      "parse_issues_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+          "parser": "tree-sitter-rust",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 1,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 247,
+              "start_column": 50,
+              "end_line": 247,
+              "end_column": 54
+            }
+          ],
+          "diagnostics_truncated": false
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+          "parser": "tree-sitter-rust",
+          "scope": "source",
+          "required_recovery": true,
+          "diagnostic_count": 1,
+          "diagnostics": [
+            {
+              "kind": "error_node",
+              "node_kind": "ERROR",
+              "start_line": 2357,
+              "start_column": 57,
+              "end_line": 2357,
+              "end_column": 61
+            }
+          ],
+          "diagnostics_truncated": false
+        }
+      ],
+      "unsupported_sources_preview": [
+        {
+          "file_path": "install.ps1",
+          "extension": "ps1"
+        },
+        {
+          "file_path": "install.sh",
+          "extension": "sh"
+        }
+      ],
+      "deferred_checks": [
+        "unused_imports",
+        "unused_private_functions",
+        "orphan_modules",
+        "confirmed_orphan_files"
+      ]
+    },
+    "secondary_coverage": {
+      "status": "complete",
+      "input_files": 119,
+      "scanned_files": 57,
+      "prefiltered_files": 62,
+      "oversized_files": 0,
+      "unsupported_files": 0,
+      "other_gap_files": 0,
+      "scope_limited_files": 0,
+      "gap_bytes": 0,
+      "gap_files_preview": []
+    },
+    "old_owned_fixture_false_positives": [],
+    "receipts": [
+      {
+        "path": "target/reliability-2026-09-09/self-edit-receipt-result.json",
+        "bytes": 7115,
+        "sha256": "cf5c022b0f457c3e22ff3661e33c6f668002b216a92d0657d39a891eb78d6c67"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-edit-receipt-time.txt",
+        "bytes": 890,
+        "sha256": "4fce833228d8e5ed84b90bb7cd1f10d83c3333206b3e022b96fba2c3fe27b30a"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-edit-receipt-trace.txt",
+        "bytes": 55253,
+        "sha256": "ce73f8936a0d5f01732e86efbce8dfce6af55edec55cd040d8d386150e6e8a58"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-edit-receipt/deterministic-findings.json",
+        "bytes": 482687,
+        "sha256": "9c03bbda324bdf06e3083f9a6f0e90a9ccf428955a7da2fc68ead2179eeb550c"
+      }
+    ]
+  },
+  "evidence_files": [
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-capture.cjs",
+      "bytes": 1900,
+      "sha256": "26691632294653786a95e7cb0226da6ed34efd821cf51c7aa4f36a316f3b0a02"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-capture.json",
+      "bytes": 1117,
+      "sha256": "1b05892d6f487fa91760086d1c5e17d9854f2e217fcf81efa4990f07126e4a82"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-client.cjs",
+      "bytes": 5852,
+      "sha256": "9a2571c4ee9dda3f42410afa613614522178112350a233f672414e21e6732b0d"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-compare.cjs",
+      "bytes": 3130,
+      "sha256": "a35a6a24de1412e00c57a1d51f7c0179b400cca3a89341451ab7d751497b6524"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-comparison.json",
+      "bytes": 13948,
+      "sha256": "fa574ed5ff6685676d8a52e95ad72f0b41c798a1ea7f83146f085d83d0a22ee9"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-source-integrity.cjs",
+      "bytes": 3278,
+      "sha256": "6657a5e38a28863569f5bddee9c2b5f63b1dde5ec35f8920d01398827322b2ea"
+    },
+    {
+      "path": "target/reliability-2026-09-09/edit-receipt-source-integrity.json",
+      "bytes": 1240,
+      "sha256": "6f91b3bb14ead8ee30544866eb443228e1029d6c5c9f1c930d05411f9ddd865a"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-attempt-1-inventory.json",
+      "bytes": 4653554,
+      "sha256": "7a952b3daba1463b91c4fe743de0ee797c0e1ec5d95a1d1f33882f59cfb1cbd3"
+    },
+    {
+      "path": "target/reliability-2026-09-09/fresh-draivix-capture.json",
+      "bytes": 14406,
+      "sha256": "5b9b774cef9769ab2514bced4c93872a95e158f0d00662b9d4857c710c847512"
+    }
+  ],
+  "earlier_iterations": [
+    {
+      "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/edit-receipt-mcp-before-retry",
+      "binary": {
+        "path": "target/reliability-2026-09-09/aigiscode-edit-receipt-before-retry",
+        "bytes": 94781664,
+        "sha256": "730bb7251044e66a075c2bdd9c646d1e3d190a57f67c8ab72162a484cb49766b"
+      },
+      "build": {
+        "path": "target/reliability-2026-09-09/edit-receipt-first-build.txt",
+        "bytes": 156,
+        "sha256": "5ee778f410027ee8769f49586a10c45fe853eacd81fd834f10731c5e89ed66e9"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 136217.50542099998
+      }
+    },
+    {
+      "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/edit-receipt-mcp-retry",
+      "binary": {
+        "path": "target/reliability-2026-09-09/aigiscode-edit-receipt-retry",
+        "bytes": 94797424,
+        "sha256": "16df384ee42a92060a5471d9670c83630474258c25007fcc6b86939882a373c3"
+      },
+      "build": {
+        "path": "target/reliability-2026-09-09/edit-receipt-retry-build.txt",
+        "bytes": 156,
+        "sha256": "09e4a1ddc9400ed8a3f326c5beb8c7069ecbd10d4aa7af1a64ef26a4f7b85c97"
+      },
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 137248.323489
+      }
+    }
+  ],
+  "limitations": [
+    "Measured normal saved-edit receipt flow on two controlled real Draivix file updates, not every watcher/capture failure or interleaving.",
+    "Expected initial indexing response is not a parser failure, failed source analysis or transport crash.",
+    "Revision-specific failure/retry logic and invalid-input/large-scope behavior have written regression cases but were not executed under the test stop.",
+    "Receipts declare saved paths and invalidate a running indexer; they do not edit files, expand scan scope, verify each path is analyzed, certify content hashes or provide durable edit transactions.",
+    "All successful source states retain incomplete parser/secondary coverage and an unavailable baseline; zero regressions or fixes is not a clean-code verdict.",
+    "Eighteen complete captured data-view comparisons preserve array contents/order and exclude only documented metadata, not a full raw semantic graph comparison.",
+    "Final source copy and preserved capture match the common 23,296-file inventory; original Draivix was not written. Intermediate states are declared combinations, not whole historical checkouts.",
+    "Times are individual observations on a shared host, not latency guarantees.",
+    "The final binary was replayed after production changes; earlier sessions are preserved separately and do not substitute for the final run.",
+    "Approved CI, adversarial/concurrent scenarios, stable capture and overall Q01-Q12 acceptance remain open."
+  ]
+}

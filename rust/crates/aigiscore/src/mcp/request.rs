@@ -35,7 +35,7 @@ impl AigiscodeMcpServer {
         }
         let published = self.live.load();
         if published.snapshot.is_none() {
-            let error = self.live.last_error();
+            let error = self.live.blocking_error();
             return Err(McpError::internal_error(
                 error.clone().unwrap_or_else(|| {
                     String::from("Initial index is still building; retry when ready")
