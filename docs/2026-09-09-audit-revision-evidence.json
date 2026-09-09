@@ -1,0 +1,405 @@
+{
+  "date": "2026-09-09",
+  "baseline_revision": "e3ce102",
+  "revised_revision": "ef21719",
+  "automated_suites": "not_run_ci_pending",
+  "measurements": {
+    "baseline": {
+      "summary": {
+        "scanned_files": 17024,
+        "analyzed_files": 17013,
+        "symbols": 123380,
+        "references": 1082937,
+        "resolved_edges": 343619,
+        "strong_cycle_count": 17,
+        "total_cycle_count": 22,
+        "architectural_smell_count": 4,
+        "warning_heavy_hotspot_count": 0,
+        "split_identity_model_count": 18,
+        "compatibility_scar_count": 9,
+        "duplicate_mechanism_count": 22,
+        "hand_rolled_parsing_count": 19,
+        "abstraction_sprawl_count": 23,
+        "algorithmic_complexity_hotspot_count": 1534,
+        "ast_grep_finding_count": 9446,
+        "ast_grep_algorithmic_complexity_count": 2462,
+        "ast_grep_security_dangerous_api_count": 248,
+        "ast_grep_framework_misuse_count": 6736,
+        "ast_grep_skipped_file_count": 8076,
+        "ast_grep_skipped_bytes": 27084989,
+        "ast_grep_skipped_files_preview": [
+          {
+            "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+            "bytes": 962,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+            "bytes": 1116,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+            "bytes": 1793,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+            "bytes": 854,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+            "bytes": 600,
+            "reason": "no_family_prefilter_hit"
+          }
+        ],
+        "dead_code_count": 198,
+        "hardwiring_count": 1319,
+        "security_finding_count": 65,
+        "external_tool_count": 0,
+        "external_finding_count": 0
+      },
+      "timings": [
+        {
+          "phase": "Scan",
+          "elapsed_ms": 162
+        },
+        {
+          "phase": "Structure",
+          "elapsed_ms": 216
+        },
+        {
+          "phase": "Parse",
+          "elapsed_ms": 6219
+        },
+        {
+          "phase": "Resolve",
+          "elapsed_ms": 145616
+        },
+        {
+          "phase": "Analyze",
+          "elapsed_ms": 39314
+        }
+      ],
+      "source_manifest_sha256": "74a49f531eca27773944f9bedd833652c7c84859ecf7dde84e9b9110acd2afb0",
+      "binary_sha256": "76a8dde7d8e993f038f26e47e90bfaf2da4b062469493aca0c8b6079ff03afc4",
+      "artifact_bytes": 1714653376,
+      "time_log": "\tCommand being timed: \"target/audit-trust-2026-09-09/baseline-aigiscode analyze /home/david/Work/Programming/aigiscode/target/draivix-audit-2026-09-08/full-source --output-dir /home/david/Work/Programming/aigiscode/target/audit-trust-2026-09-09/benchmark-baseline\"\n\tUser time (seconds): 346.14\n\tSystem time (seconds): 3.64\n\tPercent of CPU this job got: 162%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 3:34.68\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 3498788\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 0\n\tMinor (reclaiming a frame) page faults: 1155356\n\tVoluntary context switches: 879\n\tInvoluntary context switches: 98634\n\tSwaps: 0\n\tFile system inputs: 232\n\tFile system outputs: 3349024\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n"
+    },
+    "current": {
+      "summary": {
+        "scanned_files": 17024,
+        "analyzed_files": 17013,
+        "symbols": 124053,
+        "references": 1085535,
+        "resolved_edges": 323371,
+        "strong_cycle_count": 18,
+        "total_cycle_count": 24,
+        "architectural_smell_count": 4,
+        "warning_heavy_hotspot_count": 0,
+        "split_identity_model_count": 18,
+        "compatibility_scar_count": 9,
+        "duplicate_mechanism_count": 22,
+        "hand_rolled_parsing_count": 19,
+        "abstraction_sprawl_count": 25,
+        "algorithmic_complexity_hotspot_count": 1534,
+        "ast_grep_finding_count": 9446,
+        "ast_grep_algorithmic_complexity_count": 2462,
+        "ast_grep_security_dangerous_api_count": 248,
+        "ast_grep_framework_misuse_count": 6736,
+        "ast_grep_skipped_file_count": 8076,
+        "ast_grep_skipped_bytes": 27084989,
+        "ast_grep_skipped_files_preview": [
+          {
+            "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+            "bytes": 962,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+            "bytes": 1116,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+            "bytes": 1793,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+            "bytes": 854,
+            "reason": "no_family_prefilter_hit"
+          },
+          {
+            "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+            "bytes": 600,
+            "reason": "no_family_prefilter_hit"
+          }
+        ],
+        "dead_code_count": 203,
+        "hardwiring_count": 1319,
+        "security_finding_count": 65,
+        "external_tool_count": 0,
+        "external_finding_count": 0
+      },
+      "timings": [
+        {
+          "phase": "Scan",
+          "elapsed_ms": 181
+        },
+        {
+          "phase": "Structure",
+          "elapsed_ms": 222
+        },
+        {
+          "phase": "Parse",
+          "elapsed_ms": 5891
+        },
+        {
+          "phase": "Resolve",
+          "elapsed_ms": 16249
+        },
+        {
+          "phase": "Analyze",
+          "elapsed_ms": 33520
+        }
+      ],
+      "source_manifest_sha256": "74a49f531eca27773944f9bedd833652c7c84859ecf7dde84e9b9110acd2afb0",
+      "binary_sha256": "5c12fb986aa6adf86dff57f225ca56e54c55f19d9d7147aca460078248eb79d0",
+      "artifact_bytes": 1685767571,
+      "time_log": "\tCommand being timed: \"target/audit-trust-2026-09-09/candidate-v6-aigiscode analyze /home/david/Work/Programming/aigiscode/target/draivix-audit-2026-09-08/full-source --output-dir /home/david/Work/Programming/aigiscode/target/audit-trust-2026-09-09/benchmark-current\"\n\tUser time (seconds): 210.11\n\tSystem time (seconds): 3.37\n\tPercent of CPU this job got: 267%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 1:19.90\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 3471724\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 0\n\tMinor (reclaiming a frame) page faults: 1133469\n\tVoluntary context switches: 5196\n\tInvoluntary context switches: 87830\n\tSwaps: 0\n\tFile system inputs: 696\n\tFile system outputs: 3292632\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n"
+    }
+  },
+  "cycles": {
+    "cycle_findings": {
+      "count": 24,
+      "largest_component": 82,
+      "witness_steps": 53,
+      "invalid_paths": 0,
+      "witness_edges_missing_from_dependency_projection": 0
+    },
+    "strong_cycle_findings": {
+      "count": 18,
+      "largest_component": 46,
+      "witness_steps": 44,
+      "invalid_paths": 0,
+      "witness_edges_missing_from_dependency_projection": 0
+    },
+    "baseline_largest_strong_component": 105,
+    "invalid_strong_witness_edges": 0
+  },
+  "structure_applier_isnoop": [
+    {
+      "source": "app/Entities/_Core/Authoring/StructureApplier.php",
+      "line": 328,
+      "target": "app/Services/I18n/LocaleFileWriter.php",
+      "target_id": "method:app/Services/I18n/LocaleFileWriter.php:class:app/Services/I18n/LocaleFileWriter.php:LocaleFileWriter:isNoop",
+      "strength": "hard"
+    }
+  ],
+  "extension_pair": {
+    "full": [
+      [
+        "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+        "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts"
+      ]
+    ],
+    "strong": []
+  },
+  "mcp": {
+    "elapsed_ms": 69650.666406,
+    "error": null,
+    "isError": false,
+    "fastload_confirmed": true,
+    "overview": {
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1534,
+      "analyzed_files": 17013,
+      "architectural_smell_count": 4,
+      "ast_grep_algorithmic_complexity_count": 2462,
+      "ast_grep_finding_count": 9446,
+      "ast_grep_framework_misuse_count": 6736,
+      "ast_grep_security_dangerous_api_count": 248,
+      "ast_grep_skipped_bytes": 27084989,
+      "ast_grep_skipped_file_count": 8076,
+      "ast_grep_skipped_files_preview": [
+        {
+          "bytes": 962,
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 1116,
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 1793,
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 854,
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 600,
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "bottleneck_count": 20,
+      "boundary_reasons": [],
+      "boundary_truncated_count": 0,
+      "boundary_truth": "complete_repository",
+      "compatibility_scar_count": 9,
+      "config_key_count": 343,
+      "dead_code_count": 203,
+      "duplicate_mechanism_count": 22,
+      "env_key_count": 546,
+      "external_finding_count": 0,
+      "external_tool_run_count": 0,
+      "hand_rolled_parsing_count": 19,
+      "hardwiring_count": 1319,
+      "hook_contract_count": 26,
+      "hub_like_dependency_count": 2,
+      "orphan_count": 4126,
+      "override_edge_count": 2701,
+      "references": 1085535,
+      "registered_key_count": 13,
+      "resolved_edges": 323371,
+      "route_contract_count": 521,
+      "runtime_entry_count": 2400,
+      "sanctioned_path_bypass_count": 262,
+      "scanned_files": 17024,
+      "security_finding_count": 65,
+      "split_identity_model_count": 18,
+      "strong_cycle_count": 18,
+      "symbolic_literal_count": 1072,
+      "symbols": 124053,
+      "total_cycle_count": 24,
+      "unresolved_reference_sites": 687759,
+      "unstable_dependency_count": 2,
+      "warning_heavy_hotspot_count": 0
+    },
+    "freshness": {
+      "consistency_satisfied": true,
+      "dirty_path_count": 0,
+      "dirty_paths": [],
+      "generated_at_unix_ms": 1788932403152,
+      "indexed_revision": 1,
+      "is_stale": false,
+      "observed_revision": 1,
+      "rebuilding": false,
+      "revision": 1
+    }
+  },
+  "mcp_delivery": {
+    "revision": "84698bd",
+    "binary_sha256": "68aec02f125be83c4a4890ae63ccbb2d283e248248b59196ef5eb2ba87c4282c",
+    "elapsed_ms": 68078.83524,
+    "fastload_confirmed": true,
+    "overview": {
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1534,
+      "analyzed_files": 17013,
+      "architectural_smell_count": 4,
+      "ast_grep_algorithmic_complexity_count": 2462,
+      "ast_grep_finding_count": 9446,
+      "ast_grep_framework_misuse_count": 6736,
+      "ast_grep_security_dangerous_api_count": 248,
+      "ast_grep_skipped_bytes": 27084989,
+      "ast_grep_skipped_file_count": 8076,
+      "ast_grep_skipped_files_preview": [
+        {
+          "bytes": 962,
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 1116,
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 1793,
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 854,
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "bytes": 600,
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "bottleneck_count": 20,
+      "boundary_reasons": [],
+      "boundary_truncated_count": 0,
+      "boundary_truth": "complete_repository",
+      "compatibility_scar_count": 9,
+      "config_key_count": 343,
+      "dead_code_count": 203,
+      "duplicate_mechanism_count": 22,
+      "env_key_count": 546,
+      "external_finding_count": 0,
+      "external_tool_run_count": 0,
+      "generated_path_prefixes": [
+        "phpstan/cache",
+        "phpstan/resultCache.php",
+        "android/app/src/main/assets/public"
+      ],
+      "hand_rolled_parsing_count": 19,
+      "hardwiring_count": 1319,
+      "hook_contract_count": 26,
+      "hub_like_dependency_count": 2,
+      "orphan_count": 4126,
+      "override_edge_count": 2701,
+      "references": 1085535,
+      "registered_key_count": 13,
+      "resolved_edges": 323371,
+      "route_contract_count": 521,
+      "runtime_entry_count": 2400,
+      "sanctioned_path_bypass_count": 262,
+      "scanned_files": 17024,
+      "security_finding_count": 65,
+      "split_identity_model_count": 18,
+      "strong_cycle_count": 18,
+      "symbolic_literal_count": 1072,
+      "symbols": 124053,
+      "total_cycle_count": 24,
+      "unresolved_reference_sites": 687759,
+      "unstable_dependency_count": 2,
+      "warning_heavy_hotspot_count": 0
+    },
+    "freshness": {
+      "consistency_satisfied": true,
+      "dirty_path_count": 0,
+      "dirty_paths": [],
+      "generated_at_unix_ms": 1788932726313,
+      "indexed_revision": 1,
+      "is_stale": false,
+      "observed_revision": 1,
+      "rebuilding": false,
+      "revision": 1
+    },
+    "cycle_groups": {
+      "strong_cycles": {
+        "count": 18,
+        "closed_witnesses": 18,
+        "witness_steps": 44
+      },
+      "total_cycles": {
+        "count": 24,
+        "closed_witnesses": 24,
+        "witness_steps": 53
+      }
+    }
+  }
+}
