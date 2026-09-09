@@ -901,7 +901,7 @@ use App\Models\User;
         .unwrap();
         fs::write(
             fixture.join("app/Models/User.php"),
-            br#"<?php class User {}"#,
+            br#"<?php namespace App\Models; class User {}"#,
         )
         .unwrap();
         fs::write(

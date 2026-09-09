@@ -287,7 +287,7 @@ fn record_import_statement(
         return;
     };
     let import_source = context.string_value(source_node);
-    let type_only = has_type_modifier(node);
+    let type_only = has_type_modifier(node, context);
     for idx in 0..node.child_count() {
         if let Some(child) = node.child(idx as u32) {
             if child.kind() == "import_clause" {
@@ -359,7 +359,9 @@ fn record_export_from_statement(
             graph.add_reference(SemanticReference {
                 file_path: context.file_path.clone(),
                 enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-                kind: import_kind(has_type_modifier(node) || has_type_modifier(specifier)),
+                kind: import_kind(
+                    has_type_modifier(node, context) || has_type_modifier(specifier, context),
+                ),
                 target_name: format!("{import_source}::{exported_name}"),
                 binding_name: None,
                 line: context.line(specifier),
@@ -377,7 +379,7 @@ fn record_export_from_statement(
         graph.add_reference(SemanticReference {
             file_path: context.file_path.clone(),
             enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-            kind: import_kind(has_type_modifier(node)),
+            kind: import_kind(has_type_modifier(node, context)),
             target_name: import_source,
             binding_name: None,
             line: context.line(node),
@@ -390,9 +392,15 @@ fn record_export_from_statement(
     }
 }
 
-fn has_type_modifier(node: Node<'_>) -> bool {
-    node.children(&mut node.walk())
-        .any(|child| child.kind() == "type")
+fn has_type_modifier(node: Node<'_>, context: &JavaScriptContext<'_>) -> bool {
+    node.children(&mut node.walk()).any(|child| {
+        child.kind() == "type"
+            // tree-sitter-typescript 0.23 recovers TS 5's `export type *`
+            // as an export with a single ERROR token for the type modifier.
+            || (node.kind() == "export_statement"
+                && child.kind() == "ERROR"
+                && context.text(child).trim() == "type")
+    })
 }
 
 fn import_kind(type_only: bool) -> ReferenceKind {
@@ -466,7 +474,9 @@ fn record_import_clause(
                             graph.add_reference(SemanticReference {
                                 file_path: context.file_path.clone(),
                                 enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-                                kind: import_kind(type_only || has_type_modifier(specifier)),
+                                kind: import_kind(
+                                    type_only || has_type_modifier(specifier, context),
+                                ),
                                 target_name: format!("{import_source}::{imported_name}"),
                                 binding_name: Some(binding_name),
                                 line: context.line(specifier),

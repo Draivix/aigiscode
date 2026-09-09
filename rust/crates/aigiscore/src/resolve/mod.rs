@@ -595,10 +595,11 @@ fn filter_candidates(
                     .candidates
                     .iter()
                     .filter(|candidate| {
-                        candidate
-                            .parent_symbol_id
-                            .as_ref()
-                            .is_some_and(|id| receiver.symbol_ids.contains(id))
+                        is_rust_module_function_candidate(reference, candidate, context)
+                            || candidate
+                                .parent_symbol_id
+                                .as_ref()
+                                .is_some_and(|id| receiver.symbol_ids.contains(id))
                             || candidate
                                 .owner_type_name
                                 .as_ref()
@@ -794,6 +795,34 @@ fn is_builtin_supertype_name(language: Language, leaf: &str) -> bool {
         Language::Ruby => matches!(leaf, "StandardError" | "RuntimeError" | "Exception"),
         Language::Rust => false,
     }
+}
+
+fn is_rust_module_function_candidate(
+    reference: &SemanticReference,
+    candidate: &SymbolDefinition,
+    context: &ResolutionContext,
+) -> bool {
+    if context.language_map.get(&reference.file_path) != Some(&Language::Rust)
+        || candidate.kind != SymbolKind::Function
+        || candidate.owner_type_name.is_some()
+        || rust_source_root(&reference.file_path) != rust_source_root(&candidate.file_path)
+    {
+        return false;
+    }
+    let Some(receiver) = reference.receiver_name.as_deref() else {
+        return false;
+    };
+    if reference.file_path != candidate.file_path
+        && !context
+            .import_map
+            .get(&reference.file_path)
+            .is_some_and(|files| files.contains(&candidate.file_path))
+    {
+        return false;
+    }
+    let receiver_segments = receiver.split("::").collect::<Vec<_>>();
+    normalize_rust_import_segments(&reference.file_path, &receiver_segments)
+        == rust_module_segments_for_file(&candidate.file_path)
 }
 
 fn reference_language_allows_bare_method_calls(
@@ -1428,7 +1457,7 @@ fn resolve_rust_import_paths(
     let mut resolved = HashSet::new();
     for prefix in candidate_prefixes {
         for suffix in [".rs", "/mod.rs"] {
-            let candidate = PathBuf::from(format!("src/{prefix}{suffix}"));
+            let candidate = rust_source_root(from_file).join(format!("{prefix}{suffix}"));
             if known_files.contains(&candidate) {
                 resolved.insert(candidate);
             }
@@ -1662,15 +1691,20 @@ fn normalize_rust_import_segments(from_file: &Path, segments: &[&str]) -> Vec<St
     }
 }
 
+fn rust_source_root(file_path: &Path) -> &Path {
+    file_path
+        .ancestors()
+        .find(|path| path.file_name().is_some_and(|name| name == "src"))
+        .unwrap_or(Path::new("src"))
+}
+
 fn rust_module_segments_for_file(file_path: &Path) -> Vec<String> {
     let mut segments = file_path
+        .strip_prefix(rust_source_root(file_path))
+        .unwrap_or(file_path)
         .iter()
         .map(|segment| segment.to_string_lossy().to_string())
         .collect::<Vec<_>>();
-
-    if matches!(segments.first().map(String::as_str), Some("src")) {
-        segments.remove(0);
-    }
 
     match segments.last().map(String::as_str) {
         Some("lib.rs") | Some("main.rs") | Some("mod.rs") => {
@@ -1943,6 +1977,37 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn rust_module_calls_require_the_matching_imported_module() {
+        let mut graph = crate::graph::SemanticGraph::default();
+        for (path, source) in [
+            (
+                "crates/app/src/main.rs",
+                "mod one; mod two; fn main() { one::helper(); two::helper(); unknown::helper(); }",
+            ),
+            ("crates/app/src/one.rs", "pub fn helper() {}"),
+            ("crates/app/src/two.rs", "pub fn other() {}"),
+            ("crates/other/src/one.rs", "pub fn helper() {}"),
+        ] {
+            let parsed =
+                crate::parsing::rust::parse_rust_to_graph(PathBuf::from(path), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+        let calls = graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| edge.kind == ReferenceKind::Call)
+            .collect::<Vec<_>>();
+        assert_eq!(calls.len(), 1, "{calls:#?}");
+        assert_eq!(
+            calls[0].target_file_path,
+            Path::new("crates/app/src/one.rs")
+        );
+    }
 
     #[test]
     fn resolves_same_file_before_import_scoped_and_global() {
@@ -3759,7 +3824,7 @@ def run(user: User):
     }
 
     #[test]
-    fn resolves_php_namespace_imports_by_suffix() {
+    fn resolves_php_namespace_imports_by_declared_identity() {
         let mut service = parse_php_to_graph(
             PathBuf::from("app/Service.php"),
             r#"<?php
@@ -3769,7 +3834,7 @@ use App\Models\User;
         .unwrap();
         let mut user = parse_php_to_graph(
             PathBuf::from("app/Models/User.php"),
-            r#"<?php class User {}"#,
+            r#"<?php namespace App\Models; class User {}"#,
         )
         .unwrap();
 
@@ -3795,7 +3860,7 @@ use Acme\Models\User;
         .unwrap();
         let mut user = parse_php_to_graph(
             PathBuf::from("app/Models/User.php"),
-            r#"<?php class User {}"#,
+            r#"<?php namespace Acme\Models; class User {}"#,
         )
         .unwrap();
 
