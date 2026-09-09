@@ -12,6 +12,10 @@ trigger and artifact hashes. The source capture is the unchanged, broad Draivix
 snapshot documented in the [preceding review](2026-09-09-draivix-revalidation.md).
 No Draivix source or configuration was edited.
 
+Follow-up: [large-file scanning](2026-09-09-large-file-scanning.md) removes the
+size-admission limit on this same captured corpus; the results below describe the
+earlier coverage-accounting change.
+
 ## Observed behavior
 
 The audit finished in 78.67 seconds with 3,524,588 KiB peak RSS and exit code 1.

@@ -5,6 +5,9 @@ JavaScript rule pipeline. Twelve are scanned and six are prefiltered. Secondary
 coverage now reports 8,139 scanned files, 8,064 prefilters, 18 size gaps and 792
 unsupported Vue files. The source inventory remains 17,013 files.
 
+The subsequent [large-file scan](2026-09-09-large-file-scanning.md) closes the
+18 size gaps on this same capture. The measurements below precede that change.
+
 The [receipt](2026-09-09-module-extension-evidence.json) records source and engine
 identities, counts, retained evidence, source examples and artifact hashes. The
 full audit took 78.56 seconds with 3,535,208 KiB peak RSS and exit code 1. Remaining

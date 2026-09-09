@@ -665,7 +665,9 @@ const RUST_FRAMEWORK_MISUSE_RULE_SET: AstGrepFrameworkMisuseRuleSet =
         rules: RUST_FRAMEWORK_MISUSE_RULES,
     };
 
-const AST_GREP_MAX_FILE_BYTES: usize = 150_000;
+// Large files keep their complete AST, but are scanned one at a time after
+// parallel work finishes so several large secondary trees cannot coexist.
+const AST_GREP_PARALLEL_FILE_BYTES: usize = 150_000;
 
 // `find_all(&str)` recompiles the pattern for every node visited, which makes
 // scan cost proportional to pattern-count x node-count. Compile each static
@@ -725,14 +727,18 @@ pub fn run_ast_grep_scan(parsed_sources: &[(PathBuf, String)]) -> AstGrepScanRes
     ));
     let outcomes = parsed_sources
         .par_iter()
-        .map(|(path, source)| scan_one_file(path, source))
+        .map(|(path, source)| {
+            (source.len() <= AST_GREP_PARALLEL_FILE_BYTES)
+                .then(|| scan_one_file(path, source))
+        })
         .collect::<Vec<_>>();
     let mut findings = Vec::new();
     let mut rule_ids = BTreeSet::new();
     let mut matched_files = 0usize;
     let mut scanned_files = 0usize;
     let mut skipped_files = Vec::new();
-    for outcome in outcomes {
+    for (outcome, (path, source)) in outcomes.into_iter().zip(parsed_sources) {
+        let outcome = outcome.unwrap_or_else(|| scan_one_file(path, source));
         findings.extend(outcome.findings);
         rule_ids.extend(outcome.rule_ids);
         matched_files += usize::from(outcome.matched);
@@ -785,19 +791,6 @@ fn scan_one_file(path: &Path, source: &str) -> AstGrepFileOutcome {
         });
         return outcome;
     };
-    if source.len() > AST_GREP_MAX_FILE_BYTES {
-        trace(&format!(
-            "ast_grep.file skip path={} reason=file_too_large bytes={}",
-            path.display(),
-            source.len()
-        ));
-        outcome.skipped = Some(AstGrepSkippedFile {
-            file_path: path.to_path_buf(),
-            bytes: source.len(),
-            reason: String::from("file_too_large_for_secondary_scan"),
-        });
-        return outcome;
-    }
     let prefilter = lexical_family_prefilter(path, source);
     if !prefilter.any() {
         trace(&format!(
@@ -1465,7 +1458,7 @@ mod tests {
         run_ast_grep_scan, AstGrepComplexitySubtype, AstGrepFindingKind,
         AstGrepFrameworkMisuseSubtype, AstGrepSecurityCategory,
     };
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
 
     #[test]
     fn truncates_unicode_matches_without_splitting_code_points() {
@@ -1905,23 +1898,53 @@ eval(payload)
     }
 
     #[test]
-    fn skips_oversized_files_with_explicit_reason() {
-        let mut source = String::from("<?php\n");
-        source.push_str(&"// filler to exceed scanner budget\n".repeat(6000));
+    fn scans_large_files_with_intact_loop_context_and_source_lines() {
+        let mut source = String::from("<?php\nforeach ($items as $item) {\n");
+        source.push_str(&"// preserve the enclosing loop across the old size limit\n".repeat(6000));
+        source.push_str("file_get_contents($item);\n}\nfile_get_contents($outside);\neval($input);\n");
 
-        let result = run_ast_grep_scan(&[(PathBuf::from("app/HugeJob.php"), source)]);
+        let result = run_ast_grep_scan(&[
+            (PathBuf::from("app/HugeJob.php"), source),
+            (PathBuf::from("src/small.ts"), String::from("eval(input);\n")),
+        ]);
 
+        assert!(result.coverage.is_complete());
+        assert_eq!(result.coverage.scanned_files, 2);
+        assert_eq!(result.coverage.oversized_files, 0);
+        assert!(result.skipped_files.is_empty());
+        assert!(result.findings.iter().any(|finding| {
+            finding.file_path == Path::new("app/HugeJob.php")
+                && finding.line == 6003
+                && matches!(finding.kind, AstGrepFindingKind::AlgorithmicComplexity { .. })
+        }));
+        assert!(result.findings.iter().any(|finding| {
+            finding.file_path == Path::new("app/HugeJob.php")
+                && finding.line == 6006
+                && matches!(finding.kind, AstGrepFindingKind::SecurityDangerousApi { .. })
+        }));
+        assert!(!result.findings.iter().any(|finding| {
+            finding.file_path == Path::new("app/HugeJob.php")
+                && finding.line == 6005
+                && matches!(finding.kind, AstGrepFindingKind::AlgorithmicComplexity { .. })
+        }));
+        assert_eq!(result.findings.last().unwrap().file_path, Path::new("src/small.ts"));
+    }
+
+    #[test]
+    fn large_files_keep_prefilter_and_language_coverage_semantics() {
+        let result = run_ast_grep_scan(&[
+            (PathBuf::from("src/constants.ts"), "// constants\n".repeat(15000)),
+            (PathBuf::from("src/Page.vue"), "<!-- template -->\n".repeat(15000)),
+        ]);
         assert!(result.findings.is_empty());
-        assert_eq!(result.skipped_files.len(), 1);
-        assert_eq!(
-            result.skipped_files[0].reason,
-            "file_too_large_for_secondary_scan"
-        );
-        assert!(!result.is_empty());
+        assert_eq!(result.coverage.input_files, 2);
+        assert_eq!(result.coverage.scanned_files, 0);
+        assert_eq!(result.coverage.prefiltered_files, 1);
+        assert_eq!(result.coverage.unsupported_files, 1);
+        assert_eq!(result.coverage.oversized_files, 0);
         assert!(!result.coverage.is_complete());
-        assert_eq!(result.coverage.oversized_files, 1);
-        assert_eq!(result.coverage.prefiltered_files, 0);
-        assert_eq!(result.coverage.gap_files_preview, result.skipped_files);
+        assert_eq!(result.skipped_files[0].reason, "no_family_prefilter_hit");
+        assert_eq!(result.skipped_files[1].reason, "no_rules_for_language");
     }
 
     #[test]

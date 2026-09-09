@@ -1,0 +1,1174 @@
+{
+  "observed_at": "2026-09-09T18:18:36.243Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-large-scanner",
+    "sha256": "87812c9a18930ed776a2f133ef5ac3ee63d93e66b6f538202ff135d74270c731",
+    "build_log": "target/reliability-2026-09-09/large-scanner-build.txt",
+    "automated_tests_run": false,
+    "ci_run": false
+  },
+  "source": {
+    "root": "target/reliability-2026-09-09/draivix-full-source",
+    "inventory": "target/reliability-2026-09-09/draivix-snapshot-hashes.json",
+    "inventory_sha256": "641e95edcc61e43807f7e5dc2648bdb23ea8d87f610f17a7c562ace317518e68",
+    "captured_files": 23166,
+    "mismatches": [],
+    "missing": [],
+    "scope": "Preserved source capture, not current live Draivix. Known subsequent live Mitel edits are not included. Original Draivix source was not edited."
+  },
+  "before": {
+    "trace": "target/reliability-2026-09-09/large-scanner-baseline-trace.txt",
+    "time_file": "target/reliability-2026-09-09/large-scanner-baseline-time.txt",
+    "elapsed": "0:48.56",
+    "peak_rss_kib": 2178848,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8139 findings=9497 elapsed_ms=9570"
+    ]
+  },
+  "after": {
+    "trace": "target/reliability-2026-09-09/draivix-large-scanner-trace.txt",
+    "time_file": "target/reliability-2026-09-09/draivix-large-scanner-time.txt",
+    "elapsed": "1:24.03",
+    "peak_rss_kib": 3510640,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8156 findings=9932 elapsed_ms=19246"
+    ]
+  },
+  "prior_scanner": {
+    "path": "target/reliability-2026-09-09/draivix-module-extensions/ast-grep-scan.json",
+    "sha256": "74cdf13b00b31cdc9b335b8781971e6218203e7e18cd6fc5d8bfe3d8af0ffd81",
+    "coverage": {
+      "status": "incomplete",
+      "input_files": 17013,
+      "scanned_files": 8139,
+      "prefiltered_files": 8064,
+      "oversized_files": 18,
+      "unsupported_files": 792,
+      "other_gap_files": 0,
+      "gap_bytes": 19450827,
+      "gap_files_preview": [
+        {
+          "file_path": "resources/js/types/entities.d.ts",
+          "bytes": 2597200,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+          "bytes": 411550,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+          "bytes": 397091,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+          "bytes": 377578,
+          "reason": "file_too_large_for_secondary_scan"
+        },
+        {
+          "file_path": "clients/trido/Services/PortalDataService.php",
+          "bytes": 328210,
+          "reason": "file_too_large_for_secondary_scan"
+        }
+      ]
+    }
+  },
+  "current_scanner": {
+    "path": "target/reliability-2026-09-09/draivix-large-scanner/ast-grep-scan.json",
+    "sha256": "3a4062fc808df9ebd6acc17195da8de6693cdb95bfcd6d4328e89a85a3554da0",
+    "coverage": {
+      "status": "incomplete",
+      "input_files": 17013,
+      "scanned_files": 8156,
+      "prefiltered_files": 8065,
+      "oversized_files": 0,
+      "unsupported_files": 792,
+      "other_gap_files": 0,
+      "gap_bytes": 12818568,
+      "gap_files_preview": [
+        {
+          "file_path": "resources/js/Components/Email/EmailPreview.vue",
+          "bytes": 204305,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "resources/js/Pages/Email/Index.vue",
+          "bytes": 198406,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+          "bytes": 195802,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+          "bytes": 147303,
+          "reason": "no_rules_for_language"
+        },
+        {
+          "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+          "bytes": 144848,
+          "reason": "no_rules_for_language"
+        }
+      ]
+    }
+  },
+  "findings": {
+    "previous": 9497,
+    "current": 9932,
+    "removed_count": 0,
+    "added_count": 435,
+    "added_canonical_sha256": "4ad5370923e058bb6b27f81b52f9cfe9a5b3fbbdb833b59f8abd909a7e1cd856",
+    "added_by_family": {
+      "algorithmic_complexity": 89,
+      "framework_misuse": 344,
+      "security_dangerous_api": 2
+    }
+  },
+  "formerly_oversized": [
+    {
+      "path": "app/Console/Commands/MigrationImportDataCommand.php",
+      "bytes": 173379,
+      "sha256": "2b6787566c2fb89864b37890e5f9e896e509d8529b8bb6573ecc15a4279994df",
+      "current_skip_reason": null,
+      "findings_count": 30,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 22,
+        "complexity/php/sort_in_loop": 2,
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 4,
+        "framework_misuse/php/raw_env_outside_config": 2
+      }
+    },
+    {
+      "path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+      "bytes": 377578,
+      "sha256": "26a56a072de707ee8403b3f785a832f4e537a0298a893bbeae8df4b604a280e6",
+      "current_skip_reason": null,
+      "findings_count": 27,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 25,
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 2
+      }
+    },
+    {
+      "path": "app/Modules/AccountingCompliance/Tests/Unit/AccountingProductionEvidenceServiceTest.php",
+      "bytes": 411550,
+      "sha256": "f5c200f4361bc5102cf91bbbbd1928f89e9bcbddde3c8a890c0732a13b54f10b",
+      "current_skip_reason": null,
+      "findings_count": 6,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 5,
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 1
+      }
+    },
+    {
+      "path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerPostingIntegrationTest.php",
+      "bytes": 397091,
+      "sha256": "eb1c96ecfbd50bed9783348662626b30ae33f509443f4b45ccd6cfcbb0fac07c",
+      "current_skip_reason": null,
+      "findings_count": 286,
+      "rule_counts": {
+        "complexity/php/json_decode_in_loop": 1,
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 285
+      }
+    },
+    {
+      "path": "app/Modules/AccountingLedger/Tests/Feature/AccountingLedgerSuiteHealthCommandTest.php",
+      "bytes": 190999,
+      "sha256": "e11bfd5c6834c3188a41da32eec6dc6f641438baf9ddcb1a887af62d671a905c",
+      "current_skip_reason": null,
+      "findings_count": 29,
+      "rule_counts": {
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 29
+      }
+    },
+    {
+      "path": "app/Modules/AiChat/Services/ChatService.php",
+      "bytes": 175734,
+      "sha256": "a7fe971d1122c494c39f63bf0c5a9d65d7d34f4053fa85cd90e6acb80a302083",
+      "current_skip_reason": null,
+      "findings_count": 6,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 1,
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 5
+      }
+    },
+    {
+      "path": "app/Modules/BankingAccounting/Tests/Integration/BankTransactionInvoiceAssignmentIntegrationTest.php",
+      "bytes": 185695,
+      "sha256": "6cdf05bd06271e48b1357f89b816dd94afabb63e3cdfc8cf59d3317a0973ee0f",
+      "current_skip_reason": null,
+      "findings_count": 10,
+      "rule_counts": {
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 10
+      }
+    },
+    {
+      "path": "app/Modules/Mattermost/resources/js/__tests__/useMattermost.spec.ts",
+      "bytes": 151513,
+      "sha256": "5713fbb8b545456024a2e451d1f75064b975c0ffae734a75425cca8dfec04366",
+      "current_skip_reason": null,
+      "findings_count": 1,
+      "rule_counts": {
+        "security/javascript/html_output": 1
+      }
+    },
+    {
+      "path": "app/Modules/Mattermost/resources/js/__tests__/useMattermostWs.spec.ts",
+      "bytes": 155630,
+      "sha256": "c9e3ab5f4c64b1c5f55007f77c4212a1edd7d8a5f6e4a3fcd29f04ae6063115a",
+      "current_skip_reason": null,
+      "findings_count": 1,
+      "rule_counts": {
+        "complexity/javascript/json_decode_in_loop": 1
+      }
+    },
+    {
+      "path": "clients/mitel/tools/walkthrough.py",
+      "bytes": 159435,
+      "sha256": "443b17f7cb4663c92047baad4609bab32d22e5e9123ff7e020e493a9c7daf7ac",
+      "current_skip_reason": null,
+      "findings_count": 2,
+      "rule_counts": {
+        "framework_misuse/python/raw_env_outside_config": 2
+      }
+    },
+    {
+      "path": "clients/nadop/Operations/file8_invoice_import.php",
+      "bytes": 176380,
+      "sha256": "e29283187a53db55743998d1edd542055b802b70221e894ef0fcfd9fbab76dab",
+      "current_skip_reason": null,
+      "findings_count": 14,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 8,
+        "complexity/php/filesystem_read_in_loop": 1,
+        "complexity/php/json_decode_in_loop": 1,
+        "complexity/php/sort_in_loop": 2,
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 2
+      }
+    },
+    {
+      "path": "clients/trido/Services/PortalDataService.php",
+      "bytes": 328210,
+      "sha256": "46335320a1efc3659bb565592986a338bff6c565ec9f63c82282443b90a2b7b2",
+      "current_skip_reason": null,
+      "findings_count": 2,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 2
+      }
+    },
+    {
+      "path": "clients/vyroba/Services/RazBoardsShowcaseFixtureService.php",
+      "bytes": 254961,
+      "sha256": "2fb8222e4316f0b1fdd73f2f4c4d401ccfd963687d2422bd009c8269f0ee5870",
+      "current_skip_reason": null,
+      "findings_count": 1,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 1
+      }
+    },
+    {
+      "path": "database/migrations/tenant/2026_01_04_111646_update_entity_schema.php",
+      "bytes": 232712,
+      "sha256": "602030ca989f63e8ef618c2e34c87211766d325c86e59a992a5232905ad5facd",
+      "current_skip_reason": null,
+      "findings_count": 0,
+      "rule_counts": {}
+    },
+    {
+      "path": "resources/js/chat/__tests__/ChatVoiceComposer.test.ts",
+      "bytes": 181028,
+      "sha256": "31718264bc276a1e7cf9457ad2f5598645268bb14a0eb70364ad5fcfae5dc50b",
+      "current_skip_reason": null,
+      "findings_count": 0,
+      "rule_counts": {}
+    },
+    {
+      "path": "resources/js/types/entities.d.ts",
+      "bytes": 2597200,
+      "sha256": "dbc72cf6219f481bbe01c9ea722ba3c4188922febd7e69476849ec66fdc0752f",
+      "current_skip_reason": "no_family_prefilter_hit",
+      "findings_count": 0,
+      "rule_counts": {}
+    },
+    {
+      "path": "tests/Fast/AccountingProductionGateFilterVerificationTest.php",
+      "bytes": 186906,
+      "sha256": "d489dfc51497c9938f6aa9c84635513ebddce07d410ad941e4b09a6c0621fee0",
+      "current_skip_reason": null,
+      "findings_count": 18,
+      "rule_counts": {
+        "complexity/php/collection_scan_in_loop": 4,
+        "complexity/php/filesystem_read_in_loop": 13,
+        "security/php/command_exec": 1
+      }
+    },
+    {
+      "path": "tests/Unit/Services/AiChat/ChatServiceTest.php",
+      "bytes": 296258,
+      "sha256": "035d2150cf12265983c29c065147a99c09156798bfef510bc738198f68d2e5ca",
+      "current_skip_reason": null,
+      "findings_count": 2,
+      "rule_counts": {
+        "framework_misuse/php/raw_container_lookup_outside_boundary": 2
+      }
+    }
+  ],
+  "cli_result": {
+    "root": "target/reliability-2026-09-09/draivix-full-source",
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 238
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 314
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6089
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 12306
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 37385
+      }
+    ],
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17013,
+        "scanned_files": 8156,
+        "prefiltered_files": 8065,
+        "oversized_files": 0,
+        "unsupported_files": 792,
+        "other_gap_files": 0,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "no_rules_for_language"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "no_rules_for_language"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "no_rules_for_language"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "no_rules_for_language"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "no_rules_for_language"
+          }
+        ]
+      },
+      "algorithmic_complexity_hotspot_count": 1536,
+      "ast_grep_finding_count": 9932,
+      "ast_grep_algorithmic_complexity_count": 2558,
+      "ast_grep_security_dangerous_api_count": 250,
+      "ast_grep_framework_misuse_count": 7124,
+      "ast_grep_skipped_file_count": 8857,
+      "ast_grep_skipped_bytes": 35877386,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "name": "ast-grep-scan.json",
+      "sha256": "3a4062fc808df9ebd6acc17195da8de6693cdb95bfcd6d4328e89a85a3554da0"
+    },
+    {
+      "name": "aigiscode-report.json",
+      "sha256": "80e3d1bdbff163a6546014f092f359c92cb95ead1e4bb987d3e90e104f01f66b"
+    },
+    {
+      "name": "architecture-surface.json",
+      "sha256": "cbc6bac583364101ead20371a2194508d0404a99da787ce66f9f4cdb724e914c"
+    },
+    {
+      "name": "guard-decision.json",
+      "sha256": "2f60803b435c688823c456ab285f07b0a93160204fe5141fbd14bc6f2e188243"
+    },
+    {
+      "name": "convergence-history.json",
+      "sha256": "acc183a549455314e2b8618c25cebb99747dcff11b892ed55b42fe29ace8e036"
+    },
+    {
+      "name": "scan-manifest.json",
+      "sha256": "e9a0840bde065bbf74bb81f17b583460072e5b5f887e9a35c79c749caa4c939f"
+    }
+  ],
+  "limitations": [
+    "Individual shared-host observations. All three Draivix runs traced; the first baseline used --no-write, the current and subsequently published baseline runs wrote full artifacts. No isolated statistical performance claim.",
+    "Complete rule scanning still depends on lexical family admission; no new Vue backend. Native recovered/scope-limited/unsupported inputs remain.",
+    "Sequential large-file scanning limits concurrent large trees within one secondary scan, not individual tree size, multiple invocations or total analyzer memory.",
+    "Findings are structural clues; newly observed scanner evidence does not independently prove a runtime defect.",
+    "Written regressions have not run; approved CI remains outstanding."
+  ],
+  "published_baseline": {
+    "trace": "target/reliability-2026-09-09/large-scanner-published-baseline-trace.txt",
+    "time_file": "target/reliability-2026-09-09/large-scanner-published-baseline-time.txt",
+    "elapsed": "1:16.08",
+    "peak_rss_kib": 3506216,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=8139 findings=9497 elapsed_ms=10018"
+    ],
+    "binary": {
+      "path": "target/reliability-2026-09-09/aigiscode-incremental-lazy",
+      "sha256": "9de4794bbc152c86a0d04929682ffbe883f8142098010368769e6df8435b32ac"
+    },
+    "scanner_sha256": "74cdf13b00b31cdc9b335b8781971e6218203e7e18cd6fc5d8bfe3d8af0ffd81",
+    "matches_historical_scanner_findings": true,
+    "matches_historical_scanner_coverage": true
+  },
+  "semantic_graph": {
+    "baseline_sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478",
+    "current_sha256": "38826adbcb62fd19c6d3ec8f9d7db8d80c2a6cc936e60bde5403adcd78283478"
+  },
+  "source_checked_samples": [
+    {
+      "rule_id": "complexity/php/collection_scan_in_loop",
+      "family": "algorithmic_complexity",
+      "language": "php",
+      "provenance": "ast_grep.pattern",
+      "file_path": "app/Modules/AiChat/Services/ChatService.php",
+      "line": 2283,
+      "token": "in_array($summary, $summaries, true)",
+      "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+      "matched_text": "in_array($summary, $summaries, true)",
+      "kind": {
+        "kind": "algorithmic_complexity",
+        "subtype": "collection_scan_in_loop",
+        "loop_family": "brace_loop"
+      }
+    },
+    {
+      "rule_id": "framework_misuse/php/raw_container_lookup_outside_boundary",
+      "family": "framework_misuse",
+      "language": "php",
+      "provenance": "ast_grep.pattern.laravel",
+      "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+      "line": 8436,
+      "token": "app(ProductSuiteProfileResolver::class)",
+      "message": "Raw container lookup should stay inside provider/bootstrap seams or be replaced by injection.",
+      "matched_text": "app(ProductSuiteProfileResolver::class)",
+      "kind": {
+        "kind": "framework_misuse",
+        "subtype": "raw_container_lookup_outside_boundary"
+      }
+    },
+    {
+      "rule_id": "framework_misuse/php/raw_container_lookup_outside_boundary",
+      "family": "framework_misuse",
+      "language": "php",
+      "provenance": "ast_grep.pattern.laravel",
+      "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+      "line": 8441,
+      "token": "app(AccountingLedgerProfileSourceResolver::class)",
+      "message": "Raw container lookup should stay inside provider/bootstrap seams or be replaced by injection.",
+      "matched_text": "app(AccountingLedgerProfileSourceResolver::class)",
+      "kind": {
+        "kind": "framework_misuse",
+        "subtype": "raw_container_lookup_outside_boundary"
+      }
+    },
+    {
+      "rule_id": "complexity/php/collection_scan_in_loop",
+      "family": "algorithmic_complexity",
+      "language": "php",
+      "provenance": "ast_grep.pattern",
+      "file_path": "clients/trido/Services/PortalDataService.php",
+      "line": 7121,
+      "token": "in_array($normalized, ['1', 'true', 'ano', 'yes', 'on'], true)",
+      "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+      "matched_text": "in_array($normalized, ['1', 'true', 'ano', 'yes', 'on'], true)",
+      "kind": {
+        "kind": "algorithmic_complexity",
+        "subtype": "collection_scan_in_loop",
+        "loop_family": "brace_loop"
+      }
+    },
+    {
+      "rule_id": "complexity/php/collection_scan_in_loop",
+      "family": "algorithmic_complexity",
+      "language": "php",
+      "provenance": "ast_grep.pattern",
+      "file_path": "clients/trido/Services/PortalDataService.php",
+      "line": 7124,
+      "token": "in_array($normalized, ['0', 'false', 'ne', 'no', 'off'], true)",
+      "message": "Repeated collection scans inside a loop should be indexed or hoisted.",
+      "matched_text": "in_array($normalized, ['0', 'false', 'ne', 'no', 'off'], true)",
+      "kind": {
+        "kind": "algorithmic_complexity",
+        "subtype": "collection_scan_in_loop",
+        "loop_family": "brace_loop"
+      }
+    },
+    {
+      "rule_id": "security/javascript/html_output",
+      "family": "security_dangerous_api",
+      "language": "typescript",
+      "provenance": "ast_grep.pattern",
+      "file_path": "app/Modules/Mattermost/resources/js/__tests__/useMattermost.spec.ts",
+      "line": 114,
+      "token": "document.body.innerHTML = ''",
+      "message": "Unsafe HTML output primitive should be isolated or sanitized.",
+      "matched_text": "document.body.innerHTML = ''",
+      "kind": {
+        "kind": "security_dangerous_api",
+        "category": "unsafe_html_output",
+        "api_name": "javascript-html-output"
+      }
+    },
+    {
+      "rule_id": "security/php/command_exec",
+      "family": "security_dangerous_api",
+      "language": "php",
+      "provenance": "ast_grep.pattern",
+      "file_path": "tests/Fast/AccountingProductionGateFilterVerificationTest.php",
+      "line": 2808,
+      "token": "exec( 'git -C '.escapeshellarg($this->repoPath('')).' ls-files --error-unmatch -- '.escapeshellarg($path).' 2>/dev/null', $output, $exitCode, )",
+      "message": "Dangerous command execution primitive should be isolated or removed.",
+      "matched_text": "exec( 'git -C '.escapeshellarg($this->repoPath('')).' ls-files --error-unmatch -- '.escapeshellarg($path).' 2>/dev/null', $output, $exitCode, )",
+      "kind": {
+        "kind": "security_dangerous_api",
+        "category": "command_execution",
+        "api_name": "php-command-exec"
+      }
+    }
+  ],
+  "assessment": {
+    "baseline_count": 2281,
+    "current_count": 2287,
+    "changed_or_added": [
+      {
+        "kind": "SanctionedPathBypass",
+        "file_path": "app/Console/Commands/MigrationImportDataCommand.php"
+      },
+      {
+        "kind": "SanctionedPathBypass",
+        "file_path": "app/Modules/AiChat/Services/ChatService.php"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+            "line": 3980,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($sectionStatus, $allowedStatuses, true)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+            "line": 3995,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($payloadStatus, $allowedStatuses, true)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+            "line": 4355,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($status, $allowedStatuses, true)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+            "line": 315,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($relationConfig['entity'], $entitiesToLoad)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+            "line": 321,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($entity, $entitiesToLoad, true)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+            "line": 345,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($mappedEntity, $entitiesToLoad, true)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+            "line": 2081,
+            "subtype": "sort_in_loop",
+            "token": "sort($documentIds)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "app/Console/Commands/MigrationImportDataCommand.php",
+            "line": 2110,
+            "subtype": "sort_in_loop",
+            "token": "sort($documentIds)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 774,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($fieldName, $payloadKeys, true)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 876,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($target, $contract->initial, true)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 882,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array(EspoMigrationWriteAuthority::WRITER, $contract->allowedInitialWritersFor($target), true)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 3206,
+            "subtype": "sort_in_loop",
+            "token": "ksort($expected)",
+            "source": "AstGrep"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 3207,
+            "subtype": "sort_in_loop",
+            "token": "ksort($actual)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "clients/vyroba/Services/RazBoardsShowcaseFixtureService.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "clients/vyroba/Services/RazBoardsShowcaseFixtureService.php",
+            "line": 5487,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($entityType, $atCreation, true)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "SanctionedPathBypass",
+        "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php"
+      },
+      {
+        "kind": "SanctionedPathBypass",
+        "file_path": "clients/nadop/Operations/file8_invoice_import.php"
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 3845,
+            "subtype": "filesystem_read_in_loop",
+            "token": "file_exists($finalPath)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "app/Modules/AiChat/Services/ChatService.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "app/Modules/AiChat/Services/ChatService.php",
+            "line": 2283,
+            "subtype": "collection_scan_in_loop",
+            "token": "in_array($summary, $summaries, true)",
+            "source": "AstGrep"
+          }
+        ]
+      },
+      {
+        "kind": "AlgorithmicComplexityHotspot",
+        "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+        "expensive_operation_sites": [
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_import.php",
+            "line": 3944,
+            "subtype": "json_decode_in_loop",
+            "token": "json_decode($line, true, 32, JSON_THROW_ON_ERROR)",
+            "source": "AstGrep"
+          }
+        ]
+      }
+    ],
+    "portal_literal_sites_promoted": []
+  },
+  "snapshot_identity": {
+    "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+    "engine_version": "0.1.0",
+    "engine_fingerprint": "697acb0ad23c2cad",
+    "semantic_revision": 11,
+    "source_fingerprint": "bc16020e94d2b8188f3cd1fa7c59828b",
+    "input_inventory_fingerprint": "55327d3f0dae4cc7",
+    "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+    "resolve_config_fingerprint": "50854948b7f43ebe",
+    "assessment_config_fingerprint": "15d53a85edc70ec3",
+    "external_tools": [],
+    "external_checks_complete": true
+  },
+  "mcp": {
+    "responses": "target/reliability-2026-09-09/draivix-mcp-large-scanner-responses.jsonl",
+    "responses_sha256": "c314da08604c05915a770b71642f365810734e57ca704e6e0f1064e2007950d9",
+    "timings": {
+      "exit_code": 0,
+      "signal": null,
+      "elapsed_ms": 45610.285478,
+      "timings": [
+        {
+          "id": 1,
+          "tool": "initialize",
+          "elapsed_ms": 10.363841,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 30011.766469000002,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788977736308,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "tool": "repo_overview",
+          "elapsed_ms": 45157.659980000004,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "tool": "show_cycles",
+          "elapsed_ms": 45160.351896,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "tool": "quality_evaluation",
+          "elapsed_ms": 45160.954476,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "tool": "coverage_report",
+          "elapsed_ms": 45161.402661,
+          "error": null,
+          "is_error": false
+        }
+      ]
+    },
+    "tools": [
+      {
+        "id": 2,
+        "coverage": {
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "bytes": 204305,
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 198406,
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 195802,
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 147303,
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 144848,
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "reason": "no_rules_for_language"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "prefiltered_files": 8065,
+          "scanned_files": 8156,
+          "status": "incomplete",
+          "unsupported_files": 792
+        },
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-large-scanner/.generations/18d3b9ba922ca1eb-193948-0",
+            "generation": "18d3b9ba922ca1eb-193948-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788977781454,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 3,
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-large-scanner/.generations/18d3b9ba922ca1eb-193948-0",
+            "generation": "18d3b9ba922ca1eb-193948-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788977781454,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 4,
+        "coverage": {
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "bytes": 204305,
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 198406,
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 195802,
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 147303,
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 144848,
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "reason": "no_rules_for_language"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "prefiltered_files": 8065,
+          "scanned_files": 8156,
+          "status": "incomplete",
+          "unsupported_files": 792
+        },
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-large-scanner/.generations/18d3b9ba922ca1eb-193948-0",
+            "generation": "18d3b9ba922ca1eb-193948-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788977781454,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        },
+        "recommendations": [
+          "Secondary rule coverage Incomplete: 8156 scanned, 8065 prefiltered, 0 oversized, 792 without language rules, 0 other gaps. See ast-grep-scan.json; this does not establish absence of defects.",
+          "Review input_coverage before drawing clean-code conclusions; absence-based checks are deferred.",
+          "Drill into typed cycle findings first and separate structural cycles from framework/runtime expansion before refactoring.",
+          "Review repeated literals and hardcoded network/env access for centralization into configuration, constants, or doctrine.",
+          "Treat security pressure as guard-rail work: normalize external findings and hardcoded-network findings into the same remediation workflow."
+        ]
+      },
+      {
+        "id": 5,
+        "coverage": {
+          "gap_bytes": 12818568,
+          "gap_files_preview": [
+            {
+              "bytes": 204305,
+              "file_path": "resources/js/Components/Email/EmailPreview.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 198406,
+              "file_path": "resources/js/Pages/Email/Index.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 195802,
+              "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 147303,
+              "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+              "reason": "no_rules_for_language"
+            },
+            {
+              "bytes": 144848,
+              "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+              "reason": "no_rules_for_language"
+            }
+          ],
+          "input_files": 17013,
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "prefiltered_files": 8065,
+          "scanned_files": 8156,
+          "status": "incomplete",
+          "unsupported_files": 792
+        },
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-large-scanner/.generations/18d3b9ba922ca1eb-193948-0",
+            "generation": "18d3b9ba922ca1eb-193948-0",
+            "inputs_match_index": true
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 0,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788977781454,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      }
+    ]
+  },
+  "coverage_projections": [
+    {
+      "projection": "cli",
+      "matches_scanner": true
+    },
+    {
+      "projection": "report",
+      "matches_scanner": true
+    },
+    {
+      "projection": "surface",
+      "matches_scanner": true
+    }
+  ],
+  "guard": {
+    "verdict": "Block",
+    "reasons": [
+      "No verified comparable baseline is available; current observations do not establish a regression or improvement.",
+      "Current snapshot contains 17 visible high-severity security finding(s); this is an observed risk, not a claim about when it was introduced.",
+      "Native input coverage is incomplete; absence-based checks are deferred.",
+      "Secondary rule coverage Incomplete: 8156 scanned, 8065 prefiltered, 0 oversized, 792 without language rules, 0 other gaps. See ast-grep-scan.json; this does not establish absence of defects.",
+      "10 doctrine-backed attention item(s) need review."
+    ]
+  },
+  "self": {
+    "trace": "target/reliability-2026-09-09/self-large-scanner-trace.txt",
+    "time_file": "target/reliability-2026-09-09/self-large-scanner-time.txt",
+    "elapsed": "0:03.04",
+    "peak_rss_kib": 152672,
+    "exit_code": 1,
+    "scanner_trace": [
+      "[aigiscore] ast_grep.scan complete scanned_files=56 findings=53 elapsed_ms=760"
+    ],
+    "coverage": {
+      "status": "complete",
+      "input_files": 117,
+      "scanned_files": 56,
+      "prefiltered_files": 61,
+      "oversized_files": 0,
+      "unsupported_files": 0,
+      "other_gap_files": 0,
+      "gap_bytes": 0,
+      "gap_files_preview": []
+    },
+    "input_coverage_status": "incomplete",
+    "scanner_sha256": "0b8dfb572253fbdf2336b39afb049aa24a5984a64af28fa410ed326c75b89054"
+  }
+}

@@ -15,7 +15,7 @@ another interpretation of scanner completion.
 | `input_files` | All sources passed to this scanner, including those without a language backend |
 | `scanned_files` | Sources admitted to AST rule scanning |
 | `prefiltered_files` | Sources skipped by the configured lexical family prefilters |
-| `oversized_files` | Sources with an available backend omitted by the size limit |
+| `oversized_files` | Legacy size-limit omissions; retained for historical artifacts, zero in current scans |
 | `unsupported_files` | Sources for which this scanner has no language rules |
 | `other_gap_files` | Skips with another reason, conservatively treated as gaps |
 | `gap_bytes` | Total bytes in oversized, unsupported and other omitted sources |
@@ -42,9 +42,14 @@ resolved or improved. MCP continues serving the partial graph with explicit
 coverage. Quality marks otherwise-zero affected dimensions unknown and includes
 the coverage caveat in its recommendations.
 
-The existing 150,000-byte secondary file limit remains in place. This contract
-exposes that limitation; it does not implement chunking, enable Vue scanning,
-or claim to finish the broader Q12 ownership and native-runtime work.
+Files above 150,000 bytes now run sequentially after the parallel smaller-file
+scan. This threshold controls concurrency, not admission: eligible files retain
+their complete AST and original line positions. Lexical prefilters and language
+coverage accounting apply equally at every size. Only one large secondary AST is
+live per scan invocation; this does not bound a single tree's memory, simultaneous
+analysis invocations, native parsing, or accumulated findings. Vue still has no
+secondary backend. Large-file execution does not resolve oversized implementation
+responsibilities or establish that the rule catalog is complete.
 
 Backend, prefilter and built-in rule-family selection share one language mapping.
 JavaScript includes `.js`, `.jsx`, `.mjs` and `.cjs`; TypeScript includes `.ts`,
