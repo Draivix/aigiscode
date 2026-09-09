@@ -3618,6 +3618,45 @@ $zone = config('app.timezone');
     }
 
     #[tokio::test]
+    async fn cycle_and_scope_evidence_survives_mcp_projection() {
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::create_dir_all(fixture.join("generated")).unwrap();
+        fs::write(
+            fixture.join(".aigiscode/scan.json"),
+            r#"{"generated_path_prefixes":["generated"]}"#,
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("generated/unused.ts"),
+            "export const unused = 1;",
+        )
+        .unwrap();
+        fs::write(fixture.join("a.ts"), "import './b'; export const a = 1;").unwrap();
+        fs::write(fixture.join("b.ts"), "import './a'; export const b = 1;").unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, false, false).unwrap();
+        let overview = server
+            .repo_overview(Parameters(RepoOverviewParams::default()))
+            .await
+            .0;
+        assert_eq!(overview.overview.analyzed_files, 2);
+        assert_eq!(
+            overview.overview.generated_path_prefixes,
+            vec![std::path::PathBuf::from("generated")]
+        );
+        let cycles = server
+            .show_cycles(Parameters(super::ShowCyclesParams::default()))
+            .await
+            .0;
+        assert_eq!(cycles.strong_cycles.len(), 1);
+        let witness = &cycles.strong_cycles[0].directed_witness;
+        assert_eq!(witness.len(), 2);
+        assert_eq!(witness[0].target_file_path, witness[1].source_file_path);
+        assert_eq!(witness[1].target_file_path, witness[0].source_file_path);
+        assert!(witness.iter().all(|edge| edge.line == 1));
+    }
+
+    #[tokio::test]
     async fn corpus_scale_scc_reports_as_topology_not_cycle_finding() {
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src")).unwrap();

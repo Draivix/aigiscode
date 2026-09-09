@@ -1244,6 +1244,8 @@ fn guard_trigger_level_label(level: GuardTriggerLevel) -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct OverviewOutput {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub generated_path_prefixes: Vec<PathBuf>,
     pub scanned_files: usize,
     pub analyzed_files: usize,
     pub symbols: usize,
@@ -1294,6 +1296,7 @@ pub struct OverviewOutput {
 impl OverviewOutput {
     fn from_surface(surface: &ArchitectureSurface) -> Self {
         Self {
+            generated_path_prefixes: surface.overview.generated_path_prefixes.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
             symbols: surface.overview.symbols,
@@ -1871,6 +1874,9 @@ pub struct CycleOutput {
     /// Member files, capped at 20; `size` carries the real membership count
     /// and the dependency-graph artifact carries full membership.
     pub files: Vec<String>,
+    /// Complete closed path; member preview truncation must not truncate proof.
+    #[serde(default)]
+    pub directed_witness: Vec<crate::graph::ResolvedEdge>,
     pub cycle_class: String,
     pub layers: Vec<String>,
     pub dominant_relations: Vec<String>,
@@ -1880,6 +1886,7 @@ pub struct CycleOutput {
 impl CycleOutput {
     pub fn from_cycle_finding(cycle: &CycleFinding) -> Self {
         Self {
+            directed_witness: cycle.directed_witness.clone(),
             size: cycle.files.len(),
             files: cycle
                 .files

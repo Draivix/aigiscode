@@ -31,7 +31,7 @@ pub enum SymbolKind {
     Module,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum ReferenceKind {
     Import,
     /// An import/export erased at runtime, still relevant to type dependencies.
@@ -56,7 +56,19 @@ pub enum CallForm {
     Associated,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+)]
 pub enum GraphLayer {
     #[serde(alias = "Structural")]
     Structural,
@@ -68,7 +80,19 @@ pub enum GraphLayer {
     PolicyOverlay,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+)]
 pub enum EdgeStrength {
     #[serde(alias = "Hard")]
     Hard,
@@ -80,7 +104,19 @@ pub enum EdgeStrength {
     Synthetic,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+)]
 pub enum EdgeOrigin {
     #[serde(alias = "Resolver")]
     Resolver,
@@ -90,7 +126,19 @@ pub enum EdgeOrigin {
     Policy,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    schemars::JsonSchema,
+)]
 pub enum RelationKind {
     #[serde(alias = "Import")]
     Import,
@@ -156,14 +204,14 @@ pub struct SemanticReference {
     pub class_literal_argument: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum ResolutionTier {
     SameFile,
     ImportScoped,
     Global,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, schemars::JsonSchema)]
 pub struct ResolvedEdge {
     pub source_file_path: PathBuf,
     pub source_symbol_id: Option<String>,
