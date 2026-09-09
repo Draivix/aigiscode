@@ -1,64 +1,36 @@
-use crate::artifacts::default_output_dir;
+pub(crate) mod native;
+pub use crate::artifacts::kuzu::{published_kuzu_path, write_semantic_graph_kuzu_artifact};
 use crate::graph::{
     EdgeOrigin, EdgeStrength, FileNode, GraphLayer, ReferenceKind, RelationKind, ResolutionTier,
     SemanticGraph, SymbolKind, Visibility,
 };
-use serde::{Deserialize, Serialize};
+pub use native::query_kuzu;
+use serde::Serialize;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::{HashMap, HashSet};
-use std::env;
-use std::fs;
+use std::fs::File;
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::thread;
-use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
 
 pub const KUZU_DB_NAME: &str = "graph.kuzu";
-
 const NODE_TABLE_NAME: &str = "CodeNode";
 const REL_TABLE_NAME: &str = "CodeRelation";
 
-const NODE_PATH_ENV: &str = "AIGISCODE_NODE_PATH";
-const NODE_MODULES_ENV: &str = "AIGISCODE_NODE_MODULES";
-const NODE_HELPER_RELATIVE_PATH: &str = "tools/kuzu_bridge.mjs";
-
 #[derive(Debug, Error)]
 pub enum KuzuIndexError {
-    #[error("failed to prepare Kuzu artifact directory {path}: {source}")]
-    PrepareDir {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-    #[error("failed to clean previous Kuzu database {path}: {source}")]
-    CleanupDb {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
-    #[error("failed to create Kuzu temp export directory {path}: {source}")]
-    TempDir {
-        path: PathBuf,
-        #[source]
-        source: std::io::Error,
-    },
+    #[error("Kuzu artifact I/O failed: {0}")]
+    Io(#[from] std::io::Error),
     #[error("failed to write Kuzu CSV {path}: {source}")]
     WriteCsv {
         path: PathBuf,
         #[source]
         source: std::io::Error,
     },
-    #[error("failed to run Node for Kuzu integration: {0}")]
-    NodeSpawn(#[source] std::io::Error),
-    #[error("Kuzu helper failed: {0}")]
-    HelperFailure(String),
-    #[error("failed to parse Kuzu helper output: {0}")]
-    ParseHelper(#[from] serde_json::Error),
-    #[error("could not locate a usable Node Kuzu module path; set {NODE_PATH_ENV} or keep ../nexus/gitnexus/node_modules available")]
-    MissingNodePath,
-    #[error("failed to locate Kuzu bridge script at {0}")]
-    MissingHelper(PathBuf),
+    #[error("native Kuzu failed: {0}")]
+    Native(#[from] kuzu::Error),
+    #[error("invalid Kuzu result: {0}")]
+    Invalid(String),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -67,13 +39,6 @@ pub struct KuzuQueryOutput {
     pub columns: Vec<String>,
     pub rows: Vec<JsonMap<String, JsonValue>>,
     pub row_count: usize,
-}
-
-#[derive(Debug, Deserialize)]
-struct HelperQueryOutput {
-    columns: Vec<String>,
-    rows: Vec<JsonMap<String, JsonValue>>,
-    row_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -154,52 +119,6 @@ pub struct EvidenceEdge {
     pub confidence_millis: u16,
     pub reason: String,
     pub line: usize,
-}
-
-pub fn default_kuzu_path(root: &Path, output_dir: Option<&Path>) -> PathBuf {
-    let output_dir = output_dir
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| default_output_dir(root));
-    output_dir.join(KUZU_DB_NAME)
-}
-
-pub fn write_semantic_graph_kuzu_artifact(
-    root: &Path,
-    graph: &SemanticGraph,
-    output_dir: Option<&Path>,
-) -> Result<PathBuf, KuzuIndexError> {
-    let output_dir = output_dir
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| default_output_dir(root));
-    fs::create_dir_all(&output_dir).map_err(|source| KuzuIndexError::PrepareDir {
-        path: output_dir.clone(),
-        source,
-    })?;
-    let db_path = output_dir.join(KUZU_DB_NAME);
-    cleanup_db_path(&db_path)?;
-
-    let temp_dir = unique_temp_dir(&output_dir);
-    fs::create_dir_all(&temp_dir).map_err(|source| KuzuIndexError::TempDir {
-        path: temp_dir.clone(),
-        source,
-    })?;
-    let node_csv = temp_dir.join("nodes.csv");
-    let rel_csv = temp_dir.join("relations.csv");
-    write_nodes_csv(&node_csv, graph)?;
-    write_relations_csv(&rel_csv, graph)?;
-
-    run_bridge_command(&[
-        String::from("materialize"),
-        db_path.display().to_string(),
-        node_csv.display().to_string(),
-        rel_csv.display().to_string(),
-    ])?;
-
-    let _ = fs::remove_file(&node_csv);
-    let _ = fs::remove_file(&rel_csv);
-    let _ = fs::remove_dir(&temp_dir);
-
-    Ok(db_path)
 }
 
 pub fn build_dependency_graph_artifact(graph: &SemanticGraph) -> DependencyGraphArtifact {
@@ -297,21 +216,6 @@ pub fn build_evidence_graph_artifact(graph: &SemanticGraph) -> EvidenceGraphArti
     }
 }
 
-pub fn query_kuzu(db_path: &Path, cypher: &str) -> Result<KuzuQueryOutput, KuzuIndexError> {
-    let stdout = run_bridge_command(&[
-        String::from("query"),
-        db_path.display().to_string(),
-        String::from(cypher),
-    ])?;
-    let parsed: HelperQueryOutput = serde_json::from_str(&stdout)?;
-    Ok(KuzuQueryOutput {
-        db_path: db_path.to_path_buf(),
-        columns: parsed.columns,
-        rows: parsed.rows,
-        row_count: parsed.row_count,
-    })
-}
-
 pub fn schema_reference_markdown() -> String {
     [
         "AigisCode Kuzu schema:\n",
@@ -323,10 +227,12 @@ pub fn schema_reference_markdown() -> String {
         "- `type`, `referenceKind`, `relationKind`, `layer`, `strength`, `origin`, `resolutionTier`, `confidenceMillis`, `reason`, `line`, `occurrenceCount`\n\n",
         "Export shape:\n",
         "- This Kuzu artifact is the normalized `dependency_view`, not the raw evidence graph. Synthetic `MODULE` nodes and `CONTAINS` edges are omitted, module-targeted edges are remapped to file nodes, and repeated dependencies are collapsed with `occurrenceCount` while JSON artifacts retain raw call-site evidence.\n\n",
-        "Runtime requirement:\n",
-        &format!(
-            "- The helper looks for the Node `kuzu` package via `{NODE_PATH_ENV}` or `../nexus/gitnexus/node_modules`.\n\n"
-        ),
+        "Runtime and publication:\n",
+        "- Kuzu runs in process through its Rust bindings; no Node runtime or sibling repository is required. Queries open a sealed immutable database read-only. This is not a filesystem sandbox for Cypher.\n",
+        "- CLI queries reconstruct the graph from current inputs before reusing an identical export. MCP pins the export for its indexed snapshot.\n",
+        "- The returned database path is under `.kuzu-generations/<id>/graph.kuzu`; `kuzu-current.json` commits a completed export. Legacy root `graph.kuzu` is never trusted or overwritten.\n\n",
+        "JSON query values:\n",
+        "- Empty results retain column names. Duplicate aliases and non-finite floats fail explicitly. INT128/DECIMAL and temporal scalars are strings; INTERVAL is an object with decimal-string nanoseconds; BLOB is a byte array; MAP is an array of key/value objects. Nodes and relationships retain metadata with nested `properties`; paths contain `_nodes` and `_rels`.\n\n",
         "Useful queries:\n",
         "```cypher\n",
         "MATCH (n:CodeNode) RETURN n.kind, count(*) AS count ORDER BY count DESC;\n",
@@ -340,117 +246,10 @@ pub fn schema_reference_markdown() -> String {
     .concat()
 }
 
-fn run_bridge_command(args: &[String]) -> Result<String, KuzuIndexError> {
-    let helper_path = helper_script_path()?;
-    let node_path = discover_node_path()?;
-    for attempt in 0..5 {
-        let output = Command::new("node")
-            .arg(&helper_path)
-            .args(args)
-            .env("NODE_PATH", &node_path)
-            .env(NODE_MODULES_ENV, &node_path)
-            .output()
-            .map_err(KuzuIndexError::NodeSpawn)?;
-        if output.status.success() {
-            return Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned());
-        }
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-        let detail = if stderr.is_empty() { stdout } else { stderr };
-        if detail.contains("Could not set lock on file") && attempt < 4 {
-            thread::sleep(std::time::Duration::from_millis(150 * (attempt + 1) as u64));
-            continue;
-        }
-        return Err(KuzuIndexError::HelperFailure(detail));
-    }
-    Err(KuzuIndexError::HelperFailure(String::from(
-        "Kuzu helper failed after retries",
-    )))
-}
-
-/// Returns `true` when the Kuzu Node.js bridge is reachable (node_modules +
-/// helper script both exist).  Tests that depend on Kuzu should early-return
-/// when this is `false` so CI passes on runners without the local dependency.
-pub fn is_kuzu_available() -> bool {
-    discover_node_path().is_ok() && helper_script_path().is_ok()
-}
-
-fn discover_node_path() -> Result<String, KuzuIndexError> {
-    if let Ok(value) = env::var(NODE_PATH_ENV) {
-        if !value.trim().is_empty() {
-            return Ok(value);
-        }
-    }
-    for candidate in [
-        repo_root().join("node_modules"),
-        repo_root().join("../nexus/gitnexus/node_modules"),
-    ] {
-        if candidate.exists() {
-            return Ok(candidate.display().to_string());
-        }
-    }
-    Err(KuzuIndexError::MissingNodePath)
-}
-
-fn helper_script_path() -> Result<PathBuf, KuzuIndexError> {
-    let path = repo_root().join(NODE_HELPER_RELATIVE_PATH);
-    if path.exists() {
-        Ok(path)
-    } else {
-        Err(KuzuIndexError::MissingHelper(path))
-    }
-}
-
-fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../..")
-        .canonicalize()
-        .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.."))
-}
-
-fn cleanup_db_path(db_path: &Path) -> Result<(), KuzuIndexError> {
-    if let Ok(metadata) = fs::metadata(db_path) {
-        if metadata.is_dir() {
-            fs::remove_dir_all(db_path).map_err(|source| KuzuIndexError::CleanupDb {
-                path: db_path.to_path_buf(),
-                source,
-            })?;
-        } else {
-            fs::remove_file(db_path).map_err(|source| KuzuIndexError::CleanupDb {
-                path: db_path.to_path_buf(),
-                source,
-            })?;
-        }
-    }
-
-    for suffix in [".wal", ".lock"] {
-        let sidecar = PathBuf::from(format!("{}{}", db_path.display(), suffix));
-        if sidecar.exists() {
-            fs::remove_file(&sidecar).map_err(|source| KuzuIndexError::CleanupDb {
-                path: sidecar,
-                source,
-            })?;
-        }
-    }
-    Ok(())
-}
-
-fn unique_temp_dir(output_dir: &Path) -> PathBuf {
-    let millis = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    output_dir.join(format!(".kuzu-export-{millis}-{}", std::process::id()))
-}
-
-fn write_nodes_csv(path: &Path, graph: &SemanticGraph) -> Result<(), KuzuIndexError> {
-    let nodes = export_graph_nodes(graph);
-    let mut lines = Vec::with_capacity(nodes.len() + 1);
-    lines.push(String::from(
+pub(crate) fn write_nodes_csv(path: &Path, graph: &SemanticGraph) -> Result<(), KuzuIndexError> {
+    write_csv(path,
         "\"id\",\"kind\",\"name\",\"qualifiedName\",\"filePath\",\"language\",\"parentSymbolId\",\"ownerTypeName\",\"returnTypeName\",\"visibility\",\"parameterCount\",\"requiredParameterCount\",\"startLine\",\"endLine\"",
-    ));
-    for node in nodes {
-        lines.push(csv_row([
+        export_graph_nodes(graph).into_iter().map(|node| csv_row([
             node.id,
             node.kind,
             node.name,
@@ -467,13 +266,8 @@ fn write_nodes_csv(path: &Path, graph: &SemanticGraph) -> Result<(), KuzuIndexEr
                 .to_string(),
             node.start_line.unwrap_or_default().to_string(),
             node.end_line.unwrap_or_default().to_string(),
-        ]));
-    }
-
-    fs::write(path, lines.join("\n")).map_err(|source| KuzuIndexError::WriteCsv {
-        path: path.to_path_buf(),
-        source,
-    })
+        ])),
+    )
 }
 
 fn export_graph_nodes(graph: &SemanticGraph) -> Vec<DependencyNode> {
@@ -530,20 +324,19 @@ fn export_graph_nodes(graph: &SemanticGraph) -> Vec<DependencyNode> {
     nodes
 }
 
-fn write_relations_csv(path: &Path, graph: &SemanticGraph) -> Result<(), KuzuIndexError> {
-    let mut lines = Vec::with_capacity(graph.resolved_edges.len() + 1);
-    lines.push(String::from(
-        "\"from\",\"to\",\"type\",\"referenceKind\",\"relationKind\",\"layer\",\"strength\",\"origin\",\"resolutionTier\",\"confidenceMillis\",\"reason\",\"line\",\"occurrenceCount\"",
-    ));
-
+pub(crate) fn write_relations_csv(
+    path: &Path,
+    graph: &SemanticGraph,
+) -> Result<(), KuzuIndexError> {
     let symbol_lookup = graph
         .symbols
         .iter()
         .map(|symbol| (symbol.id.clone(), (symbol.kind, symbol.file_path.clone())))
         .collect::<HashMap<_, _>>();
 
-    for aggregate in aggregate_dependency_edges(graph, &symbol_lookup) {
-        lines.push(csv_row([
+    write_csv(path,
+        "\"from\",\"to\",\"type\",\"referenceKind\",\"relationKind\",\"layer\",\"strength\",\"origin\",\"resolutionTier\",\"confidenceMillis\",\"reason\",\"line\",\"occurrenceCount\"",
+        aggregate_dependency_edges(graph, &symbol_lookup).into_iter().map(|aggregate| csv_row([
             aggregate.from,
             aggregate.to,
             aggregate.type_name,
@@ -557,10 +350,24 @@ fn write_relations_csv(path: &Path, graph: &SemanticGraph) -> Result<(), KuzuInd
             aggregate.reason,
             aggregate.line.to_string(),
             aggregate.occurrence_count.to_string(),
-        ]));
-    }
+        ])),
+    )
+}
 
-    fs::write(path, lines.join("\n")).map_err(|source| KuzuIndexError::WriteCsv {
+fn write_csv(
+    path: &Path,
+    header: &str,
+    rows: impl Iterator<Item = String>,
+) -> Result<(), KuzuIndexError> {
+    let write = || -> io::Result<()> {
+        let mut writer = BufWriter::new(File::create(path)?);
+        writer.write_all(header.as_bytes())?;
+        for row in rows {
+            write!(writer, "\n{row}")?;
+        }
+        writer.flush()
+    };
+    write().map_err(|source| KuzuIndexError::WriteCsv {
         path: path.to_path_buf(),
         source,
     })
@@ -846,10 +653,6 @@ mod tests {
 
     #[test]
     fn materializes_semantic_graph_and_answers_cypher() {
-        if !super::is_kuzu_available() {
-            eprintln!("skipping: Kuzu bridge not available");
-            return;
-        }
         let fixture = create_fixture();
         fs::create_dir_all(fixture.join("src")).unwrap();
         fs::write(
@@ -892,6 +695,88 @@ mod tests {
         assert!(import_occurrences.rows[0]
             .get("occurrences")
             .is_some_and(|value| value.as_i64().unwrap_or_default() >= 1));
+
+        let mut dangling = project.semantic_graph.clone();
+        dangling.resolved_edges[0].target_symbol_id = String::from("missing-node");
+        dangling.resolved_edges[0].target_file_path = PathBuf::from("missing.rs");
+        assert!(write_semantic_graph_kuzu_artifact(&project.root, &dangling, None).is_err());
+        assert_eq!(
+            super::published_kuzu_path(&project.root, None).unwrap(),
+            Some(db_path.clone())
+        );
+
+        let empty = query_kuzu(
+            &db_path,
+            "MATCH (n:CodeNode) WHERE n.name = 'absent' RETURN n.name AS name",
+        )
+        .unwrap();
+        assert_eq!(empty.columns, ["name"]);
+        assert!(empty.rows.is_empty());
+        assert!(query_kuzu(&db_path, "RETURN 1 AS duplicate, 2 AS duplicate").is_err());
+        assert!(query_kuzu(&db_path, "RETURN 1 AS first; RETURN 2 AS second").is_err());
+        assert!(query_kuzu(&db_path, "CREATE (:CodeNode {id: 'mutation'})").is_err());
+        let values = query_kuzu(&db_path, "RETURN CAST('170141183460469231731687303715884105727' AS INT128) AS precise, [1, 2] AS values").unwrap();
+        assert_eq!(
+            values.rows[0]["precise"],
+            "170141183460469231731687303715884105727"
+        );
+        assert_eq!(values.rows[0]["values"], serde_json::json!([1, 2]));
+        let node = query_kuzu(
+            &db_path,
+            "MATCH (n:CodeNode) WHERE n.name = 'User' RETURN n LIMIT 1",
+        )
+        .unwrap();
+        assert_eq!(node.rows[0]["n"]["properties"]["name"], "User");
+    }
+
+    #[test]
+    fn database_reuse_requires_current_graph_and_preserves_prior_pins() {
+        // An apostrophe in the export path must remain data in COPY's string literal.
+        let fixture = create_fixture().join("source's graph");
+        fs::create_dir_all(&fixture).unwrap();
+        fs::create_dir(fixture.join(".aigiscode")).unwrap();
+        let legacy = fixture.join(".aigiscode/graph.kuzu");
+        fs::write(&legacy, "unverified legacy database").unwrap();
+        fs::write(fixture.join("lib.rs"), "pub struct Before;\n").unwrap();
+        let graph = build_semantic_graph_project(&fixture, &ScanConfig::default()).unwrap();
+        let first =
+            write_semantic_graph_kuzu_artifact(&fixture, &graph.semantic_graph, None).unwrap();
+        assert_eq!(
+            fs::read_to_string(&legacy).unwrap(),
+            "unverified legacy database"
+        );
+        assert_eq!(
+            write_semantic_graph_kuzu_artifact(&fixture, &graph.semantic_graph, None).unwrap(),
+            first
+        );
+        fs::write(fixture.join("lib.rs"), "pub struct After;\n").unwrap();
+        let graph = build_semantic_graph_project(&fixture, &ScanConfig::default()).unwrap();
+        let second =
+            write_semantic_graph_kuzu_artifact(&fixture, &graph.semantic_graph, None).unwrap();
+        assert_ne!(first, second);
+        assert_eq!(
+            super::published_kuzu_path(&fixture, None).unwrap(),
+            Some(second.clone())
+        );
+        let names = "MATCH (n:CodeNode) WHERE n.kind = 'STRUCT' RETURN n.name AS name";
+        assert_eq!(query_kuzu(&first, names).unwrap().rows[0]["name"], "Before");
+        assert_eq!(query_kuzu(&second, names).unwrap().rows[0]["name"], "After");
+
+        // A reachable publication error must not truncate the prior database.
+        let marker = fixture.join(".aigiscode/kuzu-current.json");
+        let committed = fs::read(&marker).unwrap();
+        fs::remove_file(&marker).unwrap();
+        fs::create_dir(&marker).unwrap();
+        assert!(write_semantic_graph_kuzu_artifact(&fixture, &graph.semantic_graph, None).is_err());
+        assert_eq!(query_kuzu(&second, names).unwrap().rows[0]["name"], "After");
+        fs::remove_dir(&marker).unwrap();
+        fs::write(&marker, committed).unwrap();
+
+        // Cache corruption is an error, never a success from a stale legacy file.
+        fs::write(&second, "damaged database").unwrap();
+        assert!(query_kuzu(&second, names).is_err());
+        assert!(write_semantic_graph_kuzu_artifact(&fixture, &graph.semantic_graph, None).is_err());
+        assert_eq!(query_kuzu(&first, names).unwrap().rows[0]["name"], "Before");
     }
 
     #[test]

@@ -267,6 +267,21 @@ understanding.
 
 This is lower-level than `surface` or `agent`.
 
+Kuzu runs in process through its Rust bindings (native C++ database engine),
+without Node or a sibling checkout. Building the CLI also requires CMake and a
+C++20 compiler. Each CLI query reconstructs the current semantic graph before
+reusing an identical, content-verified database. This still requires a full
+parse/resolve pass. MCP with `--kuzu` pins the database for its indexed snapshot.
+
+Exports live at `<output>/.kuzu-generations/<id>/graph.kuzu`; the returned path
+identifies the exact export. `kuzu-current.json` atomically publishes a completed
+database, and previous generations remain available to pinned readers. A legacy
+`<output>/graph.kuzu` is preserved but never reused. Databases are separate from
+the twenty-member analysis artifact family; there is no automatic pruning.
+Queries accept one statement and open the generated database read-only. Cypher
+is not a filesystem sandbox. Empty results retain column names; see the MCP
+schema reference for JSON representations of non-scalar values.
+
 ### `aigiscode tune <path>`
 
 Use this after analysis when you want a conservative starter patch for

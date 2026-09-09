@@ -6,6 +6,8 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+# Native in-process graph queries replace the Node bridge and its runtime dependency.
+kuzu.workspace = true
 # Cross-platform OS locks on Rust 1.88; serialize publishers and release on process exit.
 fs4.workspace = true
 arc-swap.workspace = true
@@ -33,6 +35,10 @@ tree-sitter-rust.workspace = true
 tree-sitter-typescript.workspace = true
 walkdir.workspace = true
 xxhash-rust.workspace = true
+
+[build-dependencies]
+# Kuzu 0.11.3 pins cxx 1.0.138 but leaves its ABI-sensitive CXX generator unbounded.
+cxx-build = "=1.0.138"
 
 [target.'cfg(unix)'.dependencies]
 # std cannot terminate a process group or observe child exit without reaping it.

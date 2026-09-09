@@ -1966,14 +1966,21 @@ pub struct QualityEvaluationOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct CypherQueryOutput {
+    pub kuzu_graph: String,
+    pub input_coverage: crate::coverage::InputCoverage,
     pub columns: Vec<String>,
     pub rows: Vec<serde_json::Map<String, serde_json::Value>>,
     pub row_count: usize,
 }
 
 impl CypherQueryOutput {
-    pub fn from_result(result: crate::kuzu_index::KuzuQueryOutput) -> Self {
+    pub fn from_result(
+        result: crate::kuzu_index::KuzuQueryOutput,
+        input_coverage: crate::coverage::InputCoverage,
+    ) -> Self {
         Self {
+            kuzu_graph: display_path(&result.db_path),
+            input_coverage,
             columns: result.columns,
             rows: result.rows,
             row_count: result.row_count,

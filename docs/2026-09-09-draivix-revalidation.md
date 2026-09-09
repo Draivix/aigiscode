@@ -161,6 +161,12 @@ also prevents accepting the current architecture guidance as independently relia
 The optional Kuzu execution path still uses its existing Node bridge, so the
 native Rust target is not met by every optional path.
 
+Later follow-ups implement [complete analytical generations](2026-09-09-artifact-publication.md)
+and [native Cypher with immutable database exports](2026-09-09-native-cypher.md).
+Those receipts supersede the corresponding implementation limitations above;
+they do not close the broader acceptance conditions. The Cypher receipt also
+records later live-source drift from this saved capture.
+
 Production CLI and real read-only MCP requests were exercised. Automated tests and
 CI remained disabled under David's instruction. Approved regression gates, broader
 labeled positive/negative evidence, and the remaining Q01–Q12 acceptance requirements

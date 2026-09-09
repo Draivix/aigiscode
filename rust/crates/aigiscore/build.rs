@@ -20,6 +20,10 @@ fn source_files(directory: &Path, files: &mut Vec<PathBuf>) -> io::Result<()> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Kuzu's statically linked extensions need symbols exported by the final executable.
+    if env::var("CARGO_CFG_TARGET_FAMILY").as_deref() == Ok("unix") {
+        println!("cargo:rustc-link-arg=-rdynamic");
+    }
     let root =
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").ok_or("missing Cargo manifest directory")?);
     let mut files = vec![root.join("Cargo.toml"), root.join("build.rs")];

@@ -203,10 +203,10 @@ that correction.
    actually touched, and track snapshot retention so long-running MCP calls
    cannot pin unbounded historical memory.
 
-10. **Keep the Kuzu/Node.js bridge and embeddings off the daemon hot path.**
-    `--kuzu`/Cypher export shells out to a Node helper today — fine as an
-    opt-in batch/export feature, wrong as an always-on daemon dependency
-    (contradicts the native-Rust-end-to-end goal). Give embeddings and
+10. **Keep optional Kuzu materialization and embeddings off the daemon hot path.**
+    `--kuzu`/Cypher now uses in-process Rust bindings to the native Kuzu engine.
+    It remains an opt-in export: constructing and verifying a database is extra
+    work, and immutable exports are pinned to the MCP snapshot. Give embeddings and
     natural-language summaries their own revision counter so a structural
     query never waits on embedding refresh.
 

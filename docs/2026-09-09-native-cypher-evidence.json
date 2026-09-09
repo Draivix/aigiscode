@@ -1,0 +1,797 @@
+{
+  "observed_at": "2026-09-09T16:20:31.803Z",
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-native-cypher",
+    "sha256": "915a6a119194eab62bd8655eaf8be5098c2737e23e7e4d58de7b21f608185df6",
+    "bytes": 94686400,
+    "engine_fingerprint": "96ccf850e76e869c",
+    "production_build": {
+      "native_build": "11m 12s",
+      "final_build": "1m 02s",
+      "log": "target/reliability-2026-09-09/kuzu-native-build-final.txt",
+      "warnings": false
+    },
+    "native_engine": "kuzu 0.11.3 via Rust bindings to C++",
+    "cxx": "1.0.138",
+    "cxx_build": "1.0.138",
+    "linked_libraries_file": "target/reliability-2026-09-09/native-cypher-linked-libraries.txt"
+  },
+  "source": {
+    "snapshot": {
+      "root": "target/reliability-2026-09-09/draivix-full-source",
+      "files_compared": 23166,
+      "changed": [],
+      "unavailable": []
+    },
+    "baseline_manifest": "target/reliability-2026-09-09/draivix-snapshot-hashes.json",
+    "scope_receipt": "2026-09-09-draivix-revalidation-evidence.json",
+    "live_original": {
+      "head": "95276a526f6c9e684f81ea4b83639894e2f02c38",
+      "verified_at": "2026-09-09T16:16:50.666Z",
+      "files_compared": 23166,
+      "changed_count": 53,
+      "changed": [
+        "clients/mitel/Entities/Account/Account.fields.php",
+        "clients/mitel/Entities/Account/Account.permissions.php",
+        "clients/mitel/Entities/AssemblyProtocol/AssemblyProtocol.hooks.php",
+        "clients/mitel/Entities/AssemblyProtocol/AssemblyProtocol.permissions.php",
+        "clients/mitel/Entities/Asset/Asset.permissions.php",
+        "clients/mitel/Entities/AutomaticInvoice/AutomaticInvoice.permissions.php",
+        "clients/mitel/Entities/Contact/Contact.permissions.php",
+        "clients/mitel/Entities/Contract/Contract.fields.php",
+        "clients/mitel/Entities/Contract/Contract.permissions.php",
+        "clients/mitel/Entities/GoodsIssue/GoodsIssue.permissions.php",
+        "clients/mitel/Entities/Invoice/Invoice.permissions.php",
+        "clients/mitel/Entities/Lead/Lead.fields.php",
+        "clients/mitel/Entities/Lead/Lead.permissions.php",
+        "clients/mitel/Entities/Opportunity/Opportunity.fields.php",
+        "clients/mitel/Entities/Opportunity/Opportunity.permissions.php",
+        "clients/mitel/Entities/Product/Product.permissions.php",
+        "clients/mitel/Entities/Project/Project.fields.php",
+        "clients/mitel/Entities/Project/Project.permissions.php",
+        "clients/mitel/Entities/Project/Project.ui.php",
+        "clients/mitel/Entities/Quote/Quote.fields.php",
+        "clients/mitel/Entities/Quote/Quote.permissions.php",
+        "clients/mitel/Entities/Service/Service.fields.php",
+        "clients/mitel/Entities/Service/Service.permissions.php",
+        "clients/mitel/Entities/Service/Service.ui.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.fields.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.hooks.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.permissions.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.ui.php",
+        "clients/mitel/Entities/ServiceTrip/ServiceTrip.views.php",
+        "clients/mitel/Entities/SupplierInvoice/SupplierInvoice.permissions.php",
+        "clients/mitel/Entities/Task/Task.fields.php",
+        "clients/mitel/Entities/Task/Task.hooks.php",
+        "clients/mitel/Entities/Task/Task.permissions.php",
+        "clients/mitel/Entities/Task/Task.ui.php",
+        "clients/mitel/Entities/Warehouse/Warehouse.permissions.php",
+        "clients/mitel/Services/MitelShowcaseFixtureService.php",
+        "clients/mitel/config.php",
+        "clients/mitel/docs/CHANGELOG-KLIENT.md",
+        "clients/mitel/docs/MIGRACE.md",
+        "clients/mitel/docs/RELEASE-POSTUP.md",
+        "clients/mitel/i18n/cs_CZ/AssemblyProtocol.json",
+        "clients/mitel/i18n/cs_CZ/Contract.json",
+        "clients/mitel/i18n/cs_CZ/Global.json",
+        "clients/mitel/i18n/cs_CZ/Messages.json",
+        "clients/mitel/i18n/cs_CZ/Project.json",
+        "clients/mitel/i18n/cs_CZ/ServiceTrip.json",
+        "clients/mitel/i18n/cs_CZ/Task.json",
+        "clients/mitel/showcase/mitel.cs_CZ.json",
+        "clients/mitel/tools/README.md",
+        "clients/mitel/tools/gen_migration_sample.py",
+        "clients/mitel/tools/seed_import_definitions.py",
+        "clients/mitel/tools/seed_vedouci.py",
+        "clients/mitel/tools/walkthrough.py"
+      ],
+      "unavailable": [],
+      "scope": "Compared captured paths only; not an inventory of additions. All changed paths are under clients/mitel."
+    },
+    "edits_by_this_work": false,
+    "limitation": "All measurements refer to the unchanged capture. Live source differs in 53 captured files; this is not current-live-tree acceptance."
+  },
+  "self_without_node_on_path": {
+    "path_environment": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/native-runtime-path",
+    "available_executables": [
+      "git"
+    ],
+    "node_available_in_path": false,
+    "first": {
+      "file": "target/reliability-2026-09-09/self-native-kuzu-time.txt",
+      "elapsed": "0:00.77",
+      "peak_rss_kib": 187572,
+      "exit_code": 0
+    },
+    "reuse": {
+      "file": "target/reliability-2026-09-09/self-native-kuzu-reuse-time.txt",
+      "elapsed": "0:01.89",
+      "peak_rss_kib": 123116,
+      "exit_code": 0
+    },
+    "same_generation": true,
+    "same_rows": true,
+    "generation": "target/reliability-2026-09-09/self-native-kuzu/.kuzu-generations/18d3b2e913a80c71-faa2a/graph.kuzu",
+    "supported_sources": 116,
+    "input_coverage": "incomplete",
+    "rows": [
+      {
+        "count": 1,
+        "kind": "CLASS"
+      },
+      {
+        "count": 115,
+        "kind": "ENUM"
+      },
+      {
+        "count": 116,
+        "kind": "FILE"
+      },
+      {
+        "count": 1748,
+        "kind": "FUNCTION"
+      },
+      {
+        "count": 49,
+        "kind": "INTERFACE"
+      },
+      {
+        "count": 264,
+        "kind": "METHOD"
+      },
+      {
+        "count": 405,
+        "kind": "STRUCT"
+      },
+      {
+        "count": 1,
+        "kind": "TRAIT"
+      }
+    ]
+  },
+  "draivix": {
+    "first": {
+      "file": "target/reliability-2026-09-09/draivix-native-kuzu-time.txt",
+      "elapsed": "0:34.70",
+      "peak_rss_kib": 2331816,
+      "exit_code": 0
+    },
+    "reuse": {
+      "file": "target/reliability-2026-09-09/draivix-native-kuzu-reuse-time.txt",
+      "elapsed": "0:31.32",
+      "peak_rss_kib": 2285640,
+      "exit_code": 0
+    },
+    "same_generation": true,
+    "manifest": {
+      "version": 1,
+      "generation": "18d3b2f7223262e1-fb44d",
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-full-source",
+      "engine": "96ccf850e76e869c",
+      "nodes_xxh3": "fc1f8c95cea47e5d",
+      "relations_xxh3": "629af5cedd497a2b",
+      "database_xxh3": "c72b4bce31e7a519",
+      "database_bytes": 95363072
+    },
+    "database_sha256": "723942f6e92827569c936a6ac462a16c14a1ecdf3f955591bd7becaaff4b1843",
+    "census": [
+      {
+        "line": 12,
+        "name": "DashletFieldAliasNormalizer",
+        "path": "app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php"
+      },
+      {
+        "line": 10,
+        "name": "ReportFieldAliasNormalizer",
+        "path": "app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php"
+      }
+    ],
+    "mcp_generation_matches_cli": true,
+    "reference": {
+      "artifact": "target/reliability-2026-09-09/draivix-publication/.generations/18d3b03843535f43-af819-0/dependency-graph.json",
+      "nodes": 129375,
+      "edges": 253735,
+      "nodes_by_kind_match": true,
+      "edge_counts_and_occurrences_match": true,
+      "alias_edges_match": true,
+      "total_occurrences": "325573",
+      "anchors": [
+        {
+          "path": "app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php",
+          "sha256": "ba310e7ffeb99a11f67390674ae1f61233480854a5a729c35e99c8d0e0d8bcd8",
+          "lines": [
+            {
+              "line": 12,
+              "text": "final class DashletFieldAliasNormalizer"
+            },
+            {
+              "line": 18,
+              "text": "    public static function normalizeConfig("
+            },
+            {
+              "line": 98,
+              "text": "        return CanonicalFieldAliasResolver::resolve($fieldName, $fields, $entityType);"
+            }
+          ]
+        },
+        {
+          "path": "app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php",
+          "sha256": "34813c08890003b33e1b4d4452426411f8465dc8742a98171789c1563db85d3b",
+          "lines": [
+            {
+              "line": 10,
+              "text": "final class ReportFieldAliasNormalizer"
+            },
+            {
+              "line": 16,
+              "text": "    public static function normalizeConfig(array $config, string $entityType): array"
+            },
+            {
+              "line": 180,
+              "text": "        $fieldName = CanonicalFieldAliasResolver::resolve($fieldName, $fields, $entityType);"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "mcp": {
+    "process": {
+      "file": "target/reliability-2026-09-09/draivix-mcp-native-kuzu-time.txt",
+      "elapsed": "1:18.29",
+      "peak_rss_kib": 3544052,
+      "exit_code": 0
+    },
+    "client_timing_file": "target/reliability-2026-09-09/draivix-mcp-native-kuzu-timings.json",
+    "raw_responses": "target/reliability-2026-09-09/draivix-mcp-native-kuzu-responses.jsonl",
+    "initialize_ms": 9.279274999999998,
+    "first_useful_overview_ms": 76442.924174,
+    "readiness": [
+      {
+        "id": 2,
+        "name": "repo_overview",
+        "elapsed_ms": 30011.214413,
+        "error": {
+          "code": -32603,
+          "message": "Initial index is still building; retry when ready",
+          "data": {
+            "freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788970431470,
+              "indexed_revision": 0,
+              "is_stale": true,
+              "observed_revision": 1,
+              "rebuilding": true,
+              "revision": 0,
+              "watcher": "disabled"
+            },
+            "index_state": "indexing",
+            "retryable": true
+          }
+        },
+        "is_error": false
+      },
+      {
+        "id": 2,
+        "name": "repo_overview",
+        "elapsed_ms": 61016.218495,
+        "error": {
+          "code": -32603,
+          "message": "Initial index is still building; retry when ready",
+          "data": {
+            "freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788970431470,
+              "indexed_revision": 0,
+              "is_stale": true,
+              "observed_revision": 1,
+              "rebuilding": true,
+              "revision": 0,
+              "watcher": "disabled"
+            },
+            "index_state": "indexing",
+            "retryable": true
+          }
+        },
+        "is_error": false
+      }
+    ],
+    "query_latencies": [
+      {
+        "id": 3,
+        "elapsed_ms": 62.83404499999597
+      },
+      {
+        "id": 4,
+        "elapsed_ms": 91.22362600000633
+      },
+      {
+        "id": 5,
+        "elapsed_ms": 44.92062699999951
+      },
+      {
+        "id": 6,
+        "elapsed_ms": 53.320361000005505
+      },
+      {
+        "id": 7,
+        "elapsed_ms": 34.91449999999895
+      },
+      {
+        "id": 8,
+        "elapsed_ms": 67.18344699998852
+      }
+    ],
+    "queries": [
+      {
+        "id": 3,
+        "query": "MATCH (n:CodeNode) WHERE n.kind = 'CLASS' AND n.name ENDS WITH 'FieldAliasNormalizer' RETURN n.name AS name, n.filePath AS path, n.startLine AS line ORDER BY name",
+        "columns": [
+          "name",
+          "path",
+          "line"
+        ],
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "unsupported_source_files": 146
+        },
+        "kuzu_graph": "target/reliability-2026-09-09/draivix-native-kuzu/.kuzu-generations/18d3b2f7223262e1-fb44d/graph.kuzu",
+        "row_count": 2,
+        "rows": [
+          {
+            "line": 12,
+            "name": "DashletFieldAliasNormalizer",
+            "path": "app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php"
+          },
+          {
+            "line": 10,
+            "name": "ReportFieldAliasNormalizer",
+            "path": "app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php"
+          }
+        ],
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-native-kuzu",
+            "generation": null,
+            "inputs_match_index": null
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788970507904,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 4,
+        "query": "MATCH (a:CodeNode)-[r:CodeRelation]->(b:CodeNode) WHERE a.filePath IN ['app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php', 'app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php'] AND b.filePath = 'app/Support/EspoMigration/CanonicalFieldAliasResolver.php' RETURN a.name AS source, a.filePath AS path, r.type AS type, r.line AS line, b.name AS target, r.occurrenceCount AS occurrences ORDER BY path, line, type",
+        "columns": [
+          "source",
+          "path",
+          "type",
+          "line",
+          "target",
+          "occurrences"
+        ],
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "unsupported_source_files": 146
+        },
+        "kuzu_graph": "target/reliability-2026-09-09/draivix-native-kuzu/.kuzu-generations/18d3b2f7223262e1-fb44d/graph.kuzu",
+        "row_count": 4,
+        "rows": [
+          {
+            "line": 8,
+            "occurrences": 1,
+            "path": "app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php",
+            "source": "ReportFieldAliasNormalizer.php",
+            "target": "CanonicalFieldAliasResolver",
+            "type": "IMPORT"
+          },
+          {
+            "line": 180,
+            "occurrences": 1,
+            "path": "app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php",
+            "source": "normalizeFieldName",
+            "target": "resolve",
+            "type": "CALL"
+          },
+          {
+            "line": 9,
+            "occurrences": 1,
+            "path": "app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php",
+            "source": "DashletFieldAliasNormalizer.php",
+            "target": "CanonicalFieldAliasResolver",
+            "type": "IMPORT"
+          },
+          {
+            "line": 98,
+            "occurrences": 1,
+            "path": "app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php",
+            "source": "normalizeFieldName",
+            "target": "resolve",
+            "type": "CALL"
+          }
+        ],
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-native-kuzu",
+            "generation": null,
+            "inputs_match_index": null
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788970507904,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 5,
+        "query": "MATCH (n:CodeNode) WHERE n.kind = 'METHOD' AND n.name = 'normalizeConfig' AND n.filePath IN ['app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php', 'app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php'] RETURN n.name AS name, n.filePath AS path ORDER BY path",
+        "columns": [
+          "name",
+          "path"
+        ],
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "unsupported_source_files": 146
+        },
+        "kuzu_graph": "target/reliability-2026-09-09/draivix-native-kuzu/.kuzu-generations/18d3b2f7223262e1-fb44d/graph.kuzu",
+        "row_count": 2,
+        "rows": [
+          {
+            "name": "normalizeConfig",
+            "path": "app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php"
+          },
+          {
+            "name": "normalizeConfig",
+            "path": "app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php"
+          }
+        ],
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-native-kuzu",
+            "generation": null,
+            "inputs_match_index": null
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788970507904,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 6,
+        "query": "MATCH (n:CodeNode) WHERE n.kind = 'CLASS' AND n.name = 'normalizeConfig' AND n.filePath IN ['app/Modules/Dashboard/Support/DashletFieldAliasNormalizer.php', 'app/Modules/Advanced/Support/ReportFieldAliasNormalizer.php'] RETURN n.name AS name, n.filePath AS path",
+        "columns": [
+          "name",
+          "path"
+        ],
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "unsupported_source_files": 146
+        },
+        "kuzu_graph": "target/reliability-2026-09-09/draivix-native-kuzu/.kuzu-generations/18d3b2f7223262e1-fb44d/graph.kuzu",
+        "row_count": 0,
+        "rows": [],
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-native-kuzu",
+            "generation": null,
+            "inputs_match_index": null
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788970507904,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 7,
+        "query": "MATCH (n:CodeNode) RETURN n.kind AS kind, count(*) AS count ORDER BY kind",
+        "columns": [
+          "kind",
+          "count"
+        ],
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "unsupported_source_files": 146
+        },
+        "kuzu_graph": "target/reliability-2026-09-09/draivix-native-kuzu/.kuzu-generations/18d3b2f7223262e1-fb44d/graph.kuzu",
+        "row_count": 7,
+        "rows": [
+          {
+            "count": 8840,
+            "kind": "CLASS"
+          },
+          {
+            "count": 33,
+            "kind": "ENUM"
+          },
+          {
+            "count": 17013,
+            "kind": "FILE"
+          },
+          {
+            "count": 18473,
+            "kind": "FUNCTION"
+          },
+          {
+            "count": 5548,
+            "kind": "INTERFACE"
+          },
+          {
+            "count": 79413,
+            "kind": "METHOD"
+          },
+          {
+            "count": 55,
+            "kind": "TRAIT"
+          }
+        ],
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-native-kuzu",
+            "generation": null,
+            "inputs_match_index": null
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788970507904,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      },
+      {
+        "id": 8,
+        "query": "MATCH ()-[r:CodeRelation]->() RETURN r.type AS type, count(*) AS count, sum(r.occurrenceCount) AS occurrences ORDER BY type",
+        "columns": [
+          "type",
+          "count",
+          "occurrences"
+        ],
+        "input_coverage": {
+          "status": "incomplete",
+          "supported_source_files": 17013,
+          "parsed_source_files": 17013,
+          "recovered_source_files": 81,
+          "scope_limited_files": 792,
+          "unsupported_source_files": 146
+        },
+        "kuzu_graph": "target/reliability-2026-09-09/draivix-native-kuzu/.kuzu-generations/18d3b2f7223262e1-fb44d/graph.kuzu",
+        "row_count": 12,
+        "rows": [
+          {
+            "count": 154363,
+            "occurrences": "209731",
+            "type": "CALL"
+          },
+          {
+            "count": 5902,
+            "occurrences": "6576",
+            "type": "CONTAINERRESOLUTION"
+          },
+          {
+            "count": 41,
+            "occurrences": "43",
+            "type": "DISPATCH"
+          },
+          {
+            "count": 4,
+            "occurrences": "4",
+            "type": "EVENTPUBLISH"
+          },
+          {
+            "count": 1,
+            "occurrences": "1",
+            "type": "EVENTSUBSCRIBE"
+          },
+          {
+            "count": 4974,
+            "occurrences": "4974",
+            "type": "EXTENDS"
+          },
+          {
+            "count": 492,
+            "occurrences": "492",
+            "type": "IMPLEMENTS"
+          },
+          {
+            "count": 44070,
+            "occurrences": "44643",
+            "type": "IMPORT"
+          },
+          {
+            "count": 11824,
+            "occurrences": "13220",
+            "type": "INSTANTIATE"
+          },
+          {
+            "count": 2544,
+            "occurrences": "2544",
+            "type": "OVERRIDES"
+          },
+          {
+            "count": 8113,
+            "occurrences": "21523",
+            "type": "TOP_LEVEL_CALL"
+          },
+          {
+            "count": 21407,
+            "occurrences": "21822",
+            "type": "TYPEUSE"
+          }
+        ],
+        "metadata": {
+          "aigiscode/artifact_generation": {
+            "directory": "target/reliability-2026-09-09/draivix-native-kuzu",
+            "generation": null,
+            "inputs_match_index": null
+          },
+          "aigiscode/ast_grep_coverage": {
+            "other_gap_files": 0,
+            "oversized_files": 18,
+            "status": "incomplete",
+            "unsupported_files": 792
+          },
+          "aigiscode/freshness": {
+            "consistency_satisfied": true,
+            "dirty_path_count": 0,
+            "dirty_paths": [],
+            "generated_at_unix_ms": 1788970507904,
+            "indexed_revision": 1,
+            "is_stale": false,
+            "observed_revision": 1,
+            "rebuilding": false,
+            "revision": 1,
+            "watcher": "disabled"
+          },
+          "aigiscode/input_coverage": {
+            "files_without_parse_evidence": 0,
+            "recovered_source_files": 81,
+            "scope_limited_files": 792,
+            "status": "incomplete",
+            "unsupported_source_files": 146
+          }
+        }
+      }
+    ]
+  },
+  "limitations": [
+    "Automated tests and CI were not run under the active user instruction.",
+    "Actual API coverage here is class/method census, four anchored dependencies, empty schema, grouped node/edge counts and generation reuse; it does not prove all Cypher value types or interruption/concurrency behavior.",
+    "The first Draivix CLI run briefly overlapped the self reuse command. All measurements are individual observations on a shared host, not isolated or statistical benchmarks.",
+    "CLI still parses and resolves the entire source graph. MCP startup still constructs a full analysis.",
+    "The saved corpus has incomplete native and secondary coverage; no clean-code or security acceptance follows.",
+    "Unix production execution was exercised; Windows and power-loss behavior remain unverified.",
+    "Graph/database content hashes detect mismatches, not hostile tampering.",
+    "Old query generations are retained without automatic pruning."
+  ]
+}

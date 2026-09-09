@@ -17,7 +17,7 @@ use crate::ingestion::pipeline::{
     ProjectAnalysis, SemanticGraphProject,
 };
 use crate::ingestion::scan::ScanConfig;
-use crate::kuzu_index::{default_kuzu_path, query_kuzu, write_semantic_graph_kuzu_artifact};
+use crate::kuzu_index::{published_kuzu_path, query_kuzu, write_semantic_graph_kuzu_artifact};
 use crate::mcp::run_stdio_server;
 use crate::plugins::built_in_runtime_plugins;
 use crate::policy::tune::{
@@ -274,6 +274,7 @@ struct AnalyzeArtifactOutput {
 struct CypherCommandOutput {
     root: PathBuf,
     kuzu_graph: PathBuf,
+    input_coverage: crate::coverage::InputCoverage,
     columns: Vec<String>,
     rows: Vec<JsonMap<String, JsonValue>>,
     row_count: usize,
@@ -1020,34 +1021,34 @@ fn build_graph_command_output(
 }
 
 fn run_cypher_command(path: PathBuf, query: String, output_dir: Option<PathBuf>) -> i32 {
-    let db_path = default_kuzu_path(&path, output_dir.as_deref());
-    let db_path = if db_path.exists() {
-        db_path
-    } else {
-        match build_semantic_graph_project(path.clone(), &ScanConfig::default()) {
-            Ok(result) => match write_semantic_graph_kuzu_artifact(
-                &result.root,
-                &result.semantic_graph,
-                output_dir.as_deref(),
-            ) {
-                Ok(path) => path,
-                Err(error) => {
-                    eprintln!("{error}");
-                    return 1;
-                }
-            },
-            Err(error) => {
-                eprintln!("{error}");
-                return 1;
-            }
+    // Reconstruct current graph semantics before considering a derived DB cache.
+    let project = match build_semantic_graph_project(&path, &ScanConfig::default()) {
+        Ok(project) => project,
+        Err(error) => {
+            eprintln!("{error}");
+            return 1;
         }
     };
+    let db_path = match write_semantic_graph_kuzu_artifact(
+        &project.root,
+        &project.semantic_graph,
+        output_dir.as_deref(),
+    ) {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("{error}");
+            return 1;
+        }
+    };
+    let input_coverage = project.semantic_graph.input_coverage();
+    drop(project);
 
     match query_kuzu(&db_path, &query) {
         Ok(result) => {
             let output = CypherCommandOutput {
                 root: path,
                 kuzu_graph: result.db_path,
+                input_coverage,
                 columns: result.columns,
                 rows: result.rows,
                 row_count: result.row_count,
@@ -1333,7 +1334,8 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
         .map_err(|error| format!("failed to pin analysis artifacts: {error}"))?
         .ok_or_else(|| format!("no analysis artifacts found under {}", requested_paths.output_dir.display()))?;
     let artifact_paths = ArtifactPaths::in_directory(snapshot.directory.clone());
-    let kuzu_graph = default_kuzu_path(root, output_dir);
+    let kuzu_graph = published_kuzu_path(root, output_dir)
+        .map_err(|error| format!("failed to verify Kuzu export: {error}"))?;
     let report = read_json_if_exists(&artifact_paths.aigiscode_report)?;
     let surface = read_json_if_exists(&artifact_paths.architecture_surface)?;
     let contract_inventory = read_json_if_exists(&artifact_paths.contract_inventory)?;
@@ -1393,7 +1395,7 @@ fn build_info_command_output(root: &Path, output_dir: Option<&Path>) -> Result<J
             repository_topology: artifact_paths.repository_topology.exists(),
             aigiscode_report: artifact_paths.aigiscode_report.exists(),
             aigiscode_report_markdown: artifact_paths.aigiscode_report_markdown.exists(),
-            kuzu_graph: kuzu_graph.exists(),
+            kuzu_graph: kuzu_graph.is_some(),
         },
         "summary": report.as_ref().and_then(|payload| payload.get("summary")).cloned().unwrap_or(JsonValue::Null),
         "feedback_loop": report.as_ref().and_then(|payload| payload.get("feedback_loop")).cloned().unwrap_or(JsonValue::Null),
@@ -1657,6 +1659,48 @@ const t = "kappa.v1";"#,
             0
         );
         assert!(!fixture.join(".aigiscode").exists());
+    }
+
+    #[test]
+    fn cypher_reconstructs_source_before_reusing_database() {
+        let fixture = create_fixture();
+        let output = create_fixture();
+        let source = fixture.join("lib.rs");
+        let query = "MATCH (n:CodeNode) WHERE n.kind = 'STRUCT' RETURN n.name AS name";
+        fs::write(&source, "pub struct Before;\n").unwrap();
+        assert_eq!(
+            super::run_cypher_command(fixture.clone(), query.into(), Some(output.clone())),
+            0
+        );
+        let first = crate::kuzu_index::published_kuzu_path(&fixture, Some(&output))
+            .unwrap()
+            .unwrap();
+        fs::write(&source, "pub struct After;\n").unwrap();
+        assert_eq!(
+            super::run_cypher_command(fixture.clone(), query.into(), Some(output.clone())),
+            0
+        );
+        let second = crate::kuzu_index::published_kuzu_path(&fixture, Some(&output))
+            .unwrap()
+            .unwrap();
+        assert_ne!(first, second);
+        assert_eq!(
+            crate::kuzu_index::query_kuzu(&second, query).unwrap().rows[0]["name"],
+            "After"
+        );
+        assert_eq!(
+            crate::kuzu_index::query_kuzu(&first, query).unwrap().rows[0]["name"],
+            "Before"
+        );
+        fs::write(&source, [0xff]).unwrap();
+        assert_eq!(
+            super::run_cypher_command(fixture.clone(), query.into(), Some(output.clone())),
+            1
+        );
+        assert_eq!(
+            crate::kuzu_index::published_kuzu_path(&fixture, Some(&output)).unwrap(),
+            Some(second)
+        );
     }
 
     fn create_fixture() -> PathBuf {

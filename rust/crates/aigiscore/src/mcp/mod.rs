@@ -1602,8 +1602,12 @@ impl AigiscodeMcpServer {
                 "Kuzu graph index is not available for this MCP session.",
             ));
         };
-        query_kuzu(kuzu_path, &params.query)
-            .map(CypherQueryOutput::from_result)
+        let kuzu_path = kuzu_path.to_path_buf();
+        let input_coverage = state.snapshot().semantic_graph.input_coverage();
+        tokio::task::spawn_blocking(move || query_kuzu(&kuzu_path, &params.query))
+            .await
+            .map_err(|error| format!("Kuzu query worker failed: {error}"))?
+            .map(|result| CypherQueryOutput::from_result(result, input_coverage))
             .map(Json)
             .map_err(|error| error.to_string())
     }
@@ -2794,7 +2798,6 @@ mod tests {
         ListGraphPacketsParams,
     };
     use crate::evidence::EvidenceAnchor;
-    use crate::kuzu_index::is_kuzu_available;
     use rmcp::handler::server::wrapper::Parameters;
     use serde_json::Value;
     use std::fs;
@@ -2838,8 +2841,7 @@ fn main() {
         )
         .unwrap();
 
-        let server =
-            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
         let overview = server
             .repo_overview(Parameters(RepoOverviewParams::default()))
@@ -2985,8 +2987,7 @@ fn main() {
         )
         .unwrap();
 
-        let server =
-            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
         // Honest totals: `total` counts every match before the cap, and the
         // briefs stay compact — evidence and provenance belong to explain_finding.
@@ -3095,8 +3096,7 @@ fn placeholder() {
         )
         .unwrap();
 
-        let server =
-            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
         // One call answers what used to take three: blast radius + in-radius
         // findings + test dependents, all budgeted.
@@ -3155,8 +3155,7 @@ fn main() {
         )
         .unwrap();
 
-        let server =
-            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
         // Explicit scope: first analysis has no baseline, so every finding in
         // scope shows up as new — the honest "you own these now" answer.
@@ -3231,8 +3230,7 @@ fn main() {
         )
         .unwrap();
 
-        let server =
-            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
         let dead_code = server
             .list_findings(Parameters(ListFindingsParams {
@@ -3313,8 +3311,7 @@ $zone = config('app.timezone');
         .unwrap();
         fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
 
-        let server =
-            AigiscodeMcpServer::load(fixture.clone(), None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture.clone(), None, true, true).unwrap();
 
         // A config concern surfaces the configuration doctrine and points at
         // the file already doing it the sanctioned way.
@@ -3372,7 +3369,7 @@ $zone = config('app.timezone');
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
 
         let resources = server.resource_catalog();
         assert!(resources
@@ -3512,7 +3509,7 @@ $zone = config('app.timezone');
         let finding_json: Value = serde_json::from_str(&finding_payload).unwrap();
         assert_eq!(finding_json["finding"]["id"], Value::String(finding_id));
 
-        if is_kuzu_available() {
+        {
             let cypher = server
                 .cypher_query(Parameters(CypherQueryParams {
                     query: String::from("MATCH (n:CodeNode) RETURN n.kind AS kind, count(*) AS count ORDER BY count DESC"),
@@ -3535,7 +3532,7 @@ $zone = config('app.timezone');
         .unwrap();
         fs::write(fixture.join("src/b.rs"), b"pub fn helper() {}\n").unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
         let output = server
             .show_hotspots(Parameters(ShowHotspotsParams { max_items: Some(1) }))
             .await
@@ -3600,7 +3597,7 @@ $zone = config('app.timezone');
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
 
         let found = server
             .find_symbol(Parameters(FindSymbolParams {
@@ -3662,7 +3659,7 @@ $zone = config('app.timezone');
         fs::write(fixture.join("src/a.rs"), b"pub fn run() {}\n").unwrap();
         fs::write(fixture.join("src/b.rs"), b"pub fn run() {}\n").unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
         let usages = server
             .symbol_usages(Parameters(SymbolUsagesParams {
                 symbol: "run".to_string(),
@@ -3730,7 +3727,7 @@ $zone = config('app.timezone');
             .unwrap();
         }
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
         let cycles = server
             .show_cycles(Parameters(super::ShowCyclesParams::default()))
             .await
@@ -3775,7 +3772,7 @@ class Consumer {
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
         let design = server
             .module_design(Parameters(super::ModuleDesignParams {
                 path: String::from("app/Core"),
@@ -3844,7 +3841,7 @@ class Indirect {
         )
         .unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
 
         let radius = server
             .impact_radius(Parameters(super::ImpactRadiusParams {
@@ -3895,7 +3892,7 @@ class Indirect {
         .unwrap();
         fs::write(fixture.join("src/b.rs"), b"pub fn helper() {}\n").unwrap();
 
-        let server = AigiscodeMcpServer::load(fixture, None, true, is_kuzu_available()).unwrap();
+        let server = AigiscodeMcpServer::load(fixture, None, true, true).unwrap();
         let brief = server.repo_brief().await.0;
 
         assert!(brief.headline.contains("analyzed files"));

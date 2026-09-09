@@ -33,6 +33,7 @@ use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 mod atomic;
+pub mod kuzu;
 mod publication;
 pub use publication::{ArtifactSnapshot, PublishedArtifactStatus};
 mod triage;
