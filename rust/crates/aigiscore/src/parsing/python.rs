@@ -262,6 +262,7 @@ fn record_import_from(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
                 "dotted_name" | "identifier" => {
@@ -277,6 +278,7 @@ fn record_import_from(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
                 _ => {}
@@ -311,6 +313,7 @@ fn record_import(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
                 "dotted_name" => {
@@ -326,6 +329,7 @@ fn record_import(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
                 _ => {}
@@ -355,6 +359,7 @@ fn record_superclasses(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
             }
@@ -384,6 +389,7 @@ fn record_parameter_types(
                             receiver_name: None,
                             receiver_type_name: None,
                             call_form: None,
+                            class_literal_argument: None,
                         });
                     }
                 }
@@ -415,6 +421,7 @@ fn record_call(
                 receiver_name: None,
                 receiver_type_name: None,
                 call_form: Some(CallForm::Free),
+                class_literal_argument: None,
             });
         }
         "attribute" => {
@@ -444,6 +451,7 @@ fn record_call(
                 receiver_name,
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
+                class_literal_argument: None,
             });
         }
         _ => {}
@@ -485,6 +493,7 @@ fn record_decorators(
                     receiver_name: None,
                     receiver_type_name: None,
                     call_form: Some(CallForm::Free),
+                    class_literal_argument: None,
                 });
             }
             "attribute" => {
@@ -514,6 +523,7 @@ fn record_decorators(
                     receiver_name,
                     receiver_type_name,
                     call_form: Some(CallForm::Member),
+                    class_literal_argument: None,
                 });
             }
             "call" => {
@@ -531,6 +541,7 @@ fn record_decorators(
                                 receiver_name: None,
                                 receiver_type_name: None,
                                 call_form: Some(CallForm::Free),
+                                class_literal_argument: None,
                             });
                         }
                         "attribute" => {
@@ -560,6 +571,7 @@ fn record_decorators(
                                 receiver_name,
                                 receiver_type_name,
                                 call_form: Some(CallForm::Member),
+                                class_literal_argument: None,
                             });
                         }
                         _ => {}

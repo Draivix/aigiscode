@@ -333,6 +333,15 @@ cat /tmp/my-repo-aigis/aigiscode-report.md
 
 ### Review orphan candidates
 
+`.aigiscode/scan.json` can declare `generated_path_prefixes`, a list of
+repository-relative file or directory paths. These explicit exclusions apply to
+both parsing and supplementary dead-code reference searches; generated caches
+cannot keep otherwise unwired code alive. The effective list is exposed in
+`architecture-surface.json.overview.generated_path_prefixes`. Excluded content is
+outside this analysis, including native security checks. `ignored_path_prefixes`
+also supports individual files, while ordinary out-of-slice callers remain eligible
+as conservative reachability evidence.
+
 Orphan findings are review candidates, not deletion proofs. Their
 `delete_verdict` is `probably_delete`, including frontend modules (older
 artifacts used `safe_delete`). A missing importer cannot rule out excluded
@@ -343,6 +352,13 @@ For orphan analysis, imports, path literals, globs, and convention factories
 in test files do not establish production reachability. Including tests in
 the scan should not hide otherwise unwired production modules. Their tests
 still need review before any deletion; test-only code can be unfinished wiring.
+
+TypeScript type-only imports and re-exports are serialized as `TypeImport`
+references/edges (`TypeUse` relation). They remain in the full dependency graph
+but cannot close a strong runtime dependency cycle. Cycle findings include
+`directed_witness`, an ordered closed path of original edges with source locations;
+`files` remains the component member set. Fast-load manifests carry
+`semantic_revision`; incompatible or older revisions require fresh analysis.
 
 ### Prepare AI review context
 

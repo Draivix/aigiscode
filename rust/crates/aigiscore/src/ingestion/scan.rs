@@ -18,6 +18,9 @@ pub struct ScanConfig {
     pub include_path_prefixes: Vec<PathBuf>,
     pub ignored_dir_names: HashSet<String>,
     pub ignored_path_prefixes: Vec<PathBuf>,
+    /// Explicit non-source inputs excluded from parsing and supplemental evidence.
+    #[serde(default)]
+    pub generated_path_prefixes: Vec<PathBuf>,
     pub skip_hidden: bool,
 }
 
@@ -41,6 +44,7 @@ impl Default for ScanConfig {
                 PathBuf::from("public/vendor"),
             ],
             skip_hidden: true,
+            generated_path_prefixes: Vec::new(),
         }
     }
 }
@@ -70,6 +74,16 @@ pub struct AnalysisScope {
     pub reasons: Vec<AnalysisBoundaryReason>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub include_path_prefixes: Vec<PathBuf>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub generated_path_prefixes: Vec<PathBuf>,
+}
+
+impl AnalysisScope {
+    pub fn is_generated_path(&self, relative_path: &Path) -> bool {
+        self.generated_path_prefixes
+            .iter()
+            .any(|prefix| relative_path.starts_with(prefix))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -137,6 +151,8 @@ pub struct ScanResult {
 
 #[derive(Debug, Error)]
 pub enum ScanError {
+    #[error("invalid generated path prefix {0}: expected a nonempty repository-relative path without parent components")]
+    InvalidGeneratedPrefix(PathBuf),
     #[error("repository root does not exist: {0}")]
     MissingRoot(PathBuf),
     #[error("repository root is not a directory: {0}")]
@@ -178,7 +194,26 @@ pub fn scan_repository(
     if !root.is_dir() {
         return Err(ScanError::RootIsNotDirectory(root));
     }
-    let effective_config = load_scan_config(&root, config)?;
+    let mut effective_config = load_scan_config(&root, config)?;
+    for prefix in &mut effective_config.generated_path_prefixes {
+        if prefix.components().all(|part| part == Component::CurDir)
+            || prefix.components().any(|part| {
+                matches!(
+                    part,
+                    Component::ParentDir | Component::RootDir | Component::Prefix(_)
+                )
+            })
+        {
+            return Err(ScanError::InvalidGeneratedPrefix(prefix.clone()));
+        }
+        *prefix = prefix
+            .components()
+            .filter_map(|part| match part {
+                Component::Normal(segment) => Some(segment),
+                _ => None,
+            })
+            .collect();
+    }
 
     let mut files = Vec::new();
     let skipped_dirs = Cell::new(0usize);
@@ -339,6 +374,7 @@ fn build_analysis_scope(root: &Path, config: &ScanConfig) -> AnalysisScope {
         boundary_truth,
         reasons,
         include_path_prefixes: config.include_path_prefixes.clone(),
+        generated_path_prefixes: config.generated_path_prefixes.clone(),
     }
 }
 
@@ -371,6 +407,19 @@ fn should_visit(
         return true;
     }
 
+    let relative = relative_path(root, entry.path());
+    if config
+        .ignored_path_prefixes
+        .iter()
+        .chain(&config.generated_path_prefixes)
+        .any(|prefix| relative.starts_with(prefix))
+    {
+        if entry.file_type().is_dir() {
+            skipped_dirs.set(skipped_dirs.get() + 1);
+        }
+        return false;
+    }
+
     if !entry.file_type().is_dir() {
         return true;
     }
@@ -386,20 +435,10 @@ fn should_visit(
         return false;
     }
 
-    let relative = relative_path(root, entry.path());
     if !overlaps_include_prefixes(&relative, &config.include_path_prefixes) {
         skipped_dirs.set(skipped_dirs.get() + 1);
         return false;
     }
-    if config
-        .ignored_path_prefixes
-        .iter()
-        .any(|prefix| relative.starts_with(prefix))
-    {
-        skipped_dirs.set(skipped_dirs.get() + 1);
-        return false;
-    }
-
     true
 }
 
@@ -429,6 +468,9 @@ fn load_scan_config(root: &Path, base: &ScanConfig) -> Result<ScanConfig, ScanEr
     config
         .ignored_path_prefixes
         .extend(file.ignored_path_prefixes);
+    config
+        .generated_path_prefixes
+        .extend(file.generated_path_prefixes);
     if let Some(skip_hidden) = file.skip_hidden {
         config.skip_hidden = skip_hidden;
     }
@@ -444,6 +486,8 @@ struct ScanConfigFile {
     ignored_dir_names: Vec<String>,
     #[serde(default)]
     ignored_path_prefixes: Vec<PathBuf>,
+    #[serde(default)]
+    generated_path_prefixes: Vec<PathBuf>,
     #[serde(default)]
     skip_hidden: Option<bool>,
 }
@@ -564,11 +608,16 @@ mod tests {
         fs::write(fixture.join("vendor/pkg/a.php"), b"<?php").unwrap();
         fs::write(fixture.join("public/build/app.js"), b"console.log(1);").unwrap();
         fs::write(fixture.join("app/main.py"), b"print('ok')").unwrap();
+        fs::write(fixture.join("app/generated.php"), b"<?php").unwrap();
 
         let config = ScanConfig {
             include_path_prefixes: Vec::new(),
             ignored_dir_names: HashSet::from([String::from("vendor")]),
-            ignored_path_prefixes: vec![PathBuf::from("public/build")],
+            ignored_path_prefixes: vec![
+                PathBuf::from("public/build"),
+                PathBuf::from("app/generated.php"),
+            ],
+            generated_path_prefixes: Vec::new(),
             skip_hidden: true,
         };
 

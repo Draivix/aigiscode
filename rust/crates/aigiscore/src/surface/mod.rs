@@ -118,6 +118,8 @@ pub struct ArchitectureSurface {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SurfaceOverview {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub generated_path_prefixes: Vec<PathBuf>,
     pub scanned_files: usize,
     pub analyzed_files: usize,
     pub symbols: usize,
@@ -489,6 +491,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
     ArchitectureSurface {
         root: analysis.root.clone(),
         overview: SurfaceOverview {
+            generated_path_prefixes: analysis.scan.scope.generated_path_prefixes.clone(),
             scanned_files: analysis.scan.files.len(),
             analyzed_files: analysis.semantic_graph.files.len(),
             symbols: analysis.semantic_graph.symbols.len(),
@@ -2875,6 +2878,7 @@ fn reference_kind_label(kind: ReferenceKind) -> String {
         ReferenceKind::Import => String::from("Import"),
         ReferenceKind::Call => String::from("Call"),
         ReferenceKind::Type => String::from("Type"),
+        ReferenceKind::TypeImport => String::from("TypeImport"),
         ReferenceKind::Extends => String::from("Extends"),
         ReferenceKind::Implements => String::from("Implements"),
         ReferenceKind::Overrides => String::from("Overrides"),

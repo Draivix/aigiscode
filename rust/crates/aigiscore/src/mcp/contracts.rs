@@ -3465,6 +3465,7 @@ mod tests {
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         };
         // Resolved site: excluded from the breakdown entirely.
         graph.add_reference(reference("known_helper", ReferenceKind::Call, 1));

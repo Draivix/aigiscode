@@ -131,7 +131,13 @@ impl ResolutionContext {
             }
             context
                 .qualified_index
-                .entry(symbol.qualified_name.clone())
+                .entry(
+                    if context.language_map.get(&symbol.file_path) == Some(&Language::Php) {
+                        symbol.qualified_name.to_ascii_lowercase()
+                    } else {
+                        symbol.qualified_name.clone()
+                    },
+                )
                 .or_default()
                 .push(definition);
         }
@@ -145,12 +151,24 @@ impl ResolutionContext {
             .collect::<HashSet<_>>();
 
         for reference in &graph.references {
-            if reference.kind != ReferenceKind::Import {
+            if !reference.kind.is_import() {
                 continue;
             }
 
             let import_targets =
-                resolve_import_paths(reference, &known_files, &context.language_map, config);
+                if context.language_map.get(&reference.file_path) == Some(&Language::Php) {
+                    let candidates = context.php_qualified_candidates(&reference.target_name);
+                    if candidates.len() == 1 {
+                        candidates
+                            .into_iter()
+                            .map(|candidate| candidate.file_path)
+                            .collect()
+                    } else {
+                        HashSet::new()
+                    }
+                } else {
+                    resolve_import_paths(reference, &known_files, &context.language_map, config)
+                };
             if import_targets.is_empty() {
                 continue;
             }
@@ -179,7 +197,12 @@ impl ResolutionContext {
                 .extend(import_targets);
 
             if let Some(binding_name) = &reference.binding_name {
-                let exported_name = leaf_symbol_name(&reference.target_name);
+                let exported_name =
+                    if context.language_map.get(&reference.file_path) == Some(&Language::Php) {
+                        reference.target_name.trim_start_matches('\\').to_owned()
+                    } else {
+                        leaf_symbol_name(&reference.target_name)
+                    };
                 for target_file in import_targets_vec {
                     context.named_import_map.insert(
                         (reference.file_path.clone(), binding_name.clone()),
@@ -205,9 +228,15 @@ impl ResolutionContext {
             .named_import_map
             .get(&(from_file.to_path_buf(), name.to_owned()))
         {
+            let lookup_name = if self.language_map.get(from_file) == Some(&Language::Php) {
+                exported_name.to_ascii_lowercase()
+            } else {
+                exported_name.clone()
+            };
             let mut named_candidates = self
-                .global_index
-                .get(exported_name)
+                .qualified_index
+                .get(&lookup_name)
+                .or_else(|| self.global_index.get(exported_name))
                 .into_iter()
                 .flat_map(|candidates| candidates.iter())
                 .filter(|candidate| &candidate.file_path == source_file)
@@ -256,6 +285,16 @@ impl ResolutionContext {
             ))
             .cloned()
             .unwrap_or_default()
+    }
+
+    fn php_qualified_candidates(&self, name: &str) -> Vec<SymbolDefinition> {
+        self.qualified_index
+            .get(&name.trim_start_matches('\\').to_ascii_lowercase())
+            .into_iter()
+            .flatten()
+            .filter(|candidate| self.language_map.get(&candidate.file_path) == Some(&Language::Php))
+            .cloned()
+            .collect()
     }
 
     fn module_candidates_for_files(&self, files: &[PathBuf]) -> Vec<SymbolDefinition> {
@@ -319,7 +358,7 @@ fn resolve_reference(
     reference: &SemanticReference,
     context: &ResolutionContext,
 ) -> Option<ResolvedEdge> {
-    if reference.kind == ReferenceKind::Import {
+    if reference.kind.is_import() {
         return resolve_import_reference(reference, context);
     }
 
@@ -344,6 +383,19 @@ fn resolve_import_reference(
     reference: &SemanticReference,
     context: &ResolutionContext,
 ) -> Option<ResolvedEdge> {
+    if context.language_map.get(&reference.file_path) == Some(&Language::Php) {
+        let candidates = context.php_qualified_candidates(&reference.target_name);
+        if candidates.len() != 1 {
+            return None;
+        }
+        return pick_edge(
+            reference,
+            TieredCandidates {
+                candidates,
+                tier: ResolutionTier::ImportScoped,
+            },
+        );
+    }
     let preferred_name = reference
         .binding_name
         .clone()
@@ -470,6 +522,10 @@ fn filter_candidates(
         if let Some(receiver_type_name) = &reference.receiver_type_name {
             let receiver_resolution =
                 resolve_receiver_type(context, &reference.file_path, receiver_type_name);
+            if receiver_type_name.contains('\\') && receiver_resolution.symbol_ids.is_empty() {
+                candidates.candidates.clear();
+                return candidates;
+            }
             if !receiver_resolution.symbol_ids.is_empty()
                 || !receiver_resolution.type_names.is_empty()
                 || !receiver_resolution.file_paths.is_empty()
@@ -534,11 +590,19 @@ fn filter_candidates(
             }
         } else if matches!(reference.call_form, Some(CallForm::Associated)) {
             if let Some(receiver_name) = &reference.receiver_name {
+                let receiver = resolve_receiver_type(context, &reference.file_path, receiver_name);
                 let owner_filtered = candidates
                     .candidates
                     .iter()
                     .filter(|candidate| {
-                        candidate.owner_type_name.as_deref() == Some(receiver_name.as_str())
+                        candidate
+                            .parent_symbol_id
+                            .as_ref()
+                            .is_some_and(|id| receiver.symbol_ids.contains(id))
+                            || candidate
+                                .owner_type_name
+                                .as_ref()
+                                .is_some_and(|name| receiver.type_names.contains(name))
                     })
                     .cloned()
                     .collect::<Vec<_>>();
@@ -583,14 +647,36 @@ fn filter_candidates(
             reference.call_form,
             Some(CallForm::Member | CallForm::Associated)
         ) && reference.receiver_name.is_some();
-        if candidates.tier == ResolutionTier::Global && explicit_receiver && !receiver_narrowed {
-            candidates.candidates.clear();
-        }
-        if matches!(reference.call_form, Some(CallForm::Member))
-            && reference.receiver_type_name.is_none()
-            && candidates.tier == ResolutionTier::Global
+        if explicit_receiver
+            && !receiver_narrowed
+            && (candidates.tier == ResolutionTier::Global
+                || !reference
+                    .receiver_name
+                    .as_deref()
+                    .is_some_and(is_self_receiver_name))
         {
-            candidates.candidates.clear();
+            // Import visibility is not evidence of the receiver's identity.
+            // An unknown $operation->isNoop() must not bind an imported writer's
+            // isNoop(), nor a different class in the same source file. Keep only
+            // actual module-qualified free functions (e.g. Python module.run()).
+            let module_files = reference
+                .receiver_name
+                .as_deref()
+                .and_then(|name| context.resolve(name, &reference.file_path))
+                .map(|resolved| {
+                    resolved
+                        .candidates
+                        .into_iter()
+                        .filter(|candidate| candidate.kind == SymbolKind::Module)
+                        .map(|candidate| candidate.file_path)
+                        .collect::<HashSet<_>>()
+                })
+                .unwrap_or_default();
+            candidates.candidates.retain(|candidate| {
+                candidate.kind == SymbolKind::Function
+                    && candidate.owner_type_name.is_none()
+                    && module_files.contains(&candidate.file_path)
+            });
         }
 
         // A call made through an explicit receiver/scope that is *not* a self
@@ -838,8 +924,38 @@ fn resolve_receiver_candidates(
     from_file: &Path,
     receiver_type_name: &str,
 ) -> Vec<SymbolDefinition> {
+    if let Some((owner, member)) = receiver_type_name
+        .split_once("::")
+        .filter(|(owner, _)| owner.contains('\\'))
+    {
+        let owners = context.php_qualified_candidates(owner);
+        return context
+            .global_index
+            .get(member)
+            .into_iter()
+            .flatten()
+            .filter(|candidate| {
+                candidate
+                    .parent_symbol_id
+                    .as_ref()
+                    .is_some_and(|parent| owners.iter().any(|owner| &owner.symbol_id == parent))
+            })
+            .cloned()
+            .collect();
+    }
+    if receiver_type_name.contains('\\') && !receiver_type_name.contains("::") {
+        return context.php_qualified_candidates(receiver_type_name);
+    }
     if receiver_type_name.contains("::") {
         let normalized = normalize_qualified_receiver_name(context, from_file, receiver_type_name);
+        if normalized != receiver_type_name && normalized.contains('\\') {
+            return resolve_receiver_candidates(context, from_file, &normalized);
+        }
+        let normalized = if context.language_map.get(from_file) == Some(&Language::Php) {
+            normalized.to_ascii_lowercase()
+        } else {
+            normalized
+        };
         if let Some(candidates) = context.qualified_index.get(&normalized) {
             return candidates.clone();
         }
@@ -1207,6 +1323,7 @@ fn resolution_reason(kind: ReferenceKind, tier: ResolutionTier) -> String {
         ReferenceKind::Import => "import",
         ReferenceKind::Call => "call",
         ReferenceKind::Type => "type",
+        ReferenceKind::TypeImport => "type-import",
         ReferenceKind::Extends => "extends",
         ReferenceKind::Implements => "implements",
         ReferenceKind::Overrides => "overrides",
@@ -2019,6 +2136,7 @@ mod tests {
             receiver_name: Some(String::from("$this->compiler")),
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
+            class_literal_argument: None,
         });
         // Real recursion: `$this->getHash()` inside getHash().
         graph.references.push(SemanticReference {
@@ -2032,6 +2150,7 @@ mod tests {
             receiver_name: Some(String::from("$this")),
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
+            class_literal_argument: None,
         });
 
         resolve_graph(&mut graph);
@@ -2053,6 +2172,172 @@ mod tests {
             self_loops[0].line, 5,
             "the surviving self-loop is the recursion"
         );
+    }
+
+    #[test]
+    fn test_stubs_are_not_hard_production_dependencies() {
+        let mut graph = SemanticGraph::default();
+        for (path, source) in [
+            ("app/Work.php", "<?php namespace App; use Vendor\\Connection; class Work { public function run(Connection $db) { $db->query(); } }"),
+            ("tests/Connection.php", "<?php namespace Vendor; use App\\Work; class Connection { public function query() {} }"),
+        ] {
+            let parsed = parse_php_to_graph(PathBuf::from(path), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+        let candidates = graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                edge.source_file_path == Path::new("app/Work.php")
+                    && edge.target_file_path == Path::new("tests/Connection.php")
+            })
+            .collect::<Vec<_>>();
+        assert!(!candidates.is_empty());
+        assert!(candidates
+            .iter()
+            .all(|edge| edge.strength == crate::graph::EdgeStrength::Inferred
+                && edge.reason.contains("production visibility is unproven")));
+        let analysis = crate::graph::analysis::analyze_semantic_graph(
+            &graph,
+            &crate::ingestion::scan::AnalysisScope::default(),
+        );
+        assert_eq!(analysis.cycle_findings.len(), 1);
+        assert!(analysis.strong_cycle_findings.is_empty());
+    }
+
+    #[test]
+    fn php_imports_use_declared_identity_and_keep_same_line_bindings_distinct() {
+        let mut graph = SemanticGraph::default();
+        for (path, source) in [
+            ("src/caller.php", r#"<?php namespace App;
+use Domain\Worker as Known; use Vendor\Worker as Missing; use domain\worker as LowerCase; use Domain\Other as Other;
+function run(Known $known, Missing $missing) {
+    $known->work(); $missing->work(); app(Missing::class)->work(); LowerCase::build();
+}"#),
+            ("odd/layout.php", "<?php namespace Domain; class Worker { public function work() {} public static function build() {} }"),
+            ("elsewhere/other.php", "<?php namespace Domain; class Other {}"),
+            ("decoy.php", "<?php namespace VendorMock; class Worker { public function work() {} }"),
+        ] {
+            let parsed = parse_php_to_graph(PathBuf::from(path), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+        let imports = graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| edge.kind.is_import())
+            .collect::<Vec<_>>();
+        assert_eq!(imports.len(), 3);
+        let calls = graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| edge.kind == ReferenceKind::Call)
+            .collect::<Vec<_>>();
+        assert_eq!(calls.len(), 2);
+        assert!(calls
+            .iter()
+            .all(|edge| edge.target_file_path == Path::new("odd/layout.php")));
+        let symbols = graph
+            .symbols
+            .iter()
+            .map(|symbol| (symbol.id.clone(), symbol))
+            .collect();
+        let bindings = crate::plugins::import_targets_by_binding(&graph, &symbols, |symbol| {
+            symbol.kind == SymbolKind::Class
+        });
+        let binding =
+            |name: &str| bindings.get(&(PathBuf::from("src/caller.php"), name.to_owned()));
+        assert_eq!(binding("Known").unwrap().1, PathBuf::from("odd/layout.php"));
+        assert_eq!(
+            binding("Other").unwrap().1,
+            PathBuf::from("elsewhere/other.php")
+        );
+        assert!(binding("Missing").is_none());
+    }
+
+    #[test]
+    fn type_only_import_closes_only_the_type_dependency_graph() {
+        let mut graph = SemanticGraph::default();
+        for (path, source) in [
+            (
+                "src/a.ts",
+                "import type { B } from './b'; export const value = 1; export type A = B;",
+            ),
+            (
+                "src/b.ts",
+                "import { value } from './a'; export interface B {} export const result = value;",
+            ),
+        ] {
+            let parsed = parse_javascript_to_graph(PathBuf::from(path), source, true).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+        assert!(graph
+            .resolved_edges
+            .iter()
+            .any(|edge| edge.kind == ReferenceKind::TypeImport
+                && edge.target_file_path == Path::new("src/b.ts")));
+        let analysis = crate::graph::analysis::analyze_semantic_graph(
+            &graph,
+            &crate::ingestion::scan::AnalysisScope::default(),
+        );
+        assert_eq!(analysis.cycle_findings.len(), 1);
+        assert!(analysis.strong_cycle_findings.is_empty());
+    }
+
+    #[test]
+    fn imports_and_same_file_methods_do_not_prove_an_unknown_receiver() {
+        let sources = [
+            (
+                "app/Writer.php",
+                r#"<?php namespace App;
+class Writer {
+    public function isNoop(?string $existing, array $additions): bool { return false; }
+    public static function create(): void {}
+}"#,
+            ),
+            (
+                "app/Runner.php",
+                r#"<?php namespace App;
+use App\Writer as W;
+class Runner {
+    public function run($operation, W $writer): void {
+        $operation->isNoop();
+        $writer->isNoop(null, []);
+        W::create();
+        $operation->localHelper();
+        $this->localHelper();
+    }
+    private function localHelper(): void {}
+}"#,
+            ),
+        ];
+        let mut graph = SemanticGraph::default();
+        for (path, source) in sources {
+            let parsed =
+                crate::parsing::php::parse_php_to_graph(PathBuf::from(path), source).unwrap();
+            graph.files.extend(parsed.files);
+            graph.symbols.extend(parsed.symbols);
+            graph.references.extend(parsed.references);
+        }
+        resolve_graph(&mut graph);
+        let call_lines = graph
+            .resolved_edges
+            .iter()
+            .filter(|edge| {
+                edge.source_file_path == Path::new("app/Runner.php")
+                    && edge.kind == ReferenceKind::Call
+            })
+            .map(|edge| edge.line)
+            .collect::<Vec<_>>();
+        assert_eq!(call_lines, vec![6, 7, 9]);
     }
 
     #[test]
@@ -2099,6 +2384,7 @@ mod tests {
             receiver_name: Some(String::from("user")),
             receiver_type_name: Some(String::from("User")),
             call_form: Some(CallForm::Member),
+            class_literal_argument: None,
         });
 
         resolve_graph(&mut graph);
@@ -2170,6 +2456,7 @@ mod tests {
             receiver_name: None,
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
+            class_literal_argument: None,
         });
 
         resolve_graph(&mut graph);
@@ -2239,6 +2526,7 @@ mod tests {
             receiver_name: None,
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
+            class_literal_argument: None,
         });
 
         resolve_graph(&mut graph);
@@ -2289,6 +2577,7 @@ mod tests {
             receiver_name: Some(String::from("grunt")),
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
+            class_literal_argument: None,
         });
 
         resolve_graph(&mut graph);
@@ -2344,6 +2633,7 @@ mod tests {
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
 
         let context = ResolutionContext::from_graph(&graph, &ResolveConfig::default());
@@ -3758,6 +4048,7 @@ end
             receiver_name: Some(String::from(receiver)),
             receiver_type_name: receiver_type.map(str::to_owned),
             call_form: Some(form),
+            class_literal_argument: None,
         };
         // Vendor facade static call: `Log::warning(...)` — `Log` is not a repo type.
         graph
@@ -3792,6 +4083,7 @@ end
             receiver_name: None,
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
+            class_literal_argument: None,
         });
         // Self-receiver call to a method defined nowhere in this class's
         // resolvable universe must stay unresolved, not bind globally.
@@ -3806,6 +4098,7 @@ end
             receiver_name: Some(String::from("$this")),
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
+            class_literal_argument: None,
         });
 
         resolve_graph(&mut graph);
@@ -3943,6 +4236,7 @@ end
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
         graph.references.push(SemanticReference {
             file_path: PathBuf::from("src/main.rs"),
@@ -3955,6 +4249,7 @@ end
             receiver_name: None,
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
+            class_literal_argument: None,
         });
         graph
     }

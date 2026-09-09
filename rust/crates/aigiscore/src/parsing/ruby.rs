@@ -257,6 +257,7 @@ fn record_superclass(
         receiver_name: None,
         receiver_type_name: None,
         call_form: None,
+        class_literal_argument: None,
     });
 }
 
@@ -307,6 +308,7 @@ fn record_call(
                 receiver_name: None,
                 receiver_type_name: None,
                 call_form: None,
+                class_literal_argument: None,
             });
         }
         return;
@@ -329,6 +331,7 @@ fn record_call(
                     receiver_name: None,
                     receiver_type_name: None,
                     call_form: None,
+                    class_literal_argument: None,
                 });
             }
         }
@@ -359,6 +362,7 @@ fn record_call(
         } else {
             CallForm::Free
         }),
+        class_literal_argument: None,
     });
 }
 

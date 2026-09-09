@@ -3,7 +3,7 @@ pub mod queue;
 pub mod signals;
 pub mod wordpress;
 
-use crate::graph::{ReferenceKind, ResolvedEdge, SemanticGraph, SymbolNode};
+use crate::graph::{ResolvedEdge, SemanticGraph, SymbolNode};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -37,23 +37,27 @@ impl RepoContext {
     }
 }
 
-/// First resolved import edge per `(source file, line)`, preserving edge order.
+/// Resolved import edges keyed by their original reference, not just a line.
 ///
 /// Runtime plugins resolve import bindings by locating the import edge that
 /// matches a reference's file/line. Doing that with a linear scan per
 /// reference is O(references x edges) and dominates whole-project analysis on
 /// large repositories; this index makes each lookup O(1).
-pub(crate) fn first_import_edge_by_location(
+pub(crate) fn import_edges_by_reference(
     graph: &SemanticGraph,
-) -> HashMap<(&Path, usize), &ResolvedEdge> {
+) -> HashMap<(&Path, usize, &str), &ResolvedEdge> {
     let mut edges_by_location = HashMap::new();
     for edge in graph
         .resolved_edges
         .iter()
-        .filter(|edge| edge.kind == ReferenceKind::Import)
+        .filter(|edge| edge.kind.is_import())
+        .filter(|edge| edge.strength != crate::graph::EdgeStrength::Inferred)
     {
+        let Some(target_name) = edge.reference_target_name.as_deref() else {
+            continue;
+        };
         edges_by_location
-            .entry((edge.source_file_path.as_path(), edge.line))
+            .entry((edge.source_file_path.as_path(), edge.line, target_name))
             .or_insert(edge);
     }
     edges_by_location
@@ -111,19 +115,23 @@ pub(crate) fn import_targets_by_binding(
     accepts_symbol: impl Fn(&SymbolNode) -> bool,
 ) -> HashMap<(PathBuf, String), (String, PathBuf)> {
     let mut targets = HashMap::new();
-    let import_edges_by_location = first_import_edge_by_location(graph);
+    let import_edges_by_location = import_edges_by_reference(graph);
 
     for reference in graph
         .references
         .iter()
-        .filter(|reference| reference.kind == ReferenceKind::Import)
+        .filter(|reference| reference.kind.is_import())
     {
         let binding_name = reference
             .binding_name
             .clone()
             .unwrap_or_else(|| leaf_symbol_name(&reference.target_name));
         let Some(resolved_import) = import_edges_by_location
-            .get(&(reference.file_path.as_path(), reference.line))
+            .get(&(
+                reference.file_path.as_path(),
+                reference.line,
+                reference.target_name.as_str(),
+            ))
             .copied()
         else {
             continue;

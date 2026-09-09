@@ -467,6 +467,7 @@ fn is_dependency_edge(edge: &ResolvedEdge) -> bool {
     matches!(
         edge.kind,
         ReferenceKind::Import
+            | ReferenceKind::TypeImport
             | ReferenceKind::Call
             | ReferenceKind::Type
             | ReferenceKind::Extends
@@ -476,7 +477,7 @@ fn is_dependency_edge(edge: &ResolvedEdge) -> bool {
 
 fn is_strong_dependency_edge(edge: &ResolvedEdge) -> bool {
     is_dependency_edge(edge)
-        && edge.kind != ReferenceKind::Type
+        && !matches!(edge.kind, ReferenceKind::Type | ReferenceKind::TypeImport)
         && edge.strength != EdgeStrength::Inferred
 }
 
@@ -1229,6 +1230,7 @@ mod tests {
                 boundary_truth: AnalysisBoundaryTruth::TruncatedSlice,
                 reasons: vec![AnalysisBoundaryReason::CroppedRoot],
                 include_path_prefixes: Vec::new(),
+                generated_path_prefixes: Vec::new(),
             },
         );
 

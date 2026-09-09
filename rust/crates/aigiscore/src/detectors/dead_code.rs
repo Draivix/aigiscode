@@ -4,6 +4,7 @@ use crate::graph::{
     ReferenceKind, ResolvedEdge, SemanticGraph, SymbolKind, SymbolNode, Visibility,
 };
 use crate::identity::{normalized_path, stable_fingerprint};
+use crate::ingestion::scan::AnalysisScope;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -63,6 +64,22 @@ pub fn analyze_dead_code(
     parsed_sources: &[(PathBuf, String)],
     contract_inventory: &ContractInventory,
     repo_root: &Path,
+) -> DeadCodeResult {
+    analyze_dead_code_scoped(
+        graph,
+        parsed_sources,
+        contract_inventory,
+        repo_root,
+        &AnalysisScope::default(),
+    )
+}
+
+pub fn analyze_dead_code_scoped(
+    graph: &SemanticGraph,
+    parsed_sources: &[(PathBuf, String)],
+    contract_inventory: &ContractInventory,
+    repo_root: &Path,
+    scope: &AnalysisScope,
 ) -> DeadCodeResult {
     let called_symbols = graph
         .resolved_edges
@@ -124,7 +141,7 @@ pub fn analyze_dead_code(
     let used_import_targets = graph
         .resolved_edges
         .iter()
-        .filter(|edge| edge.kind != ReferenceKind::Import)
+        .filter(|edge| !edge.kind.is_import())
         .map(|edge| (edge.source_file_path.clone(), edge.target_symbol_id.clone()))
         .collect::<HashSet<_>>();
     let symbols_by_id = graph
@@ -155,7 +172,7 @@ pub fn analyze_dead_code(
     for reference in graph
         .references
         .iter()
-        .filter(|reference| reference.kind != ReferenceKind::Import)
+        .filter(|reference| !reference.kind.is_import())
     {
         let Some(receiver_name) = reference.receiver_name.as_ref() else {
             continue;
@@ -183,7 +200,7 @@ pub fn analyze_dead_code(
         .references
         .par_iter()
         .enumerate()
-        .filter(|(_, reference)| reference.kind == ReferenceKind::Import)
+        .filter(|(_, reference)| reference.kind.is_import())
         .filter_map(|(index, reference)| {
             if is_package_export_surface(reference.file_path.as_path()) {
                 return None;
@@ -205,7 +222,7 @@ pub fn analyze_dead_code(
                 .map(|edges| {
                     edges
                         .iter()
-                        .filter(|edge| edge.kind == ReferenceKind::Import)
+                        .filter(|edge| edge.kind.is_import())
                         .copied()
                         .collect::<Vec<_>>()
                 })
@@ -320,6 +337,7 @@ pub fn analyze_dead_code(
         parsed_sources,
         contract_inventory,
         repo_root,
+        scope,
     ));
 
     findings.sort_by(|left, right| {
@@ -358,7 +376,7 @@ fn detect_orphan_modules(
     for reference in graph
         .references
         .iter()
-        .filter(|reference| reference.kind == ReferenceKind::Import)
+        .filter(|reference| reference.kind.is_import())
         .filter(|reference| !is_test_source_path(&reference.file_path))
     {
         let module_specifier = reference
@@ -484,6 +502,7 @@ fn detect_backend_orphan_modules(
     parsed_sources: &[(PathBuf, String)],
     contract_inventory: &ContractInventory,
     repo_root: &Path,
+    scope: &AnalysisScope,
 ) -> Vec<DeadCodeFinding> {
     let inbound_files = graph
         .resolved_edges
@@ -618,7 +637,7 @@ fn detect_backend_orphan_modules(
     // rest of this stack: it can veto a finding, never create one. Suffixes are
     // collected from the analyzed slice AND excluded dirs (commands/bootstrap),
     // because factories routinely live outside the analyzed slice.
-    let out_of_slice = collect_out_of_slice_sources(repo_root, parsed_sources);
+    let out_of_slice = collect_out_of_slice_sources(repo_root, parsed_sources, scope);
     let dispatch_suffixes = collect_dynamic_dispatch_suffixes(
         parsed_sources
             .iter()
@@ -815,6 +834,7 @@ fn quoted_upper_camel_literal_pattern() -> &'static regex::Regex {
 fn collect_out_of_slice_sources(
     repo_root: &Path,
     parsed_sources: &[(PathBuf, String)],
+    scope: &AnalysisScope,
 ) -> Vec<String> {
     const SWEEP_EXTENSIONS: &[&str] = &[
         "php", "json", "yaml", "yml", "xml", "neon", "ini", "sh", "env", "ts", "js",
@@ -834,9 +854,20 @@ fn collect_out_of_slice_sources(
         };
         for entry in entries.flatten() {
             let path = entry.path();
+            let relative = path.strip_prefix(repo_root).unwrap_or(&path);
+            if scope.is_generated_path(relative) {
+                continue;
+            }
+            let Ok(file_type) = entry.file_type() else {
+                continue;
+            };
+            // Never follow links or read special files in a supplemental sweep.
+            if !file_type.is_dir() && !file_type.is_file() {
+                continue;
+            }
             let name = entry.file_name();
             let name = name.to_string_lossy();
-            if path.is_dir() {
+            if file_type.is_dir() {
                 // Test trees cannot prove production aliveness: a module only
                 // exercised by its tests is dead production code.
                 if name.starts_with('.')
@@ -869,7 +900,6 @@ fn collect_out_of_slice_sources(
             if !SWEEP_EXTENSIONS.contains(&extension) {
                 continue;
             }
-            let relative = path.strip_prefix(repo_root).unwrap_or(&path);
             if parsed.contains(relative) || parsed.contains(path.as_path()) {
                 continue;
             }

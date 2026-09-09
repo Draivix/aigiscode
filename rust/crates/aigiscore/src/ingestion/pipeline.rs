@@ -1,6 +1,6 @@
 use crate::assessment::{build_architectural_assessment_full, ArchitecturalAssessment};
 use crate::contracts::{build_contract_inventory, ContractInventory};
-use crate::detectors::dead_code::{analyze_dead_code, DeadCodeResult};
+use crate::detectors::dead_code::{analyze_dead_code_scoped, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::{analyze_semantic_graph, GraphAnalysis};
@@ -175,6 +175,7 @@ fn try_fast_load_graph_project(
             None => return Ok(None),
         };
     if manifest.aigiscode_version != env!("CARGO_PKG_VERSION")
+        || manifest.semantic_revision != crate::artifacts::SEMANTIC_REVISION
         || manifest.resolve_config_xxh3 != crate::artifacts::resolve_config_hash(root)
     {
         return Ok(None);
@@ -287,7 +288,13 @@ fn finish_project_analysis(
     let contract_lookup = contract_inventory.lookup();
 
     let dead_code_started = Instant::now();
-    let dead_code = analyze_dead_code(&semantic_graph, &parsed_sources, &contract_inventory, &root);
+    let dead_code = analyze_dead_code_scoped(
+        &semantic_graph,
+        &parsed_sources,
+        &contract_inventory,
+        &root,
+        &scan.scope,
+    );
     trace(&format!(
         "analyze.dead_code elapsed_ms={}",
         dead_code_started.elapsed().as_millis()
@@ -526,6 +533,17 @@ mod tests {
         )
         .unwrap();
         fs::write(fixture.join("src/main.rs"), b"fn main() {}\n").unwrap();
+        fs::write(fixture.join("src/types.ts"), "export interface Item {}\n").unwrap();
+        fs::write(
+            fixture.join("src/reader.ts"),
+            "import type { Item } from './types';\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("src/service.php"),
+            "<?php namespace Example; class Service {} app(Service::class);",
+        )
+        .unwrap();
 
         let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
         crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
@@ -542,6 +560,31 @@ mod tests {
             loaded.semantic_graph.resolved_edges.len(),
             analysis.semantic_graph.resolved_edges.len()
         );
+        assert_eq!(loaded.semantic_graph, analysis.semantic_graph);
+
+        // Identical files are insufficient after analyzer semantics change.
+        let manifest_path = fixture.join(".aigiscode/scan-manifest.json");
+        let original_manifest = fs::read_to_string(&manifest_path).unwrap();
+        let mut old_manifest: serde_json::Value = serde_json::from_str(&original_manifest).unwrap();
+        old_manifest
+            .as_object_mut()
+            .unwrap()
+            .remove("semantic_revision");
+        fs::write(&manifest_path, serde_json::to_vec(&old_manifest).unwrap()).unwrap();
+        assert!(
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+                .unwrap()
+                .is_none()
+        );
+        old_manifest["semantic_revision"] =
+            serde_json::json!(crate::artifacts::SEMANTIC_REVISION + 1);
+        fs::write(&manifest_path, serde_json::to_vec(&old_manifest).unwrap()).unwrap();
+        assert!(
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+                .unwrap()
+                .is_none()
+        );
+        fs::write(&manifest_path, original_manifest).unwrap();
 
         // Any content change must decline, never serve the stale graph.
         fs::write(fixture.join("src/main.rs"), b"fn main() { changed(); }\n").unwrap();
@@ -558,6 +601,85 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn generated_exclusions_apply_to_parser_and_supplemental_reachability() {
+        let fixture = create_fixture();
+        for directory in ["app", "cache", "bootstrap", ".aigiscode"] {
+            fs::create_dir_all(fixture.join(directory)).unwrap();
+        }
+        fs::write(
+            fixture.join("app/UnwiredService.php"),
+            "<?php namespace App; class UnwiredService {}",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("app/LiveService.php"),
+            "<?php namespace App; class LiveService {}",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("cache/FileIndex.php"),
+            "<?php return ['UnwiredService'];",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join("bootstrap/entry.php"),
+            "<?php new \\App\\LiveService();",
+        )
+        .unwrap();
+        fs::write(
+            fixture.join(".aigiscode/scan.json"),
+            r#"{
+            "include_path_prefixes": ["app"],
+            "generated_path_prefixes": ["./cache"]
+        }"#,
+        )
+        .unwrap();
+        #[cfg(unix)]
+        {
+            let external = create_fixture();
+            fs::write(
+                external.join("entry.php"),
+                "<?php new \\App\\UnwiredService();",
+            )
+            .unwrap();
+            std::os::unix::fs::symlink(
+                external.join("entry.php"),
+                fixture.join("bootstrap/external.php"),
+            )
+            .unwrap();
+        }
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let orphans = analysis
+            .dead_code
+            .findings
+            .iter()
+            .filter(|finding| {
+                finding.category == crate::detectors::dead_code::DeadCodeCategory::OrphanModule
+            })
+            .map(|finding| finding.name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(orphans, vec!["UnwiredService"]);
+        assert_eq!(analysis.semantic_graph.files.len(), 2);
+        assert_eq!(
+            analysis
+                .architecture_surface()
+                .overview
+                .generated_path_prefixes,
+            vec![PathBuf::from("cache")]
+        );
+        for prefix in ["", ".", "..", "../outside", "/outside"] {
+            let config = ScanConfig {
+                generated_path_prefixes: vec![PathBuf::from(prefix)],
+                ..ScanConfig::default()
+            };
+            assert!(matches!(
+                crate::ingestion::scan::scan_repository(&fixture, &config),
+                Err(crate::ingestion::scan::ScanError::InvalidGeneratedPrefix(_))
+            ));
+        }
     }
 
     #[test]

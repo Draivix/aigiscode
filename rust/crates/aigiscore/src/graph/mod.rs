@@ -34,11 +34,19 @@ pub enum SymbolKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ReferenceKind {
     Import,
+    /// An import/export erased at runtime, still relevant to type dependencies.
+    TypeImport,
     Call,
     Type,
     Extends,
     Implements,
     Overrides,
+}
+
+impl ReferenceKind {
+    pub fn is_import(self) -> bool {
+        matches!(self, Self::Import | Self::TypeImport)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -142,6 +150,10 @@ pub struct SemanticReference {
     pub receiver_name: Option<String>,
     pub receiver_type_name: Option<String>,
     pub call_form: Option<CallForm>,
+    /// Parser-owned canonical type name from the first positional `Foo::class`
+    /// argument. Absence is uncertainty, not permission to inspect nearby calls.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub class_literal_argument: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -201,7 +213,19 @@ impl SemanticGraph {
     }
 
     pub fn add_resolved_edge(&mut self, edge: ResolvedEdge) {
-        let edge = edge.normalized();
+        let mut edge = edge.normalized();
+        // A matching declaration in test code does not establish production
+        // visibility (vendor stubs are a common example). Preserve the candidate
+        // and explain uncertainty without manufacturing a hard production cycle.
+        if edge.origin != EdgeOrigin::Policy
+            && !crate::ingestion::sources::is_test_source_path(&edge.source_file_path)
+            && crate::ingestion::sources::is_test_source_path(&edge.target_file_path)
+        {
+            edge.strength = EdgeStrength::Inferred;
+            edge.confidence_millis = edge.confidence_millis.min(500);
+            edge.reason
+                .push_str("; target is test source, production visibility is unproven");
+        }
         // A symbol can never inherit from, implement, or override *itself*. Such a
         // self-referential structural edge is always a resolver mis-resolution
         // (typically an unresolved parent type or interface falling back to the
@@ -246,7 +270,7 @@ impl RelationKind {
         match kind {
             ReferenceKind::Import => Self::Import,
             ReferenceKind::Call => Self::Call,
-            ReferenceKind::Type => Self::TypeUse,
+            ReferenceKind::Type | ReferenceKind::TypeImport => Self::TypeUse,
             ReferenceKind::Extends => Self::Extends,
             ReferenceKind::Implements => Self::Implements,
             ReferenceKind::Overrides => Self::Overrides,
@@ -397,6 +421,7 @@ mod tests {
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         };
         graph.add_reference(reference("{\n  channelId: string;\n}"));
         graph.add_reference(reference("(function (): string {"));

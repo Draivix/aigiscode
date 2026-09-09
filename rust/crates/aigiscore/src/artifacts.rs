@@ -62,6 +62,9 @@ pub const AIGISCODE_REPORT_FILE: &str = "aigiscode-report.json";
 pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 
+/// Bump whenever parser/resolver/plugin semantics change without a package-version bump.
+pub const SEMANTIC_REVISION: u32 = 4;
+
 /// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
 /// proves the analyzed file set and contents still match `semantic-graph.json`
 /// before an MCP startup skips Parse+Resolve. Anything mismatched falls back
@@ -69,6 +72,8 @@ pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScanManifest {
     pub aigiscode_version: String,
+    #[serde(default)]
+    pub semantic_revision: u32,
     /// xxh3 of the resolver-affecting config files (tsconfig/jsconfig/composer).
     pub resolve_config_xxh3: String,
     pub files: Vec<ScanManifestEntry>,
@@ -83,6 +88,7 @@ pub struct ScanManifestEntry {
 pub fn build_scan_manifest(root: &Path, parsed_sources: &[(PathBuf, String)]) -> ScanManifest {
     ScanManifest {
         aigiscode_version: env!("CARGO_PKG_VERSION").to_string(),
+        semantic_revision: SEMANTIC_REVISION,
         resolve_config_xxh3: resolve_config_hash(root),
         files: parsed_sources
             .iter()

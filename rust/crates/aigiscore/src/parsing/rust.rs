@@ -122,6 +122,7 @@ fn walk_node(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
             }
@@ -425,6 +426,7 @@ fn record_import(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -449,6 +451,7 @@ fn record_impl_relationships(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -479,6 +482,7 @@ fn record_parameter_type_references(
                     receiver_name: None,
                     receiver_type_name: None,
                     call_form: None,
+                    class_literal_argument: None,
                 });
             }
         }
@@ -503,6 +507,7 @@ fn record_let_type_reference(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -541,6 +546,7 @@ fn record_call(
                 receiver_name: Some(receiver_name),
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
+                class_literal_argument: None,
             });
             return;
         }
@@ -564,6 +570,7 @@ fn record_call(
                 receiver_name,
                 receiver_type_name: None,
                 call_form: Some(CallForm::Associated),
+                class_literal_argument: None,
             });
             return;
         }
@@ -581,6 +588,7 @@ fn record_call(
         receiver_name: None,
         receiver_type_name: None,
         call_form: Some(call_form),
+        class_literal_argument: None,
     });
 }
 
@@ -614,6 +622,7 @@ fn record_struct_expression(
         receiver_name: None,
         receiver_type_name: None,
         call_form: Some(CallForm::Associated),
+        class_literal_argument: None,
     });
 }
 

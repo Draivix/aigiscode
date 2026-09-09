@@ -1,4 +1,5 @@
 use super::add_file_module_symbol;
+mod names;
 use crate::graph::{
     CallForm, FileNode, Language, ReferenceKind, SemanticGraph, SemanticReference, SymbolKind,
     SymbolNode, Visibility,
@@ -39,7 +40,11 @@ pub fn parse_php_to_graph(
     });
     add_file_module_symbol(&mut graph, &file_path, Language::Php, source);
 
-    let mut context = PhpContext { file_path, source };
+    let mut context = PhpContext {
+        file_path,
+        source,
+        names: names::PhpNames::new(tree.root_node(), source),
+    };
     walk_tree(tree.root_node(), &mut context, &mut graph);
     trace(&format!(
         "php walk complete {}",
@@ -51,6 +56,7 @@ pub fn parse_php_to_graph(
 struct PhpContext<'a> {
     file_path: PathBuf,
     source: &'a str,
+    names: names::PhpNames,
 }
 
 impl<'a> PhpContext<'a> {
@@ -96,12 +102,21 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
                     container_symbol_id.as_deref(),
                 );
             }
-            "class_declaration" => {
+            "class_declaration"
+            | "interface_declaration"
+            | "trait_declaration"
+            | "enum_declaration" => {
                 if let Some(name_node) = current.child_by_field_name("name") {
                     let name = context.text(name_node);
+                    let kind = match current.kind() {
+                        "interface_declaration" => SymbolKind::Interface,
+                        "trait_declaration" => SymbolKind::Trait,
+                        "enum_declaration" => SymbolKind::Enum,
+                        _ => SymbolKind::Class,
+                    };
                     let mut symbol = make_symbol(
                         context,
-                        SymbolKind::Class,
+                        kind,
                         &name,
                         None,
                         None,
@@ -112,12 +127,19 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
                         context.line(name_node),
                         current.end_position().row + 1,
                     );
-                    // `if (class_exists(X)) { class Y } else { class Y }` declares
-                    // the same class name twice in one file; without line
-                    // qualification both bodies (and their methods, which embed
-                    // the parent ID) collapse onto one symbol ID.
-                    if is_conditionally_declared(current) {
-                        symbol.id = format!("{}:L{}", symbol.id, symbol.start_line);
+                    symbol.qualified_name = context.names.declaration(current, &name);
+                    if is_conditionally_declared(current)
+                        || graph
+                            .symbols
+                            .iter()
+                            .any(|existing| existing.id == symbol.id)
+                    {
+                        symbol.id = format!(
+                            "{}:L{}:B{}",
+                            symbol.id,
+                            symbol.start_line,
+                            current.start_byte()
+                        );
                     }
                     let symbol_id = symbol.id.clone();
                     graph.add_symbol(symbol);
@@ -126,70 +148,10 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
                     continue;
                 }
             }
-            "interface_declaration" => {
-                if let Some(name_node) = current.child_by_field_name("name") {
-                    let name = context.text(name_node);
-                    let symbol = make_symbol(
-                        context,
-                        SymbolKind::Interface,
-                        &name,
-                        None,
-                        None,
-                        None,
-                        Visibility::Public,
-                        0,
-                        0,
-                        context.line(name_node),
-                        current.end_position().row + 1,
-                    );
-                    graph.add_symbol(symbol);
-                }
-                continue;
-            }
-            "trait_declaration" => {
-                if let Some(name_node) = current.child_by_field_name("name") {
-                    let name = context.text(name_node);
-                    let symbol = make_symbol(
-                        context,
-                        SymbolKind::Trait,
-                        &name,
-                        None,
-                        None,
-                        None,
-                        Visibility::Public,
-                        0,
-                        0,
-                        context.line(name_node),
-                        current.end_position().row + 1,
-                    );
-                    graph.add_symbol(symbol);
-                }
-                continue;
-            }
-            "enum_declaration" => {
-                if let Some(name_node) = current.child_by_field_name("name") {
-                    let name = context.text(name_node);
-                    let symbol = make_symbol(
-                        context,
-                        SymbolKind::Enum,
-                        &name,
-                        None,
-                        None,
-                        None,
-                        Visibility::Public,
-                        0,
-                        0,
-                        context.line(name_node),
-                        current.end_position().row + 1,
-                    );
-                    graph.add_symbol(symbol);
-                }
-                continue;
-            }
             "function_definition" => {
                 if let Some(name_node) = current.child_by_field_name("name") {
                     let name = context.text(name_node);
-                    let symbol = make_symbol(
+                    let mut symbol = make_symbol(
                         context,
                         SymbolKind::Function,
                         &name,
@@ -202,6 +164,19 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
                         context.line(name_node),
                         current.end_position().row + 1,
                     );
+                    symbol.qualified_name = context.names.declaration(current, &name);
+                    if graph
+                        .symbols
+                        .iter()
+                        .any(|existing| existing.id == symbol.id)
+                    {
+                        symbol.id = format!(
+                            "{}:L{}:B{}",
+                            symbol.id,
+                            symbol.start_line,
+                            current.start_byte()
+                        );
+                    }
                     let symbol_id = symbol.id.clone();
                     graph.add_symbol(symbol);
                     record_parameter_types(current, context, graph, Some(symbol_id.as_str()));
@@ -375,6 +350,7 @@ fn record_use_declaration(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -400,6 +376,7 @@ fn record_trait_use_declaration(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -428,6 +405,7 @@ fn record_php_heritage(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
             }
@@ -447,6 +425,7 @@ fn record_php_heritage(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
             }
@@ -482,6 +461,7 @@ fn record_parameter_types(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -509,6 +489,7 @@ fn record_call(
                 receiver_name: None,
                 receiver_type_name: None,
                 call_form: Some(CallForm::Free),
+                class_literal_argument: first_class_literal_argument(node, context),
             });
         }
         "member_call_expression" | "nullsafe_member_call_expression" => {
@@ -537,10 +518,18 @@ fn record_call(
                 receiver_name,
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
+                class_literal_argument: first_class_literal_argument(node, context),
             });
         }
         "scoped_call_expression" => {
             let receiver_name = node.child_by_field_name("scope").map(|n| context.text(n));
+            let receiver_type_name = receiver_name.as_deref().and_then(|name| {
+                if name.eq_ignore_ascii_case("self") {
+                    container_type_name.map(|owner| context.names.declaration(node, owner))
+                } else {
+                    context.names.resolve(node, name)
+                }
+            });
             let target_name = node
                 .child_by_field_name("name")
                 .map(|n| context.text(n))
@@ -554,8 +543,9 @@ fn record_call(
                 line: context.line(node),
                 arity: Some(argument_count(node)),
                 receiver_name,
-                receiver_type_name: None,
+                receiver_type_name,
                 call_form: Some(CallForm::Associated),
+                class_literal_argument: first_class_literal_argument(node, context),
             });
         }
         _ => {}
@@ -585,6 +575,7 @@ fn record_constructor_call(
         receiver_name: None,
         receiver_type_name: None,
         call_form: Some(CallForm::Associated),
+        class_literal_argument: None,
     });
 }
 
@@ -695,7 +686,7 @@ fn infer_member_receiver_type(
     }
     match receiver_node.kind() {
         "variable_name" if context.text(receiver_node) == "$this" => {
-            container_type_name.map(str::to_owned)
+            container_type_name.map(|name| context.names.declaration(receiver_node, name))
         }
         "object_creation_expression" => {
             receiver_node
@@ -954,7 +945,7 @@ fn infer_call_result_type(
                 // `$x = app(Foo::class)` types $x as Foo, not as `app`. Ecosystem
                 // idiom (Laravel), not a repo-specific heuristic.
                 Some("app") | Some("resolve") => {
-                    class_constant_argument(node, context).or(function_name)
+                    first_class_literal_argument(node, context).or(function_name)
                 }
                 _ => function_name,
             }
@@ -1014,24 +1005,33 @@ fn leaf_namespace_name(value: &str) -> String {
 /// First `Foo::class` argument of a call — the type a container helper
 /// (`app()`, `resolve()`) actually returns. Grammar versions vary on whether
 /// arguments are wrapped in an `argument` node, so both shapes are accepted.
-fn class_constant_argument(node: Node<'_>, context: &PhpContext<'_>) -> Option<String> {
+fn first_class_literal_argument(node: Node<'_>, context: &PhpContext<'_>) -> Option<String> {
     let arguments = node.child_by_field_name("arguments")?;
-    arguments
-        .children(&mut arguments.walk())
-        .map(|child| {
-            if child.kind() == "argument" {
-                child.child(0).unwrap_or(child)
-            } else {
-                child
-            }
-        })
-        .find(|child| child.kind() == "class_constant_access_expression")
-        .and_then(|constant| {
-            constant
-                .children(&mut constant.walk())
-                .find(|part| matches!(part.kind(), "name" | "qualified_name"))
-                .map(|name| context.text(name))
-        })
+    let argument = arguments
+        .named_children(&mut arguments.walk())
+        .find(|child| child.kind() == "argument")?;
+    if argument.child_by_field_name("name").is_some() {
+        return None;
+    }
+    let constant = argument
+        .named_children(&mut argument.walk())
+        .find(|child| child.kind() != "comment")?;
+    if constant.kind() != "class_constant_access_expression" {
+        return None;
+    }
+    let parts = constant
+        .named_children(&mut constant.walk())
+        .filter(|child| child.kind() != "comment")
+        .collect::<Vec<_>>();
+    let [name, member] = parts.as_slice() else {
+        return None;
+    };
+    if !matches!(name.kind(), "name" | "qualified_name" | "relative_name")
+        || !context.text(*member).eq_ignore_ascii_case("class")
+    {
+        return None;
+    }
+    context.names.resolve(node, &context.text(*name))
 }
 
 fn trace(message: &str) {
@@ -1172,7 +1172,7 @@ class SyncCommand
         assert!(
             receiver_types
                 .iter()
-                .all(|receiver_type| *receiver_type == "EmailSyncManager"),
+                .all(|receiver_type| *receiver_type == "App\\Services\\EmailSyncManager"),
             "app()/resolve() must bind the ::class argument as the type, got: {receiver_types:?}"
         );
     }
@@ -1222,6 +1222,40 @@ if (class_exists(Base::class)) {
             method_ids[0], method_ids[1],
             "methods embed the parent class ID, so they must diverge too"
         );
+    }
+
+    #[test]
+    fn preserves_namespace_identity_and_members_of_all_php_containers() {
+        let source = r#"<?php
+namespace First { class Same { public function run() {} } }
+namespace Second { class Same { public function run() {} } }
+namespace Third { trait Helpers { private function helper() {} } interface Contract { public function execute(); } enum State { case Open; public function label() {} } }
+"#;
+        let graph = parse_php_to_graph(PathBuf::from("definitions.php"), source).unwrap();
+        for name in [
+            "First\\Same",
+            "Second\\Same",
+            "Third\\Helpers",
+            "Third\\Contract",
+            "Third\\State",
+        ] {
+            assert!(graph
+                .symbols
+                .iter()
+                .any(|symbol| symbol.qualified_name == name));
+        }
+        for name in ["helper", "execute", "label"] {
+            assert!(graph
+                .symbols
+                .iter()
+                .any(|symbol| symbol.kind == SymbolKind::Method && symbol.name == name));
+        }
+        let ids = graph
+            .symbols
+            .iter()
+            .map(|symbol| &symbol.id)
+            .collect::<std::collections::HashSet<_>>();
+        assert_eq!(ids.len(), graph.symbols.len());
     }
 
     #[test]

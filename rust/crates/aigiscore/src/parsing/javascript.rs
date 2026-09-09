@@ -287,10 +287,18 @@ fn record_import_statement(
         return;
     };
     let import_source = context.string_value(source_node);
+    let type_only = has_type_modifier(node);
     for idx in 0..node.child_count() {
         if let Some(child) = node.child(idx as u32) {
             if child.kind() == "import_clause" {
-                record_import_clause(child, &import_source, context, graph, enclosing_symbol_id);
+                record_import_clause(
+                    child,
+                    &import_source,
+                    type_only,
+                    context,
+                    graph,
+                    enclosing_symbol_id,
+                );
             }
         }
     }
@@ -309,6 +317,7 @@ fn record_import_statement(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
     }
 }
@@ -350,7 +359,7 @@ fn record_export_from_statement(
             graph.add_reference(SemanticReference {
                 file_path: context.file_path.clone(),
                 enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-                kind: ReferenceKind::Import,
+                kind: import_kind(has_type_modifier(node) || has_type_modifier(specifier)),
                 target_name: format!("{import_source}::{exported_name}"),
                 binding_name: None,
                 line: context.line(specifier),
@@ -358,6 +367,7 @@ fn record_export_from_statement(
                 receiver_name: None,
                 receiver_type_name: None,
                 call_form: None,
+                class_literal_argument: None,
             });
             recorded_named = true;
         }
@@ -367,7 +377,7 @@ fn record_export_from_statement(
         graph.add_reference(SemanticReference {
             file_path: context.file_path.clone(),
             enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-            kind: ReferenceKind::Import,
+            kind: import_kind(has_type_modifier(node)),
             target_name: import_source,
             binding_name: None,
             line: context.line(node),
@@ -375,13 +385,28 @@ fn record_export_from_statement(
             receiver_name: None,
             receiver_type_name: None,
             call_form: None,
+            class_literal_argument: None,
         });
+    }
+}
+
+fn has_type_modifier(node: Node<'_>) -> bool {
+    node.children(&mut node.walk())
+        .any(|child| child.kind() == "type")
+}
+
+fn import_kind(type_only: bool) -> ReferenceKind {
+    if type_only {
+        ReferenceKind::TypeImport
+    } else {
+        ReferenceKind::Import
     }
 }
 
 fn record_import_clause(
     clause: Node<'_>,
     import_source: &str,
+    type_only: bool,
     context: &JavaScriptContext<'_>,
     graph: &mut SemanticGraph,
     enclosing_symbol_id: Option<&str>,
@@ -389,11 +414,31 @@ fn record_import_clause(
     for idx in 0..clause.child_count() {
         if let Some(child) = clause.child(idx as u32) {
             match child.kind() {
+                "namespace_import" => {
+                    if let Some(binding) = child
+                        .named_children(&mut child.walk())
+                        .find(|part| part.kind() == "identifier")
+                    {
+                        graph.add_reference(SemanticReference {
+                            file_path: context.file_path.clone(),
+                            enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
+                            kind: import_kind(type_only),
+                            target_name: format!("{import_source}::*"),
+                            binding_name: Some(context.text(binding)),
+                            line: context.line(child),
+                            arity: None,
+                            receiver_name: None,
+                            receiver_type_name: None,
+                            call_form: None,
+                            class_literal_argument: None,
+                        });
+                    }
+                }
                 "identifier" => {
                     graph.add_reference(SemanticReference {
                         file_path: context.file_path.clone(),
                         enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-                        kind: ReferenceKind::Import,
+                        kind: import_kind(type_only),
                         target_name: format!("{import_source}::default"),
                         binding_name: Some(context.text(child)),
                         line: context.line(child),
@@ -401,6 +446,7 @@ fn record_import_clause(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
                 "named_imports" => {
@@ -420,7 +466,7 @@ fn record_import_clause(
                             graph.add_reference(SemanticReference {
                                 file_path: context.file_path.clone(),
                                 enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
-                                kind: ReferenceKind::Import,
+                                kind: import_kind(type_only || has_type_modifier(specifier)),
                                 target_name: format!("{import_source}::{imported_name}"),
                                 binding_name: Some(binding_name),
                                 line: context.line(specifier),
@@ -428,6 +474,7 @@ fn record_import_clause(
                                 receiver_name: None,
                                 receiver_type_name: None,
                                 call_form: None,
+                                class_literal_argument: None,
                             });
                         }
                     }
@@ -460,6 +507,7 @@ fn record_js_heritage(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
             }
@@ -510,6 +558,7 @@ fn record_js_parameter_types(
                         receiver_name: None,
                         receiver_type_name: None,
                         call_form: None,
+                        class_literal_argument: None,
                     });
                 }
             }
@@ -545,6 +594,7 @@ fn record_call(
                 receiver_name: None,
                 receiver_type_name: None,
                 call_form: None,
+                class_literal_argument: None,
             });
         }
         return;
@@ -562,6 +612,7 @@ fn record_call(
                 receiver_name: None,
                 receiver_type_name: None,
                 call_form: Some(CallForm::Free),
+                class_literal_argument: None,
             });
         }
         "member_expression" => {
@@ -591,6 +642,7 @@ fn record_call(
                 receiver_name,
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
+                class_literal_argument: None,
             });
         }
         _ => {}
@@ -643,6 +695,7 @@ fn record_constructor_call(
             receiver_name: None,
             receiver_type_name: None,
             call_form: Some(CallForm::Associated),
+            class_literal_argument: None,
         });
     }
 }
@@ -869,6 +922,62 @@ mod tests {
     use super::parse_javascript_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn preserves_type_only_imports_exports_and_namespace_bindings() {
+        let graph = parse_javascript_to_graph(
+            PathBuf::from("src/index.ts"),
+            r#"
+import type Model from './model';
+import { type Shape, value, type as keywordValue } from './types';
+import type * as Types from './types';
+export type { Model } from './model';
+export { type Shape, value } from './types';
+export type * from './types';
+"#,
+            true,
+        )
+        .unwrap();
+        let imports = graph
+            .references
+            .iter()
+            .filter(|reference| reference.kind.is_import())
+            .collect::<Vec<_>>();
+        for name in ["Model", "Shape", "Types"] {
+            assert_eq!(
+                imports
+                    .iter()
+                    .find(|reference| reference.binding_name.as_deref() == Some(name))
+                    .unwrap()
+                    .kind,
+                ReferenceKind::TypeImport
+            );
+        }
+        for name in ["value", "keywordValue"] {
+            assert_eq!(
+                imports
+                    .iter()
+                    .find(|reference| reference.binding_name.as_deref() == Some(name))
+                    .unwrap()
+                    .kind,
+                ReferenceKind::Import
+            );
+        }
+        assert_eq!(
+            imports
+                .iter()
+                .filter(|reference| reference.kind == ReferenceKind::TypeImport)
+                .count(),
+            6
+        );
+        assert_eq!(
+            imports
+                .iter()
+                .filter(|reference| reference.kind == ReferenceKind::Import)
+                .count(),
+            3
+        );
+    }
 
     #[test]
     fn records_reexport_statements_as_import_references() {
