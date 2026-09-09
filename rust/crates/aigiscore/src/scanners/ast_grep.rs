@@ -1451,7 +1451,11 @@ fn compact_snippet(text: &str) -> String {
     if normalized.len() <= 160 {
         normalized
     } else {
-        format!("{}...", &normalized[..157])
+        let mut end = 157;
+        while !normalized.is_char_boundary(end) {
+            end -= 1;
+        }
+        format!("{}...", &normalized[..end])
     }
 }
 
@@ -1462,6 +1466,19 @@ mod tests {
         AstGrepFrameworkMisuseSubtype, AstGrepSecurityCategory,
     };
     use std::path::PathBuf;
+
+    #[test]
+    fn truncates_unicode_matches_without_splitting_code_points() {
+        for character in ['č', '中', '🙂'] {
+            let prefix = format!("eval('{}", "a".repeat(150));
+            let source = format!("{prefix}{character}{}');", "z".repeat(20));
+            let result = run_ast_grep_scan(&[(PathBuf::from("src/unicode.js"), source)]);
+            let finding = result.findings.first().expect("eval match must remain visible");
+            assert_eq!(finding.token, format!("{prefix}..."));
+            assert!(finding.token.len() <= 160);
+            assert_eq!(finding.line, 1);
+        }
+    }
 
     #[test]
     fn env_clues_are_not_emitted_inside_config_boundaries() {
