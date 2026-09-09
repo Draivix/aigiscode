@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use thiserror::Error;
@@ -176,6 +177,7 @@ fn try_fast_load_graph_project(
         };
     if manifest.aigiscode_version != env!("CARGO_PKG_VERSION")
         || manifest.semantic_revision != crate::artifacts::SEMANTIC_REVISION
+        || manifest.semantic_graph_xxh3.len() != 16
         || manifest.resolve_config_xxh3 != crate::artifacts::resolve_config_hash(root)
     {
         return Ok(None);
@@ -229,14 +231,20 @@ fn try_fast_load_graph_project(
         }
     }
 
-    let semantic_graph: SemanticGraph =
-        match fs::read_to_string(output_dir.join(crate::artifacts::SEMANTIC_GRAPH_FILE))
-            .ok()
-            .and_then(|raw| serde_json::from_str(&raw).ok())
-        {
-            Some(graph) => graph,
-            None => return Ok(None),
-        };
+    let file = match fs::File::open(output_dir.join(crate::artifacts::SEMANTIC_GRAPH_FILE)) {
+        Ok(file) => file,
+        Err(_) => return Ok(None),
+    };
+    // Decode and hash the same stream. A second open would race publication,
+    // while a whole-file String doubles peak memory for large cached graphs.
+    let mut reader = BufReader::new(crate::ingestion::hash::HashingIo::new(file));
+    let semantic_graph: SemanticGraph = match serde_json::from_reader(&mut reader) {
+        Ok(graph) => graph,
+        Err(_) => return Ok(None),
+    };
+    if format!("{:016x}", reader.get_ref().content_hash().0) != manifest.semantic_graph_xxh3 {
+        return Ok(None);
+    }
     let structure_started = Instant::now();
     let structure = build_structure_graph(&scan.files);
     Ok(Some(SemanticGraphProject {
@@ -561,6 +569,19 @@ mod tests {
             analysis.semantic_graph.resolved_edges.len()
         );
         assert_eq!(loaded.semantic_graph, analysis.semantic_graph);
+
+        // A valid but unrelated graph must not be accepted for unchanged files.
+        let graph_path = fixture.join(".aigiscode/semantic-graph.json");
+        let original_graph = fs::read(&graph_path).unwrap();
+        let mut unrelated: serde_json::Value = serde_json::from_slice(&original_graph).unwrap();
+        unrelated["symbols"] = serde_json::json!([]);
+        fs::write(&graph_path, serde_json::to_vec(&unrelated).unwrap()).unwrap();
+        assert!(
+            super::analyze_project_fast_load(&fixture, &ScanConfig::default())
+                .unwrap()
+                .is_none()
+        );
+        fs::write(&graph_path, original_graph).unwrap();
 
         // Identical files are insufficient after analyzer semantics change.
         let manifest_path = fixture.join(".aigiscode/scan-manifest.json");

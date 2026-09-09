@@ -223,8 +223,9 @@ impl SemanticGraph {
         {
             edge.strength = EdgeStrength::Inferred;
             edge.confidence_millis = edge.confidence_millis.min(500);
-            edge.reason
-                .push_str("; target is test source, production visibility is unproven");
+            edge.reason.push_str(
+                "; target matches test-source conventions, production visibility is unproven",
+            );
         }
         // A symbol can never inherit from, implement, or override *itself*. Such a
         // self-referential structural edge is always a resolver mis-resolution

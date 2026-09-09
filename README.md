@@ -355,10 +355,17 @@ still need review before any deletion; test-only code can be unfinished wiring.
 
 TypeScript type-only imports and re-exports are serialized as `TypeImport`
 references/edges (`TypeUse` relation). They remain in the full dependency graph
-but cannot close a strong runtime dependency cycle. Cycle findings include
+but cannot close a cycle in the strong dependency view. Cycle findings include
 `directed_witness`, an ordered closed path of original edges with source locations;
 `files` remains the component member set. Fast-load manifests carry
 `semantic_revision`; incompatible or older revisions require fresh analysis.
+They also bind `semantic_graph_xxh3` to the graph bytes produced by that analysis.
+Fast load hashes and decodes the same buffered stream, rejecting mismatches without
+holding another whole-file JSON string in memory. Artifact publication uses a
+temporary file and rename, preserving the previous file on serialization/write
+failure. This is per-file atomicity; the complete report family is not a single
+transaction. The fingerprint protects cache coherence, not authenticity against an
+actor who can rewrite both the manifest and graph.
 
 ### Prepare AI review context
 

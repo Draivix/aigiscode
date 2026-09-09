@@ -28,12 +28,14 @@ use crate::surface::ArchitectureSurface;
 use schemars::JsonSchema;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::fs::{self, File};
-use std::io::{self, BufWriter, Write};
+use std::fs;
+use std::io::{self, Write};
 use std::ops::Not;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
+
+mod atomic;
 
 pub const DEFAULT_OUTPUT_DIR_NAME: &str = ".aigiscode";
 pub const DETERMINISTIC_ANALYSIS_FILE: &str = "deterministic-analysis.json";
@@ -63,7 +65,7 @@ pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 
 /// Bump whenever parser/resolver/plugin semantics change without a package-version bump.
-pub const SEMANTIC_REVISION: u32 = 4;
+pub const SEMANTIC_REVISION: u32 = 6;
 
 /// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
 /// proves the analyzed file set and contents still match `semantic-graph.json`
@@ -74,6 +76,8 @@ pub struct ScanManifest {
     pub aigiscode_version: String,
     #[serde(default)]
     pub semantic_revision: u32,
+    #[serde(default)]
+    pub semantic_graph_xxh3: String,
     /// xxh3 of the resolver-affecting config files (tsconfig/jsconfig/composer).
     pub resolve_config_xxh3: String,
     pub files: Vec<ScanManifestEntry>,
@@ -85,10 +89,15 @@ pub struct ScanManifestEntry {
     pub xxh3: String,
 }
 
-pub fn build_scan_manifest(root: &Path, parsed_sources: &[(PathBuf, String)]) -> ScanManifest {
+pub fn build_scan_manifest(
+    root: &Path,
+    parsed_sources: &[(PathBuf, String)],
+    semantic_graph_xxh3: String,
+) -> ScanManifest {
     ScanManifest {
         aigiscode_version: env!("CARGO_PKG_VERSION").to_string(),
         semantic_revision: SEMANTIC_REVISION,
+        semantic_graph_xxh3,
         resolve_config_xxh3: resolve_config_hash(root),
         files: parsed_sources
             .iter()
@@ -1128,7 +1137,7 @@ pub fn write_project_analysis_artifacts(
         &paths.deterministic_analysis,
         &report_payload,
     )?;
-    write_json_with_style(
+    let semantic_graph_xxh3 = write_json_with_style(
         "semantic_graph",
         &paths.semantic_graph,
         &analysis.semantic_graph,
@@ -1196,7 +1205,11 @@ pub fn write_project_analysis_artifacts(
     write_json(
         "scan_manifest",
         &paths.scan_manifest,
-        &build_scan_manifest(&analysis.root, &analysis.parsed_sources),
+        &build_scan_manifest(
+            &analysis.root,
+            &analysis.parsed_sources,
+            semantic_graph_xxh3,
+        ),
     )?;
     trace_artifact_step("json.write", write_started.elapsed().as_millis());
     let markdown_started = Instant::now();
@@ -7250,7 +7263,7 @@ fn serialize_json_pretty<T: Serialize>(value: &T, path: &Path) -> io::Result<Vec
 
 fn write_json_payload(label: &str, path: &Path, payload: &[u8]) -> io::Result<()> {
     let started = Instant::now();
-    fs::write(path, payload)?;
+    atomic::write(path, |writer| writer.write_all(payload))?;
     trace_artifact_step(
         &format!("json.write.{label}"),
         started.elapsed().as_millis(),
@@ -7259,7 +7272,7 @@ fn write_json_payload(label: &str, path: &Path, payload: &[u8]) -> io::Result<()
 }
 
 fn write_json<T: Serialize>(label: &str, path: &Path, value: &T) -> io::Result<()> {
-    write_json_with_style(label, path, value, JsonArtifactStyle::Pretty)
+    write_json_with_style(label, path, value, JsonArtifactStyle::Pretty).map(|_| ())
 }
 
 fn write_json_with_style<T: Serialize>(
@@ -7267,35 +7280,38 @@ fn write_json_with_style<T: Serialize>(
     path: &Path,
     value: &T,
     style: JsonArtifactStyle,
-) -> io::Result<()> {
+) -> io::Result<String> {
     let started = Instant::now();
-    let file = File::create(path)?;
-    let mut writer = BufWriter::new(file);
-    match style {
-        JsonArtifactStyle::Pretty => {
-            serde_json::to_writer_pretty(&mut writer, value).map_err(|error| {
-                io::Error::other(format!("failed to serialize {}: {error}", path.display()))
-            })?;
+    let hash = atomic::write(path, |writer| {
+        let mut writer = crate::ingestion::hash::HashingIo::new(writer);
+        match style {
+            JsonArtifactStyle::Pretty => {
+                serde_json::to_writer_pretty(&mut writer, value).map_err(|error| {
+                    io::Error::other(format!("failed to serialize {}: {error}", path.display()))
+                })?;
+            }
+            JsonArtifactStyle::Compact => {
+                serde_json::to_writer(&mut writer, value).map_err(|error| {
+                    io::Error::other(format!("failed to serialize {}: {error}", path.display()))
+                })?;
+            }
         }
-        JsonArtifactStyle::Compact => {
-            serde_json::to_writer(&mut writer, value).map_err(|error| {
-                io::Error::other(format!("failed to serialize {}: {error}", path.display()))
-            })?;
-        }
-    }
-    writer.write_all(b"\n")?;
-    writer.flush()?;
+        writer.write_all(b"\n")?;
+        writer.flush()?;
+        Ok(format!("{:016x}", writer.content_hash().0))
+    })?;
     trace_artifact_step(
         &format!("json.write.{label}"),
         started.elapsed().as_millis(),
     );
-    Ok(())
+    Ok(hash)
 }
 
 fn write_markdown(path: &Path, value: &str) -> io::Result<()> {
-    let mut data = value.as_bytes().to_vec();
-    data.push(b'\n');
-    fs::write(path, data)
+    atomic::write(path, |writer| {
+        writer.write_all(value.as_bytes())?;
+        writer.write_all(b"\n")
+    })
 }
 
 fn policy_error_to_io(error: PolicyLoadError) -> io::Error {
@@ -7308,6 +7324,34 @@ fn doctrine_error_to_io(error: DoctrineLoadError) -> io::Error {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn failed_serialization_preserves_previous_artifact_and_cleans_temporary_file() {
+        let fixture = create_fixture();
+        let path = fixture.join("report.json");
+        std::fs::write(&path, b"{\"previous\":true}\n").unwrap();
+        let invalid_json_keys = std::collections::BTreeMap::from([(vec![1u8, 2], 3)]);
+        assert!(super::write_json("report", &path, &invalid_json_keys).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"{\"previous\":true}\n");
+        assert!(std::fs::read_dir(&fixture).unwrap().all(|entry| !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .ends_with(".tmp")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn artifact_publication_does_not_follow_destination_symlinks() {
+        let fixture = create_fixture();
+        let destination = fixture.join("report.json");
+        let external = fixture.join("outside.json");
+        std::fs::write(&external, "keep").unwrap();
+        std::os::unix::fs::symlink(&external, &destination).unwrap();
+        super::write_json("report", &destination, &serde_json::json!({"new":true})).unwrap();
+        assert_eq!(std::fs::read_to_string(external).unwrap(), "keep");
+        assert!(std::fs::symlink_metadata(destination).unwrap().is_file());
+    }
+
     use super::{
         build_agent_handoff_artifact, build_guard_decision_artifact,
         build_topology_state_flow_lookup, build_topology_support_bridges,

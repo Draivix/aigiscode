@@ -4,7 +4,7 @@
 //! last run" becomes representable. Not security-sensitive — see [`crate::revision`].
 
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::path::Path;
 
 use xxhash_rust::xxh3::{xxh3_64, Xxh3};
@@ -12,6 +12,43 @@ use xxhash_rust::xxh3::{xxh3_64, Xxh3};
 use crate::revision::ContentHash;
 
 const HASH_BUFFER_SIZE: usize = 64 * 1024;
+
+/// Hash exactly the bytes transferred, including partial reads/writes.
+pub struct HashingIo<T> {
+    inner: T,
+    hasher: Xxh3,
+}
+
+impl<T> HashingIo<T> {
+    pub fn new(inner: T) -> Self {
+        Self {
+            inner,
+            hasher: Xxh3::new(),
+        }
+    }
+    pub fn content_hash(&self) -> ContentHash {
+        ContentHash(self.hasher.digest())
+    }
+}
+
+impl<T: Read> Read for HashingIo<T> {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        let count = self.inner.read(buffer)?;
+        self.hasher.update(&buffer[..count]);
+        Ok(count)
+    }
+}
+
+impl<T: Write> Write for HashingIo<T> {
+    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
+        let count = self.inner.write(buffer)?;
+        self.hasher.update(&buffer[..count]);
+        Ok(count)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
 
 /// Stream a file through xxh3-64 without holding the whole file in memory.
 pub fn hash_file_xxh3(path: &Path) -> io::Result<ContentHash> {
@@ -50,6 +87,19 @@ mod tests {
         let path = dir.join(name);
         fs::write(&path, contents).unwrap();
         path
+    }
+
+    #[test]
+    fn streaming_hashes_match_transferred_bytes() {
+        let mut writer = HashingIo::new(Vec::new());
+        writer.write_all(b"first").unwrap();
+        writer.write_all(b"second").unwrap();
+        assert_eq!(writer.content_hash(), hash_bytes_xxh3(b"firstsecond"));
+        let mut reader = HashingIo::new(std::io::Cursor::new(b"firstsecond"));
+        let mut output = Vec::new();
+        reader.read_to_end(&mut output).unwrap();
+        assert_eq!(output, b"firstsecond");
+        assert_eq!(reader.content_hash(), writer.content_hash());
     }
 
     #[test]
