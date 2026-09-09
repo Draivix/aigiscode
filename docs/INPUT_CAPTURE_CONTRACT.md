@@ -35,11 +35,19 @@ does not add syntax validation for every configuration format. The watcher uses
 the same candidate list to register nearest existing parent directories, including
 hidden parents such as `.cargo`, independently of source-directory exclusion.
 
-These checks do not establish an atomic whole-repository snapshot. Post-parse
-source reads by the existing WordPress/signal plugins, configuration changes later
-in the pipeline, new paths introduced after scanning and final capture stability
-still require further work. Do not turn this pre-parse identity check into a claim
-that all downstream readers used one immutable set of bytes.
+Runtime plugins receive `RepoContext::new(root, &parsed_sources)`. WordPress hook
+and signal callback expansion use those same borrowed bytes, including Python
+receiver decorators. They perform no later source-file reads. A shared lazy line
+index borrows each line without copying source strings; snippet bounds reject
+zero/out-of-range lines and clamp context at EOF without integer overflow.
+Native callers constructing a plugin context must supply the sources from their
+graph capture. Missing paths produce no snippet; there is no filesystem fallback.
+Semantic revision 12 invalidates graphs built under the earlier plugin contract.
+
+These checks do not establish an atomic whole-repository snapshot. Configuration
+changes later in the pipeline, new paths introduced after scanning and final
+capture stability still require further work. Do not turn captured parser/plugin
+bytes into a claim that every downstream reader used one immutable input set.
 
 The [Draivix observation](2026-09-10-capture-identity.md) records stable analysis and
 a real admitted JSON change. Race/error and hidden-configuration regressions have

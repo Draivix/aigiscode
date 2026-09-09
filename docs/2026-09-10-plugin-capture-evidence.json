@@ -1,0 +1,685 @@
+{
+  "recorded_at": "2026-09-09T23:20:05.178Z",
+  "base_commit": "de946ac3d08ce5f68773e392edfe4e22f58a5710",
+  "implementation_files": [
+    {
+      "path": "rust/crates/aigiscore/src/artifacts.rs",
+      "bytes": 369503,
+      "sha256": "3214087cc43a14d6beafc25a7c9f458d7874e74f840f9e0109a72b7613cd30a8"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+      "bytes": 48931,
+      "sha256": "12142c8ad7f6f5991a38244610559be819ef1fabd454389586b5d4df589498f7"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/mod.rs",
+      "bytes": 8210,
+      "sha256": "d9ef71a096ed954d81aabc0a687c339914ef1cb7a5a1ddc6b2df71ebafc65e46"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/signals.rs",
+      "bytes": 16065,
+      "sha256": "281b7333a7fd2ccf8ff8c8f23b563aa80ecd6717528c97f97bc6526c300aa66f"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/wordpress.rs",
+      "bytes": 18094,
+      "sha256": "71a1411083f08ff67ff8d9db5caebfe00baebb463d69c7b5cde21b8ca20d4b14"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/container.rs",
+      "bytes": 14570,
+      "sha256": "0adc1d0c1e6e7b62b8c3e41508ac3e51da323b5e80e6435ca79cc9ca8105667b"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/queue.rs",
+      "bytes": 6226,
+      "sha256": "3649cef8e00c9e1fdadc117f498d579b9a64a9f521c2f1fdfaa9971a1938abe4"
+    }
+  ],
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-plugin-capture",
+    "bytes": 94712992,
+    "sha256": "603081e67cabbd7566c603c7fdca982bded771278c3f4d5a233893e6d421fbfd"
+  },
+  "build": {
+    "exit": 0,
+    "seconds": 48.39,
+    "log": {
+      "path": "target/reliability-2026-09-09/plugin-capture-build.txt",
+      "bytes": 156,
+      "sha256": "112ec8048736770cad19b05d0bce2947c1598688a3f1f7bd42b21bb7afb1923f"
+    }
+  },
+  "automated_tests_run": false,
+  "ci_run": false,
+  "observation": {
+    "source_root": "target/reliability-2026-09-09/draivix-capture-identity-source",
+    "original_draivix_written": false,
+    "source_mutations_this_unit": 0,
+    "wall_seconds": 83.35,
+    "peak_rss_kib": 3508132,
+    "exit": 1,
+    "exit_reason": "Native coverage remains incomplete; not a process failure.",
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 130081,
+      "references": 1092834,
+      "resolved_edges": 328144,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 29,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 231
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 284
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6324
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 12160
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 39315
+      }
+    ],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/plugin-capture-cli-result.json",
+        "bytes": 16552,
+        "sha256": "7c636f77f013955f324206091309493124d1608ad30fa3c079983bce580a29a3"
+      },
+      {
+        "path": "target/reliability-2026-09-09/plugin-capture-cli-time.txt",
+        "bytes": 1076,
+        "sha256": "566bb930586f4817a798cf1e04d44650189c7cbc90f68d353006aa5a12e48e0e"
+      },
+      {
+        "path": "target/reliability-2026-09-09/plugin-capture-cli-trace.txt",
+        "bytes": 10967455,
+        "sha256": "9f8b2620717b6eed9cd101506b6a39ff45feffcdd04d2cccca7ff6318c00e765"
+      }
+    ],
+    "comparison": [
+      {
+        "name": "semantic-graph.json",
+        "current": {
+          "path": "target/reliability-2026-09-09/plugin-capture-artifacts/semantic-graph.json",
+          "bytes": 793166985,
+          "sha256": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde"
+        },
+        "previous": {
+          "path": "target/reliability-2026-09-09/capture-identity-artifacts/semantic-graph.json",
+          "bytes": 793166985,
+          "sha256": "be582b1b511f6b44f9dd1183f0d625f4c6196ac1c575f87e02d4b22b05bc5cde"
+        },
+        "byte_identical": true
+      },
+      {
+        "name": "ast-grep-scan.json",
+        "current": {
+          "path": "target/reliability-2026-09-09/plugin-capture-artifacts/ast-grep-scan.json",
+          "bytes": 8225069,
+          "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+        },
+        "previous": {
+          "path": "target/reliability-2026-09-09/capture-identity-artifacts/ast-grep-scan.json",
+          "bytes": 8225069,
+          "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+        },
+        "byte_identical": true
+      }
+    ],
+    "integrity": {
+      "completed_at": "2026-09-09T23:20:05.123Z",
+      "results": [
+        {
+          "name": "draivix-capture-identity-source",
+          "files": 23296,
+          "delta": {
+            "added": [],
+            "removed": [],
+            "changed": []
+          },
+          "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+          "configs": [
+            {
+              "path": ".aigiscode/scan.json",
+              "present": true,
+              "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+              "bytes": 132
+            },
+            {
+              "path": ".aigiscode/doctrine.json",
+              "present": true,
+              "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+              "bytes": 8641
+            },
+            {
+              "path": ".aigiscode/policy.json",
+              "present": false
+            },
+            {
+              "path": ".aigiscode/rules.json",
+              "present": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "existing_signal_resolution_defect": {
+    "description": "Five unchanged cross-language edges link OAuth/WebSocket Vue calls via receiver leaf value to an unrelated PHP value function. This capture-ownership unit does not fix signal target/receiver resolution.",
+    "edges": [
+      {
+        "source_file_path": "resources/js/Components/Email/Settings/EmailAccountForm.vue",
+        "source_symbol_id": "function:resources/js/Components/Email/Settings/EmailAccountForm.vue:connectOAuth",
+        "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+        "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+        "reference_target_name": null,
+        "kind": "Call",
+        "relation_kind": "EventSubscribe",
+        "layer": "Framework",
+        "strength": "Dynamic",
+        "origin": "Plugin",
+        "resolution_tier": "Global",
+        "confidence_millis": 650,
+        "reason": "signal callback registration `value`",
+        "line": 235,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+        "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:signalRealtimeAudioStreamEnd",
+        "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+        "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+        "reference_target_name": null,
+        "kind": "Call",
+        "relation_kind": "EventPublish",
+        "layer": "Runtime",
+        "strength": "Dynamic",
+        "origin": "Plugin",
+        "resolution_tier": "Global",
+        "confidence_millis": 650,
+        "reason": "signal dispatch `value`",
+        "line": 1048,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+        "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:sendRealtimeAudioChunk",
+        "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+        "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+        "reference_target_name": null,
+        "kind": "Call",
+        "relation_kind": "EventPublish",
+        "layer": "Runtime",
+        "strength": "Dynamic",
+        "origin": "Plugin",
+        "resolution_tier": "Global",
+        "confidence_millis": 650,
+        "reason": "signal dispatch `value`",
+        "line": 1600,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+        "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:handleToolCall",
+        "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+        "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+        "reference_target_name": null,
+        "kind": "Call",
+        "relation_kind": "EventPublish",
+        "layer": "Runtime",
+        "strength": "Dynamic",
+        "origin": "Plugin",
+        "resolution_tier": "Global",
+        "confidence_millis": 650,
+        "reason": "signal dispatch `value`",
+        "line": 2488,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "resources/js/chat/components/ChatVoiceComposer.vue",
+        "source_symbol_id": "function:resources/js/chat/components/ChatVoiceComposer.vue:sendBackendReplyOverLiveSocket",
+        "target_file_path": "docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php",
+        "target_symbol_id": "function:docs/evidence/2026-07-12-manufacturing-audit/tools/build-module-surface-scenario-map.php:value",
+        "reference_target_name": null,
+        "kind": "Call",
+        "relation_kind": "EventPublish",
+        "layer": "Runtime",
+        "strength": "Dynamic",
+        "origin": "Plugin",
+        "resolution_tier": "Global",
+        "confidence_millis": 650,
+        "reason": "signal dispatch `value`",
+        "line": 2700,
+        "occurrence_index": 0
+      }
+    ]
+  },
+  "limits": [
+    "No race or missing-file scenario executed; source-backed regression tests are written but unrun.",
+    "Whole-graph byte equality preserves existing errors, including the recorded signal resolution defect.",
+    "No WordPress hook edge appears in this Draivix artifact; its behavioral regressions remain unrun.",
+    "Configuration snapshotting and final whole-input stability remain open.",
+    "This observation does not recapture the current original Draivix filesystem."
+  ]
+}

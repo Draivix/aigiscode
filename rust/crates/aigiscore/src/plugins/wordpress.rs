@@ -5,8 +5,7 @@ use crate::graph::{
 use crate::plugins::{RepoContext, RuntimePlugin};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 pub struct WordPressHooksPlugin;
@@ -24,7 +23,6 @@ impl RuntimePlugin for WordPressHooksPlugin {
             .collect::<HashMap<_, _>>();
         let functions_by_name = global_unique_function_targets(graph);
         let methods_by_owner_and_name = methods_by_owner_and_name(graph);
-        let mut source_cache = HashMap::<PathBuf, Vec<String>>::new();
         let mut registrations = HashMap::<String, Vec<HookCallbackTarget>>::new();
         let mut edges = Vec::new();
         let mut emitted = HashSet::<(PathBuf, String, usize, RelationKind)>::new();
@@ -34,12 +32,7 @@ impl RuntimePlugin for WordPressHooksPlugin {
             .iter()
             .filter(is_hook_registration_reference)
         {
-            let Some(snippet) = source_snippet(
-                repo,
-                &reference.file_path,
-                reference.line,
-                &mut source_cache,
-            ) else {
+            let Some(snippet) = repo.source_snippet(&reference.file_path, reference.line, 3) else {
                 continue;
             };
             let Some((hook_name, callback)) = parse_registration(
@@ -84,12 +77,7 @@ impl RuntimePlugin for WordPressHooksPlugin {
         }
 
         for reference in graph.references.iter().filter(is_hook_dispatch_reference) {
-            let Some(snippet) = source_snippet(
-                repo,
-                &reference.file_path,
-                reference.line,
-                &mut source_cache,
-            ) else {
+            let Some(snippet) = repo.source_snippet(&reference.file_path, reference.line, 3) else {
                 continue;
             };
             let Some(hook_name) = parse_dispatch_hook_name(&snippet) else {
@@ -222,27 +210,6 @@ fn parse_dispatch_hook_name(snippet: &str) -> Option<String> {
         .captures(snippet)
         .and_then(|captures| captures.name("hook"))
         .map(|value| value.as_str().to_owned())
-}
-
-fn source_snippet(
-    repo: &RepoContext,
-    file_path: &Path,
-    line: usize,
-    source_cache: &mut HashMap<PathBuf, Vec<String>>,
-) -> Option<String> {
-    let lines = source_cache
-        .entry(file_path.to_path_buf())
-        .or_insert_with(|| {
-            fs::read_to_string(repo.root().join(file_path))
-                .map(|source| source.lines().map(str::to_owned).collect())
-                .unwrap_or_default()
-        });
-    if lines.is_empty() {
-        return None;
-    }
-    let start = line.saturating_sub(1);
-    let end = (start + 4).min(lines.len());
-    Some(lines[start..end].join(" "))
 }
 
 fn global_unique_function_targets(graph: &SemanticGraph) -> HashMap<String, HookCallbackTarget> {
@@ -397,15 +364,20 @@ do_action( 'wp_head' );
         )
         .unwrap();
 
-        let mut graph = parse_php_to_graph(
+        let sources = vec![(
             PathBuf::from("src/wp-signup.php"),
-            &fs::read_to_string(&file_path).unwrap(),
-        )
-        .unwrap();
+            fs::read_to_string(&file_path).unwrap(),
+        )];
+        let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
         resolve_graph(&mut graph);
 
+        // Plugin evidence must survive a later edit/removal of the captured file.
+        fs::write(&file_path, "<?php\n").unwrap();
         let plugin = WordPressHooksPlugin;
-        let edges = plugin.emit_edges(&RepoContext::new(&fixture), &graph);
+        let repo = RepoContext::new(&fixture, &sources);
+        let edges = plugin.emit_edges(&repo, &graph);
+        fs::remove_file(&file_path).unwrap();
+        assert_eq!(edges, plugin.emit_edges(&repo, &graph));
 
         assert!(edges.iter().any(|edge| {
             edge.relation_kind == RelationKind::EventSubscribe

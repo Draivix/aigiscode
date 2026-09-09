@@ -6,6 +6,7 @@ pub mod wordpress;
 use crate::graph::{ResolvedEdge, SemanticGraph, SymbolNode};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RuntimePluginDescriptor {
@@ -23,17 +24,60 @@ pub trait RuntimePlugin {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepoContext {
+pub struct RepoContext<'a> {
     pub root: PathBuf,
+    sources: HashMap<&'a Path, CapturedSource<'a>>,
 }
 
-impl RepoContext {
-    pub fn new(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into() }
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CapturedSource<'a> {
+    text: &'a str,
+    lines: OnceLock<Vec<&'a str>>,
+}
+
+impl<'a> RepoContext<'a> {
+    /// Borrow the exact source bytes used to build the graph; never reload disk.
+    pub fn new(root: impl Into<PathBuf>, sources: &'a [(PathBuf, String)]) -> Self {
+        Self {
+            root: root.into(),
+            sources: sources
+                .iter()
+                .map(|(path, text)| {
+                    (
+                        path.as_path(),
+                        CapturedSource {
+                            text,
+                            lines: OnceLock::new(),
+                        },
+                    )
+                })
+                .collect(),
+        }
     }
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    pub(crate) fn source_lines(&self, path: &Path) -> Option<&[&'a str]> {
+        let source = self.sources.get(path)?;
+        Some(source.lines.get_or_init(|| source.text.lines().collect()))
+    }
+
+    pub(crate) fn source_snippet(
+        &self,
+        path: &Path,
+        line: usize,
+        context_after: usize,
+    ) -> Option<String> {
+        let lines = self.source_lines(path)?;
+        let start = line.checked_sub(1)?;
+        lines.get(start)?;
+        let end = start
+            .saturating_add(context_after)
+            .saturating_add(1)
+            .min(lines.len());
+        Some(lines[start..end].join(" "))
     }
 }
 
@@ -188,3 +232,30 @@ fn default_runtime_plugins() -> Vec<Box<dyn RuntimePlugin>> {
         Box::new(wordpress::WordPressHooksPlugin),
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::RepoContext;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn captured_snippets_handle_crlf_and_invalid_ranges() {
+        let path = Path::new("src/hooks.py");
+        let sources = vec![
+            (path.to_path_buf(), "first\r\nsecond\nthird\n".to_owned()),
+            (PathBuf::from("empty.py"), String::new()),
+        ];
+        let repo = RepoContext::new(".", &sources);
+        assert_eq!(repo.source_snippet(path, 1, 1).as_deref(), Some("first second"));
+        assert_eq!(
+            repo.source_snippet(path, 2, usize::MAX).as_deref(),
+            Some("second third")
+        );
+        for line in [0, 4, usize::MAX] {
+            assert_eq!(repo.source_snippet(path, line, 3), None);
+        }
+        assert_eq!(repo.source_snippet(Path::new("empty.py"), 1, 0), None);
+        assert_eq!(repo.source_lines(Path::new("missing.py")), None);
+    }
+}
+

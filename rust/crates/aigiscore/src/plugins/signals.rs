@@ -5,8 +5,7 @@ use crate::graph::{
 use crate::plugins::{import_targets_by_binding, leaf_symbol_name, RepoContext, RuntimePlugin};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::OnceLock;
 
 pub struct SignalCallbacksPlugin;
@@ -39,7 +38,6 @@ impl RuntimePlugin for SignalCallbacksPlugin {
         let same_file_functions = same_file_function_targets(graph);
         let global_unique_functions = global_unique_function_targets(graph);
         let methods_by_owner_and_name = methods_by_owner_and_name(graph);
-        let mut source_cache = HashMap::<PathBuf, Vec<String>>::new();
         let mut registrations = HashMap::<String, Vec<SignalCallbackTarget>>::new();
         let mut edges = Vec::new();
         let mut emitted = HashSet::<(PathBuf, String, usize, RelationKind)>::new();
@@ -48,20 +46,13 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             repo,
             graph,
             &same_file_functions,
-            &mut source_cache,
             &mut registrations,
             &mut edges,
             &mut emitted,
         );
 
         for reference in graph.references.iter().filter(is_signal_connect_reference) {
-            let Some(snippet) = source_snippet(
-                repo,
-                &reference.file_path,
-                reference.line,
-                &mut source_cache,
-                2,
-            ) else {
+            let Some(snippet) = repo.source_snippet(&reference.file_path, reference.line, 2) else {
                 continue;
             };
             let Some(captures) = connect_call_regex().captures(&snippet) else {
@@ -137,7 +128,6 @@ fn scan_receiver_decorators(
     repo: &RepoContext,
     graph: &SemanticGraph,
     same_file_functions: &HashMap<(PathBuf, String), SignalCallbackTarget>,
-    source_cache: &mut HashMap<PathBuf, Vec<String>>,
     registrations: &mut HashMap<String, Vec<SignalCallbackTarget>>,
     edges: &mut Vec<ResolvedEdge>,
     emitted: &mut HashSet<(PathBuf, String, usize, RelationKind)>,
@@ -147,12 +137,12 @@ fn scan_receiver_decorators(
         .iter()
         .filter(|file| file.language == Language::Python)
     {
-        let Some(lines) = source_lines(repo, &file.path, source_cache) else {
+        let Some(lines) = repo.source_lines(&file.path) else {
             continue;
         };
         let mut index = 0usize;
         while index < lines.len() {
-            let Some(captures) = receiver_decorator_regex().captures(&lines[index]) else {
+            let Some(captures) = receiver_decorator_regex().captures(lines[index]) else {
                 index += 1;
                 continue;
             };
@@ -196,7 +186,7 @@ fn scan_receiver_decorators(
     }
 }
 
-fn next_decorated_function_name(lines: &[String], start_index: usize) -> Option<(usize, &str)> {
+fn next_decorated_function_name<'a>(lines: &[&'a str], start_index: usize) -> Option<(usize, &'a str)> {
     let mut index = start_index;
     while index < lines.len() {
         let trimmed = lines[index].trim();
@@ -372,38 +362,6 @@ fn methods_by_owner_and_name(
             ))
         })
         .collect()
-}
-
-fn source_lines<'a>(
-    repo: &RepoContext,
-    file_path: &Path,
-    source_cache: &'a mut HashMap<PathBuf, Vec<String>>,
-) -> Option<&'a Vec<String>> {
-    let lines = source_cache
-        .entry(file_path.to_path_buf())
-        .or_insert_with(|| {
-            fs::read_to_string(repo.root().join(file_path))
-                .map(|source| source.lines().map(str::to_owned).collect())
-                .unwrap_or_default()
-        });
-    if lines.is_empty() {
-        None
-    } else {
-        Some(lines)
-    }
-}
-
-fn source_snippet(
-    repo: &RepoContext,
-    file_path: &Path,
-    line: usize,
-    source_cache: &mut HashMap<PathBuf, Vec<String>>,
-    context_after: usize,
-) -> Option<String> {
-    let lines = source_lines(repo, file_path, source_cache)?;
-    let start = line.saturating_sub(1);
-    let end = (start + context_after + 1).min(lines.len());
-    Some(lines[start..end].join(" "))
 }
 
 fn connect_call_regex() -> &'static Regex {

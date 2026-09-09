@@ -12,8 +12,9 @@ nemění jejich rozsah. Podrobnosti a otisky zachycuje
 [Kontrola identity capture z 10. září](2026-09-10-capture-identity.md) doplňuje
 shodu parsovaných bajtů se scanem, přísnější klíč fast-load a explicitní chyby
 čtení prostředí. Reálná změna JSON vstupu na kopii Draivixu cache odmítla;
-sémantický graf a scanner na stabilním korpusu zůstaly shodné. Pozdní čtení
-pluginů, celková stabilita capture a schválené CI jsou nadále otevřené.
+sémantický graf a scanner na stabilním korpusu zůstaly shodné.
+[Navazující oprava pluginů](2026-09-10-plugin-capture.md) odstraňuje jejich pozdní
+čtení zdrojů z disku. Celková stabilita capture a schválené CI jsou nadále otevřené.
 
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto

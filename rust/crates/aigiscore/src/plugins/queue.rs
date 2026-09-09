@@ -147,7 +147,7 @@ final class SyncAccountJob {}
         resolve_graph(&mut graph);
 
         let plugin = QueueDispatchPlugin;
-        let edges = plugin.emit_edges(&RepoContext::new("."), &graph);
+        let edges = plugin.emit_edges(&RepoContext::new(".", &[]), &graph);
 
         assert_eq!(edges.len(), 1);
         assert_eq!(edges[0].layer, GraphLayer::Runtime);
@@ -192,7 +192,7 @@ final class SyncAccountJob {}
         resolve_graph(&mut graph);
 
         let plugin = QueueDispatchPlugin;
-        let edges = plugin.emit_edges(&RepoContext::new("."), &graph);
+        let edges = plugin.emit_edges(&RepoContext::new(".", &[]), &graph);
 
         assert_eq!(edges.len(), 1);
         assert_eq!(

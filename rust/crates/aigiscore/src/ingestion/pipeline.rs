@@ -583,7 +583,7 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
         semantic_graph.resolved_edges.len()
     ));
     let plugins_started = Instant::now();
-    apply_runtime_plugins(&RepoContext::new(root.clone()), &mut semantic_graph);
+    apply_runtime_plugins(&RepoContext::new(root.clone(), &parsed_sources), &mut semantic_graph);
     semantic_graph.downgrade_recovered_edges();
     trace(&format!(
         "runtime plugins complete resolved_edges={} elapsed_ms={}",

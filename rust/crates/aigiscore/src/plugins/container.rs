@@ -256,7 +256,7 @@ final class TenantManager
         resolve_graph(&mut graph);
 
         let plugin = ContainerResolutionPlugin;
-        let edges = plugin.emit_edges(&RepoContext::new(&fixture), &graph);
+        let edges = plugin.emit_edges(&RepoContext::new(&fixture, &[]), &graph);
 
         assert_eq!(edges.len(), 1);
         assert_eq!(edges[0].layer, GraphLayer::Framework);
