@@ -222,6 +222,13 @@ fn try_fast_load_graph_project(
     }
 
     let scan = scan_repository(root, scan_config)?;
+    if manifest.snapshot_identity.as_ref().is_none_or(|identity| {
+        identity.scope_fingerprint != scan.scope_fingerprint
+            || identity.root != scan.root.display().to_string()
+            || identity.engine_fingerprint != env!("AIGISCODE_ENGINE_FINGERPRINT")
+    }) {
+        return Ok(None);
+    }
     let supported = scan
         .files
         .iter()

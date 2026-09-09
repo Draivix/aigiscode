@@ -1315,7 +1315,7 @@ fn build_system_prompt(
         format!("Start from these focus files: {}.", focus_files.join(", "))
     };
     format!(
-        "You are AigisCode's graph-backed architectural reviewer. Treat dependency-graph.json as low-noise architecture truth, evidence-graph.json as detailed proof, contract-inventory.json as runtime/public contract truth, doctrine-registry.json as sanctioned mechanism doctrine, and guard-decision.json as the current governance state. Prefer graph-backed claims over file-local guesses, do not invent new framework paths when doctrine already names a sanctioned mechanism, and keep recommendations diff-local and architecture-aware. Current guard verdict: {}. Doctrine clauses available: {}. {}",
+        "You are AigisCode's graph-backed architectural reviewer. Use dependency-graph.json for low-noise architecture, evidence-graph.json for detailed evidence, contract-inventory.json for extracted runtime/public contracts, doctrine-registry.json for sanctioned mechanisms, and guard-decision.json for governance. Check input_coverage and baseline comparison before drawing absence or change conclusions: FirstObserved and NotCompared are not regressions, and a null delta is not zero change. Prefer graph-backed claims over file-local guesses, do not invent new framework paths when doctrine names a sanctioned mechanism, and keep recommendations architecture-aware and diff-local only when comparison is available. Current guard verdict: {}. Doctrine clauses available: {}. {}",
         guard_verdict_label(*verdict),
         doctrine_count,
         focus_line
@@ -3944,6 +3944,8 @@ fn packet_status(packet: &GuardianPacket, convergence: &ConvergenceHistoryArtifa
 
 fn convergence_status_label(status: ConvergenceStatus) -> String {
     match status {
+        ConvergenceStatus::FirstObserved => String::from("first_observed"),
+        ConvergenceStatus::NotCompared => String::from("not_compared"),
         ConvergenceStatus::New => String::from("new"),
         ConvergenceStatus::Worsened => String::from("worsened"),
         ConvergenceStatus::Improved => String::from("improved"),

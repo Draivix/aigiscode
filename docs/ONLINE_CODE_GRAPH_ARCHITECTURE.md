@@ -285,6 +285,11 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
   unsupported sources and limited adapters (currently Vue script-only) defer
   absence-based checks and block clean-audit conclusions. Full parse outcomes
   live in the semantic graph. See the [input coverage evidence and limits](2026-09-09-input-coverage.md).
+- Convergence uses the [verified baseline contract](BASELINE_CONTRACT.md).
+  Initial findings are `FirstObserved`; unavailable comparisons are `NotCompared`
+  with null deltas. The manifest seals the three baseline artifacts and identifies
+  the source, scope and engine. MCP and agent requests consume the same computed
+  writer context or the shared verified reader.
 - ⏳ Deferred (advisory, not correctness): MCP resource-subscription *push*
   (`notifications/resources/updated`). The freshness contract already covers
   correctness — a client polling `repo_overview` sees the revision change and the

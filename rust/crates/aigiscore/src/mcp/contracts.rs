@@ -822,6 +822,8 @@ impl ArtifactFileOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct GuardDecisionOutput {
+    #[serde(default)]
+    pub baseline: crate::artifacts::BaselineAssessment,
     pub verdict: String,
     pub confidence_millis: u16,
     pub summary: String,
@@ -837,6 +839,7 @@ pub struct GuardDecisionOutput {
 impl GuardDecisionOutput {
     pub fn from_artifact(artifact: &GuardDecisionArtifact) -> Self {
         Self {
+            baseline: artifact.baseline.clone(),
             verdict: guard_verdict_label(artifact.verdict),
             confidence_millis: artifact.confidence_millis,
             summary: artifact.summary.clone(),
@@ -870,6 +873,8 @@ impl GuardDecisionOutput {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
 pub struct GuardDecisionPressureOutput {
+    #[serde(default)]
+    pub comparison_available: bool,
     pub new_findings: usize,
     pub worsened_findings: usize,
     pub attention_items: usize,
@@ -895,6 +900,7 @@ pub struct GuardDecisionPressureOutput {
 impl GuardDecisionPressureOutput {
     fn from_pressure(pressure: &GuardDecisionPressure) -> Self {
         Self {
+            comparison_available: pressure.comparison_available,
             new_findings: pressure.new_findings,
             worsened_findings: pressure.worsened_findings,
             attention_items: pressure.attention_items,
@@ -945,10 +951,12 @@ impl GuardDecisionTriggerOutput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConvergenceOutput {
+    #[serde(default)]
+    pub baseline: crate::artifacts::BaselineAssessment,
     pub root: String,
     pub summary: ConvergenceSummaryOutput,
-    pub graph_delta: ConvergenceGraphDeltaOutput,
-    pub contract_delta: ConvergenceContractDeltaOutput,
+    pub graph_delta: Option<ConvergenceGraphDeltaOutput>,
+    pub contract_delta: Option<ConvergenceContractDeltaOutput>,
     pub required_investigation_files: Vec<String>,
     pub required_radius: ConvergenceRequiredRadiusOutput,
     pub attention_items: Vec<ConvergenceAttentionItemOutput>,
@@ -969,12 +977,11 @@ pub struct ConvergenceOutput {
 impl ConvergenceOutput {
     pub fn from_artifact(artifact: &ConvergenceHistoryArtifact) -> Self {
         Self {
+            baseline: artifact.baseline.clone(),
             root: artifact.root.clone(),
             summary: ConvergenceSummaryOutput::from_summary(&artifact.summary),
-            graph_delta: ConvergenceGraphDeltaOutput::from_graph_delta(&artifact.graph_delta),
-            contract_delta: ConvergenceContractDeltaOutput::from_contract_delta(
-                &artifact.contract_delta,
-            ),
+            graph_delta: artifact.graph_delta.as_ref().map(ConvergenceGraphDeltaOutput::from_graph_delta),
+            contract_delta: artifact.contract_delta.as_ref().map(ConvergenceContractDeltaOutput::from_contract_delta),
             required_investigation_files: artifact.required_investigation_files.clone(),
             required_radius: ConvergenceRequiredRadiusOutput::from_radius(
                 &artifact.required_radius,
@@ -1033,7 +1040,11 @@ impl ConvergenceOutput {
 #[derive(Default, Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConvergenceSummaryOutput {
     pub current_findings: usize,
-    pub previous_findings: usize,
+    pub previous_findings: Option<usize>,
+    #[serde(default)]
+    pub first_observed_findings: usize,
+    #[serde(default)]
+    pub not_compared_findings: usize,
     pub new_findings: usize,
     pub worsened_findings: usize,
     pub improved_findings: usize,
@@ -1046,6 +1057,8 @@ impl ConvergenceSummaryOutput {
         Self {
             current_findings: summary.current_findings,
             previous_findings: summary.previous_findings,
+            first_observed_findings: summary.first_observed_findings,
+            not_compared_findings: summary.not_compared_findings,
             new_findings: summary.new_findings,
             worsened_findings: summary.worsened_findings,
             improved_findings: summary.improved_findings,
@@ -1198,6 +1211,10 @@ pub struct ConvergenceFindingOutput {
     pub fingerprint: String,
     pub current_id: Option<String>,
     pub previous_id: Option<String>,
+    #[serde(default)]
+    pub current_occurrences: Option<usize>,
+    #[serde(default)]
+    pub previous_occurrences: Option<usize>,
     pub title: String,
     pub family: String,
     pub status: String,
@@ -1214,6 +1231,8 @@ impl ConvergenceFindingOutput {
             fingerprint: delta.fingerprint.clone(),
             current_id: delta.current_id.clone(),
             previous_id: delta.previous_id.clone(),
+            current_occurrences: delta.current_occurrences,
+            previous_occurrences: delta.previous_occurrences,
             title: delta.title.clone(),
             family: delta.family.clone(),
             status: convergence_status_label(delta.status),
@@ -1228,6 +1247,8 @@ impl ConvergenceFindingOutput {
 
 fn convergence_status_label(status: ConvergenceStatus) -> String {
     match status {
+        ConvergenceStatus::FirstObserved => String::from("first_observed"),
+        ConvergenceStatus::NotCompared => String::from("not_compared"),
         ConvergenceStatus::New => String::from("new"),
         ConvergenceStatus::Worsened => String::from("worsened"),
         ConvergenceStatus::Improved => String::from("improved"),
@@ -3386,6 +3407,7 @@ mod tests {
     #[test]
     fn convergence_budget_cap_drops_unchanged_and_states_omissions() {
         let mut output = ConvergenceOutput {
+            baseline: Default::default(),
             root: String::from("/repo"),
             summary: Default::default(),
             graph_delta: Default::default(),
@@ -3404,6 +3426,8 @@ mod tests {
                 fingerprint: format!("fp-{index}"),
                 current_id: None,
                 previous_id: None,
+                current_occurrences: None,
+                previous_occurrences: None,
                 title: String::from("t"),
                 family: String::from("graph"),
                 status: if index < 90 {

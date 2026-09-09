@@ -33,6 +33,9 @@ use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 mod atomic;
+mod baseline;
+pub use baseline::{BaselineAssessment, BaselineAvailability, BaselineComparison, BaselineHashes,
+    BaselineReason, BaselineSnapshot, SnapshotIdentity};
 
 pub const DEFAULT_OUTPUT_DIR_NAME: &str = ".aigiscode";
 pub const DETERMINISTIC_ANALYSIS_FILE: &str = "deterministic-analysis.json";
@@ -62,7 +65,7 @@ pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 
 /// Bump whenever parser/resolver/plugin semantics change without a package-version bump.
-pub const SEMANTIC_REVISION: u32 = 10;
+pub const SEMANTIC_REVISION: u32 = 11;
 
 /// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
 /// proves the analyzed file set and contents still match `semantic-graph.json`
@@ -78,6 +81,10 @@ pub struct ScanManifest {
     /// xxh3 of the resolver-affecting config files (tsconfig/jsconfig/composer).
     pub resolve_config_xxh3: String,
     pub files: Vec<ScanManifestEntry>,
+    #[serde(default)]
+    pub snapshot_identity: Option<SnapshotIdentity>,
+    #[serde(default)]
+    pub baseline_hashes: Option<BaselineHashes>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -96,6 +103,8 @@ pub fn build_scan_manifest(
         semantic_revision: SEMANTIC_REVISION,
         semantic_graph_xxh3,
         resolve_config_xxh3,
+        snapshot_identity: None,
+        baseline_hashes: None,
         files: parsed_sources
             .iter()
             .map(|(path, source)| ScanManifestEntry {
@@ -202,6 +211,7 @@ pub struct AigiscodeReportArtifact<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct ReportSummary {
+    pub baseline: BaselineAssessment,
     pub input_coverage: crate::coverage::InputCoverage,
     pub scanned_files: usize,
     pub analyzed_files: usize,
@@ -460,6 +470,10 @@ pub struct RepositoryTopologyRecommendedSlice {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct RepositoryTopologyStatusSummary {
+    #[serde(default)]
+    pub first_observed_count: usize,
+    #[serde(default)]
+    pub not_compared_count: usize,
     pub new_count: usize,
     pub worsened_count: usize,
     pub improved_count: usize,
@@ -577,10 +591,12 @@ pub struct RepositoryTopologyContractZone {
 pub struct ConvergenceHistoryArtifact {
     pub root: String,
     #[serde(default)]
+    pub baseline: BaselineAssessment,
+    #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
     pub summary: ConvergenceSummary,
-    pub graph_delta: ConvergenceGraphDelta,
-    pub contract_delta: ConvergenceContractDelta,
+    pub graph_delta: Option<ConvergenceGraphDelta>,
+    pub contract_delta: Option<ConvergenceContractDelta>,
     pub required_investigation_files: Vec<String>,
     pub required_radius: ConvergenceRequiredRadius,
     pub attention_items: Vec<ConvergenceAttentionItem>,
@@ -590,7 +606,11 @@ pub struct ConvergenceHistoryArtifact {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceSummary {
     pub current_findings: usize,
-    pub previous_findings: usize,
+    pub previous_findings: Option<usize>,
+    #[serde(default)]
+    pub first_observed_findings: usize,
+    #[serde(default)]
+    pub not_compared_findings: usize,
     pub new_findings: usize,
     pub worsened_findings: usize,
     pub improved_findings: usize,
@@ -598,7 +618,7 @@ pub struct ConvergenceSummary {
     pub resolved_findings: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceGraphDelta {
     pub strong_cycle_delta: isize,
     pub total_cycle_delta: isize,
@@ -626,7 +646,7 @@ pub struct ConvergenceRequiredRadius {
     pub outbound_neighbor_count: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceContractDelta {
     pub routes: ContractValueDelta,
     pub hooks: ContractValueDelta,
@@ -636,7 +656,7 @@ pub struct ConvergenceContractDelta {
     pub config_keys: ContractValueDelta,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContractValueDelta {
     pub added_count: usize,
     pub removed_count: usize,
@@ -646,6 +666,8 @@ pub struct ContractValueDelta {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConvergenceStatus {
+    FirstObserved,
+    NotCompared,
     New,
     Worsened,
     Improved,
@@ -658,6 +680,10 @@ pub struct ConvergenceFindingDelta {
     pub fingerprint: String,
     pub current_id: Option<String>,
     pub previous_id: Option<String>,
+    #[serde(default)]
+    pub current_occurrences: Option<usize>,
+    #[serde(default)]
+    pub previous_occurrences: Option<usize>,
     pub title: String,
     pub family: String,
     pub status: ConvergenceStatus,
@@ -708,6 +734,8 @@ pub struct GuardDecisionTrigger {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GuardDecisionPressure {
+    #[serde(default)]
+    pub comparison_available: bool,
     pub new_findings: usize,
     pub worsened_findings: usize,
     pub attention_items: usize,
@@ -736,6 +764,8 @@ pub struct GuardDecisionPressure {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GuardDecisionArtifact {
+    #[serde(default)]
+    pub baseline: BaselineAssessment,
     pub root: String,
     pub verdict: GuardVerdict,
     pub confidence_millis: u16,
@@ -880,6 +910,7 @@ pub fn write_project_analysis_artifacts(
 pub(crate) struct ArtifactContext {
     pub convergence: ConvergenceHistoryArtifact,
     pub guard: GuardDecisionArtifact,
+    pub agentic_review: AgenticReviewArtifact,
 }
 
 pub(crate) fn write_project_analysis_artifacts_with_context(
@@ -948,12 +979,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         root: &analysis.root,
         evidence_graph: build_evidence_graph_artifact(&analysis.semantic_graph),
     };
-    let previous_architecture_surface =
-        read_json_artifact_if_exists::<ArchitectureSurface>(&paths.architecture_surface)?;
-    let previous_review_surface =
-        read_json_artifact_if_exists::<ReviewSurface>(&paths.review_surface)?;
-    let previous_contract_inventory =
-        read_json_artifact_if_exists::<ContractInventory>(&paths.contract_inventory)?;
+    let baseline = BaselineSnapshot::load(&paths.output_dir)?;
     let policy_bundle = analysis.policy_bundle();
     let doctrine_registry = analysis.doctrine_registry();
     let review_started = Instant::now();
@@ -961,15 +987,10 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     trace_artifact_step("review_surface.build", review_started.elapsed().as_millis());
     let convergence_started = Instant::now();
     let convergence_history = build_convergence_history_artifact(
-        &analysis.root,
-        &analysis.semantic_graph,
-        previous_architecture_surface.as_ref(),
-        previous_review_surface.as_ref(),
-        previous_contract_inventory.as_ref(),
+        analysis,
+        &baseline,
         &surface,
         &review_surface,
-        &analysis.contract_inventory,
-        doctrine_registry,
     );
     trace_artifact_step(
         "convergence.build",
@@ -1020,6 +1041,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
+            baseline: convergence_history.baseline.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
             scanned_files: analysis.scan.files.len(),
             analyzed_files: analysis.semantic_graph.files.len(),
@@ -1163,10 +1185,11 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         &evidence_graph,
         JsonArtifactStyle::Compact,
     )?;
-    write_json(
+    let contract_inventory_xxh3 = write_json_with_style(
         "contract_inventory",
         &paths.contract_inventory,
         &analysis.contract_inventory,
+        JsonArtifactStyle::Pretty,
     )?;
     write_json(
         "doctrine_registry",
@@ -1189,12 +1212,13 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         &paths.external_analysis,
         &analysis.external_analysis,
     )?;
-    write_json(
+    let architecture_surface_xxh3 = write_json_with_style(
         "architecture_surface",
         &paths.architecture_surface,
         &surface,
+        JsonArtifactStyle::Pretty,
     )?;
-    write_json("review_surface", &paths.review_surface, &review_surface)?;
+    let review_surface_xxh3 = write_json_with_style("review_surface", &paths.review_surface, &review_surface, JsonArtifactStyle::Pretty)?;
     write_json(
         "convergence_history",
         &paths.convergence_history,
@@ -1210,15 +1234,6 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         &repository_topology,
     )?;
     write_json_payload("aigiscode_report", &paths.aigiscode_report, &report_payload)?;
-    write_json(
-        "scan_manifest",
-        &paths.scan_manifest,
-        &build_scan_manifest(
-            &analysis.parsed_sources,
-            semantic_graph_xxh3,
-            analysis.resolve_config_xxh3.clone(),
-        ),
-    )?;
     trace_artifact_step("json.write", write_started.elapsed().as_millis());
     let markdown_started = Instant::now();
     write_markdown(
@@ -1227,11 +1242,23 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     )?;
     trace_artifact_step("markdown.write", markdown_started.elapsed().as_millis());
 
+    // Seal after every artifact has been written. Readers verify the transferred
+    // bytes of the baseline family against this manifest before comparing runs.
+    let mut manifest = build_scan_manifest(&analysis.parsed_sources, semantic_graph_xxh3, analysis.resolve_config_xxh3.clone());
+    manifest.snapshot_identity = Some(convergence_history.baseline.current.clone());
+    manifest.baseline_hashes = Some(BaselineHashes {
+        architecture_surface: architecture_surface_xxh3,
+        review_surface: review_surface_xxh3,
+        contract_inventory: contract_inventory_xxh3,
+    });
+    write_json("scan_manifest", &paths.scan_manifest, &manifest)?;
+
     Ok((
         paths,
         ArtifactContext {
             convergence: convergence_history,
             guard: guard_decision,
+            agentic_review,
         },
     ))
 }
@@ -3344,6 +3371,8 @@ fn increment_status_summary(
     status: ConvergenceStatus,
 ) {
     match status {
+        ConvergenceStatus::FirstObserved => summary.first_observed_count += 1,
+        ConvergenceStatus::NotCompared => summary.not_compared_count += 1,
         ConvergenceStatus::New => summary.new_count += 1,
         ConvergenceStatus::Worsened => summary.worsened_count += 1,
         ConvergenceStatus::Improved => summary.improved_count += 1,
@@ -3353,6 +3382,8 @@ fn increment_status_summary(
 }
 
 fn topology_freshness_label(summary: &RepositoryTopologyStatusSummary) -> String {
+    if summary.not_compared_count > 0 { return String::from("not_compared"); }
+    if summary.first_observed_count > 0 { return String::from("first_observed"); }
     if summary.worsened_count > 0 {
         return String::from("worsened");
     }
@@ -3393,8 +3424,11 @@ fn topology_baseline_observation(
     convergence_history: Option<&ConvergenceHistoryArtifact>,
 ) -> String {
     match convergence_history {
-        Some(history) if history.summary.previous_findings > 0 => String::from("baseline_loaded"),
-        Some(_) => String::from("baseline_empty"),
+        Some(history) if history.baseline.is_comparable() => {
+            if history.summary.previous_findings == Some(0) { String::from("baseline_empty") }
+            else { String::from("baseline_loaded") }
+        }
+        Some(history) => format!("baseline_{:?}", history.baseline.availability).to_ascii_lowercase(),
         None => String::from("baseline_unavailable"),
     }
 }
@@ -3557,29 +3591,27 @@ fn relation_kind_label(kind: crate::graph::RelationKind) -> &'static str {
 
 #[allow(clippy::too_many_arguments)]
 pub fn build_convergence_history_artifact(
-    root: &Path,
-    semantic_graph: &crate::graph::SemanticGraph,
-    previous_architecture_surface: Option<&ArchitectureSurface>,
-    previous_review_surface: Option<&ReviewSurface>,
-    previous_contract_inventory: Option<&ContractInventory>,
+    analysis: &ProjectAnalysis,
+    previous: &BaselineSnapshot,
     current_architecture_surface: &ArchitectureSurface,
     current_review_surface: &ReviewSurface,
-    current_contract_inventory: &ContractInventory,
-    doctrine_registry: &DoctrineRegistry,
 ) -> ConvergenceHistoryArtifact {
+    let root = &analysis.root;
+    let semantic_graph = &analysis.semantic_graph;
+    let current_contract_inventory = &analysis.contract_inventory;
+    let doctrine_registry = analysis.doctrine_registry();
+    let baseline = previous.assess(analysis);
+    let same_root = baseline.previous.as_ref().is_some_and(|identity| identity.root == baseline.current.root);
+    let previous_architecture_surface = (previous.is_verified() && same_root).then_some(previous.architecture.as_ref()).flatten();
+    let previous_review_surface = (previous.is_verified() && same_root).then_some(previous.review.as_ref()).flatten();
+    let previous_contract_inventory = (previous.is_verified() && same_root).then_some(previous.contracts.as_ref()).flatten();
     let previous_findings = previous_review_surface
         .map(|surface| surface.findings.as_slice())
         .unwrap_or(&[]);
     let current_findings = current_review_surface.findings.as_slice();
 
-    let previous_by_fingerprint = previous_findings
-        .iter()
-        .map(|finding| (finding.fingerprint.clone(), finding))
-        .collect::<HashMap<_, _>>();
-    let current_by_fingerprint = current_findings
-        .iter()
-        .map(|finding| (finding.fingerprint.clone(), finding))
-        .collect::<HashMap<_, _>>();
+    let previous_by_fingerprint = group_findings(previous_findings);
+    let current_by_fingerprint = group_findings(current_findings);
 
     let fingerprints = previous_by_fingerprint
         .keys()
@@ -3589,8 +3621,10 @@ pub fn build_convergence_history_artifact(
 
     let mut findings = Vec::new();
     let mut summary = ConvergenceSummary {
-        current_findings: current_findings.len(),
-        previous_findings: previous_findings.len(),
+        current_findings: current_by_fingerprint.len(),
+        previous_findings: previous_review_surface.map(|_| previous_by_fingerprint.len()),
+        first_observed_findings: 0,
+        not_compared_findings: 0,
         new_findings: 0,
         worsened_findings: 0,
         improved_findings: 0,
@@ -3599,17 +3633,25 @@ pub fn build_convergence_history_artifact(
     };
 
     for fingerprint in fingerprints.iter() {
-        let previous = previous_by_fingerprint.get(fingerprint);
-        let current = current_by_fingerprint.get(fingerprint);
-        let status = classify_convergence_status(previous.copied(), current.copied());
+        let previous_group = previous_by_fingerprint.get(fingerprint);
+        let current_group = current_by_fingerprint.get(fingerprint);
+        let previous = previous_group.map(|group| group.finding);
+        let current = current_group.map(|group| group.finding);
+        let status = if baseline.is_comparable() {
+            classify_convergence_status(previous, current)
+        } else if baseline.comparison == BaselineComparison::InitialSnapshot {
+            ConvergenceStatus::FirstObserved
+        } else { ConvergenceStatus::NotCompared };
         match status {
+            ConvergenceStatus::FirstObserved => summary.first_observed_findings += 1,
+            ConvergenceStatus::NotCompared => summary.not_compared_findings += 1,
             ConvergenceStatus::New => summary.new_findings += 1,
             ConvergenceStatus::Worsened => summary.worsened_findings += 1,
             ConvergenceStatus::Improved => summary.improved_findings += 1,
             ConvergenceStatus::Unchanged => summary.unchanged_findings += 1,
             ConvergenceStatus::Resolved => summary.resolved_findings += 1,
         }
-        let template = current.copied().or_else(|| previous.copied());
+        let template = current.or(previous);
         let mut file_paths = template
             .map(|finding| finding.file_paths.clone())
             .unwrap_or_default();
@@ -3619,6 +3661,8 @@ pub fn build_convergence_history_artifact(
             fingerprint: fingerprint.clone(),
             current_id: current.map(|finding| finding.id.clone()),
             previous_id: previous.map(|finding| finding.id.clone()),
+            current_occurrences: current_group.map(|group| group.count),
+            previous_occurrences: previous_group.map(|group| group.count),
             title: template
                 .map(|finding| finding.title.clone())
                 .unwrap_or_default(),
@@ -3657,9 +3701,10 @@ pub fn build_convergence_history_artifact(
 
     ConvergenceHistoryArtifact {
         root: root.display().to_string(),
+        baseline: baseline.clone(),
         input_coverage: current_overview.input_coverage.clone(),
         summary,
-        graph_delta: ConvergenceGraphDelta {
+        graph_delta: baseline.is_comparable().then(|| ConvergenceGraphDelta {
             strong_cycle_delta: delta(
                 previous_overview.map(|overview| overview.strong_cycle_count),
                 current_overview.strong_cycle_count,
@@ -3712,11 +3757,11 @@ pub fn build_convergence_history_artifact(
                 previous_review_surface.map(|surface| surface.summary.visible_findings),
                 current_review_surface.summary.visible_findings,
             ),
-        },
-        contract_delta: build_contract_delta(
+        }),
+        contract_delta: baseline.is_comparable().then(|| build_contract_delta(
             previous_contract_inventory,
             current_contract_inventory,
-        ),
+        )),
         required_investigation_files,
         required_radius,
         attention_items,
@@ -3766,13 +3811,15 @@ pub fn build_guard_decision_artifact(
     convergence: &ConvergenceHistoryArtifact,
     external: &ExternalAnalysisResult,
 ) -> GuardDecisionArtifact {
+    let graph_delta = convergence.graph_delta.as_ref().filter(|_| convergence.baseline.is_comparable()).cloned().unwrap_or_default();
+    let contract_delta = convergence.contract_delta.as_ref().filter(|_| convergence.baseline.is_comparable()).cloned().unwrap_or_default();
     let contract_delta_count = [
-        &convergence.contract_delta.routes,
-        &convergence.contract_delta.hooks,
-        &convergence.contract_delta.registered_keys,
-        &convergence.contract_delta.symbolic_literals,
-        &convergence.contract_delta.env_keys,
-        &convergence.contract_delta.config_keys,
+        &contract_delta.routes,
+        &contract_delta.hooks,
+        &contract_delta.registered_keys,
+        &contract_delta.symbolic_literals,
+        &contract_delta.env_keys,
+        &contract_delta.config_keys,
     ]
     .into_iter()
     .map(|delta| delta.added_count + delta.removed_count)
@@ -3790,19 +3837,19 @@ pub fn build_guard_decision_artifact(
                 && finding.current_severity.as_deref() == Some("high")
         })
         .count();
-    let cycle_regression = convergence.graph_delta.strong_cycle_delta > 0;
-    let bottleneck_regression = convergence.graph_delta.bottleneck_delta > 0;
-    let architectural_smell_regression = convergence.graph_delta.architectural_smell_delta > 0;
-    let warning_heavy_hotspot_regression = convergence.graph_delta.warning_heavy_hotspot_delta > 0;
-    let split_identity_model_regression = convergence.graph_delta.split_identity_model_delta > 0;
-    let compatibility_scar_regression = convergence.graph_delta.compatibility_scar_delta > 0;
-    let duplicate_mechanism_regression = convergence.graph_delta.duplicate_mechanism_delta > 0;
+    let cycle_regression = graph_delta.strong_cycle_delta > 0;
+    let bottleneck_regression = graph_delta.bottleneck_delta > 0;
+    let architectural_smell_regression = graph_delta.architectural_smell_delta > 0;
+    let warning_heavy_hotspot_regression = graph_delta.warning_heavy_hotspot_delta > 0;
+    let split_identity_model_regression = graph_delta.split_identity_model_delta > 0;
+    let compatibility_scar_regression = graph_delta.compatibility_scar_delta > 0;
+    let duplicate_mechanism_regression = graph_delta.duplicate_mechanism_delta > 0;
     let sanctioned_path_bypass_regression =
-        convergence.graph_delta.sanctioned_path_bypass_delta > 0;
-    let hand_rolled_parsing_regression = convergence.graph_delta.hand_rolled_parsing_delta > 0;
-    let abstraction_sprawl_regression = convergence.graph_delta.abstraction_sprawl_delta > 0;
+        graph_delta.sanctioned_path_bypass_delta > 0;
+    let hand_rolled_parsing_regression = graph_delta.hand_rolled_parsing_delta > 0;
+    let abstraction_sprawl_regression = graph_delta.abstraction_sprawl_delta > 0;
     let algorithmic_complexity_hotspot_regression =
-        convergence.graph_delta.algorithmic_complexity_hotspot_delta > 0;
+        graph_delta.algorithmic_complexity_hotspot_delta > 0;
     let exact_or_modeled_attention_items = convergence
         .attention_items
         .iter()
@@ -3814,6 +3861,7 @@ pub fn build_guard_decision_artifact(
         .saturating_sub(exact_or_modeled_attention_items);
 
     let pressure = GuardDecisionPressure {
+        comparison_available: convergence.baseline.is_comparable(),
         new_findings: convergence.summary.new_findings,
         worsened_findings: convergence.summary.worsened_findings,
         attention_items: convergence.attention_items.len(),
@@ -3821,7 +3869,7 @@ pub fn build_guard_decision_artifact(
         heuristic_attention_items,
         required_radius_anchor_files: convergence.required_radius.anchor_files.len(),
         required_radius_one_hop_files: convergence.required_radius.one_hop_files.len(),
-        visible_finding_delta: convergence.graph_delta.visible_finding_delta,
+        visible_finding_delta: graph_delta.visible_finding_delta,
         contract_delta_count,
         high_severity_security_regressions,
         cycle_regression,
@@ -3844,6 +3892,30 @@ pub fn build_guard_decision_artifact(
         String::from("guardian.diff-local-judgment"),
     ]);
     let mut obligations = Vec::new();
+
+    if !convergence.baseline.is_comparable() {
+        let message = String::from("No verified comparable baseline is available; current observations do not establish a regression or improvement.");
+        reasons.push(message.clone());
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Warn, message, precision: String::from("exact"),
+            confidence_millis: 1000, provenance: vec![String::from("convergence_history.baseline")],
+            doctrine_refs: vec![String::from("guardian.change-governance")],
+        });
+    }
+
+    let current_high_severity_security = convergence.findings.iter().filter(|finding| {
+        finding.current_visible == Some(true) && finding.family == "security"
+            && finding.current_severity.as_deref() == Some("high")
+    }).count();
+    if current_high_severity_security > 0 && high_severity_security_regressions == 0 {
+        let message = format!("Current snapshot contains {current_high_severity_security} visible high-severity security finding(s); this is an observed risk, not a claim about when it was introduced.");
+        reasons.push(message.clone());
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Block, message, precision: String::from("modeled"),
+            confidence_millis: 930, provenance: vec![String::from("review_surface.findings")],
+            doctrine_refs: vec![String::from("guardian.trust-boundaries")],
+        });
+    }
 
     if !convergence.input_coverage.is_complete() {
         reasons.push(String::from("Native input coverage is incomplete; absence-based checks are deferred."));
@@ -3942,7 +4014,7 @@ pub fn build_guard_decision_artifact(
                 .attention_items
                 .iter()
                 .map(|item| GuardDecisionTrigger {
-                    level: if item.precision == "heuristic" {
+                    level: if item.precision == "heuristic" || !convergence.baseline.is_comparable() {
                         GuardTriggerLevel::Warn
                     } else {
                         GuardTriggerLevel::Block
@@ -4187,10 +4259,10 @@ pub fn build_guard_decision_artifact(
             ],
         });
     }
-    if convergence.graph_delta.visible_finding_delta > 0 {
+    if graph_delta.visible_finding_delta > 0 {
         let message = format!(
             "Visible finding pressure increased by {}.",
-            convergence.graph_delta.visible_finding_delta
+            graph_delta.visible_finding_delta
         );
         reasons.push(message.clone());
         triggers.push(GuardDecisionTrigger {
@@ -4298,8 +4370,13 @@ pub fn build_guard_decision_artifact(
             GuardVerdict::Block,
             max_trigger_confidence.max(930),
             String::from(
-                "Block: the current diff state introduces or worsens high-risk architectural/security pressure.",
+                "Block: current evidence contains high-risk architectural/security pressure; consult the baseline contract before attributing change.",
             ),
+        )
+    } else if !convergence.baseline.is_comparable() {
+        (
+            GuardVerdict::Warn, 1000,
+            String::from("Warn: current observations require review; no verified comparable baseline is available to assess change."),
         )
     } else if warn_trigger_count > 0 {
         (
@@ -4341,6 +4418,7 @@ pub fn build_guard_decision_artifact(
     }
 
     GuardDecisionArtifact {
+        baseline: convergence.baseline.clone(),
         root: root.display().to_string(),
         verdict,
         confidence_millis,
@@ -4353,6 +4431,28 @@ pub fn build_guard_decision_artifact(
         attention_items: convergence.attention_items.clone(),
         pressure,
     }
+}
+
+struct FindingGroup<'a> {
+    finding: &'a crate::review::ReviewFinding,
+    count: usize,
+}
+
+fn group_findings(findings: &[crate::review::ReviewFinding]) -> HashMap<String, FindingGroup<'_>> {
+    let mut groups = HashMap::<String, FindingGroup<'_>>::new();
+    for finding in findings {
+        groups.entry(finding.fingerprint.clone()).and_modify(|group| {
+            group.count += 1;
+            let rank = |finding: &crate::review::ReviewFinding| {
+                (finding.is_visible, severity_rank(finding.severity), finding.confidence_millis)
+            };
+            if rank(finding) > rank(group.finding)
+                || (rank(finding) == rank(group.finding) && finding.id < group.finding.id) {
+                group.finding = finding;
+            }
+        }).or_insert(FindingGroup { finding, count: 1 });
+    }
+    groups
 }
 
 fn classify_convergence_status(
@@ -4370,11 +4470,11 @@ fn classify_convergence_status(
             } else if !current.is_visible && previous.is_visible {
                 ConvergenceStatus::Improved
             } else if current_severity > previous_severity
-                || current.confidence_millis > previous.confidence_millis + 75
+                || current.confidence_millis > previous.confidence_millis.saturating_add(75)
             {
                 ConvergenceStatus::Worsened
             } else if current_severity < previous_severity
-                || previous.confidence_millis > current.confidence_millis + 75
+                || previous.confidence_millis > current.confidence_millis.saturating_add(75)
                 || current.policy_status != previous.policy_status
             {
                 ConvergenceStatus::Improved
@@ -4408,9 +4508,11 @@ fn convergence_status_rank(status: ConvergenceStatus) -> u8 {
     match status {
         ConvergenceStatus::Worsened => 0,
         ConvergenceStatus::New => 1,
-        ConvergenceStatus::Improved => 2,
-        ConvergenceStatus::Resolved => 3,
-        ConvergenceStatus::Unchanged => 4,
+        ConvergenceStatus::FirstObserved => 2,
+        ConvergenceStatus::NotCompared => 3,
+        ConvergenceStatus::Improved => 4,
+        ConvergenceStatus::Resolved => 5,
+        ConvergenceStatus::Unchanged => 6,
     }
 }
 
@@ -4494,21 +4596,18 @@ fn build_convergence_attention_items(
     deltas: &[ConvergenceFindingDelta],
     doctrine_registry: &DoctrineRegistry,
 ) -> Vec<ConvergenceAttentionItem> {
-    let current_by_fingerprint = current_findings
-        .iter()
-        .map(|finding| (finding.fingerprint.clone(), finding))
-        .collect::<HashMap<_, _>>();
+    let current_by_fingerprint = group_findings(current_findings);
 
     let mut items = deltas
         .iter()
         .filter(|delta| {
             matches!(
                 delta.status,
-                ConvergenceStatus::New | ConvergenceStatus::Worsened
+                ConvergenceStatus::New | ConvergenceStatus::Worsened | ConvergenceStatus::FirstObserved | ConvergenceStatus::NotCompared
             )
         })
         .filter_map(|delta| {
-            let finding = current_by_fingerprint.get(&delta.fingerprint)?;
+            let finding = current_by_fingerprint.get(&delta.fingerprint)?.finding;
             let focus = convergence_focus(finding);
             let preferred_mechanism = guardian_packet_preferred_mechanism(
                 focus,
@@ -4581,6 +4680,8 @@ fn convergence_focus(finding: &crate::review::ReviewFinding) -> &'static str {
 impl ConvergenceAttentionItem {
     fn status_label(&self) -> &'static str {
         match self.status {
+            ConvergenceStatus::FirstObserved => "first observed",
+            ConvergenceStatus::NotCompared => "not compared",
             ConvergenceStatus::New => "new",
             ConvergenceStatus::Worsened => "worsened",
             ConvergenceStatus::Improved => "improved",
@@ -7048,23 +7149,28 @@ fn build_markdown_report(
         String::new(),
         String::from("## Convergence"),
         String::new(),
-        format!(
+        format!("- Baseline: {:?}; comparison: {:?}; reasons: {:?}.",
+            report.convergence_history.baseline.availability,
+            report.convergence_history.baseline.comparison,
+            report.convergence_history.baseline.reasons),
+        format!("- First observations: {}; not compared: {}.",
+            report.convergence_history.summary.first_observed_findings,
+            report.convergence_history.summary.not_compared_findings),
+        report.convergence_history.contract_delta.as_ref().map_or_else(
+            || String::from("- Contract delta: not compared."),
+            |delta| format!(
             "- Contract delta: routes +{} / -{}, hooks +{} / -{}, registered keys +{} / -{}",
-            report.convergence_history.contract_delta.routes.added_count,
-            report.convergence_history.contract_delta.routes.removed_count,
-            report.convergence_history.contract_delta.hooks.added_count,
-            report.convergence_history.contract_delta.hooks.removed_count,
-            report.convergence_history.contract_delta.registered_keys.added_count,
-            report.convergence_history.contract_delta.registered_keys.removed_count
-        ),
-        format!(
+            delta.routes.added_count, delta.routes.removed_count,
+            delta.hooks.added_count, delta.hooks.removed_count,
+            delta.registered_keys.added_count, delta.registered_keys.removed_count
+        )),
+        report.convergence_history.graph_delta.as_ref().map_or_else(
+            || String::from("- Graph delta: not compared."),
+            |delta| format!(
             "- Graph delta: strong cycles {:+}, total cycles {:+}, bottlenecks {:+}, architectural smells {:+}, visible findings {:+}",
-            report.convergence_history.graph_delta.strong_cycle_delta,
-            report.convergence_history.graph_delta.total_cycle_delta,
-            report.convergence_history.graph_delta.bottleneck_delta,
-            report.convergence_history.graph_delta.architectural_smell_delta,
-            report.convergence_history.graph_delta.visible_finding_delta
-        ),
+            delta.strong_cycle_delta, delta.total_cycle_delta, delta.bottleneck_delta,
+            delta.architectural_smell_delta, delta.visible_finding_delta
+        )),
         format!(
             "- Attention items: {}",
             report.convergence_history.attention_items.len()
@@ -7952,9 +8058,8 @@ fn main() {
         assert!(convergence_payload["summary"]["new_findings"]
             .as_u64()
             .is_some());
-        assert!(convergence_payload["graph_delta"]["strong_cycle_delta"]
-            .as_i64()
-            .is_some());
+        assert!(convergence_payload["graph_delta"].is_null());
+        assert_eq!(convergence_payload["baseline"]["comparison"], "initial_snapshot");
 
         let guard_payload: Value =
             serde_json::from_str(&fs::read_to_string(paths.guard_decision).unwrap()).unwrap();
@@ -8371,12 +8476,10 @@ fn main() {
         let first_convergence: Value =
             serde_json::from_str(&fs::read_to_string(&first_paths.convergence_history).unwrap())
                 .unwrap();
-        assert_eq!(
-            first_convergence["summary"]["previous_findings"]
-                .as_u64()
-                .unwrap(),
-            0
-        );
+        assert!(first_convergence["summary"]["previous_findings"].is_null());
+        assert_eq!(first_convergence["baseline"]["comparison"], "initial_snapshot");
+        assert!(first_convergence["graph_delta"].is_null());
+        assert!(first_convergence["contract_delta"].is_null());
 
         fs::write(
             fixture.join("src/main.rs"),
@@ -8441,20 +8544,27 @@ fn main() {
     fn guard_decision_promotes_architectonic_regressions_into_triggers() {
         let convergence = ConvergenceHistoryArtifact {
             root: String::from("/tmp/example"),
+            baseline: super::BaselineAssessment {
+                availability: super::BaselineAvailability::Verified,
+                comparison: super::BaselineComparison::Comparable,
+                ..Default::default()
+            },
             input_coverage: crate::coverage::InputCoverage {
                 status: crate::coverage::InputCoverageStatus::Complete,
                 ..Default::default()
             },
             summary: ConvergenceSummary {
                 current_findings: 0,
-                previous_findings: 0,
+                previous_findings: Some(0),
+                first_observed_findings: 0,
+                not_compared_findings: 0,
                 new_findings: 0,
                 worsened_findings: 0,
                 improved_findings: 0,
                 unchanged_findings: 0,
                 resolved_findings: 0,
             },
-            graph_delta: ConvergenceGraphDelta {
+            graph_delta: Some(ConvergenceGraphDelta {
                 strong_cycle_delta: 0,
                 total_cycle_delta: 0,
                 bottleneck_delta: 0,
@@ -8468,8 +8578,8 @@ fn main() {
                 sanctioned_path_bypass_delta: 0,
                 visible_finding_delta: 0,
                 algorithmic_complexity_hotspot_delta: 0,
-            },
-            contract_delta: ConvergenceContractDelta {
+            }),
+            contract_delta: Some(ConvergenceContractDelta {
                 routes: ContractValueDelta {
                     added_count: 0,
                     removed_count: 0,
@@ -8506,7 +8616,7 @@ fn main() {
                     added: Vec::new(),
                     removed: Vec::new(),
                 },
-            },
+            }),
             required_investigation_files: Vec::new(),
             required_radius: ConvergenceRequiredRadius {
                 anchor_files: Vec::new(),
@@ -8548,20 +8658,27 @@ fn main() {
     fn guard_decision_surfaces_algorithmic_complexity_regressions() {
         let convergence = ConvergenceHistoryArtifact {
             root: String::from("/tmp/example"),
+            baseline: super::BaselineAssessment {
+                availability: super::BaselineAvailability::Verified,
+                comparison: super::BaselineComparison::Comparable,
+                ..Default::default()
+            },
             input_coverage: crate::coverage::InputCoverage {
                 status: crate::coverage::InputCoverageStatus::Complete,
                 ..Default::default()
             },
             summary: ConvergenceSummary {
                 current_findings: 0,
-                previous_findings: 0,
+                previous_findings: Some(0),
+                first_observed_findings: 0,
+                not_compared_findings: 0,
                 new_findings: 0,
                 worsened_findings: 0,
                 improved_findings: 0,
                 unchanged_findings: 0,
                 resolved_findings: 0,
             },
-            graph_delta: ConvergenceGraphDelta {
+            graph_delta: Some(ConvergenceGraphDelta {
                 strong_cycle_delta: 0,
                 total_cycle_delta: 0,
                 bottleneck_delta: 0,
@@ -8575,8 +8692,8 @@ fn main() {
                 sanctioned_path_bypass_delta: 0,
                 algorithmic_complexity_hotspot_delta: 2,
                 visible_finding_delta: 0,
-            },
-            contract_delta: ConvergenceContractDelta {
+            }),
+            contract_delta: Some(ConvergenceContractDelta {
                 routes: ContractValueDelta {
                     added_count: 0,
                     removed_count: 0,
@@ -8613,7 +8730,7 @@ fn main() {
                     added: Vec::new(),
                     removed: Vec::new(),
                 },
-            },
+            }),
             required_investigation_files: Vec::new(),
             required_radius: ConvergenceRequiredRadius {
                 anchor_files: Vec::new(),

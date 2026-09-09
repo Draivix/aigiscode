@@ -140,6 +140,8 @@ pub struct ScanSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScanResult {
     pub root: PathBuf,
+    #[serde(default)]
+    pub scope_fingerprint: String,
     pub files: Vec<ScannedFile>,
     pub summary: ScanSummary,
     #[serde(default)]
@@ -152,6 +154,8 @@ pub struct ScanResult {
 
 #[derive(Debug, Error)]
 pub enum ScanError {
+    #[error("failed to resolve analysis root {path}: {source}")]
+    Canonicalize { path: PathBuf, #[source] source: std::io::Error },
     #[error("invalid generated path prefix {0}: expected a nonempty repository-relative path without parent components")]
     InvalidGeneratedPrefix(PathBuf),
     #[error("repository root does not exist: {0}")]
@@ -195,6 +199,9 @@ pub fn scan_repository(
     if !root.is_dir() {
         return Err(ScanError::RootIsNotDirectory(root));
     }
+    let root = root.canonicalize().map_err(|source| ScanError::Canonicalize {
+        path: root.clone(), source,
+    })?;
     let effective_config = effective_scan_config(&root, config)?;
 
     let mut files = Vec::new();
@@ -262,11 +269,32 @@ pub fn scan_repository(
 
     Ok(ScanResult {
         root,
+        scope_fingerprint: scan_scope_fingerprint(&effective_config),
         files,
         summary,
         scope,
         semantic_env,
     })
+}
+
+fn scan_scope_fingerprint(config: &ScanConfig) -> String {
+    let mut hash = Xxh3::new();
+    hash.update(&[u8::from(config.skip_hidden)]);
+    let paths = |paths: &[PathBuf]| paths.iter().map(|path| path.to_string_lossy().into_owned()).collect::<Vec<_>>();
+    for mut values in [
+        config.ignored_dir_names.iter().cloned().collect::<Vec<_>>(),
+        paths(&config.include_path_prefixes), paths(&config.ignored_path_prefixes),
+        paths(&config.generated_path_prefixes),
+    ] {
+        values.sort();
+        values.dedup();
+        hash.update(&(values.len() as u64).to_le_bytes());
+        for value in values {
+            hash.update(&(value.len() as u64).to_le_bytes());
+            hash.update(value.as_bytes());
+        }
+    }
+    format!("{:032x}", hash.digest128())
 }
 
 /// Config files whose change can alter code meaning without altering source text. Scanned

@@ -27,7 +27,7 @@ use crate::agentic::{
     GraphTraceParams, ListGraphPacketsParams,
 };
 use crate::artifacts::{
-    build_agent_handoff_artifact, read_json_artifact_if_exists,
+    build_agent_handoff_artifact, BaselineSnapshot,
     write_project_analysis_artifacts_with_context, AgentHandoffArtifact, ArtifactContext,
     ArtifactPaths, RepositoryTopologyArtifact,
 };
@@ -2030,43 +2030,29 @@ impl McpState {
         let ArtifactContext {
             convergence: convergence_artifact,
             guard: guard_decision_artifact,
+            agentic_review,
         } = match prepared_context {
                 Some(context) => context,
                 None => {
-                    let previous_surface =
-                        read_json_artifact_if_exists(&artifact_paths.architecture_surface)
-                            .map_err(McpServerError::ReadArtifacts)?;
-                    let previous_review = read_json_artifact_if_exists(&artifact_paths.review_surface)
+                    let baseline = BaselineSnapshot::load(&artifact_paths.output_dir)
                         .map_err(McpServerError::ReadArtifacts)?;
-                    let previous_contracts =
-                        read_json_artifact_if_exists(&artifact_paths.contract_inventory)
-                            .map_err(McpServerError::ReadArtifacts)?;
                     let convergence = crate::artifacts::build_convergence_history_artifact(
-                        &analysis.root,
-                        &analysis.semantic_graph,
-                        previous_surface.as_ref(),
-                        previous_review.as_ref(),
-                        previous_contracts.as_ref(),
+                        &analysis,
+                        &baseline,
                         &surface,
                         &review_surface,
-                        &analysis.contract_inventory,
-                        doctrine_registry_native,
                     );
                     let guard = crate::artifacts::build_guard_decision_artifact(
                         &analysis.root,
                         &convergence,
                         &analysis.external_analysis,
                     );
-                    ArtifactContext { convergence, guard }
+                    let agentic_review = crate::agentic::build_agentic_review_artifact(
+                        &analysis, doctrine_registry_native, &handoff, &guard, &convergence,
+                    );
+                    ArtifactContext { convergence, guard, agentic_review }
                 }
             };
-        let agentic_review = crate::agentic::build_agentic_review_artifact(
-            &analysis,
-            doctrine_registry_native,
-            &handoff,
-            &guard_decision_artifact,
-            &convergence_artifact,
-        );
         let graph_packets = build_graph_packet_artifact(&agentic_review, &analysis);
         let repository_topology = crate::artifacts::build_repository_topology_artifact(
             &analysis,

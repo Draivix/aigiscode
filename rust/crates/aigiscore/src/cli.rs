@@ -7,7 +7,8 @@ use crate::artifacts::{
     build_agent_handoff_artifact, build_convergence_history_artifact,
     build_guard_decision_artifact, default_output_dir, write_architecture_surface_artifact,
     write_dependency_graph_artifact, write_evidence_graph_artifact,
-    write_project_analysis_artifacts, write_semantic_graph_artifact, ArtifactPaths,
+    write_project_analysis_artifacts, write_project_analysis_artifacts_with_context,
+    write_semantic_graph_artifact, ArtifactPaths, BaselineSnapshot,
     AGENTIC_REVIEW_FILE, AGENT_HANDOFF_FILE, AIGISCODE_REPORT_FILE, AIGISCODE_REPORT_MARKDOWN_FILE,
     ARCHITECTURE_SURFACE_FILE, AST_GREP_SCAN_FILE, CONTRACT_INVENTORY_FILE,
     CONVERGENCE_HISTORY_FILE, DEPENDENCY_GRAPH_FILE, DETERMINISTIC_ANALYSIS_FILE,
@@ -38,20 +39,17 @@ struct AgentContext {
     review: crate::agentic::AgenticReviewArtifact,
 }
 
-fn build_agent_context(result: &ProjectAnalysis) -> Result<AgentContext, i32> {
+fn build_agent_context(result: &ProjectAnalysis, output_dir: Option<&Path>) -> Result<AgentContext, i32> {
     let surface = result.architecture_surface();
     let doctrine = result.doctrine_registry();
     let review_surface = build_review_surface(result, &surface, result.policy_bundle());
+    let baseline = BaselineSnapshot::load(output_dir.unwrap_or(&default_output_dir(&result.root)))
+        .map_err(|error| { eprintln!("{error}"); 1 })?;
     let convergence = build_convergence_history_artifact(
-        &result.root,
-        &result.semantic_graph,
-        None,
-        None,
-        None,
+        result,
+        &baseline,
         &surface,
         &review_surface,
-        &result.contract_inventory,
-        doctrine,
     );
     let guard =
         build_guard_decision_artifact(&result.root, &convergence, &result.external_analysis);
@@ -74,6 +72,12 @@ fn analysis_exit_code(
         incomplete = true;
     }
     i32::from(incomplete)
+}
+
+fn write_agent_context(result: &ProjectAnalysis, output_dir: Option<&Path>) -> Result<AgentContext, i32> {
+    write_project_analysis_artifacts_with_context(result, output_dir)
+        .map(|(_, context)| AgentContext { review: context.agentic_review })
+        .map_err(|error| { eprintln!("{error}"); 1 })
 }
 
 pub fn run_with_default_stack() -> i32 {
@@ -1104,15 +1108,9 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
             }
 
             let agentic_review = if options.write_artifacts {
-                let artifact_paths = match write_project_analysis_artifacts(
-                    &result,
-                    options.output_dir.as_deref(),
-                ) {
-                    Ok(paths) => paths,
-                    Err(error) => {
-                        eprintln!("{error}");
-                        return 1;
-                    }
+                let context = match write_agent_context(&result, options.output_dir.as_deref()) {
+                    Ok(context) => context,
+                    Err(code) => return code,
                 };
                 if options.write_kuzu {
                     if let Err(error) = write_semantic_graph_kuzu_artifact(
@@ -1124,27 +1122,9 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                         return 1;
                     }
                 }
-                match fs::read(&artifact_paths.agentic_review) {
-                    Ok(payload) => match serde_json::from_slice::<JsonValue>(&payload) {
-                        Ok(agentic_review) => agentic_review,
-                        Err(error) => {
-                            eprintln!(
-                                "failed to parse {}: {error}",
-                                artifact_paths.agentic_review.display()
-                            );
-                            return 1;
-                        }
-                    },
-                    Err(error) => {
-                        eprintln!(
-                            "failed to read {}: {error}",
-                            artifact_paths.agentic_review.display()
-                        );
-                        return 1;
-                    }
-                }
+                serde_json::to_value(&context.review).expect("failed to serialize captured agentic review")
             } else {
-                let context = match build_agent_context(&result) {
+                let context = match build_agent_context(&result, options.output_dir.as_deref()) {
                     Ok(context) => context,
                     Err(code) => return code,
                 };
@@ -1168,13 +1148,7 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
 fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
     match analyze_project(path.clone(), &ScanConfig::default()) {
         Ok(result) => {
-            if let Err(error) =
-                write_project_analysis_artifacts(&result, options.output_dir.as_deref())
-            {
-                eprintln!("{error}");
-                return 1;
-            }
-            let context = match build_agent_context(&result) {
+            let context = match write_agent_context(&result, options.output_dir.as_deref()) {
                 Ok(context) => context,
                 Err(code) => return code,
             };
@@ -1211,13 +1185,7 @@ fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
 fn run_agent_spider_command(path: PathBuf, options: AgentSpiderOptions) -> i32 {
     match analyze_project(path.clone(), &ScanConfig::default()) {
         Ok(result) => {
-            if let Err(error) =
-                write_project_analysis_artifacts(&result, options.output_dir.as_deref())
-            {
-                eprintln!("{error}");
-                return 1;
-            }
-            let context = match build_agent_context(&result) {
+            let context = match write_agent_context(&result, options.output_dir.as_deref()) {
                 Ok(context) => context,
                 Err(code) => return code,
             };

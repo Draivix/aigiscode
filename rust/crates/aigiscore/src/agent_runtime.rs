@@ -687,15 +687,10 @@ mod tests {
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
         let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
         let convergence = crate::artifacts::build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &surface,
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,
@@ -752,15 +747,10 @@ mod tests {
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
         let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
         let convergence = crate::artifacts::build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &surface,
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,

@@ -1,0 +1,118 @@
+{
+  "date": "2026-09-09",
+  "binary_sha256": "768c08e21a909aee8506797ebff87ac0bc4e72af23a2c724aea39c8f1f9e878e",
+  "manifest_sha256": "1eaf861e372a5760f37a6c2e10de395b7737252d526cc00994a5536b7084b113",
+  "elapsed_seconds": 2.34,
+  "maximum_rss_kib": 155268,
+  "exit_status": 1,
+  "legacy_upgrade": {
+    "baseline": {
+      "availability": "unverified",
+      "comparison": "not_compared",
+      "current": {
+        "root": "/home/david/Work/Programming/aigiscode",
+        "engine_version": "0.1.0",
+        "engine_fingerprint": "a0215f0eba1f654f",
+        "semantic_revision": 11,
+        "source_fingerprint": "a8cdf2021ae4da9d4d8fc1cc5bf42a73",
+        "scope_fingerprint": "c33e0cf39f1203d070a8bd12e68f3fb5",
+        "resolve_config_fingerprint": "76e6bcd82b9a6c75",
+        "external_tools": [],
+        "external_checks_complete": true
+      },
+      "previous": null,
+      "reasons": [
+        "missing_seal",
+        "current_inputs_incomplete"
+      ]
+    },
+    "summary": {
+      "current_findings": 901,
+      "previous_findings": null,
+      "first_observed_findings": 0,
+      "not_compared_findings": 688,
+      "new_findings": 0,
+      "worsened_findings": 0,
+      "improved_findings": 0,
+      "unchanged_findings": 0,
+      "resolved_findings": 0
+    },
+    "graph_delta": null,
+    "contract_delta": null
+  },
+  "final_analysis": {
+    "baseline": {
+      "availability": "verified",
+      "comparison": "not_compared",
+      "current": {
+        "root": "/home/david/Work/Programming/aigiscode",
+        "engine_version": "0.1.0",
+        "engine_fingerprint": "11937782ece2d943",
+        "semantic_revision": 11,
+        "source_fingerprint": "04e86c3dcca02542ddd9bfe7f95f510d",
+        "scope_fingerprint": "c33e0cf39f1203d070a8bd12e68f3fb5",
+        "resolve_config_fingerprint": "76e6bcd82b9a6c75",
+        "external_tools": [],
+        "external_checks_complete": true
+      },
+      "previous": {
+        "root": "/home/david/Work/Programming/aigiscode",
+        "engine_version": "0.1.0",
+        "engine_fingerprint": "b4619864c9a266d1",
+        "semantic_revision": 11,
+        "source_fingerprint": "b1633e6b73ed44f36ebab4aed8bce7c8",
+        "scope_fingerprint": "c33e0cf39f1203d070a8bd12e68f3fb5",
+        "resolve_config_fingerprint": "76e6bcd82b9a6c75",
+        "external_tools": [],
+        "external_checks_complete": true
+      },
+      "reasons": [
+        "current_inputs_incomplete",
+        "previous_inputs_incomplete",
+        "different_engine"
+      ]
+    },
+    "summary": {
+      "current_findings": 688,
+      "previous_findings": 688,
+      "first_observed_findings": 0,
+      "not_compared_findings": 688,
+      "new_findings": 0,
+      "worsened_findings": 0,
+      "improved_findings": 0,
+      "unchanged_findings": 0,
+      "resolved_findings": 0
+    },
+    "graph_delta": null,
+    "contract_delta": null,
+    "observed_occurrences": 901,
+    "input_coverage": "incomplete",
+    "guard": "Block",
+    "guard_comparison_available": false
+  },
+  "manifest_seal": {
+    "architecture_surface": "a9b09e6d867e8de4",
+    "review_surface": "39c3b3a6bf37b335",
+    "contract_inventory": "f377dbca97fd6f4b"
+  },
+  "example_group": {
+    "fingerprint": "hardwiring|hardcoded-network|rust/crates/aigiscore/src/agentic.rs|https://api.openai.com/v1/responses",
+    "current_id": "hardwiring:rust/crates/aigiscore/src/agentic.rs:1211:https://api.openai.com/v1/responses",
+    "previous_id": "hardwiring:rust/crates/aigiscore/src/agentic.rs:1211:https://api.openai.com/v1/responses",
+    "current_occurrences": 2,
+    "previous_occurrences": 2,
+    "title": "Hardcoded network",
+    "family": "hardwiring",
+    "status": "NotCompared",
+    "current_severity": "medium",
+    "previous_severity": "medium",
+    "current_visible": true,
+    "previous_visible": true,
+    "file_paths": [
+      "rust/crates/aigiscore/src/agentic.rs"
+    ]
+  },
+  "raw_artifacts": "target/reliability-2026-09-09/self-q09-upgrade",
+  "preserved_legacy_result": "target/reliability-2026-09-09/self-q09-legacy-result",
+  "automated_tests": "not run; disabled by user"
+}
