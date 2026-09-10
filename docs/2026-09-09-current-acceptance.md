@@ -24,8 +24,13 @@ místní deklaraci. Doplňují také explicitní neznámé vazby a zachování s
 použití cache. Současná CI akceptace a interaktivní rychlost zůstávají otevřené.
 [Anonymní PHP třídy](2026-09-10-anonymous-classes.md) nově mají vlastní identitu,
 metody a dědičnost. Na stejném korpusu zmizelo všech 46 nalezených kolizí PHP ID;
-18 kolizí v TypeScriptu a Pythonu zůstává otevřených. MCP odlišuje také metody
-anonymního objektu od skutečných metod jeho okolního controlleru.
+MCP odlišuje také metody anonymního objektu od skutečných metod jeho okolního
+controlleru. [Lokální třídy a typy JS/TS](2026-09-10-scoped-classes.md) následně
+odstranily všech 17 zbývajících kolizí TypeScript ID. Jedna kolize Python ID
+zůstává otevřená. Lexikální konstrukce odlišují stejnojmenné třídy v callbackách;
+vyloučení testových metod z cizího vyhledávání a blokování odhadu přes místní
+typový alias odstranily dvě slabé cyklické komponenty. Všech 19 silných
+komponent se zachovalo; aplikační zdroj se nezměnil.
 
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto

@@ -133,7 +133,7 @@ fn walk_node(
         "class_declaration" | "abstract_class_declaration" | "interface_declaration" | "enum_declaration" => {
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = context.text(name_node);
-                let symbol = make_symbol(
+                let mut symbol = make_symbol(
                     context,
                     match node.kind() {
                         "interface_declaration" => SymbolKind::Interface,
@@ -150,6 +150,15 @@ fn walk_node(
                     context.line(name_node),
                     node.end_position().row + 1,
                 );
+                if lexical::scoped_declaration(node) {
+                    let scope = format!("{}@{}:{}", container_symbol_id.unwrap_or("scope"), context.line(node), node.start_position().column);
+                    symbol.id = context.symbol_id(symbol.kind, Some(&scope), &name);
+                    symbol.parent_symbol_id = container_symbol_id.map(str::to_owned);
+                }
+                context.bindings.type_declaration(node, &symbol);
+                if matches!(symbol.kind, SymbolKind::Class | SymbolKind::Enum) {
+                    context.bindings.function_declaration(node, context.source, &symbol.id);
+                }
                 let symbol_id = symbol.id.clone();
                 graph.add_symbol(symbol);
                 record_js_heritage(node, context, graph, Some(symbol_id.as_str()));
@@ -240,6 +249,7 @@ fn walk_node(
                     node.end_position().row + 1,
                 );
                 let symbol_id = symbol.id.clone();
+                context.bindings.method(node, &symbol);
                 graph.add_symbol(symbol);
                 record_js_parameter_types(node, context, graph, Some(symbol_id.as_str()));
                 walk_children(
@@ -260,7 +270,11 @@ fn walk_node(
             }
         }
         "new_expression" => {
+            let reference_index = graph.references.len();
             record_constructor_call(node, context, graph, container_symbol_id);
+            if graph.references.len() > reference_index {
+                context.bindings.call(node, reference_index, context.source);
+            }
         }
         _ => {}
     }
@@ -570,7 +584,7 @@ fn record_import_clause(
 
 fn record_js_heritage(
     node: Node<'_>,
-    context: &JavaScriptContext<'_>,
+    context: &mut JavaScriptContext<'_>,
     graph: &mut SemanticGraph,
     enclosing_symbol_id: Option<&str>,
 ) {
@@ -591,6 +605,7 @@ fn record_js_heritage(
             };
             for target in targets {
                 if let Some(parent) = find_first_heritage_target(target) {
+                    let reference_index = graph.references.len();
                     graph.add_reference(SemanticReference {
                         file_path: context.file_path.clone(),
                         enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
@@ -604,6 +619,16 @@ fn record_js_heritage(
                         call_form: None,
                         class_literal_argument: None,
                     });
+                    let mut owner = parent.parent();
+                    let mut class_extends = false;
+                    while let Some(ancestor) = owner {
+                        if matches!(ancestor.kind(), "class_declaration" | "abstract_class_declaration" | "interface_declaration") {
+                            class_extends = ancestor.kind() != "interface_declaration" && kind == ReferenceKind::Extends;
+                            break;
+                        }
+                        owner = ancestor.parent();
+                    }
+                    context.bindings.named_reference(parent, reference_index, class_extends);
                 }
             }
         }
@@ -629,7 +654,7 @@ fn find_first_heritage_target(node: Node<'_>) -> Option<Node<'_>> {
 
 fn record_js_parameter_types(
     node: Node<'_>,
-    context: &JavaScriptContext<'_>,
+    context: &mut JavaScriptContext<'_>,
     graph: &mut SemanticGraph,
     enclosing_symbol_id: Option<&str>,
 ) {
@@ -642,6 +667,7 @@ fn record_js_parameter_types(
             if let Some(type_annotation) = type_node {
                 let type_name = type_text(type_annotation, context);
                 if let Some(type_name) = type_name {
+                    let reference_index = graph.references.len();
                     graph.add_reference(SemanticReference {
                         file_path: context.file_path.clone(),
                         enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
@@ -655,6 +681,7 @@ fn record_js_parameter_types(
                         call_form: None,
                         class_literal_argument: None,
                     });
+                    context.bindings.named_reference(type_annotation, reference_index, false);
                 }
             }
         }

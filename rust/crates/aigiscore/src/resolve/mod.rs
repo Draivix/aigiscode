@@ -103,7 +103,9 @@ impl ResolutionContext {
             .collect::<HashSet<_>>();
         let scoped_symbols = graph.lexical_bindings.scoped_symbol_ids.iter().collect::<HashSet<_>>();
         let bound_symbols = graph.lexical_bindings.calls.iter()
-            .filter_map(|binding| binding.target_symbol_id.as_ref()).collect::<HashSet<_>>();
+            .filter_map(|binding| binding.target_symbol_id.as_ref())
+            .chain(graph.lexical_bindings.named_references.iter().filter_map(|binding| binding.target_symbol_id.as_ref()))
+            .collect::<HashSet<_>>();
 
         for symbol in &graph.symbols {
             let definition = SymbolDefinition {
@@ -174,7 +176,9 @@ impl ResolutionContext {
 
         let bindings = graph.lexical_bindings.calls.iter()
             .filter(|binding| binding.argument_index.is_none())
-            .map(|binding| (binding.reference_index, &binding.target_symbol_id)).collect::<HashMap<_, _>>();
+            .map(|binding| (binding.reference_index, &binding.target_symbol_id))
+            .chain(graph.lexical_bindings.named_references.iter().map(|binding| (binding.reference_index, &binding.target_symbol_id)))
+            .collect::<HashMap<_, _>>();
         let binding_keys = bindings.keys().filter_map(|index| graph.references.get(*index))
             .map(|reference| (reference.file_path.as_path(), reference.line, reference.target_name.as_str()))
             .collect::<HashSet<_>>();
@@ -432,19 +436,21 @@ fn resolve_reference(
     if reference.kind.is_import() {
         return resolve_import_reference(reference, context);
     }
-    if reference.call_form == Some(CallForm::Free) {
-        if let Some(binding) = context.lexical_calls.get(&(
-            reference.file_path.clone(), reference.line, reference.target_name.clone(), occurrence_index,
-        )) {
-            let symbol = context.lexical_symbols.get(binding.as_ref()?)?;
-            return pick_edge(reference, TieredCandidates {
-                candidates: vec![symbol],
-                tier: ResolutionTier::SameFile,
-            }).map(|mut edge| {
-                edge.reason = "call:lexical-binding".to_owned();
-                edge
-            });
-        }
+    if let Some(binding) = context.lexical_calls.get(&(
+        reference.file_path.clone(), reference.line, reference.target_name.clone(), occurrence_index,
+    )) {
+        let symbol = context.lexical_symbols.get(binding.as_ref()?)?;
+        return pick_edge(reference, TieredCandidates {
+            candidates: vec![symbol],
+            tier: ResolutionTier::SameFile,
+        }).map(|mut edge| {
+            edge.reason = if reference.kind == ReferenceKind::Call {
+                "call:lexical-binding"
+            } else {
+                "reference:lexical-binding"
+            }.to_owned();
+            edge
+        });
     }
 
     // A type reference whose leaf is a language primitive / pseudo type (`float`,
@@ -2119,6 +2125,96 @@ loop();
                 && graph.references[binding.reference_index].target_name == "changed"
         }));
         assert_eq!(graph.symbols.iter().find(|symbol| symbol.name == "single").unwrap().parameter_count, 1);
+    }
+
+    #[test]
+    fn resolves_local_classes_without_crossing_scope_or_receiver_kind() {
+        let source = r#"
+function first() {
+    class Local {
+        run() { this.own(); const arrow = () => this.own(); arrow(); }
+        own() {}
+        static build() { this.make(); }
+        static make() {}
+    }
+    const instance = new Local();
+    instance.run();
+    new Local().own();
+    Local.build();
+    Local.run();
+    instance.build();
+    function typed(value: Local) {}
+    function generic<Local>(value: Local) {}
+    class Child extends Local {}
+    let changed = new Local();
+    changed = unknown;
+    changed.run();
+    { class Local { own() {} } const nested = new Local(); nested.own(); instance.own(); }
+}
+function second() { class Local { own() {} } new Local().own(); }
+function outside() { new Local(); }
+function shadow(Local: unknown) { new Local(); }
+"#;
+        let mut graph = parse_javascript_to_graph(PathBuf::from("classes.ts"), source, true).unwrap();
+        graph.append(parse_javascript_to_graph(PathBuf::from("other.ts"),
+            "function foreign() { new Local(); }", true).unwrap());
+        resolve_graph(&mut graph);
+        let symbols = graph.symbols.iter().map(|symbol| (symbol.id.as_str(), symbol)).collect::<std::collections::HashMap<_, _>>();
+        assert_eq!(symbols.len(), graph.symbols.len());
+        let first = graph.symbols.iter().find(|symbol| symbol.name == "first").unwrap();
+        let first_class = graph.symbols.iter().find(|symbol| symbol.name == "Local"
+            && symbol.parent_symbol_id.as_deref() == Some(first.id.as_str())
+            && symbol.end_line > symbol.start_line).unwrap();
+        let line = |text: &str| source.lines().position(|value| value.contains(text)).unwrap() + 1;
+        for text in ["instance.run();", "new Local().own();", "Local.build();"] {
+            let edge = graph.resolved_edges.iter().find(|edge| edge.source_file_path == Path::new("classes.ts")
+                && edge.line == line(text) && symbols[edge.target_symbol_id.as_str()].kind == SymbolKind::Method).unwrap();
+            assert_eq!(symbols[edge.target_symbol_id.as_str()].parent_symbol_id.as_deref(), Some(first_class.id.as_str()));
+            assert_eq!(edge.reason, "call:lexical-binding");
+        }
+        for text in ["Local.run();", "instance.build();", "changed.run();", "function outside()", "function shadow("] {
+            assert!(!graph.resolved_edges.iter().any(|edge| edge.source_file_path == Path::new("classes.ts")
+                && edge.line == line(text) && edge.kind == ReferenceKind::Call));
+        }
+        assert!(!graph.resolved_edges.iter().any(|edge| edge.source_file_path == Path::new("other.ts")));
+        let nested_line = line("const nested");
+        let owners = graph.resolved_edges.iter().filter(|edge| edge.line == nested_line
+            && edge.reference_target_name.as_deref() == Some("own"))
+            .map(|edge| symbols[edge.target_symbol_id.as_str()].parent_symbol_id.clone()).collect::<std::collections::HashSet<_>>();
+        assert_eq!(owners.len(), 2);
+        for text in ["function typed", "class Child extends"] {
+            assert!(graph.resolved_edges.iter().any(|edge| edge.line == line(text)
+                && edge.target_symbol_id == first_class.id && edge.reason == "reference:lexical-binding"));
+        }
+        assert!(!graph.resolved_edges.iter().any(|edge| edge.line == line("function generic")));
+        assert!(graph.lexical_bindings.named_references.iter().all(|binding| {
+            graph.references[binding.reference_index].file_path == Path::new("classes.ts")
+        }));
+    }
+
+    #[test]
+    fn unknown_local_instances_do_not_rebind_to_a_foreign_class() {
+        let mut graph = parse_javascript_to_graph(PathBuf::from("local.ts"), r#"
+function setup() {
+    class Local { run() {} }
+    let changed = new Local();
+    changed = unknown;
+    changed.run();
+    function typed(value: Local) { value.run(); }
+    function dynamic() { this.run(); }
+}
+"#, true).unwrap();
+        let offset = graph.references.len();
+        graph.append(parse_javascript_to_graph(PathBuf::from("foreign.ts"),
+            "class Local { run() {} } type Alias<Local> = Local[]; function typed(value: Local) {}", true).unwrap());
+        resolve_graph(&mut graph);
+        assert!(!graph.resolved_edges.iter().any(|edge| edge.source_file_path == Path::new("local.ts")
+            && edge.reference_target_name.as_deref() == Some("run")));
+        assert!(graph.lexical_bindings.named_references.iter().any(|binding| {
+            binding.reference_index >= offset
+                && graph.references[binding.reference_index].file_path == Path::new("foreign.ts")
+                && binding.target_symbol_id.as_ref().is_some_and(|id| id.contains("foreign.ts"))
+        }));
     }
 
     #[test]

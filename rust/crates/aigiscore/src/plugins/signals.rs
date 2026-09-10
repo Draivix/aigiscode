@@ -458,10 +458,11 @@ fn same_file_function_targets(
 fn methods_by_owner_and_name(
     graph: &SemanticGraph,
 ) -> HashMap<(PathBuf, String, String), SignalCallbackTarget> {
+    let scoped = graph.lexical_bindings.scoped_symbol_ids.iter().collect::<HashSet<_>>();
     graph
         .symbols
         .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Method)
+        .filter(|symbol| symbol.kind == SymbolKind::Method && !scoped.contains(&symbol.id))
         .filter_map(|symbol| {
             let owner = symbol.owner_type_name.clone()?;
             Some((

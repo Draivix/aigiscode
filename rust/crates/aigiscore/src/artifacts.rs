@@ -71,7 +71,7 @@ pub const AIGISCODE_REPORT_MARKDOWN_FILE: &str = "aigiscode-report.md";
 pub const SCAN_MANIFEST_FILE: &str = "scan-manifest.json";
 
 /// Bump whenever parser/resolver/plugin semantics change without a package-version bump.
-pub const SEMANTIC_REVISION: u32 = 15;
+pub const SEMANTIC_REVISION: u32 = 16;
 
 /// Hash manifest behind the opt-in fast-load path (`AIGISCORE_FAST_LOAD=1`):
 /// proves the analyzed file set and contents still match `semantic-graph.json`

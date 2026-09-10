@@ -252,6 +252,14 @@ pub struct SemanticGraph {
 pub struct LexicalBindings {
     pub scoped_symbol_ids: Vec<String>,
     pub calls: Vec<LexicalCallBinding>,
+    #[serde(default)]
+    pub named_references: Vec<LexicalReferenceBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LexicalReferenceBinding {
+    pub reference_index: usize,
+    pub target_symbol_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -270,6 +278,10 @@ impl SemanticGraph {
         for binding in &mut other.lexical_bindings.calls {
             binding.reference_index += reference_offset;
         }
+        for binding in &mut other.lexical_bindings.named_references {
+            binding.reference_index += reference_offset;
+        }
+        self.lexical_bindings.named_references.append(&mut other.lexical_bindings.named_references);
         self.lexical_bindings.calls.append(&mut other.lexical_bindings.calls);
         self.lexical_bindings.scoped_symbol_ids.append(&mut other.lexical_bindings.scoped_symbol_ids);
         self.files.append(&mut other.files);
