@@ -88,6 +88,11 @@ share captured bytes/absence, and final input validation gates analysis and
 publication; see
 `docs/INPUT_CAPTURE_CONTRACT.md` for the remaining capture limits.
 
+`dead_code.backend_orphan_coverage` distinguishes complete supplemental evidence,
+explicit read/size gaps and checks deferred for input coverage or a truncated
+boundary. CLI/MCP summaries and guard expose it; zero deferred findings are not
+clean results. See `docs/BACKEND_ORPHAN_COVERAGE_CONTRACT.md`.
+
 `semantic-graph.json` also carries parser-owned JS/TS `lexical_bindings` for
 callee and first-argument identities, including explicit unknown bindings that
 block name guesses. Native graph merges must preserve their reference indexes;

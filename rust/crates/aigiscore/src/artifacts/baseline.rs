@@ -32,6 +32,8 @@ pub struct SnapshotIdentity {
     pub resolve_config_fingerprint: String,
     #[serde(default)]
     pub assessment_config_fingerprint: String,
+    #[serde(default)]
+    pub backend_orphan_input_fingerprint: String,
     pub external_tools: Vec<String>,
     pub external_checks_complete: bool,
 }
@@ -76,6 +78,7 @@ impl SnapshotIdentity {
             scope_fingerprint: analysis.scan.scope_fingerprint.clone(),
             resolve_config_fingerprint: analysis.resolve_config_xxh3.clone(),
             assessment_config_fingerprint: Self::assessment_config_fingerprint(analysis.policy_bundle(), analysis.doctrine_registry()),
+            backend_orphan_input_fingerprint: analysis.dead_code.backend_orphan_coverage.input_fingerprint.clone(),
             external_tools,
             external_checks_complete: analysis.external_analysis.is_complete(),
         }
@@ -139,6 +142,8 @@ pub enum BaselineReason {
     PreviousInputsIncomplete,
     CurrentSecondaryChecksIncomplete,
     PreviousSecondaryChecksIncomplete,
+    CurrentSupplementalChecksIncomplete,
+    PreviousSupplementalChecksIncomplete,
     ExternalChecksIncomplete,
 }
 
@@ -266,10 +271,16 @@ impl BaselineSnapshot {
         if !analysis.ast_grep_scan.coverage.is_complete() {
             reasons.push(BaselineReason::CurrentSecondaryChecksIncomplete);
         }
+        if !analysis.dead_code.backend_orphan_coverage.is_complete() {
+            reasons.push(BaselineReason::CurrentSupplementalChecksIncomplete);
+        }
         if !current.external_checks_complete {
             reasons.push(BaselineReason::ExternalChecksIncomplete);
         }
         if self.availability == BaselineAvailability::Verified {
+            if self.architecture.as_ref().is_none_or(|surface| !surface.overview.backend_orphan_coverage.is_complete()) {
+                reasons.push(BaselineReason::PreviousSupplementalChecksIncomplete);
+            }
             if self.architecture.as_ref().is_none_or(|surface| !surface.overview.ast_grep_coverage.is_complete()) {
                 reasons.push(BaselineReason::PreviousSecondaryChecksIncomplete);
             }

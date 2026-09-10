@@ -77,9 +77,11 @@ Semantic revision 12 invalidates graphs built under the earlier plugin contract.
 These checks do not establish an atomic whole-repository snapshot. Each directory
 walk and final comparison takes time; changes after an input's last check or a
 change/revert wholly between checks may escape observation. Watcher freshness and
-edit receipts still govern live revisions. The supplemental dead-code sweep and
-external executables are not readers of this immutable configuration/source set;
-their wider input and error coverage remains a separate limitation. Do not turn
+edit receipts still govern live revisions. The backend-orphan supplemental sweep
+now records gaps and its own content fingerprint, rechecked at these boundaries;
+see [supplemental coverage](BACKEND_ORPHAN_COVERAGE_CONTRACT.md). Its collected
+text and external executables are not readers of the shared configuration set.
+External input coverage remains a separate limitation. Do not turn
 validated admitted inputs into a claim that every downstream reader used an
 atomic filesystem snapshot.
 

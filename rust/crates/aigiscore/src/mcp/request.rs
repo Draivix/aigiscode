@@ -79,8 +79,13 @@ impl AigiscodeMcpServer {
             .or_else(|| published.snapshot.as_ref());
         let coverage = snapshot.map(|snapshot| &snapshot.repo_overview.overview.input_coverage);
         let secondary = snapshot.map(|snapshot| &snapshot.repo_overview.overview.ast_grep_coverage);
+        let backend_orphan = snapshot.map(|snapshot| &snapshot.repo_overview.overview.backend_orphan_coverage);
         Ok(Meta(serde_json::Map::from_iter([
             (String::from("aigiscode/freshness"), value),
+            (String::from("aigiscode/backend_orphan_coverage"), serde_json::json!({
+                "status": backend_orphan.map_or(crate::detectors::dead_code::BackendOrphanStatus::Unknown, |coverage| coverage.status),
+                "gap_count": backend_orphan.map(|coverage| coverage.gap_count),
+            })),
             (String::from("aigiscode/artifact_generation"), serde_json::to_value(snapshot.map(|snapshot| &snapshot.artifact_generation))
                 .map_err(|error| McpError::internal_error(error.to_string(), None))?),
             (String::from("aigiscode/ast_grep_coverage"), serde_json::json!({

@@ -1,0 +1,1890 @@
+{
+  "recorded_at": "2026-09-10T03:29:43.260Z",
+  "base_commit": "e7a27d65434fc8af330812c5da09113c662daba8",
+  "automated_tests_run": false,
+  "ci_run": false,
+  "build": {
+    "binary": {
+      "path": "target/reliability-2026-09-09/aigiscode-supplemental-coverage",
+      "bytes": 95600000,
+      "sha256": "da36945aaf0f8977dc8f7211fceb3a0e844dcd02a3686f2c5c3423227871d36e"
+    },
+    "log": {
+      "path": "target/reliability-2026-09-09/supplemental-coverage-build-delivery.txt",
+      "bytes": 156,
+      "sha256": "e67a9fb0aaaa9e6279b7d72b666c290d6a89ba951648204f06dafed6f681073b"
+    },
+    "initial_binary": {
+      "path": "target/reliability-2026-09-09/aigiscode-supplemental-coverage-initial",
+      "bytes": 95600104,
+      "sha256": "23a7afd25f30957d78f66db1dd37a6aa0a592ac82d10ff99b05e8c71c3af2685"
+    }
+  },
+  "implementation": [
+    {
+      "path": "rust/crates/aigiscore/src/artifacts.rs",
+      "bytes": 372299,
+      "sha256": "d98a77faadd5ec0e54c665fe5400a02da5c9001e07e816a6e5ed8d7cd7f8d7c0"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/artifacts/baseline.rs",
+      "bytes": 13945,
+      "sha256": "e1269e36419d62236136314ccd060d4788e92b31efd562c8a4e6ee1a06815791"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/assessment/mod.rs",
+      "bytes": 223432,
+      "sha256": "56b9602d4253e7525ad64018ec015e7e354b024a5d802ecdce9312ae2439e051"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/cli.rs",
+      "bytes": 64861,
+      "sha256": "6370057f3a0996dfb876f07a23bdb21acaf9ca81f9a4907644dab487425273c7"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/detectors/dead_code.rs",
+      "bytes": 100620,
+      "sha256": "acc780434a1f70debb08675c05ae998bd3482a2a1d6d0b4cac4adbfeb12b6bd1"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/detectors/dead_code/supplemental.rs",
+      "bytes": 8298,
+      "sha256": "7e09b91cd8f277f2f036f573a1a49136c62c400840a4b3e3a7e7d05afd13778a"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+      "bytes": 61490,
+      "sha256": "b76ef47c3763a9dc1f2d6e760807d54c762f4d80e0c5d746af312e56a564122d"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+      "bytes": 156144,
+      "sha256": "8f914cddf7f2f8270b3fd421ec69f088303850f29c28b1cdc877df6fdcffe802"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/request.rs",
+      "bytes": 5491,
+      "sha256": "d5aaabf0d865cbd6a890ba266229d2878bc99260107492f6d2ea4484152ed6ff"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/surface/mod.rs",
+      "bytes": 146720,
+      "sha256": "bd8daf3c7664e4483fe91c86d964853f7ea1fcce5e1fa4e541046f2b943caed9"
+    }
+  ],
+  "full_corpus": {
+    "wall": "1:21.04",
+    "peak_rss_kib": 3566012,
+    "exit": 1,
+    "summary": {
+      "backend_orphan_coverage": {
+        "status": "deferred_input_coverage",
+        "scanned_files": 0,
+        "scanned_bytes": 0,
+        "gap_count": 0,
+        "gaps_preview": [],
+        "input_fingerprint": ""
+      },
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 132657,
+      "references": 1097074,
+      "resolved_edges": 331060,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 22,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 220
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 277
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6184
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 11765
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 36355
+      },
+      {
+        "phase": "VerifyInputs",
+        "elapsed_ms": 288
+      }
+    ],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-cli-result.json",
+        "bytes": 16973,
+        "sha256": "801d35458d94aae79eda23d209da0e40390d955d2d2ccce9abf3be5633a8eeda"
+      },
+      {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-cli-time.txt",
+        "bytes": 982,
+        "sha256": "e83c24abc5fa4c8caaf01db48890c968c1b33edb9ee0dd7eaf9198de9a3f6532"
+      },
+      {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-cli-trace.txt",
+        "bytes": 10972947,
+        "sha256": "f95f3cd4fe076112b350c39317f972805e3a74e5118ff673737d91816ec23aab"
+      }
+    ]
+  },
+  "artifacts": [
+    {
+      "name": "semantic-graph.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/input-stability-artifacts/semantic-graph.json",
+        "bytes": 818078041,
+        "sha256": "535bc1ec36526bde191978ad7cc69b35b3c1de4d3378e77591e8ca52b1be1d6c"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-artifacts/semantic-graph.json",
+        "bytes": 818078041,
+        "sha256": "535bc1ec36526bde191978ad7cc69b35b3c1de4d3378e77591e8ca52b1be1d6c"
+      },
+      "identical": true
+    },
+    {
+      "name": "dependency-graph.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/input-stability-artifacts/dependency-graph.json",
+        "bytes": 222951479,
+        "sha256": "cc6fc5b2d55be91e6c790086665152b462ed76b1a660a3b754c7099c4f54f183"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-artifacts/dependency-graph.json",
+        "bytes": 222951479,
+        "sha256": "cc6fc5b2d55be91e6c790086665152b462ed76b1a660a3b754c7099c4f54f183"
+      },
+      "identical": true
+    },
+    {
+      "name": "evidence-graph.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/input-stability-artifacts/evidence-graph.json",
+        "bytes": 490823119,
+        "sha256": "96f5250cf94921d543571b24bdcf865086a7cc7e8c3555547a627d9c2ba0624a"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-artifacts/evidence-graph.json",
+        "bytes": 490823119,
+        "sha256": "96f5250cf94921d543571b24bdcf865086a7cc7e8c3555547a627d9c2ba0624a"
+      },
+      "identical": true
+    },
+    {
+      "name": "contract-inventory.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/input-stability-artifacts/contract-inventory.json",
+        "bytes": 143773,
+        "sha256": "dc653ad63ce0f02fba622bf920114c1a5baa213239cb877fbc1c03d8ec85ea88"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-artifacts/contract-inventory.json",
+        "bytes": 143773,
+        "sha256": "dc653ad63ce0f02fba622bf920114c1a5baa213239cb877fbc1c03d8ec85ea88"
+      },
+      "identical": true
+    },
+    {
+      "name": "ast-grep-scan.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/input-stability-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/supplemental-coverage-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      },
+      "identical": true
+    }
+  ],
+  "native_fields": [
+    {
+      "field": "root",
+      "identical": true,
+      "before_sha256": "35aea1d27be1ee94770ecdbae8dadbdf3d4673c8d8403ae3d2109644f555579d",
+      "after_sha256": "35aea1d27be1ee94770ecdbae8dadbdf3d4673c8d8403ae3d2109644f555579d"
+    },
+    {
+      "field": "input_coverage",
+      "identical": true,
+      "before_sha256": "1d2abafb9d135ac429fa26b97a03aa83f694011cbd8a69cb93fb3f0c2ab5af52",
+      "after_sha256": "1d2abafb9d135ac429fa26b97a03aa83f694011cbd8a69cb93fb3f0c2ab5af52"
+    },
+    {
+      "field": "scanned_files",
+      "identical": true,
+      "before_sha256": "0ec0a3a40322371125f6ef9b944f9a44b06b2a8f13b9687835b2d72bdab4e0ba",
+      "after_sha256": "0ec0a3a40322371125f6ef9b944f9a44b06b2a8f13b9687835b2d72bdab4e0ba"
+    },
+    {
+      "field": "analyzed_files",
+      "identical": true,
+      "before_sha256": "60cbbe1b72b270bfb8578f022584dba9943a4ca215eb63dc2002c11dcfbfd22c",
+      "after_sha256": "60cbbe1b72b270bfb8578f022584dba9943a4ca215eb63dc2002c11dcfbfd22c"
+    },
+    {
+      "field": "symbols",
+      "identical": true,
+      "before_sha256": "19ab1f57b74cc323181fb13691d083e1442743364d2c0bfa450f8e68c9e5ec1b",
+      "after_sha256": "19ab1f57b74cc323181fb13691d083e1442743364d2c0bfa450f8e68c9e5ec1b"
+    },
+    {
+      "field": "references",
+      "identical": true,
+      "before_sha256": "653b0ffa965e50d1a1c89ce9833278d47072623d88c11285349cf7dca6fa49d2",
+      "after_sha256": "653b0ffa965e50d1a1c89ce9833278d47072623d88c11285349cf7dca6fa49d2"
+    },
+    {
+      "field": "resolved_edges",
+      "identical": true,
+      "before_sha256": "fb6a97f1ebe8918b508e2647524a58c90e8fc0f8a30ea553b6b35196603be24d",
+      "after_sha256": "fb6a97f1ebe8918b508e2647524a58c90e8fc0f8a30ea553b6b35196603be24d"
+    },
+    {
+      "field": "graph_analysis",
+      "identical": true,
+      "before_sha256": "cde5c1dfca82189f71ec15afee7a8af23669faab29817ded75c6e1d93562afbc",
+      "after_sha256": "cde5c1dfca82189f71ec15afee7a8af23669faab29817ded75c6e1d93562afbc"
+    },
+    {
+      "field": "architectural_assessment",
+      "identical": true,
+      "before_sha256": "b260ca335ad078160172d063e2d05a9a3d68c29b48cb77d33e236879852c02cf",
+      "after_sha256": "b260ca335ad078160172d063e2d05a9a3d68c29b48cb77d33e236879852c02cf"
+    },
+    {
+      "field": "dead_code",
+      "identical": false,
+      "before_sha256": "9d0f2143c61cfbb6c0cf0425ce8b447811a32d48ec37333ba8b3700218631b36",
+      "after_sha256": "65256621c6e4067c48e8e7ef3502e98cb7a6bce65588a10766f56a9a72f8fcf2"
+    },
+    {
+      "field": "hardwiring",
+      "identical": true,
+      "before_sha256": "7f633c97bfd364a50d3b8b1c95a4bdcf03535f4f90567859567f62700f0bc55c",
+      "after_sha256": "7f633c97bfd364a50d3b8b1c95a4bdcf03535f4f90567859567f62700f0bc55c"
+    },
+    {
+      "field": "ast_grep_scan",
+      "identical": true,
+      "before_sha256": "02c712b53ddfbcc5d95d0120661d86b4264ef24e55a5d5f8b4b45211361e4f5c",
+      "after_sha256": "02c712b53ddfbcc5d95d0120661d86b4264ef24e55a5d5f8b4b45211361e4f5c"
+    },
+    {
+      "field": "security_analysis",
+      "identical": true,
+      "before_sha256": "879d402f433801e6a6bcc86c14d9877fed6b177bdf9814d159b4a92f8c79e2a3",
+      "after_sha256": "879d402f433801e6a6bcc86c14d9877fed6b177bdf9814d159b4a92f8c79e2a3"
+    },
+    {
+      "field": "contract_inventory",
+      "identical": true,
+      "before_sha256": "6ba755f2b1462d1b1f2fc99f897896e23110206b3a889152d69af5205d17efaa",
+      "after_sha256": "6ba755f2b1462d1b1f2fc99f897896e23110206b3a889152d69af5205d17efaa"
+    },
+    {
+      "field": "timings",
+      "identical": false,
+      "before_sha256": "60a41a4ee64132e27fb371d7b1294c2b8536e564e3a0dd5006a03ffe627429d6",
+      "after_sha256": "9ff42eec60f7a7fe3aa2623f380485b75d15bba99d1b2421090484e08d32584c"
+    }
+  ],
+  "dead_code_findings_unchanged": true,
+  "modules": {
+    "sms_before_boundary_repair": {
+      "wall": "0:00.17",
+      "peak_rss_kib": 40088,
+      "exit": 0,
+      "files": 65,
+      "supported": 40,
+      "input_coverage": "complete",
+      "secondary_coverage": "complete",
+      "dead_code": 1,
+      "backend_orphan_coverage": {
+        "status": "complete",
+        "scanned_files": 16,
+        "scanned_bytes": 19013,
+        "gap_count": 0,
+        "gaps_preview": [],
+        "input_fingerprint": "bb6e3805ff13650a"
+      },
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/supplemental-sms-result.json",
+          "bytes": 6268,
+          "sha256": "162b518a87b2fca999d7a8521cd321f16b8c89ff6647bb7986121c98404d9579"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-sms-time.txt",
+          "bytes": 951,
+          "sha256": "4e771bdd86d464328bb4320f2adcbb7f528eaf11f27523f52f40e030629fd95b"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-sms-trace.txt",
+          "bytes": 26509,
+          "sha256": "83f8749e5cc9f46f11cd65b133cbb938c53fe3f7460a6a9cf2b04758c38e993c"
+        }
+      ]
+    },
+    "sms_final": {
+      "wall": "0:00.17",
+      "peak_rss_kib": 37552,
+      "exit": 1,
+      "files": 65,
+      "supported": 40,
+      "input_coverage": "complete",
+      "secondary_coverage": "complete",
+      "dead_code": 0,
+      "backend_orphan_coverage": {
+        "status": "deferred_boundary",
+        "scanned_files": 16,
+        "scanned_bytes": 19013,
+        "gap_count": 0,
+        "gaps_preview": [],
+        "input_fingerprint": "bb6e3805ff13650a"
+      },
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/supplemental-sms-final-result.json",
+          "bytes": 6357,
+          "sha256": "72e552004dda8c0babafc2cfe512348bd7c563ee664226c4e855035795c36e06"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-sms-final-time.txt",
+          "bytes": 993,
+          "sha256": "e944e345bc9d6ce5e536bf3a67b8d765107648f8e12ce240cf7af2aeeb9cada4"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-sms-final-trace.txt",
+          "bytes": 26671,
+          "sha256": "3f4ad4f6457743c474476b61e2f5f96733c331908e972ac0a5fe860517b5deeb"
+        }
+      ]
+    },
+    "migration_final": {
+      "wall": "0:00.58",
+      "peak_rss_kib": 60216,
+      "exit": 1,
+      "files": 803,
+      "supported": 100,
+      "input_coverage": "complete",
+      "secondary_coverage": "complete",
+      "dead_code": 0,
+      "backend_orphan_coverage": {
+        "status": "incomplete",
+        "scanned_files": 550,
+        "scanned_bytes": 5154121,
+        "gap_count": 3,
+        "gaps_preview": [
+          {
+            "path_sha256": "368408a2cc1930fa85be15113f87033db05a2aec4b68f73d31e8eefcbd379345",
+            "reason": "oversized",
+            "detail": "supplemental input exceeds the 1048576-byte limit"
+          },
+          {
+            "path_sha256": "6a73c6f6f056a316cb7f1a43b88e67ea6a16d3bb6c354fc3fb1c6c5e38be8aca",
+            "reason": "oversized",
+            "detail": "supplemental input exceeds the 1048576-byte limit"
+          },
+          {
+            "path_sha256": "07ad556812ff8d3604b1cdd4261033221539000e397683925e784b47a46fb9a7",
+            "reason": "oversized",
+            "detail": "supplemental input exceeds the 1048576-byte limit"
+          }
+        ],
+        "input_fingerprint": "a2ce099a0e855250"
+      },
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-final-result.json",
+          "bytes": 7412,
+          "sha256": "874b8887d8989951854417faaa8568ae2ad4f8f879de6e35061781c1c46b8ade"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-final-time.txt",
+          "bytes": 999,
+          "sha256": "6293aecd54f411777eca13647a9c0e1b1be38f3029bbfe88de3a64904131ccf5"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-final-trace.txt",
+          "bytes": 68733,
+          "sha256": "fcd23c484b136d6285ab0b619ab850f60ab9f7f715376b1eac734e34afcffa74"
+        }
+      ]
+    },
+    "sms_initial_findings": [
+      {
+        "category": "OrphanModule",
+        "symbol_id": "module:SmsServiceServiceProvider.php",
+        "file_path": "SmsServiceServiceProvider.php",
+        "name": "SmsServiceServiceProvider",
+        "line": 1,
+        "proof_tier": "Heuristic",
+        "fingerprint": "dead-code|orphan-module|SmsServiceServiceProvider.php|SmsServiceServiceProvider",
+        "delete_verdict": "probably_delete",
+        "delete_evidence": [
+          "no inbound resolved edge from non-test sources",
+          "declares no framework contract (route/hook/registration)",
+          "no non-test quoted path literal names the file",
+          "not a corpus convention shape (multi-dot suffix or directory-derived stem)",
+          "container names unmentioned in analyzed non-test sources and the declared supplemental sweep",
+          "residual risk: runtime can still build the class name from strings that do not appear in the repo",
+          "test callers do not establish production reachability; review them before deleting"
+        ]
+      }
+    ],
+    "sms_final_findings": []
+  },
+  "mcp": {
+    "full": {
+      "process": {
+        "pid": 20336,
+        "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-supplemental-coverage",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+        "arguments": [
+          "mcp",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "--output-dir",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/supplemental-coverage-artifacts",
+          "--no-write"
+        ],
+        "started_at": "2026-09-10T03:24:45.770Z"
+      },
+      "requests": [
+        {
+          "id": 1,
+          "label": "initialize",
+          "method": "initialize",
+          "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+              "name": "aigiscode-supplemental-coverage-review",
+              "version": "1"
+            }
+          },
+          "sent_ms": 5.277743000000001,
+          "received_ms": 10.048234999999998,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "label": "overview",
+          "method": "tools/call",
+          "params": {
+            "name": "repo_overview",
+            "arguments": {
+              "min_revision": 1,
+              "consistency": "wait_until_indexed",
+              "wait_ms": 120000
+            }
+          },
+          "sent_ms": 10.484344999999998,
+          "received_ms": 18730.210057,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "label": "account-home-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 18761.45208,
+          "received_ms": 18791.025026,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "label": "account-home-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw"
+            }
+          },
+          "sent_ms": 18791.23798,
+          "received_ms": 18794.485009,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "label": "account-symlink-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 18794.629965,
+          "received_ms": 18823.667312,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 6,
+          "label": "account-symlink-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw"
+            }
+          },
+          "sent_ms": 18823.822652,
+          "received_ms": 18826.981707,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 7,
+          "label": "account-missing-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 18827.110424,
+          "received_ms": 18856.502193,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 8,
+          "label": "account-missing-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw"
+            }
+          },
+          "sent_ms": 18856.723607,
+          "received_ms": 18859.928338,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 9,
+          "label": "account-design",
+          "method": "tools/call",
+          "params": {
+            "name": "module_design",
+            "arguments": {
+              "path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "max_containers": 10
+            }
+          },
+          "sent_ms": 18860.082205,
+          "received_ms": 18950.867042,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 10,
+          "label": "cycles",
+          "method": "tools/call",
+          "params": {
+            "name": "show_cycles",
+            "arguments": {
+              "max_items": 100
+            }
+          },
+          "sent_ms": 18951.045266,
+          "received_ms": 18952.635949,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 11,
+          "label": "coverage",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/coverage"
+          },
+          "sent_ms": 18952.914348000002,
+          "received_ms": 18953.165034,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 12,
+          "label": "quality",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/quality"
+          },
+          "sent_ms": 18953.364284,
+          "received_ms": 18953.564948,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 13,
+          "label": "guard",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/guard"
+          },
+          "sent_ms": 18953.730392,
+          "received_ms": 18954.113871,
+          "error": null,
+          "is_error": false
+        }
+      ],
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 19364.95574
+      },
+      "overview_meta": {
+        "aigiscode/artifact_generation": {
+          "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/supplemental-coverage-artifacts/.generations/18d3d78ffcd24bd2-3febc7-0",
+          "generation": "18d3d78ffcd24bd2-3febc7-0",
+          "inputs_match_index": true
+        },
+        "aigiscode/ast_grep_coverage": {
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "aigiscode/backend_orphan_coverage": {
+          "gap_count": 0,
+          "status": "deferred_input_coverage"
+        },
+        "aigiscode/freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1789010704492,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        },
+        "aigiscode/input_coverage": {
+          "files_without_parse_evidence": 0,
+          "recovered_source_files": 80,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_source_files": 146
+        }
+      },
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/1.json",
+          "bytes": 523,
+          "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/10.json",
+          "bytes": 156580,
+          "sha256": "b3b513a790580e7b48553f88d98ceac2ee00fda7818c018eae36febf6f961889"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/11.json",
+          "bytes": 16355,
+          "sha256": "9fc9dddf05c651203990aed66b5ccd9271c8ca84ceb346e27dabc4e5473975be"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/12.json",
+          "bytes": 20036,
+          "sha256": "8377cd3df9aa0a1286205d4a90fb515b92cfeb484b0cefa6f6ffd02c9f9aa7e7"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/13.json",
+          "bytes": 61405,
+          "sha256": "40fdbae7b0e506f54cbbe26a2d5801c94f2008c79f2db8a0fc6196b1a12a27c8"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/2.json",
+          "bytes": 294367,
+          "sha256": "a7999dd170974e17acf6319c85f0e6bc2a71f90e79d8307c13ac53cc8a4f7fd4"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/3.json",
+          "bytes": 3805,
+          "sha256": "10c811c15bc723fdd72aec197d22b33b282460c41750879356c5457342e952c4"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/4.json",
+          "bytes": 2113,
+          "sha256": "a7322acd3357a7ee18b4e049fb4f2ca9eb7c4a5ff51da869310897fe252a8e24"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/5.json",
+          "bytes": 3805,
+          "sha256": "a0c68efa62b46d9344403e9414bc9904b928da0381ee0a1829e58d16a3047308"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/6.json",
+          "bytes": 2189,
+          "sha256": "d13227689ff07fa9c19557188cfb1b534e3f112ca023107e1dabb5f15cba2d32"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/7.json",
+          "bytes": 3805,
+          "sha256": "661928c54e2c996f77e3282f526b54386e53df4c5428a26c0073451c5cf94cb4"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/8.json",
+          "bytes": 2153,
+          "sha256": "b3ab00e033756dbe4b1d64c8f97f1ad37c41ce87b18bf9b7e0c26387394dc0af"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/9.json",
+          "bytes": 2589,
+          "sha256": "2be24adb5c90d37f510e624dd1d6d54d81edf93dbd12de4b2a8b1bb6a1a64452"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-design.json",
+          "bytes": 979,
+          "sha256": "5b09c7510f452c1fe371201a5902afeabe051a1691fbd9a3d50442d52b966307"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-home-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-home-usages.json",
+          "bytes": 637,
+          "sha256": "acd77f81f06e9ed6649b6e4c9b08d9cc750a48a4e2ad4318582626fe7183f835"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-missing-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-missing-usages.json",
+          "bytes": 657,
+          "sha256": "43b3eef929763638a779635d24e239e2421395f5dc8b5d4888a5005c60afd693"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-symlink-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/account-symlink-usages.json",
+          "bytes": 675,
+          "sha256": "c1fd3af029219a734ca9e591eea71c431ea6be10c9ac18c35fb9fbf7dd214769"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/coverage.json",
+          "bytes": 13916,
+          "sha256": "da2edf4e814b83db65d636d45158e7379169cbdb0d132bccb2045eb803748432"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/cycles.json",
+          "bytes": 100206,
+          "sha256": "e06f2f2b8067392a7bfc13aca06ffb70b5437b3684c629dd0fab1c9991371f15"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/exit.json",
+          "bytes": 49,
+          "sha256": "58bff1223316745c0eec222e0ed3e141b3513e9be45502a8b06b0b66439747db"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/guard.json",
+          "bytes": 58105,
+          "sha256": "8e5d8e5ee76e05728d6860ade7ea630f5bee6ddefe9863a084bc9c72f10dbb6e"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/overview.json",
+          "bytes": 198696,
+          "sha256": "1012e796879163cc38b41895d2a2046ad9fa3163e6f83fb1993b35021d783042"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/process.json",
+          "bytes": 529,
+          "sha256": "165d024854facc94474830787c5b6eb6326630f7673d590481393f04e0f51e87"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/quality.json",
+          "bytes": 17384,
+          "sha256": "14bf7ef0be8c9ec733865941e1484a438d32df375caf5063aee9372f92e3a9b9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/requests.json",
+          "bytes": 4618,
+          "sha256": "960703ccf12dc51210c35d28ef9e10c7e1128102e994a438e23422e21c473a41"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-coverage-cached-mcp/stderr.txt",
+          "bytes": 8176,
+          "sha256": "bdfdcb6f4145f29b13423eb1c24c50932b1dddfa522aa3ab1b0886894ad81a6d"
+        }
+      ]
+    },
+    "migration": {
+      "process": {
+        "pid": 42242,
+        "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-supplemental-coverage",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source/tools/espo_migration",
+        "arguments": [
+          "mcp",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source/tools/espo_migration",
+          "--output-dir",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/supplemental-migration-final-artifacts",
+          "--no-write"
+        ],
+        "started_at": "2026-09-10T03:28:17.986Z"
+      },
+      "requests": [
+        {
+          "id": 1,
+          "label": "initialize",
+          "method": "initialize",
+          "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+              "name": "aigiscode-supplemental-coverage-review",
+              "version": "1"
+            }
+          },
+          "sent_ms": 4.766248000000001,
+          "received_ms": 39.69544,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "label": "overview",
+          "method": "tools/call",
+          "params": {
+            "name": "repo_overview",
+            "arguments": {
+              "min_revision": 1,
+              "consistency": "wait_until_indexed",
+              "wait_ms": 120000
+            }
+          },
+          "sent_ms": 39.985031,
+          "received_ms": 230.581115,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "label": "coverage",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/coverage"
+          },
+          "sent_ms": 231.074037,
+          "received_ms": 231.319516,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "label": "quality",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/quality"
+          },
+          "sent_ms": 231.512966,
+          "received_ms": 231.714327,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "label": "guard",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/guard"
+          },
+          "sent_ms": 231.83444500000002,
+          "received_ms": 232.307904,
+          "error": null,
+          "is_error": false
+        }
+      ],
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 239.393159
+      },
+      "overview_meta": {
+        "aigiscode/artifact_generation": {
+          "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/supplemental-migration-final-artifacts/.generations/18d3d7bd679c1421-4eac-0",
+          "generation": "18d3d7bd679c1421-4eac-0",
+          "inputs_match_index": true
+        },
+        "aigiscode/ast_grep_coverage": {
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "scope_limited_files": 0,
+          "status": "complete",
+          "unsupported_files": 0
+        },
+        "aigiscode/backend_orphan_coverage": {
+          "gap_count": 3,
+          "status": "incomplete"
+        },
+        "aigiscode/freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1789010898210,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        },
+        "aigiscode/input_coverage": {
+          "files_without_parse_evidence": 0,
+          "recovered_source_files": 0,
+          "scope_limited_files": 0,
+          "status": "complete",
+          "unsupported_source_files": 0
+        }
+      },
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/1.json",
+          "bytes": 523,
+          "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/2.json",
+          "bytes": 113024,
+          "sha256": "179ce1f22ec0377fa61b8164416afaaa4776e6449e759c82c3c1883526b92941"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/3.json",
+          "bytes": 5565,
+          "sha256": "2782892a4d02e83d136e852399f30b34c56fd588c120610cf929eb2f37e5e0a8"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/4.json",
+          "bytes": 5985,
+          "sha256": "21ee8046ba33e44a2880b9eb3d5506baa55818214575af5eb3969e917cfbf925"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/5.json",
+          "bytes": 27005,
+          "sha256": "408ac530a5afbe1129e51d71e0ee75c9b6a2120182559c0026cd71bce272aea1"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/coverage.json",
+          "bytes": 4163,
+          "sha256": "40fc48bcd654ae311a4b9578199b9f24cfa6f6159cc1ff764e8af3ad1ef84f6a"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/exit.json",
+          "bytes": 48,
+          "sha256": "0a194cda6fc48e835f40564d236bcb8a285003bee7d4c7e23a1cdb3109c5fdc0"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/guard.json",
+          "bytes": 24500,
+          "sha256": "c6f3eb25a5c428c4a67a5e33cd0c0a668b39cda53c7db00f7e5731fbbc8d140a"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/overview.json",
+          "bytes": 68565,
+          "sha256": "bbbaf972a95a6711ac8892c3b5c49c2efeb996db71b76ab4b7b6ecaea81e2d0a"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/process.json",
+          "bytes": 578,
+          "sha256": "819f14a8be2b8f8b9d60d331ec975879bc74ae46edf46b550591bff0dfd3e3d5"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/quality.json",
+          "bytes": 4583,
+          "sha256": "941c3b85246e4ae4ae956655b93266871813daaf495902d7a1f91ef29bcd9366"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/requests.json",
+          "bytes": 1486,
+          "sha256": "6e3ab271cc8a54d850c92347bc815086724a6ad9739b320040b0b5a944813735"
+        },
+        {
+          "path": "target/reliability-2026-09-09/supplemental-migration-cached-mcp/stderr.txt",
+          "bytes": 8057,
+          "sha256": "3784a5b776347c762516222dcdab26ce8b7613ff2f313d78dfbfd5303b9b8c44"
+        }
+      ]
+    }
+  },
+  "self": {
+    "wall": "0:03.25",
+    "peak_rss_kib": 169364,
+    "exit": 1,
+    "summary": {
+      "backend_orphan_coverage": {
+        "status": "not_applicable",
+        "scanned_files": 0,
+        "scanned_bytes": 0,
+        "gap_count": 0,
+        "gaps_preview": [],
+        "input_fingerprint": ""
+      },
+      "ast_grep_coverage": {
+        "status": "complete",
+        "input_files": 124,
+        "scanned_files": 59,
+        "prefiltered_files": 65,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 0,
+        "gap_bytes": 0,
+        "gap_files_preview": []
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 124,
+        "parsed_source_files": 124,
+        "recovered_source_files": 2,
+        "scope_limited_files": 0,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 2,
+        "other_input_files": 152,
+        "diagnostic_count": 2,
+        "parse_issues_preview": [
+          {
+            "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 262,
+                "start_column": 50,
+                "end_line": 262,
+                "end_column": 54
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 2374,
+                "start_column": 57,
+                "end_line": 2374,
+                "end_column": 61
+              }
+            ],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "install.ps1",
+            "extension": "ps1"
+          },
+          {
+            "file_path": "install.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 278,
+      "analyzed_files": 124,
+      "symbols": 2888,
+      "references": 35741,
+      "resolved_edges": 6386,
+      "strong_cycle_count": 11,
+      "total_cycle_count": 3,
+      "architectural_smell_count": 0,
+      "warning_heavy_hotspot_count": 12,
+      "split_identity_model_count": 0,
+      "compatibility_scar_count": 0,
+      "duplicate_mechanism_count": 0,
+      "hand_rolled_parsing_count": 0,
+      "abstraction_sprawl_count": 0,
+      "algorithmic_complexity_hotspot_count": 88,
+      "ast_grep_finding_count": 52,
+      "ast_grep_algorithmic_complexity_count": 27,
+      "ast_grep_security_dangerous_api_count": 1,
+      "ast_grep_framework_misuse_count": 24,
+      "ast_grep_skipped_file_count": 65,
+      "ast_grep_skipped_bytes": 581363,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/analysis_cache.rs",
+          "bytes": 2330,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2723,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscore.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/coverage.rs",
+          "bytes": 6771,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 791,
+      "security_finding_count": 0,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/self-supplemental-coverage-result.json",
+        "bytes": 7738,
+        "sha256": "e1fc557619711ddd553906ccadadac389825e6e5d71500ca80732350ae0a099f"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-supplemental-coverage-time.txt",
+        "bytes": 918,
+        "sha256": "7d5531bad548732c494f4dbe6931ab365d80892ef994d3cbe7826a0d435400fb"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-supplemental-coverage-trace.txt",
+        "bytes": 57207,
+        "sha256": "5157e064a205a0e673bf06984db82754a0a1f770d83d30a14a8b32676f28ca88"
+      }
+    ],
+    "scope_note": "Self audit ran after the main quality document/evidence were added, before final supplemental documentation and receipt updates."
+  },
+  "closed_binary_archive": {
+    "completed_at": "2026-09-10T03:13:15.540Z",
+    "archive": {
+      "path": "target/reliability-2026-09-09/closed-binaries-2026-09-10.tar.gz",
+      "bytes": 748811840,
+      "sha256": "e440d9c0602f5411ee1344161636ec97664c0450e0e6b6eeec0cc537ed46ef46"
+    },
+    "members": [
+      {
+        "name": "aigiscode-anonymous-classes",
+        "bytes": 94936088,
+        "mode": 33277,
+        "sha256": "a7fc15884f41aec2bcdfb3e4dd8703c73b6e46e296f3c1d5dd8829a27a0eaea1"
+      },
+      {
+        "name": "aigiscode-anonymous-classes-final",
+        "bytes": 94936320,
+        "mode": 33277,
+        "sha256": "d8ba799907a5cd489110e4d2c9da6c1e7fad11c5400ddd0094445a53b8f47a16"
+      },
+      {
+        "name": "aigiscode-capture-identity",
+        "bytes": 94737424,
+        "mode": 33277,
+        "sha256": "a710a79864610380a6eca0fa5ad48f9c7a2e2bbfdd70816d54d0b9ec62b9f864"
+      },
+      {
+        "name": "aigiscode-complexity-anchors",
+        "bytes": 94746928,
+        "mode": 33277,
+        "sha256": "1cee49b56222384e73885cdc505216840413c93a49efd5d4d0bbdb458a20b1bf"
+      },
+      {
+        "name": "aigiscode-complexity-final",
+        "bytes": 94746104,
+        "mode": 33277,
+        "sha256": "b7c431eacdb2e7758e05fb4aebdc86ee5358920fbe03cb47f47c8187f55a17da"
+      },
+      {
+        "name": "aigiscode-complexity-pressure",
+        "bytes": 94742472,
+        "mode": 33277,
+        "sha256": "46db68151f0e4274733e4683d50fd56a335d51bb37490c220613837d6b77de83"
+      },
+      {
+        "name": "aigiscode-custom-cache",
+        "bytes": 59656016,
+        "mode": 33277,
+        "sha256": "30661ec415e4a53246680db58b83397f913104acc7a524d8e7f79a8915951685"
+      },
+      {
+        "name": "aigiscode-edit-receipt",
+        "bytes": 94797336,
+        "mode": 33277,
+        "sha256": "aa5e0022c7b5aed26323baf3403bb51c5d7cd1ff29e8f2a6c176d0862c798bd1"
+      },
+      {
+        "name": "aigiscode-edit-receipt-before-retry",
+        "bytes": 94781664,
+        "mode": 33277,
+        "sha256": "730bb7251044e66a075c2bdd9c646d1e3d190a57f67c8ab72162a484cb49766b"
+      },
+      {
+        "name": "aigiscode-edit-receipt-retry",
+        "bytes": 94797424,
+        "mode": 33277,
+        "sha256": "16df384ee42a92060a5471d9670c83630474258c25007fcc6b86939882a373c3"
+      },
+      {
+        "name": "aigiscode-f1cbaf0",
+        "bytes": 59655112,
+        "mode": 33277,
+        "sha256": "768c08e21a909aee8506797ebff87ac0bc4e72af23a2c724aea39c8f1f9e878e"
+      },
+      {
+        "name": "aigiscode-incremental-lazy",
+        "bytes": 94818064,
+        "mode": 33277,
+        "sha256": "9de4794bbc152c86a0d04929682ffbe883f8142098010368769e6df8435b32ac"
+      },
+      {
+        "name": "aigiscode-incremental-resolver",
+        "bytes": 94741240,
+        "mode": 33277,
+        "sha256": "060315e1d9c27720bfadee8f869f170a7bb3ca29e65d548ad5bfd112db006396"
+      },
+      {
+        "name": "aigiscode-incremental-scan",
+        "bytes": 94797352,
+        "mode": 33277,
+        "sha256": "9226bbde8e0846cd3d04fb069f5b4deff0acc218442b6f271b4cbb0d9de3f522"
+      },
+      {
+        "name": "aigiscode-large-scanner",
+        "bytes": 94731512,
+        "mode": 33277,
+        "sha256": "87812c9a18930ed776a2f133ef5ac3ee63d93e66b6f538202ff135d74270c731"
+      },
+      {
+        "name": "aigiscode-lexical-bindings",
+        "bytes": 94977632,
+        "mode": 33277,
+        "sha256": "47657070f1da972d7e0b685f3379c963bf01072919c489adc095cf5a9985c093"
+      },
+      {
+        "name": "aigiscode-module-extensions",
+        "bytes": 59743208,
+        "mode": 33277,
+        "sha256": "790b63411a42a5245259247b90ba0e2b3f8b037345d717a09ac2a798e7550652"
+      },
+      {
+        "name": "aigiscode-native-cypher",
+        "bytes": 94686400,
+        "mode": 33277,
+        "sha256": "915a6a119194eab62bd8655eaf8be5098c2737e23e7e4d58de7b21f608185df6"
+      },
+      {
+        "name": "aigiscode-plugin-capture",
+        "bytes": 94712992,
+        "mode": 33277,
+        "sha256": "603081e67cabbd7566c603c7fdca982bded771278c3f4d5a233893e6d421fbfd"
+      },
+      {
+        "name": "aigiscode-publication",
+        "bytes": 60017712,
+        "mode": 33277,
+        "sha256": "1d04c7538b09c8c9a609d00e79e3e5c3b4f95c28f13186a1ae93c3c54f382af0"
+      },
+      {
+        "name": "aigiscode-python-classes",
+        "bytes": 95022536,
+        "mode": 33277,
+        "sha256": "ae03d64779fad24baf02e99ce627282718b619bbc0bca15ebd90dd47d1fe30ea"
+      },
+      {
+        "name": "aigiscode-scoped-classes",
+        "bytes": 94988032,
+        "mode": 33277,
+        "sha256": "e8562ee288796d75bb82b951aa8f68e95c0c75c96784373cf0bc1c829ccc510d"
+      },
+      {
+        "name": "aigiscode-scoped-classes-initial",
+        "bytes": 94969240,
+        "mode": 33277,
+        "sha256": "27d2d0ab717ec2127acfc133b090cf9c71e3c461a619743fff7f75959b69d829"
+      },
+      {
+        "name": "aigiscode-scoped-classes-intermediate",
+        "bytes": 94988840,
+        "mode": 33277,
+        "sha256": "cbdc9ede2087217b2f3f25e969c61dad57e0dd716b2d991525b4dbc9ef66afb7"
+      },
+      {
+        "name": "aigiscode-secondary-coverage",
+        "bytes": 59712576,
+        "mode": 33277,
+        "sha256": "a317de01215f6b3801f3954929a4c17fced89a3fcf81ed93ed557eb39e6a5935"
+      },
+      {
+        "name": "aigiscode-signal-bindings",
+        "bytes": 94855776,
+        "mode": 33277,
+        "sha256": "3665f61d8d9fcf2052d55ee1524e02230c9514ed234b1abbe8ebc4f0e664d6fe"
+      },
+      {
+        "name": "aigiscode-triage-ranked",
+        "bytes": 59824616,
+        "mode": 33277,
+        "sha256": "9caa214a670571ba892ce10bc627a460f875a24aeda12038cea91a90853fc74f"
+      },
+      {
+        "name": "aigiscode-unicode-snippets",
+        "bytes": 59744648,
+        "mode": 33277,
+        "sha256": "358de0da84fdf4925bf9e4866b70cd1fed837c892c7ee9708e2f6c71a41741de"
+      },
+      {
+        "name": "aigiscode-vue-complexity",
+        "bytes": 94643064,
+        "mode": 33277,
+        "sha256": "7f719a6c86f8c00bf7e29314f2764c51baa5cd4ec7a380a5b6e03b2e63664bf1"
+      },
+      {
+        "name": "aigiscode-vue-scanner",
+        "bytes": 94787288,
+        "mode": 33277,
+        "sha256": "b67f14d66dee3677d17bb01ca044b2e3ad706d26a66cd5c0c28ccf802031cdf2"
+      },
+      {
+        "name": "aigiscode-vue-script-final",
+        "bytes": 94766256,
+        "mode": 33277,
+        "sha256": "b572d3c397b7ab13976c0beda822db628c444a58e458ae9af7cc91a6fce932d6"
+      },
+      {
+        "name": "aigiscode-vue-script-scope",
+        "bytes": 94742688,
+        "mode": 33277,
+        "sha256": "4368747d359ef32cefb95103563bb5a706a68a20ca8093ac4c0164c8a54a8525"
+      }
+    ],
+    "tar_compare_exit": 0,
+    "compare_output_bytes": 0,
+    "retained_unpacked": [
+      "aigiscode-input-stability",
+      "aigiscode-analysis-restore",
+      "aigiscode-supplemental-coverage"
+    ],
+    "pruned_originals": true
+  },
+  "live_quality_evidence": {
+    "path": "docs/2026-09-10-draivix-quality-evidence.json",
+    "bytes": 21634,
+    "sha256": "64f24fbee6d3bcf5cd1be6a3cb88a6483004304c40188011a789374353cd5db6"
+  },
+  "limits": [
+    "One new combined gap/boundary regression and two existing filesystem-backed orphan regressions were written/updated, not run or built as test targets. Tests and CI remain paused.",
+    "Actual source audits exercise existing oversized migration reports and the truncated SmsService boundary; missing-file, permission, invalid-UTF8, growth and concurrent-change rejection are not runtime-proven here.",
+    "Supplemental completeness is defined by the declared sweep, not every possible runtime caller. Frontend orphan boundary handling is unchanged.",
+    "Final fingerprint comparisons are not atomic filesystem snapshots.",
+    "Module scopes are incomplete architecture boundaries, not independent clean applications; no PHP application/migration command was executed.",
+    "Migration report filenames are represented by hashes here; complete local gap records remain in the retained raw artifacts. No report contents are copied into this receipt.",
+    "Original Draivix was not modified. The quality assessment rechecks selected live files, not the entire live tree.",
+    "Full Q01-Q12 acceptance, approved CI, security acceptance and general incremental/concurrent behavior remain open."
+  ],
+  "copy_integrity": {
+    "completed_at": "2026-09-10T03:30:43.904Z",
+    "results": [
+      {
+        "name": "draivix-capture-identity-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ]
+  }
+}

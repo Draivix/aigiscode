@@ -277,6 +277,7 @@ pub struct AigiscodeReportArtifact<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct ReportSummary {
+    pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub baseline: BaselineAssessment,
@@ -667,6 +668,8 @@ pub struct RepositoryTopologyContractZone {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceHistoryArtifact {
+    #[serde(default)]
+    pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub root: String,
@@ -1098,6 +1101,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
+            backend_orphan_coverage: analysis.dead_code.backend_orphan_coverage.clone(),
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             baseline: convergence_history.baseline.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
@@ -3373,6 +3377,7 @@ pub fn build_convergence_history_artifact(
     let current_overview = &current_architecture_surface.overview;
 
     ConvergenceHistoryArtifact {
+        backend_orphan_coverage: current_overview.backend_orphan_coverage.clone(),
         root: root.display().to_string(),
         baseline: baseline.clone(),
         input_coverage: current_overview.input_coverage.clone(),
@@ -3621,6 +3626,23 @@ pub fn build_guard_decision_artifact(
         obligations.push(GuardianObligation {
             action: String::from("Review files omitted by the secondary rules; restore scanner coverage before treating missing findings as a clean audit."),
             acceptance: String::from("Secondary rule execution has no size, language-support or unclassified gaps within the selected source scope."),
+        });
+    }
+
+    if !convergence.backend_orphan_coverage.is_complete() {
+        let message = convergence.backend_orphan_coverage.summary();
+        reasons.push(message.clone());
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Block,
+            message,
+            precision: String::from("exact"),
+            confidence_millis: 1000,
+            provenance: vec![String::from("dead_code.backend_orphan_coverage")],
+            doctrine_refs: vec![String::from("guardian.change-governance")],
+        });
+        obligations.push(GuardianObligation {
+            action: String::from("Restore supplemental evidence or widen the analysis boundary before evaluating backend orphan candidates."),
+            acceptance: String::from("Native coverage and the analysis boundary permit the check, with every eligible supplemental input readable within its declared bounds, or no backend source makes the check applicable."),
         });
     }
 
@@ -4053,6 +4075,12 @@ pub fn build_guard_decision_artifact(
             GuardVerdict::Block,
             1000,
             String::from("Block: secondary rule coverage is incomplete; omitted files are missing evidence, not proof of code defects."),
+        )
+    } else if !convergence.backend_orphan_coverage.is_complete() {
+        (
+            GuardVerdict::Block,
+            1000,
+            convergence.backend_orphan_coverage.summary(),
         )
     } else if !external.is_complete() {
         (
@@ -6753,6 +6781,7 @@ fn build_markdown_report(
             report.summary.abstraction_sprawl_count
         ),
         format!("- Dead code findings: {}", report.summary.dead_code_count),
+        format!("- {}", report.summary.backend_orphan_coverage.summary()),
         format!("- Hardwiring findings: {}", report.summary.hardwiring_count),
         format!("- {}", report.summary.ast_grep_coverage.summary()),
         format!("- Secondary coverage gaps (largest files): {}", report.summary.ast_grep_coverage.gap_files_preview.iter().map(|file| format!("{} ({}, {} bytes)", file.file_path.display(), file.reason, file.bytes)).collect::<Vec<_>>().join(", ")),
@@ -8239,6 +8268,10 @@ fn main() {
     #[test]
     fn guard_decision_promotes_architectonic_regressions_into_triggers() {
         let convergence = ConvergenceHistoryArtifact {
+            backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage {
+                status: crate::detectors::dead_code::BackendOrphanStatus::NotApplicable,
+                ..Default::default()
+            },
             ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage {
                 status: crate::scanners::coverage::SecondaryCoverageStatus::NoInputs,
                 ..Default::default()
@@ -8357,6 +8390,10 @@ fn main() {
     #[test]
     fn guard_decision_surfaces_algorithmic_complexity_regressions() {
         let convergence = ConvergenceHistoryArtifact {
+            backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage {
+                status: crate::detectors::dead_code::BackendOrphanStatus::NotApplicable,
+                ..Default::default()
+            },
             ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage {
                 status: crate::scanners::coverage::SecondaryCoverageStatus::NoInputs,
                 ..Default::default()

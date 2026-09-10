@@ -58,6 +58,7 @@ fn analysis_exit_code(
     graph: &crate::graph::SemanticGraph,
     external: Option<&crate::external::ExternalAnalysisResult>,
     secondary: Option<&crate::scanners::coverage::SecondaryCoverage>,
+    backend_orphan: Option<&crate::detectors::dead_code::BackendOrphanCoverage>,
 ) -> i32 {
     let mut incomplete = false;
     if !graph.input_coverage().is_complete() {
@@ -70,6 +71,10 @@ fn analysis_exit_code(
     }
     if secondary.is_some_and(|coverage| !coverage.is_complete()) {
         eprintln!("secondary rule coverage is incomplete; see ast_grep_coverage and ast-grep-scan.json");
+        incomplete = true;
+    }
+    if let Some(coverage) = backend_orphan.filter(|coverage| !coverage.is_complete()) {
+        eprintln!("{}", coverage.summary());
         incomplete = true;
     }
     i32::from(incomplete)
@@ -131,7 +136,7 @@ where
                     let json = serde_json::to_string_pretty(&surface)
                         .expect("failed to serialize architecture surface");
                     println!("{json}");
-                    analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage))
+                    analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage), Some(&result.dead_code.backend_orphan_coverage))
                 }
                 Err(error) => {
                     eprintln!("{error}");
@@ -295,6 +300,7 @@ struct PluginCatalogEntry {
 
 #[derive(Debug, Serialize)]
 struct AnalyzeCommandSummary {
+    backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     input_coverage: crate::coverage::InputCoverage,
     scanned_files: usize,
@@ -779,6 +785,7 @@ fn build_analysis_command_output(
             aigiscode_report_markdown: paths.aigiscode_report_markdown.clone(),
         }),
         summary: AnalyzeCommandSummary {
+            backend_orphan_coverage: result.dead_code.backend_orphan_coverage.clone(),
             ast_grep_coverage: result.ast_grep_scan.coverage.clone(),
             input_coverage: result.semantic_graph.input_coverage(),
             scanned_files: result.scan.files.len(),
@@ -902,7 +909,7 @@ fn run_project_analysis_command(path: PathBuf, options: ArtifactOptions) -> i32 
             let json = serde_json::to_string_pretty(&output)
                 .expect("failed to serialize analysis summary");
             println!("{json}");
-            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage))
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage), Some(&result.dead_code.backend_orphan_coverage))
         }
         Err(error) => {
             eprintln!("{error}");
@@ -987,7 +994,7 @@ fn run_graph_command(path: PathBuf, options: ArtifactOptions) -> i32 {
             let json =
                 serde_json::to_string_pretty(&output).expect("failed to serialize graph summary");
             println!("{json}");
-            analysis_exit_code(&result.semantic_graph, None, None)
+            analysis_exit_code(&result.semantic_graph, None, None, None)
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1140,7 +1147,7 @@ fn run_agent_command(path: PathBuf, options: ArtifactOptions) -> i32 {
                 serde_json::to_string_pretty(&agentic_review)
                     .expect("failed to serialize agentic review output")
             );
-            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage))
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage), Some(&result.dead_code.backend_orphan_coverage))
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1177,7 +1184,7 @@ fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
                 ))
                 .expect("failed to serialize agent-run output")
             );
-            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage))
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage), Some(&result.dead_code.backend_orphan_coverage))
         }
         Err(error) => {
             eprintln!("{error}");
@@ -1215,7 +1222,7 @@ fn run_agent_spider_command(path: PathBuf, options: AgentSpiderOptions) -> i32 {
                 ))
                 .expect("failed to serialize agent-spider output")
             );
-            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage))
+            analysis_exit_code(&result.semantic_graph, Some(&result.external_analysis), Some(&result.ast_grep_scan.coverage), Some(&result.dead_code.backend_orphan_coverage))
         }
         Err(error) => {
             eprintln!("{error}");

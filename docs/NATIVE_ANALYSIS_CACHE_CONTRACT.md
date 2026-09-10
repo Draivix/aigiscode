@@ -22,6 +22,7 @@ file/symbol/reference/edge counts must agree with the validated graph project.
 Restored fields are graph analysis, architectural assessment, contract inventory,
 hardwiring, secondary scanner results and security analysis. Dead-code analysis
 is recomputed because its supplemental sweep can read outside the parsed slice;
+its gap status and input fingerprint are part of that comparison and snapshot identity.
 it must equal the cached result before reuse is accepted. A failed eligibility,
 decoding, checksum, count, coverage or dead-code comparison recomputes the entire
 native analysis from the verified graph and current captured policy/doctrine.
@@ -29,7 +30,7 @@ native analysis from the verified graph and current captured policy/doctrine.
 Neither old guard/convergence decisions nor old agent context are restored.
 Those continue to derive from the current analysis and pinned previous baseline
 through the existing MCP/artifact layers. External tools are not replayed or
-represented as freshly executed. Existing incomplete native/secondary coverage
+represented as freshly executed. Existing incomplete native/secondary/backend-orphan coverage
 is preserved and still affects guard and CLI behavior.
 
 `Scan` measures inventory/source validation, `LoadGraph` measures graph decoding
@@ -45,7 +46,7 @@ The per-file secondary scanner cache is not seeded by this restoration; a later
 changed scan may need to warm it. Full graph decoding and MCP surfaces still
 consume time and memory. Shared configuration capture and final validation are
 described in [input capture](INPUT_CAPTURE_CONTRACT.md), including the remaining
-non-atomic filesystem and supplemental-reader limits.
+non-atomic filesystem limits and separately fingerprinted supplemental evidence.
 
 The existing graph round-trip regression now checks all native fields and a
 logically unrelated findings payload with an updated hash; the external-evidence

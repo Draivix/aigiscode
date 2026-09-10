@@ -3284,6 +3284,7 @@ mod tests {
             ..GraphAnalysis::default()
         };
         let dead_code = DeadCodeResult {
+            backend_orphan_coverage: Default::default(),
             findings: vec![DeadCodeFinding {
                 category: DeadCodeCategory::UnusedPrivateFunction,
                 symbol_id: String::from("a"),
@@ -3370,6 +3371,7 @@ mod tests {
             ..GraphAnalysis::default()
         };
         let dead_code = DeadCodeResult {
+            backend_orphan_coverage: Default::default(),
             findings: vec![
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -3429,6 +3431,7 @@ mod tests {
             ..GraphAnalysis::default()
         };
         let dead_code = DeadCodeResult {
+            backend_orphan_coverage: Default::default(),
             findings: vec![
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -5570,6 +5573,7 @@ export function run(items: string[][]) {
         });
         // OrphanJob is already an orphan finding — must not double-report.
         let dead_code = DeadCodeResult {
+            backend_orphan_coverage: Default::default(),
             findings: vec![DeadCodeFinding {
                 category: DeadCodeCategory::OrphanModule,
                 symbol_id: String::from("module:app/Jobs/OrphanJob.php"),

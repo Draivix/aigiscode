@@ -10,6 +10,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+mod supplemental;
+pub use supplemental::{BackendOrphanCoverage, BackendOrphanStatus, SupplementalGap, SupplementalGapReason};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeadCodeCategory {
     UnusedPrivateFunction,
@@ -57,6 +60,25 @@ pub struct DeadCodeFinding {
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct DeadCodeResult {
     pub findings: Vec<DeadCodeFinding>,
+    #[serde(default)]
+    pub backend_orphan_coverage: BackendOrphanCoverage,
+}
+
+impl DeadCodeResult {
+    pub(crate) fn supplemental_inputs_match(
+        &self,
+        root: &Path,
+        parsed_sources: &[(PathBuf, String)],
+        scope: &AnalysisScope,
+    ) -> bool {
+        match self.backend_orphan_coverage.status {
+            BackendOrphanStatus::NotApplicable | BackendOrphanStatus::DeferredInputCoverage => true,
+            BackendOrphanStatus::Unknown => false,
+            BackendOrphanStatus::Complete | BackendOrphanStatus::Incomplete | BackendOrphanStatus::DeferredBoundary => {
+                supplemental::collect(root, parsed_sources, scope, |_| {}) == self.backend_orphan_coverage
+            }
+        }
+    }
 }
 
 pub fn analyze_dead_code(
@@ -81,11 +103,27 @@ pub fn analyze_dead_code_scoped(
     repo_root: &Path,
     scope: &AnalysisScope,
 ) -> DeadCodeResult {
+    let has_backend_sources = parsed_sources.iter().any(|(path, _)| {
+        path.extension().and_then(|extension| extension.to_str())
+            .is_some_and(|extension| BACKEND_ORPHAN_EXTENSIONS.contains(&extension))
+    });
     if !graph.input_coverage().is_complete() {
         // Missing syntax, template bindings or unsupported callers cannot prove
         // absence of use. The coverage contract records these checks as deferred.
-        return DeadCodeResult::default();
+        return DeadCodeResult {
+            backend_orphan_coverage: BackendOrphanCoverage {
+                status: if has_backend_sources { BackendOrphanStatus::DeferredInputCoverage } else { BackendOrphanStatus::NotApplicable },
+                ..BackendOrphanCoverage::default()
+            },
+            ..DeadCodeResult::default()
+        };
     }
+    let mut supplemental_sources = Vec::new();
+    let backend_orphan_coverage = if has_backend_sources {
+        supplemental::collect(repo_root, parsed_sources, scope, |source| supplemental_sources.push(source))
+    } else {
+        BackendOrphanCoverage { status: BackendOrphanStatus::NotApplicable, ..BackendOrphanCoverage::default() }
+    };
     let called_symbols = graph
         .resolved_edges
         .iter()
@@ -333,13 +371,11 @@ pub fn analyze_dead_code_scoped(
     );
 
     findings.extend(detect_orphan_modules(graph, parsed_sources));
-    findings.extend(detect_backend_orphan_modules(
-        graph,
-        parsed_sources,
-        contract_inventory,
-        repo_root,
-        scope,
-    ));
+    if backend_orphan_coverage.is_complete() {
+        findings.extend(detect_backend_orphan_modules(
+            graph, parsed_sources, contract_inventory, &supplemental_sources,
+        ));
+    }
 
     findings.sort_by(|left, right| {
         left.file_path
@@ -348,7 +384,7 @@ pub fn analyze_dead_code_scoped(
             .then(left.name.cmp(&right.name))
     });
 
-    DeadCodeResult { findings }
+    DeadCodeResult { findings, backend_orphan_coverage }
 }
 
 const FRONTEND_MODULE_EXTENSIONS: &[&str] = &["vue", "ts", "tsx", "js", "jsx", "mjs", "cjs"];
@@ -502,8 +538,7 @@ fn detect_backend_orphan_modules(
     graph: &SemanticGraph,
     parsed_sources: &[(PathBuf, String)],
     contract_inventory: &ContractInventory,
-    repo_root: &Path,
-    scope: &AnalysisScope,
+    out_of_slice: &[String],
 ) -> Vec<DeadCodeFinding> {
     let inbound_files = graph
         .resolved_edges
@@ -638,7 +673,6 @@ fn detect_backend_orphan_modules(
     // rest of this stack: it can veto a finding, never create one. Suffixes are
     // collected from the analyzed slice AND excluded dirs (commands/bootstrap),
     // because factories routinely live outside the analyzed slice.
-    let out_of_slice = collect_out_of_slice_sources(repo_root, parsed_sources, scope);
     let dispatch_suffixes = collect_dynamic_dispatch_suffixes(
         parsed_sources
             .iter()
@@ -732,7 +766,7 @@ fn detect_backend_orphan_modules(
                 String::from("no non-test quoted path literal names the file"),
                 String::from("not a corpus convention shape (multi-dot suffix or directory-derived stem)"),
                 String::from(
-                    "container names unmentioned in non-test sources, including out-of-slice files",
+                    "container names unmentioned in analyzed non-test sources and the declared supplemental sweep",
                 ),
                 String::from(
                     "residual risk: runtime can still build the class name from strings that do not appear in the repo",
@@ -830,93 +864,6 @@ fn concat_upper_camel_literal_pattern() -> &'static regex::Regex {
 fn quoted_upper_camel_literal_pattern() -> &'static regex::Regex {
     static PATTERN: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     PATTERN.get_or_init(|| regex::Regex::new(r#"['"]([A-Z][A-Za-z0-9]+)['"]"#).unwrap())
-}
-
-fn collect_out_of_slice_sources(
-    repo_root: &Path,
-    parsed_sources: &[(PathBuf, String)],
-    scope: &AnalysisScope,
-) -> Vec<String> {
-    const SWEEP_EXTENSIONS: &[&str] = &[
-        "php", "json", "yaml", "yml", "xml", "neon", "ini", "sh", "env", "ts", "js",
-    ];
-    if repo_root.as_os_str().is_empty() {
-        return Vec::new();
-    }
-    let parsed: HashSet<&Path> = parsed_sources
-        .iter()
-        .map(|(path, _)| path.as_path())
-        .collect();
-    let mut sources = Vec::new();
-    let mut stack = vec![repo_root.to_path_buf()];
-    while let Some(dir) = stack.pop() {
-        let Ok(entries) = std::fs::read_dir(&dir) else {
-            continue;
-        };
-        for entry in entries.flatten() {
-            let path = entry.path();
-            let relative = path.strip_prefix(repo_root).unwrap_or(&path);
-            if scope.is_generated_path(relative) {
-                continue;
-            }
-            let Ok(file_type) = entry.file_type() else {
-                continue;
-            };
-            // Never follow links or read special files in a supplemental sweep.
-            if !file_type.is_dir() && !file_type.is_file() {
-                continue;
-            }
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if file_type.is_dir() {
-                // Test trees cannot prove production aliveness: a module only
-                // exercised by its tests is dead production code.
-                if name.starts_with('.')
-                    || matches!(
-                        name.as_ref(),
-                        "vendor"
-                            | "node_modules"
-                            | "storage"
-                            | "dist"
-                            | "build"
-                            | "target"
-                            | "tests"
-                            | "Tests"
-                            | "__tests__"
-                            | "test"
-                            | "Test"
-                    )
-                {
-                    continue;
-                }
-                stack.push(path);
-                continue;
-            }
-            if is_test_source_path(&path) {
-                continue;
-            }
-            let Some(extension) = path.extension().and_then(|value| value.to_str()) else {
-                continue;
-            };
-            if !SWEEP_EXTENSIONS.contains(&extension) {
-                continue;
-            }
-            if parsed.contains(relative) || parsed.contains(path.as_path()) {
-                continue;
-            }
-            if entry
-                .metadata()
-                .map(|meta| meta.len() > 1_048_576)
-                .unwrap_or(true)
-            {
-                continue;
-            }
-            if let Ok(source) = std::fs::read_to_string(&path) {
-                sources.push(source);
-            }
-        }
-    }
-    sources
 }
 
 pub(crate) fn identifier_mentioned(name: &str, source: &str) -> bool {
@@ -1525,6 +1472,62 @@ mod tests {
     use crate::resolve::resolve_graph;
     use std::path::{Path, PathBuf};
 
+    fn source_fixture(sources: &[(PathBuf, String)]) -> PathBuf {
+        let nonce = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let root = std::env::temp_dir().join(format!("aigiscode-supplemental-{nonce}"));
+        std::fs::create_dir_all(&root).unwrap();
+        for (path, source) in sources {
+            let path = root.join(path);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, source).unwrap();
+        }
+        root
+    }
+
+    #[test]
+    fn supplemental_gaps_defer_backend_orphans_and_preserve_other_findings() {
+        let sources = vec![(PathBuf::from("app/Services/Quiet.php"), String::from(
+            "<?php class Quiet { private function idle(): void {} }",
+        ))];
+        let root = source_fixture(&sources);
+        let mut graph = parse_php_to_graph(sources[0].0.clone(), &sources[0].1).unwrap();
+        resolve_graph(&mut graph);
+        let inventory = ContractInventory::default();
+        let complete = analyze_dead_code(&graph, &sources, &inventory, &root);
+        assert_eq!(complete.backend_orphan_coverage.status, super::BackendOrphanStatus::Complete);
+        assert!(complete.findings.iter().any(|finding| finding.category == DeadCodeCategory::OrphanModule));
+        let scoped = super::analyze_dead_code_scoped(&graph, &sources, &inventory, &root,
+            &crate::ingestion::scan::AnalysisScope {
+                boundary_truth: crate::ingestion::scan::AnalysisBoundaryTruth::TruncatedSlice,
+                ..Default::default()
+            });
+        assert_eq!(scoped.backend_orphan_coverage.status, super::BackendOrphanStatus::DeferredBoundary);
+        assert!(!scoped.findings.iter().any(|finding| finding.category == DeadCodeCategory::OrphanModule));
+        assert!(scoped.findings.iter().any(|finding| finding.category == DeadCodeCategory::UnusedPrivateFunction));
+        let path = root.join("wiring.json");
+        std::fs::write(&path, [0xff]).unwrap();
+        let invalid = analyze_dead_code(&graph, &sources, &inventory, &root);
+        assert_eq!(invalid.backend_orphan_coverage.status, super::BackendOrphanStatus::Incomplete);
+        assert_eq!(invalid.backend_orphan_coverage.gaps_preview[0].reason, super::SupplementalGapReason::InvalidUtf8);
+        assert!(!invalid.findings.iter().any(|finding| finding.category == DeadCodeCategory::OrphanModule));
+        assert!(invalid.findings.iter().any(|finding| finding.category == DeadCodeCategory::UnusedPrivateFunction && finding.name == "idle"));
+        let oversized = std::fs::File::create(&path).unwrap();
+        oversized.set_len(1_048_577).unwrap();
+        drop(oversized);
+        let limited = analyze_dead_code(&graph, &sources, &inventory, &root);
+        assert_eq!(limited.backend_orphan_coverage.gaps_preview[0].reason, super::SupplementalGapReason::Oversized);
+        std::fs::write(&path, r#"{"handler":"Quiet"}"#).unwrap();
+        assert!(!complete.supplemental_inputs_match(&root, &sources, &Default::default()));
+        let wired = analyze_dead_code(&graph, &sources, &inventory, &root);
+        assert!(wired.backend_orphan_coverage.is_complete());
+        assert_eq!(wired.backend_orphan_coverage.scanned_files, 1);
+        assert!(!wired.findings.iter().any(|finding| finding.category == DeadCodeCategory::OrphanModule));
+        let unavailable = analyze_dead_code(&graph, &sources, &inventory, &root.join("missing"));
+        assert_eq!(unavailable.backend_orphan_coverage.status, super::BackendOrphanStatus::Incomplete);
+        assert_eq!(unavailable.backend_orphan_coverage.gaps_preview[0].reason, super::SupplementalGapReason::DirectoryRead);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn detects_orphan_frontend_modules_with_all_suppression_channels() {
         let consumer_path = PathBuf::from("resources/js/Pages/Home.vue");
@@ -1897,7 +1900,8 @@ export { helper } from '@/utils/reExported'
                 }],
             });
 
-        let result = analyze_dead_code(&graph, &sources, &inventory, Path::new(""));
+        let root = source_fixture(&sources);
+        let result = analyze_dead_code(&graph, &sources, &inventory, &root);
         let orphans: Vec<&str> = result
             .findings
             .iter()
@@ -1911,6 +1915,7 @@ export { helper } from '@/utils/reExported'
             "inbound-edge, contract-location, ::class-string, convention-suffix, \
              and no-container channels must all suppress: {orphans:?}"
         );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -1949,11 +1954,12 @@ export { helper } from '@/utils/reExported'
         }
         resolve_graph(&mut graph);
 
+        let root = source_fixture(&sources);
         let result = analyze_dead_code(
             &graph,
             &sources,
             &ContractInventory::default(),
-            Path::new(""),
+            &root,
         );
         let orphans: Vec<&str> = result
             .findings
@@ -1970,6 +1976,7 @@ export { helper } from '@/utils/reExported'
             orphans.contains(&"TrulyDeadReporter"),
             "suffix built nowhere must stay flagged: {orphans:?}"
         );
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

@@ -1,0 +1,631 @@
+{
+  "observed_at": "2026-09-10T03:22:37.972Z",
+  "original_written": false,
+  "files": [
+    {
+      "path": "app/Support/ActorContext.php",
+      "present": true,
+      "bytes": 912,
+      "lines": 41,
+      "sha256": "61a614f7989226d9e3559ee03ed93ebd60291dac2a9a6fc595cb7684966d5558",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+      "present": true,
+      "bytes": 50363,
+      "lines": 1441,
+      "sha256": "d5a16dd1dbf9f017dfccaaafa425747e8848b685be4bd8b7e64d9b22c0aa2294",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Entities/_Core/EntityDeleteSideEffects.php",
+      "present": true,
+      "bytes": 4350,
+      "lines": 139,
+      "sha256": "d8ebfc6e7b156e8c354b6169f303159f8a371869fccc39beb67a5c098e21c819",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/_Core/Realtime/EntityBroadcaster.php",
+      "present": true,
+      "bytes": 8268,
+      "lines": 250,
+      "sha256": "ea52ca76dffb567cffaf0003e9ab49e6c056da47fcbd6ae36af8e39c828f62e7",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/_Core/StateMachine/StatusTransitionPublisher.php",
+      "present": true,
+      "bytes": 4905,
+      "lines": 143,
+      "sha256": "8c192b865afd5c7a954651e3d311e9063170cac22fbc532984b0f901dd890274",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/Notifications/AssignmentNotificationService.php",
+      "present": true,
+      "bytes": 6125,
+      "lines": 217,
+      "sha256": "abb13201185547737c0d5b8cddde371bf11b8fa5810c6febe4100176024dca12",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+      "present": true,
+      "bytes": 2676,
+      "lines": 94,
+      "sha256": "976303c574abf8bdd540cc736cec7ea8868bd04bf017ccd49157fa5ee69301f7",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/Filter/EntitySortTargetResolver.php",
+      "present": true,
+      "bytes": 14289,
+      "lines": 419,
+      "sha256": "fea6f1a4826e2965f6a218a7850e730425281299a6c345f6274a5f2bb3611064",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/_Core/Filter/EffectiveFilterTypeResolver.php",
+      "present": true,
+      "bytes": 2065,
+      "lines": 64,
+      "sha256": "19057f4440880aa011de229f96d49be7df77022af6ed99ee94d410c128d54e34",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/View/ViewColumnSliceResolverInterface.php",
+      "present": true,
+      "bytes": 573,
+      "lines": 19,
+      "sha256": "32132b90900ce7d8ceeeecbf85526acf9a9e9da5f2a1874afb8d1ab9c4a8787d",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+      "present": true,
+      "bytes": 377578,
+      "lines": 8551,
+      "sha256": "26a56a072de707ee8403b3f785a832f4e537a0298a893bbeae8df4b604a280e6",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Services/Email/EmailService.php",
+      "present": true,
+      "bytes": 98762,
+      "lines": 2655,
+      "sha256": "0025060ce4e84ead17178794eeff5ae1c07ac82debdfac26943f52718ad90f8e",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "resources/js/Pages/Email/Index.vue",
+      "present": true,
+      "bytes": 198406,
+      "lines": 5649,
+      "sha256": "054f7cf6dd5423cf75bc1f37ee666b95978af406766ffa1dc8a0452bef3d79f1",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "resources/js/Components/Email/EmailPreview.vue",
+      "present": true,
+      "bytes": 204305,
+      "lines": 5365,
+      "sha256": "5c2b4ecc33d1274a6c60bf8a0b45684a499dbcb3260755862bd58af124b590fd",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Modules/AiChat/Services/ChatService.php",
+      "present": true,
+      "bytes": 175734,
+      "lines": 4640,
+      "sha256": "a7fe971d1122c494c39f63bf0c5a9d65d7d34f4053fa85cd90e6acb80a302083",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Http/Controllers/Entity/Handlers/EntityViewHandler.php",
+      "present": true,
+      "bytes": 60022,
+      "lines": 1516,
+      "sha256": "97f9004b98bf0a26fd10d23fbffd3f2cbedbbfca77c545c290a3296e1e472d13",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+      "present": true,
+      "bytes": 5400,
+      "lines": 152,
+      "sha256": "75d9a553b010927daff3c801be75489d6da2bc3d6c4e3cd38f9701c8d0e4464d",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+      "present": true,
+      "bytes": 2745,
+      "lines": 62,
+      "sha256": "352ad0aa5a35a237c2fec160194d0e597d837a805467310e70ad6acdbf1465ab",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "clients/mitel/Hooks/Task/TaskWorkflowHook.php",
+      "present": true,
+      "bytes": 22832,
+      "lines": 584,
+      "sha256": "2efa2e7742967f72f45e914cb45bf047d71eba4ddfe906ace05ebc961d86e6aa",
+      "agrees_with_audit_copy": true
+    }
+  ],
+  "context_sources": [
+    {
+      "path": "app/Entities/_Core/ActivityHistoryLoader.php",
+      "sha256": "5db58d883e128b2f2fbfdc54c265981725c5083751523e36338cd1ce95b46f5b",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Entities/_Core/CalendarConfigLoader.php",
+      "sha256": "d838d2339715c3a474dba59bafd61d837b169b4540e1ac03e55510facbefb6ba",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Entities/_Core/EntityRegistry.php",
+      "sha256": "b02fc9d95d1fd334e12202c8464d66442abaa35c63657221ecae83a3d69f830e",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "bootstrap/providers.php",
+      "sha256": "0d547afb8d287b22fa026b983a38fc7444920630984bc16d28401bf97c5c6dba",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Modules/ModuleProviderDiscovery.php",
+      "sha256": "6e84191de8c19375e576f08d40e11aa428eaf01e56abf6422fbc9c0e0e503cc4",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Modules/SmsService/module.php",
+      "sha256": "88f4942c12103341dd0be82c59e5e9fa24cf077d1038aeb334f312da985adbf8",
+      "agrees_with_audit_copy": true
+    },
+    {
+      "path": "app/Modules/SmsService/SmsServiceServiceProvider.php",
+      "sha256": "41e8f5bceeaac2626bbdb9c281c93dd62f2600e13aa26d56272a317908222b81",
+      "agrees_with_audit_copy": true
+    }
+  ],
+  "audit": {
+    "source_root": "target/reliability-2026-09-09/draivix-capture-identity-source",
+    "binary": "target/reliability-2026-09-09/aigiscode-supplemental-coverage",
+    "summary": {
+      "backend_orphan_coverage": {
+        "status": "deferred_input_coverage",
+        "scanned_files": 0,
+        "scanned_bytes": 0,
+        "gap_count": 0,
+        "gaps_preview": [],
+        "input_fingerprint": ""
+      },
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 132657,
+      "references": 1097074,
+      "resolved_edges": 331060,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 22,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "raw_summary_sha256": "801d35458d94aae79eda23d209da0e40390d955d2d2ccce9abf3be5633a8eeda"
+  },
+  "scope_notes": [
+    "The 19 primary files and seven context files were read from the live working tree without changes.",
+    "Whole-repository metrics describe the preserved broad capture, not a fresh census of every current live file.",
+    "Actor attribution inconsistency follows from source branches; no notification or application workflow was executed.",
+    "Named-consumer searches cannot exclude dynamic discovery.",
+    "Tests and CI remain paused; external security scanners were not run."
+  ]
+}

@@ -105,7 +105,8 @@ pub struct ProjectAnalysis {
 
 impl ProjectAnalysis {
     pub(crate) fn verify_inputs(&self) -> Result<(), ProjectAnalysisError> {
-        self.capture.verify(&self.scan)
+        self.capture.verify(&self.scan)?;
+        verify_supplemental(&self.dead_code, &self.parsed_sources, &self.scan)
     }
 
     pub fn doctrine_registry(&self) -> &DoctrineRegistry {
@@ -397,13 +398,13 @@ fn finish_project_analysis(
             // parsed slice. Re-evaluate it rather than assuming the scan manifest
             // fingerprints those additional files.
             let dead_code = analyze_dead_code_scoped(&graph_project.semantic_graph, &graph_project.parsed_sources,
-                &findings.contract_inventory, &graph_project.root, &graph_project.scan.scope);
+                &findings.contract_inventory, &graph_project.scan.root, &graph_project.scan.scope);
             if dead_code == findings.dead_code {
                 let mut timings = graph_project.timings;
                 let elapsed_ms = analyze_started.elapsed().as_millis();
                 timings.push(PhaseTiming { phase: IngestionPhase::LoadAnalysis, elapsed_ms });
                 trace(&format!("fast_load.native_analysis restored elapsed_ms={elapsed_ms}"));
-                verify_capture(&graph_project.capture, &graph_project.scan, &mut timings)?;
+                verify_capture(&graph_project.capture, &graph_project.scan, &mut timings, Some((&dead_code, &graph_project.parsed_sources)))?;
                 return Ok(ProjectAnalysis {
                     root: graph_project.root,
                     scan: graph_project.scan,
@@ -463,7 +464,7 @@ fn finish_project_analysis(
         &semantic_graph,
         &parsed_sources,
         &contract_inventory,
-        &root,
+        &scan.root,
         &scan.scope,
     );
     trace(&format!(
@@ -533,7 +534,7 @@ fn finish_project_analysis(
         elapsed_ms: analyze_elapsed,
     });
 
-    verify_capture(&capture, &scan, &mut timings)?;
+    verify_capture(&capture, &scan, &mut timings, Some((&dead_code, &parsed_sources)))?;
     Ok(ProjectAnalysis {
         root,
         scan,
@@ -570,7 +571,7 @@ pub fn build_semantic_graph_project(
     scan_config: &ScanConfig,
 ) -> Result<SemanticGraphProject, ProjectAnalysisError> {
     let mut project = build_semantic_graph_project_with_resolver(root, scan_config, None)?;
-    verify_capture(&project.capture, &project.scan, &mut project.timings)?;
+    verify_capture(&project.capture, &project.scan, &mut project.timings, None)?;
     Ok(project)
 }
 
@@ -686,13 +687,29 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
     })
 }
 
-fn verify_capture(capture: &InputCapture, scan: &ScanResult, timings: &mut Vec<PhaseTiming>) -> Result<(), ProjectAnalysisError> {
+fn verify_capture(
+    capture: &InputCapture,
+    scan: &ScanResult,
+    timings: &mut Vec<PhaseTiming>,
+    supplemental: Option<(&DeadCodeResult, &[(PathBuf, String)])>,
+) -> Result<(), ProjectAnalysisError> {
     let started = Instant::now();
     capture.verify(scan)?;
+    if let Some((dead_code, sources)) = supplemental {
+        verify_supplemental(dead_code, sources, scan)?;
+    }
     let elapsed_ms = started.elapsed().as_millis();
     trace(&format!("capture verified elapsed_ms={elapsed_ms}"));
     timings.push(PhaseTiming { phase: IngestionPhase::VerifyInputs, elapsed_ms });
     Ok(())
+}
+
+fn verify_supplemental(dead_code: &DeadCodeResult, sources: &[(PathBuf, String)], scan: &ScanResult) -> Result<(), ProjectAnalysisError> {
+    if dead_code.supplemental_inputs_match(&scan.root, sources, &scan.scope) {
+        Ok(())
+    } else {
+        Err(ProjectAnalysisError::InputChanged { path: scan.root.clone() })
+    }
 }
 
 fn read_scanned_source(root: &Path, file: &ScannedFile) -> Result<String, ProjectAnalysisError> {

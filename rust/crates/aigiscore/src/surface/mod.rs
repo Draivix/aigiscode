@@ -122,6 +122,8 @@ pub struct SurfaceOverview {
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
+    #[serde(default)]
+    pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub generated_path_prefixes: Vec<PathBuf>,
     pub scanned_files: usize,
@@ -499,6 +501,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
         overview: SurfaceOverview {
             ast_grep_coverage: analysis.ast_grep_scan.coverage.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
+            backend_orphan_coverage: analysis.dead_code.backend_orphan_coverage.clone(),
             generated_path_prefixes: analysis.scan.scope.generated_path_prefixes.clone(),
             scanned_files: analysis.scan.files.len(),
             analyzed_files: analysis.semantic_graph.files.len(),

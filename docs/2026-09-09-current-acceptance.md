@@ -1,5 +1,9 @@
 # Aktuální akceptace Q01–Q12 a nový snímek Draivix
 
+Aktuální hodnocení samotného Draivixu je v
+[samostatném posouzení kvality](2026-09-10-draivix-quality.md): konkrétní opravy
+lze prioritizovat nyní. Akceptace analyzeru níže je širší a nadále otevřená.
+
 **Celková akceptace zůstává otevřená.** Čerstvý audit s implementací `87e5c5a`
 zpracoval 17 067 podporovaných zdrojů za 86,78 s při špičce 3 530 952 KiB RSS.
 Devět skutečných dotazů MCP potvrdilo použitelnost vybraných nálezů, společnou
