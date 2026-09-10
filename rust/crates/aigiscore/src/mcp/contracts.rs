@@ -784,6 +784,12 @@ pub struct ReviewSummaryOutput {
     pub accepted_by_policy: usize,
     pub suppressed_by_rule: usize,
     pub unreviewed_findings: usize,
+    #[serde(default)]
+    pub accepted_architectural_decisions: usize,
+    #[serde(default)]
+    pub source_confirmed_concerns: usize,
+    #[serde(default)]
+    pub stale_architectural_decisions: usize,
 }
 
 impl ReviewSummaryOutput {
@@ -793,6 +799,9 @@ impl ReviewSummaryOutput {
             accepted_by_policy: review_surface.summary.accepted_by_policy,
             suppressed_by_rule: review_surface.summary.suppressed_by_rule,
             unreviewed_findings: review_surface.summary.unreviewed_findings,
+            accepted_architectural_decisions: review_surface.summary.accepted_architectural_decisions,
+            source_confirmed_concerns: review_surface.summary.source_confirmed_concerns,
+            stale_architectural_decisions: review_surface.summary.stale_architectural_decisions,
         }
     }
 }
@@ -1005,6 +1014,8 @@ impl GuardDecisionTriggerOutput {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConvergenceOutput {
     #[serde(default)]
+    pub reviewed_policy: crate::policy::reviewed::ReviewedPolicySummary,
+    #[serde(default)]
     pub baseline: crate::artifacts::BaselineAssessment,
     pub root: String,
     pub summary: ConvergenceSummaryOutput,
@@ -1032,6 +1043,7 @@ impl ConvergenceOutput {
         Self {
             baseline: artifact.baseline.clone(),
             root: artifact.root.clone(),
+            reviewed_policy: artifact.reviewed_policy.clone(),
             summary: ConvergenceSummaryOutput::from_summary(&artifact.summary),
             graph_delta: artifact.graph_delta.as_ref().map(ConvergenceGraphDeltaOutput::from_graph_delta),
             contract_delta: artifact.contract_delta.as_ref().map(ConvergenceContractDeltaOutput::from_contract_delta),
@@ -1727,6 +1739,8 @@ pub struct FindingSummaryOutput {
     pub provenance: Vec<String>,
     pub doctrine_refs: Vec<String>,
     pub policy_status: String,
+    #[serde(default)]
+    pub review_status: crate::review::ReviewStatus,
     pub is_visible: bool,
 }
 
@@ -1763,6 +1777,7 @@ impl FindingSummaryOutput {
             provenance: finding.provenance.clone(),
             doctrine_refs: finding.doctrine_refs.clone(),
             policy_status: review_policy_status_label(finding.policy_status),
+            review_status: finding.review_status,
             is_visible: finding.is_visible,
         }
     }
@@ -1785,6 +1800,8 @@ pub struct FindingBriefOutput {
     pub file_paths: Vec<String>,
     pub line: Option<usize>,
     pub policy_status: String,
+    #[serde(default)]
+    pub review_status: crate::review::ReviewStatus,
 }
 
 impl FindingBriefOutput {
@@ -1822,6 +1839,7 @@ impl FindingBriefOutput {
             file_paths,
             line: summary.line,
             policy_status: summary.policy_status.clone(),
+            review_status: summary.review_status,
         }
     }
 }
@@ -3523,6 +3541,7 @@ mod tests {
     #[test]
     fn convergence_budget_cap_drops_unchanged_and_states_omissions() {
         let mut output = ConvergenceOutput {
+            reviewed_policy: Default::default(),
             baseline: Default::default(),
             root: String::from("/repo"),
             summary: Default::default(),

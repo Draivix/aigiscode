@@ -1,4 +1,5 @@
 pub mod tune;
+pub mod reviewed;
 
 use crate::detectors::dead_code::{DeadCodeCategory, DeadCodeFinding};
 use crate::detectors::hardwiring::{HardwiringCategory, HardwiringFinding};
@@ -12,7 +13,7 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
-const POLICY_FILE: &str = ".aigiscode/policy.json";
+pub(crate) const POLICY_FILE: &str = ".aigiscode/policy.json";
 const RULES_FILE: &str = ".aigiscode/rules.json";
 
 #[derive(Debug, Error)]
@@ -55,6 +56,8 @@ pub enum SuppressionReason {
 #[derive(Debug, Clone, Default)]
 pub struct PolicyBundle {
     fingerprint: u64,
+    review_context_fingerprint: u64,
+    reviewed_decisions: Vec<reviewed::ReviewedArchitecturalDecision>,
     graph_orphan_entry_patterns: Vec<GlobMatcher>,
     dead_code_abandoned_entry_patterns: Vec<GlobMatcher>,
     hardwiring_skip_path_patterns: Vec<GlobMatcher>,
@@ -70,6 +73,8 @@ pub struct PolicyBundle {
 
 impl PolicyBundle {
     pub(crate) fn fingerprint(&self) -> u64 { self.fingerprint }
+    pub(crate) fn review_context_fingerprint(&self) -> u64 { self.review_context_fingerprint }
+    pub fn reviewed_decisions(&self) -> &[reviewed::ReviewedArchitecturalDecision] { &self.reviewed_decisions }
 
     pub fn load(root: &Path) -> Result<Self, PolicyLoadError> {
         Self::load_with_inputs(root, &mut crate::ingestion::inputs::InputFiles::default())
@@ -81,14 +86,21 @@ impl PolicyBundle {
     ) -> Result<Self, PolicyLoadError> {
         let policy_path = root.join(POLICY_FILE);
         let rules_path = root.join(RULES_FILE);
-        let policy = load_optional_json::<PolicyFile>(&policy_path, inputs)?;
+        let mut policy = load_optional_json::<PolicyFile>(&policy_path, inputs)?;
         let rules = load_optional_rules(&rules_path, inputs)?;
         let mut fingerprint = std::collections::hash_map::DefaultHasher::new();
         policy.hash(&mut fingerprint);
         rules.hash(&mut fingerprint);
+        reviewed::validate_decisions(&policy.reviewed_decisions).map_err(|reason| PolicyLoadError::Unsupported { path: policy_path.clone(), reason })?;
+        let reviewed_decisions = std::mem::take(&mut policy.reviewed_decisions);
+        let mut review_context = std::collections::hash_map::DefaultHasher::new();
+        policy.hash(&mut review_context);
+        rules.hash(&mut review_context);
 
         Ok(Self {
             fingerprint: fingerprint.finish(),
+            review_context_fingerprint: review_context.finish(),
+            reviewed_decisions,
             graph_orphan_entry_patterns: compile_patterns(
                 &policy_path,
                 &policy.graph.orphan_entry_patterns,
@@ -227,6 +239,8 @@ impl PolicyBundle {
 
 #[derive(Debug, Default, Deserialize, Hash)]
 struct PolicyFile {
+    #[serde(default)]
+    reviewed_decisions: Vec<reviewed::ReviewedArchitecturalDecision>,
     #[serde(default)]
     graph: GraphPolicy,
     #[serde(default)]

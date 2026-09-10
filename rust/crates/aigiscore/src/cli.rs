@@ -21,7 +21,7 @@ use crate::kuzu_index::{published_kuzu_path, query_kuzu, write_semantic_graph_ku
 use crate::mcp::run_stdio_server;
 use crate::plugins::built_in_runtime_plugins;
 use crate::policy::tune::{
-    load_or_build_review_surface, suggest_policy_patch, write_policy_suggestion,
+    load_or_build_review_surface, suggest_policy_patch_from_output, write_policy_suggestion,
 };
 use crate::review::build_review_surface;
 use crate::semantic_models::built_in_semantic_model_packs;
@@ -1270,7 +1270,7 @@ fn run_tune_command(path: PathBuf, output_dir: Option<PathBuf>) -> i32 {
     match analyze_project(&path, &ScanConfig::default()) {
         Ok(analysis) => match load_or_build_review_surface(&analysis) {
             Ok(review_surface) => {
-                let suggestion = suggest_policy_patch(&analysis, &review_surface);
+                let suggestion = suggest_policy_patch_from_output(&analysis, &review_surface, output_dir.as_deref());
                 let suggested_policy_path =
                     match write_policy_suggestion(&suggestion, output_dir.as_deref()) {
                         Ok(path) => path,

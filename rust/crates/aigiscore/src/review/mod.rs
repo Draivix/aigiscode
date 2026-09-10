@@ -1,5 +1,6 @@
 pub mod decision;
 pub(crate) mod validation;
+pub(crate) mod scope;
 
 use crate::detectors::hardwiring::HardwiringFinding;
 use crate::evidence::EvidenceAnchor;
@@ -12,11 +13,14 @@ use crate::surface::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum ReviewStatus {
+    #[default]
     Unreviewed,
     SourceReviewedProposal,
     StaleReview,
+    AcceptedSourceReview,
+    SourceConfirmedConcern,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -49,6 +53,12 @@ pub struct ReviewSummary {
     pub suppressed_by_rule: usize,
     pub ai_reviewed: usize,
     pub rules_generated: usize,
+    #[serde(default)]
+    pub accepted_architectural_decisions: usize,
+    #[serde(default)]
+    pub source_confirmed_concerns: usize,
+    #[serde(default)]
+    pub stale_architectural_decisions: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -87,6 +97,8 @@ pub struct ReviewSurface {
     pub findings: Vec<ReviewFinding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub architectural_review: Option<ArchitecturalReviewContext>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reviewed_policies: Vec<crate::policy::reviewed::ReviewedPolicyDecision>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -114,7 +126,7 @@ pub(crate) fn apply_architectural_review(
     for finding in &mut surface.findings { finding.review_status = ReviewStatus::Unreviewed; }
     surface.architectural_review = match record {
         Ok(Some(record)) => {
-            let stale = record.proposal.source_snapshot_id != crate::agentic::review_snapshot_id(analysis);
+            let stale = scope::record_is_stale(&record, analysis);
             let error = if record.schema_version != "2026-09-10" || record.review_id != record.content_id() {
                 Some("unsupported or modified review record".into())
             } else if stale {
@@ -130,7 +142,8 @@ pub(crate) fn apply_architectural_review(
                 for claim in &record.proposal.claims {
                     if claim.decision.conclusion == decision::ArchitecturalConclusion::Unknown { continue; }
                     if let Some(ids) = record.packet_findings.get(&claim.task_packet_id) {
-                        for finding in surface.findings.iter_mut().filter(|finding| ids.contains(&finding.id)) {
+                        for finding in surface.findings.iter_mut().filter(|finding| ids.contains(&finding.id)
+                            && claim.evidence_locations.iter().any(|location| finding.file_paths.contains(&location.file_path))) {
                             finding.review_status = if stale { ReviewStatus::StaleReview } else { ReviewStatus::SourceReviewedProposal };
                         }
                     }
@@ -146,8 +159,42 @@ pub(crate) fn apply_architectural_review(
             status: ArchitecturalReviewStatus::Invalid, review_id: None, source_snapshot_id: None, reason: Some(reason), claims: Vec::new(),
         }),
     };
-    surface.summary.ai_reviewed = surface.findings.iter().filter(|finding| finding.review_status == ReviewStatus::SourceReviewedProposal).count();
-    surface.summary.unreviewed_findings = surface.findings.iter().filter(|finding| finding.is_visible && finding.review_status != ReviewStatus::SourceReviewedProposal).count();
+    apply_reviewed_policy(surface);
+}
+
+fn apply_reviewed_policy(surface: &mut ReviewSurface) {
+    use crate::policy::reviewed::{ArchitecturalPolicyDisposition, ReviewedPolicyStatus};
+    for policy in &surface.reviewed_policies {
+        for finding in surface.findings.iter_mut().filter(|finding| policy.matching_finding_ids.contains(&finding.id)) {
+            if policy.status == ReviewedPolicyStatus::Stale {
+                if finding.review_status == ReviewStatus::Unreviewed { finding.review_status = ReviewStatus::StaleReview; }
+                continue;
+            }
+            match policy.decision.disposition {
+                ArchitecturalPolicyDisposition::AcceptedPattern => {
+                    finding.policy_status = PolicyStatus::AcceptedByPolicy;
+                    finding.is_visible = false;
+                    finding.review_status = ReviewStatus::AcceptedSourceReview;
+                }
+                ArchitecturalPolicyDisposition::SourceConfirmedConcern => {
+                    finding.review_status = ReviewStatus::SourceConfirmedConcern;
+                    finding.policy_status = PolicyStatus::None;
+                    finding.is_visible = true;
+                }
+            }
+            let reason = format!("Reviewed policy {}: {}", policy.decision.id, policy.decision.reason);
+            if !finding.supporting_context.contains(&reason) { finding.supporting_context.push(reason); }
+            if !finding.provenance.iter().any(|source| source == "reviewed_architectural_policy") { finding.provenance.push("reviewed_architectural_policy".into()); }
+        }
+    }
+    surface.summary.visible_findings = surface.findings.iter().filter(|finding| finding.is_visible).count();
+    surface.summary.accepted_by_policy = surface.findings.iter().filter(|finding| finding.policy_status == PolicyStatus::AcceptedByPolicy).count();
+    surface.summary.suppressed_by_rule = surface.findings.iter().filter(|finding| finding.policy_status == PolicyStatus::ExcludedByRule).count();
+    surface.summary.ai_reviewed = surface.findings.iter().filter(|finding| matches!(finding.review_status, ReviewStatus::SourceReviewedProposal | ReviewStatus::AcceptedSourceReview | ReviewStatus::SourceConfirmedConcern)).count();
+    surface.summary.unreviewed_findings = surface.findings.iter().filter(|finding| finding.is_visible && matches!(finding.review_status, ReviewStatus::Unreviewed | ReviewStatus::StaleReview)).count();
+    surface.summary.accepted_architectural_decisions = surface.reviewed_policies.iter().filter(|policy| policy.status == ReviewedPolicyStatus::Current && policy.decision.disposition == ArchitecturalPolicyDisposition::AcceptedPattern).count();
+    surface.summary.source_confirmed_concerns = surface.reviewed_policies.iter().filter(|policy| policy.status == ReviewedPolicyStatus::Current && policy.decision.disposition == ArchitecturalPolicyDisposition::SourceConfirmedConcern).count();
+    surface.summary.stale_architectural_decisions = surface.reviewed_policies.iter().filter(|policy| policy.status == ReviewedPolicyStatus::Stale).count();
 }
 
 pub fn load_review_surface(analysis: &ProjectAnalysis) -> Result<ReviewSurface, PolicyLoadError> {
@@ -194,7 +241,8 @@ pub fn build_review_surface(
         .count();
     let visible_findings = findings.iter().filter(|finding| finding.is_visible).count();
 
-    ReviewSurface {
+    let reviewed_policies = crate::policy::reviewed::evaluate(analysis, &findings, policy_bundle.reviewed_decisions());
+    let mut surface = ReviewSurface {
         root: analysis.root.display().to_string(),
         summary: ReviewSummary {
             total_findings: findings.len(),
@@ -204,10 +252,16 @@ pub fn build_review_surface(
             suppressed_by_rule,
             ai_reviewed: 0,
             rules_generated: 0,
+            accepted_architectural_decisions: 0,
+            source_confirmed_concerns: 0,
+            stale_architectural_decisions: 0,
         },
         findings,
         architectural_review: None,
-    }
+        reviewed_policies,
+    };
+    apply_reviewed_policy(&mut surface);
+    surface
 }
 
 impl ReviewFinding {

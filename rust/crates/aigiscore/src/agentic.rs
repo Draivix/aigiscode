@@ -19,6 +19,8 @@ use std::time::Instant;
 pub struct AgenticReviewArtifact {
     pub root: String,
     pub source_snapshot_id: String,
+    pub finding_changes: BTreeMap<String, ConvergenceStatus>,
+    pub comparison_baseline_id: Option<String>,
     pub contract_version: String,
     pub transport: AgenticTransportContract,
     pub execution: AgenticExecutionContract,
@@ -756,6 +758,12 @@ pub fn build_agentic_review_artifact(
     AgenticReviewArtifact {
         root: analysis.root.display().to_string(),
         source_snapshot_id: review_snapshot_id(analysis),
+        finding_changes: task_packets.iter().flat_map(|packet| &packet.finding_ids).filter_map(|id|
+            convergence.findings.iter().find(|finding| finding.current_id.as_ref() == Some(id)).map(|finding| (id.clone(), finding.status))).collect(),
+        comparison_baseline_id: convergence.baseline.is_comparable().then(|| convergence.baseline.previous.as_ref()).flatten().map(|identity| {
+            let bytes = serde_json::to_vec(identity).expect("snapshot identity serializes");
+            format!("{:032x}", xxhash_rust::xxh3::xxh3_128(&bytes))
+        }),
         contract_version: String::from("2026-09-10"),
         transport: AgenticTransportContract {
             provider_family: String::from("openai"),
@@ -1316,7 +1324,7 @@ fn build_system_prompt(
     verdict: &GuardVerdict,
     focus_files: &[String],
 ) -> String {
-    let architectural_contract = "Return source_snapshot_id from this contract. Every required packet needs a typed architectural decision. Identify implementation responsibilities, compare the same inputs, name the surviving owner and consumer migrations, and preserve required behavior. Cite exact source quotes with inclusive line spans. Similarity and zero static callers are candidate signals, not proof. Retain justified framework discovery, public boundaries and intended replacements. If source or runtime proof is missing, say unknown/investigate with missing_evidence; do not invent quotes or imply runtime verification. Conclusions remain reviewer proposals even when source anchors validate.";
+    let architectural_contract = "Return source_snapshot_id from this contract. Every required packet needs a typed architectural decision. Identify implementation responsibilities, compare the same inputs, name the surviving owner and consumer migrations, and preserve required behavior. Cite exact source quotes with inclusive line spans. Similarity and zero static callers are candidate signals, not proof. Retain justified framework discovery, public boundaries and intended replacements. If evidence essential to the conclusion is missing, say unknown/investigate with missing_evidence. Source-supported proposals may list pending runtime acceptance in verification_steps; do not invent quotes or imply runtime verification. Conclusions remain reviewer proposals even when source anchors validate.";
     let doctrine_count = doctrine_registry.clauses.len();
     let focus_line = if focus_files.is_empty() {
         String::from("No focus files were preselected; use the graph and guard state to find the right slice.")
@@ -3969,6 +3977,13 @@ fn layer_path_rank(layer: crate::graph::GraphLayer) -> u8 {
 }
 
 fn packet_status(packet: &GuardianPacket, convergence: &ConvergenceHistoryArtifact) -> String {
+    if !packet.finding_ids.is_empty() {
+        if let Some(status) = convergence.findings.iter().filter(|finding|
+            finding.current_id.as_ref().is_some_and(|id| packet.finding_ids.contains(id)))
+            .map(|finding| convergence_status_label(finding.status)).min_by_key(|status| task_status_rank(status)) {
+            return status;
+        }
+    }
     convergence
         .attention_items
         .iter()
@@ -4201,6 +4216,7 @@ mod tests {
         let review_surface = crate::review::ReviewSurface {
             root: analysis.root.display().to_string(),
             architectural_review: None,
+            reviewed_policies: Vec::new(),
             summary: crate::review::ReviewSummary {
                 total_findings: 1,
                 visible_findings: 1,
@@ -4209,6 +4225,9 @@ mod tests {
                 suppressed_by_rule: 0,
                 ai_reviewed: 0,
                 rules_generated: 0,
+                accepted_architectural_decisions: 0,
+                source_confirmed_concerns: 0,
+                stale_architectural_decisions: 0,
             },
             findings: vec![ReviewFinding {
                 id: String::from("finding-1"),
@@ -5463,6 +5482,8 @@ class Consumer {
         let artifact = AgenticReviewArtifact {
             root: String::from("/tmp/example"),
             source_snapshot_id: String::from("example-snapshot"),
+            finding_changes: BTreeMap::new(),
+            comparison_baseline_id: None,
             contract_version: String::from("2026-03-28"),
             transport: AgenticTransportContract {
                 provider_family: String::from("openai"),

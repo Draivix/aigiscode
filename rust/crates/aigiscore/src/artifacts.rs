@@ -32,7 +32,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-mod atomic;
+pub(crate) mod atomic;
 mod analysis_cache;
 pub(crate) use analysis_cache::CachedDeterministicFindings;
 pub mod kuzu;
@@ -686,6 +686,8 @@ pub struct ConvergenceHistoryArtifact {
     pub baseline: BaselineAssessment,
     #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
+    #[serde(default)]
+    pub reviewed_policy: crate::policy::reviewed::ReviewedPolicySummary,
     pub summary: ConvergenceSummary,
     pub graph_delta: Option<ConvergenceGraphDelta>,
     pub contract_delta: Option<ConvergenceContractDelta>,
@@ -756,7 +758,7 @@ pub struct ContractValueDelta {
     pub removed: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, schemars::JsonSchema)]
 pub enum ConvergenceStatus {
     FirstObserved,
     NotCompared,
@@ -992,9 +994,41 @@ pub(crate) fn write_agent_review(
     paths: &AgentRunPaths,
     response: &crate::review::decision::ArchitecturalReviewRecord,
 ) -> io::Result<()> {
+    if response.review_id != response.content_id() { return Err(io::Error::other("invalid review content identity")); }
     let bytes = serde_json::to_vec_pretty(response).map_err(io::Error::other)?;
     if bytes.len() > AGENT_REVIEW_MAX_BYTES {
         return Err(io::Error::new(io::ErrorKind::InvalidData, "review record exceeds 4 MiB"));
+    }
+    if paths.output_dir.join(publication::SEAL).try_exists()? {
+        return Err(io::Error::new(io::ErrorKind::PermissionDenied, "published artifact generations are immutable"));
+    }
+    let lock_path = paths.output_dir.join(".agent-review.lock");
+    match fs::symlink_metadata(&lock_path) {
+        Ok(metadata) if !metadata.is_file() => return Err(io::Error::other("review lock must be a regular file")),
+        Err(error) if error.kind() != io::ErrorKind::NotFound => return Err(error),
+        _ => {}
+    }
+    let lock = fs::OpenOptions::new().read(true).write(true).create(true).truncate(false).open(lock_path)?;
+    fs4::FileExt::lock(&lock)?;
+    let history = paths.output_dir.join("architectural-reviews");
+    match fs::symlink_metadata(&history) {
+        Ok(metadata) if !metadata.is_dir() => return Err(io::Error::other("review history must be a real directory")),
+        Err(error) if error.kind() != io::ErrorKind::NotFound => return Err(error),
+        _ => {}
+    }
+    fs::create_dir_all(&history)?;
+    let archived = history.join(format!("{}.json", response.review_id));
+    match read_agent_review_record(&archived)? {
+        Some(existing) if existing != *response => return Err(io::Error::other("review archive conflicts with its content identity")),
+        Some(_) => {}
+        None => atomic::write(&archived, |writer| {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                writer.get_ref().set_permissions(fs::Permissions::from_mode(0o600))?;
+            }
+            writer.write_all(&bytes)
+        })?,
     }
     atomic::write(&paths.review_json, |writer| {
         #[cfg(unix)]
@@ -1047,9 +1081,27 @@ pub(crate) fn attach_architectural_review(
     surface: &mut ReviewSurface,
     output_dir: Option<&Path>,
 ) {
-    use std::io::Read;
     let path = default_agent_run_paths(&analysis.root, output_dir).review_json;
-    let record = (|| -> io::Result<Option<crate::review::decision::ArchitecturalReviewRecord>> {
+    let record = load_agent_review(&analysis.root, output_dir);
+    crate::review::apply_architectural_review(surface, analysis, record.map_err(|error| format!("{}: {error}", path.display())));
+}
+
+pub(crate) fn load_agent_review(root: &Path, output_dir: Option<&Path>) -> io::Result<Option<crate::review::decision::ArchitecturalReviewRecord>> {
+    let path = default_agent_run_paths(root, output_dir).review_json;
+    read_agent_review_record(&path)
+}
+
+pub(crate) fn load_agent_review_by_id(root: &Path, output_dir: Option<&Path>, id: &str) -> io::Result<Option<crate::review::decision::ArchitecturalReviewRecord>> {
+    if id.len() != 32 || !id.bytes().all(|byte| byte.is_ascii_hexdigit()) { return Err(io::Error::other("invalid review identity")); }
+    let paths = default_agent_run_paths(root, output_dir);
+    match read_agent_review_record(&paths.output_dir.join("architectural-reviews").join(format!("{id}.json")))? {
+        Some(record) => Ok(Some(record)),
+        None => Ok(load_agent_review(root, output_dir)?.filter(|record| record.review_id == id)),
+    }
+}
+
+fn read_agent_review_record(path: &Path) -> io::Result<Option<crate::review::decision::ArchitecturalReviewRecord>> {
+    use std::io::Read;
         let file = match fs::File::open(&path) {
             Ok(file) => file,
             Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
@@ -1064,8 +1116,6 @@ pub(crate) fn attach_architectural_review(
             return Err(io::Error::new(io::ErrorKind::InvalidData, "review record exceeds 4 MiB"));
         }
         serde_json::from_slice(&bytes).map(Some).map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
-    })();
-    crate::review::apply_architectural_review(surface, analysis, record.map_err(|error| format!("{}: {error}", path.display())));
 }
 
 pub fn default_agent_spider_report_path(root: &Path, output_dir: Option<&Path>) -> PathBuf {
@@ -3457,6 +3507,7 @@ pub fn build_convergence_history_artifact(
     let required_investigation_files = attention_items
         .iter()
         .flat_map(|item| item.file_paths.iter().cloned())
+        .chain(current_review_surface.reviewed_policies.iter().filter(|policy| policy.status == crate::policy::reviewed::ReviewedPolicyStatus::Stale || policy.decision.disposition == crate::policy::reviewed::ArchitecturalPolicyDisposition::SourceConfirmedConcern).flat_map(|policy| policy.decision.anchor_files.iter().map(|path| path.display().to_string())))
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
@@ -3480,6 +3531,7 @@ pub fn build_convergence_history_artifact(
         baseline: baseline.clone(),
         input_coverage: current_overview.input_coverage.clone(),
         ast_grep_coverage: current_overview.ast_grep_coverage.clone(),
+        reviewed_policy: crate::policy::reviewed::summarize(&current_review_surface.reviewed_policies),
         summary,
         graph_delta: baseline.is_comparable().then(|| ConvergenceGraphDelta {
             strong_cycle_delta: delta(
@@ -3614,19 +3666,23 @@ pub fn build_guard_decision_artifact(
                 && finding.current_severity.as_deref() == Some("high")
         })
         .count();
-    let cycle_regression = graph_delta.strong_cycle_delta > 0;
-    let bottleneck_regression = graph_delta.bottleneck_delta > 0;
-    let architectural_smell_regression = graph_delta.architectural_smell_delta > 0;
-    let warning_heavy_hotspot_regression = graph_delta.warning_heavy_hotspot_delta > 0;
-    let split_identity_model_regression = graph_delta.split_identity_model_delta > 0;
-    let compatibility_scar_regression = graph_delta.compatibility_scar_delta > 0;
-    let duplicate_mechanism_regression = graph_delta.duplicate_mechanism_delta > 0;
+    let visible_regression = |prefix: &str| convergence.findings.iter().any(|finding| {
+        finding.current_visible == Some(true) && matches!(finding.status, ConvergenceStatus::New | ConvergenceStatus::Worsened)
+            && finding.current_id.as_ref().is_some_and(|id| id.starts_with(prefix))
+    });
+    let cycle_regression = graph_delta.strong_cycle_delta > 0 && visible_regression("graph:cycle:");
+    let bottleneck_regression = graph_delta.bottleneck_delta > 0 && visible_regression("graph:bottleneck:");
+    let architectural_smell_regression = graph_delta.architectural_smell_delta > 0 && visible_regression("graph:smell:");
+    let warning_heavy_hotspot_regression = graph_delta.warning_heavy_hotspot_delta > 0 && visible_regression("architecture:hotspot:");
+    let split_identity_model_regression = graph_delta.split_identity_model_delta > 0 && visible_regression("architecture:split-identity:");
+    let compatibility_scar_regression = graph_delta.compatibility_scar_delta > 0 && visible_regression("architecture:compatibility-scar:");
+    let duplicate_mechanism_regression = graph_delta.duplicate_mechanism_delta > 0 && visible_regression("architecture:duplicate-mechanism:");
     let sanctioned_path_bypass_regression =
-        graph_delta.sanctioned_path_bypass_delta > 0;
-    let hand_rolled_parsing_regression = graph_delta.hand_rolled_parsing_delta > 0;
-    let abstraction_sprawl_regression = graph_delta.abstraction_sprawl_delta > 0;
+        graph_delta.sanctioned_path_bypass_delta > 0 && visible_regression("architecture:sanctioned-path-bypass:");
+    let hand_rolled_parsing_regression = graph_delta.hand_rolled_parsing_delta > 0 && visible_regression("architecture:hand-rolled-parsing:");
+    let abstraction_sprawl_regression = graph_delta.abstraction_sprawl_delta > 0 && visible_regression("architecture:abstraction-sprawl:");
     let algorithmic_complexity_hotspot_regression =
-        graph_delta.algorithmic_complexity_hotspot_delta > 0;
+        graph_delta.algorithmic_complexity_hotspot_delta > 0 && visible_regression("architecture:algorithmic-complexity:");
     let exact_or_modeled_attention_items = convergence
         .attention_items
         .iter()
@@ -3677,6 +3733,16 @@ pub fn build_guard_decision_artifact(
             level: GuardTriggerLevel::Warn, message, precision: String::from("exact"),
             confidence_millis: 1000, provenance: vec![String::from("convergence_history.baseline")],
             doctrine_refs: vec![String::from("guardian.change-governance")],
+        });
+    }
+
+    if convergence.reviewed_policy.source_confirmed_concerns > 0 || convergence.reviewed_policy.stale_decisions > 0 {
+        let message = format!("Repository review retains {} source-confirmed concern(s), including {} unresolved drift concern(s) against their recorded eligible baseline; {} decision(s) need review because their source scope changed. Policy acceptance does not prove a runtime fix.",
+            convergence.reviewed_policy.source_confirmed_concerns, convergence.reviewed_policy.confirmed_drift.len(), convergence.reviewed_policy.stale_decisions);
+        reasons.push(message.clone());
+        triggers.push(GuardDecisionTrigger {
+            level: GuardTriggerLevel::Warn, message, precision: "source_reviewed".into(), confidence_millis: 1000,
+            provenance: vec!["review_surface.reviewed_policies".into()], doctrine_refs: vec!["guardian.change-governance".into()],
         });
     }
 
@@ -4288,17 +4354,12 @@ fn classify_convergence_status(
         (Some(previous), Some(current)) => {
             let previous_severity = severity_rank(previous.severity);
             let current_severity = severity_rank(current.severity);
-            if current.is_visible && !previous.is_visible {
-                ConvergenceStatus::Worsened
-            } else if !current.is_visible && previous.is_visible {
-                ConvergenceStatus::Improved
-            } else if current_severity > previous_severity
+            if current_severity > previous_severity
                 || current.confidence_millis > previous.confidence_millis.saturating_add(75)
             {
                 ConvergenceStatus::Worsened
             } else if current_severity < previous_severity
                 || previous.confidence_millis > current.confidence_millis.saturating_add(75)
-                || current.policy_status != previous.policy_status
             {
                 ConvergenceStatus::Improved
             } else {
@@ -4427,10 +4488,11 @@ fn build_convergence_attention_items(
             matches!(
                 delta.status,
                 ConvergenceStatus::New | ConvergenceStatus::Worsened | ConvergenceStatus::FirstObserved | ConvergenceStatus::NotCompared
-            )
+            ) || current_by_fingerprint.get(&delta.fingerprint).is_some_and(|group| group.finding.review_status == crate::review::ReviewStatus::SourceConfirmedConcern)
         })
         .filter_map(|delta| {
             let finding = current_by_fingerprint.get(&delta.fingerprint)?.finding;
+            if !finding.is_visible { return None; }
             let focus = convergence_focus(finding);
             let preferred_mechanism = guardian_packet_preferred_mechanism(
                 focus,
@@ -4464,8 +4526,9 @@ fn build_convergence_attention_items(
         .collect::<Vec<_>>();
 
     items.sort_by(|left, right| {
-        convergence_status_rank(left.status)
-            .cmp(&convergence_status_rank(right.status))
+        let priority = |item: &ConvergenceAttentionItem| if item.family == "security" { 0 } else if current_by_fingerprint.get(&item.fingerprint).is_some_and(|group| group.finding.review_status == crate::review::ReviewStatus::SourceConfirmedConcern) { 1 } else { 2 };
+        priority(left).cmp(&priority(right)).then(convergence_status_rank(left.status)
+            .cmp(&convergence_status_rank(right.status)))
             .then(left.title.cmp(&right.title))
             .then(left.fingerprint.cmp(&right.fingerprint))
     });
@@ -4562,45 +4625,19 @@ pub fn build_agent_handoff_artifact(
     doctrine_registry: &DoctrineRegistry,
 ) -> AgentHandoffArtifact {
     let feedback_loop = build_feedback_loop_summary(review_surface);
-    let visible_findings = review_surface
+    let mut visible_findings = review_surface
         .findings
         .iter()
         .filter(|finding| finding.is_visible)
         .collect::<Vec<_>>();
+    visible_findings.sort_by_key(|finding| (
+        !(finding.family == ReviewFindingFamily::Security && finding.severity == ReviewFindingSeverity::High),
+        finding.review_status != crate::review::ReviewStatus::SourceConfirmedConcern,
+    ));
     let high_visible = visible_findings
         .iter()
         .filter(|finding| finding.severity == crate::review::ReviewFindingSeverity::High)
         .count();
-    let mut next_steps = Vec::new();
-
-    if analysis
-        .graph_analysis
-        .strong_circular_dependencies
-        .is_empty()
-        .not()
-    {
-        next_steps.push(format!(
-            "Break {} strong cycle groups before adding more features.",
-            analysis.graph_analysis.strong_circular_dependencies.len()
-        ));
-    }
-    if analysis.graph_analysis.bottleneck_files.is_empty().not() {
-        next_steps.push(format!(
-            "Refactor the top {} bottleneck files to reduce architectural pressure.",
-            analysis.graph_analysis.bottleneck_files.len().min(5)
-        ));
-    }
-    if analysis
-        .graph_analysis
-        .architectural_smells
-        .is_empty()
-        .not()
-    {
-        next_steps.push(format!(
-            "Address {} explicit architectural smell findings before they harden into platform debt.",
-            analysis.graph_analysis.architectural_smells.len()
-        ));
-    }
     let warning_hotspot_count = analysis
         .architectural_assessment
         .count_by_kind(crate::assessment::ArchitecturalAssessmentKind::WarningHeavyHotspot);
@@ -4631,58 +4668,14 @@ pub fn build_agent_handoff_artifact(
         &visible_findings,
         doctrine_registry,
     );
-    if warning_hotspot_count > 0 {
-        next_steps.push(format!("Reduce {warning_hotspot_count} warning-heavy hotspot files where architectural centrality and detector/security noise are accumulating together."));
-    }
-    if split_identity_count > 0 {
-        next_steps.push(format!("Converge {split_identity_count} split identity model hotspots where the same concept is represented through both object-like and scalar identifier forms."));
-    }
-    if compatibility_scar_count > 0 {
-        next_steps.push(format!("Refactor {compatibility_scar_count} compatibility-scar hotspots where one file is centralizing translation glue for competing domain representations."));
-    }
-    if duplicate_mechanism_count > 0 {
-        next_steps.push(format!("Collapse {duplicate_mechanism_count} duplicate-mechanism hotspots where the same concern is routed through competing orchestration paths."));
-    }
-    if sanctioned_path_bypass_count > 0 {
-        next_steps.push(format!("Refactor {sanctioned_path_bypass_count} sanctioned-path bypass hotspots where raw primitives bypass approved configuration or framework pathways."));
-    }
-    if abstraction_sprawl_count > 0 {
-        next_steps.push(format!("Review {abstraction_sprawl_count} captured private delegation chains; inline only when dispatch, contracts and lifecycle behavior survive the caller migration."));
-    }
-    if algorithmic_complexity_hotspot_count > 0 {
-        next_steps.push(format!("Reduce {algorithmic_complexity_hotspot_count} algorithmic-complexity hotspots where nested iteration, repeated linear scans, sorting, or regex compilation inside loops may create superlinear runtime growth."));
-    }
-    if hand_rolled_parsing_count > 0 {
-        next_steps.push(format!("Review {hand_rolled_parsing_count} hand-rolled parsing, schema-validation, scheduler-DSL, definition-engine, or contract-stack hotspots and replace custom mini-language, validator/resolver, scheduler/orchestration, schema-walker, or metadata-engine logic with battle-tested native/framework/library mechanisms where possible."));
-    }
-    if analysis.dead_code.findings.is_empty().not() {
-        next_steps.push(format!(
-            "Remove or suppress {} dead-code findings after sampling truth.",
-            analysis.dead_code.findings.len()
-        ));
-    }
-    if analysis.hardwiring.findings.is_empty().not() {
-        next_steps.push(format!(
-            "Triage {} hardwiring findings and convert repeated accepted patterns into policy.",
-            analysis.hardwiring.findings.len()
-        ));
-    }
-    if analysis.security_analysis.findings.is_empty().not() {
-        next_steps.push(format!(
-            "Review {} native dangerous-API security findings and prioritize externally reachable sinks first.",
-            analysis.security_analysis.findings.len()
-        ));
-    }
-    if analysis.external_analysis.findings.is_empty().not() {
-        next_steps.push(format!(
-            "Review {} external security findings and feed accepted patterns back into rules.",
-            analysis.external_analysis.findings.len()
-        ));
+    let mut next_steps = guardian_packets.iter().map(|packet| {
+        packet.obligations.first().map(|obligation| obligation.action.clone()).unwrap_or_else(|| packet.summary.clone())
+    }).collect::<Vec<_>>();
+    if review_surface.summary.stale_architectural_decisions > 0 {
+        next_steps.insert(0, format!("Re-review {} adopted architectural decision(s) whose source scope changed; their prior acceptance no longer suppresses findings.", review_surface.summary.stale_architectural_decisions));
     }
     if next_steps.is_empty() {
-        next_steps.push(String::from(
-            "No major actionable findings remain; keep the current architecture baseline stable.",
-        ));
+        next_steps.push("No action packet was selected; inspect coverage and the guard decision before interpreting absent findings as a clean audit.".into());
     }
 
     AgentHandoffArtifact {
@@ -4754,7 +4747,7 @@ fn review_phase_label(phase: crate::surface::SurfaceFindingPhase) -> &'static st
 
 fn build_guardian_packets(
     analysis: &ProjectAnalysis,
-    _review_surface: &ReviewSurface,
+    review_surface: &ReviewSurface,
     visible_findings: &[&crate::review::ReviewFinding],
     doctrine_registry: &DoctrineRegistry,
 ) -> Vec<GuardianPacket> {
@@ -5941,6 +5934,31 @@ fn build_guardian_packets(
         }
     }
 
+    let visible_ids = visible_findings.iter().map(|finding| finding.id.as_str()).collect::<BTreeSet<_>>();
+    packets.retain_mut(|packet| {
+        let had_findings = !packet.finding_ids.is_empty();
+        packet.finding_ids.retain(|id| visible_ids.contains(id.as_str()));
+        !had_findings || !packet.finding_ids.is_empty()
+    });
+    for policy in &review_surface.reviewed_policies {
+        use crate::policy::reviewed::{ArchitecturalPolicyDisposition, ReviewedPolicyStatus};
+        if policy.status != ReviewedPolicyStatus::Current || policy.decision.disposition != ArchitecturalPolicyDisposition::SourceConfirmedConcern { continue; }
+        let decision = &policy.decision;
+        let target_files = decision.anchor_files.iter().map(|path| path.display().to_string()).collect::<Vec<_>>();
+        let Some(primary_target_file) = target_files.first().cloned() else { continue; };
+        let security = decision.concern == crate::review::decision::ArchitecturalConcern::Security;
+        packets.push(GuardianPacket {
+            id: format!("guardian:reviewed:{}", decision.id), priority: "high".into(),
+            focus: if security { "security_hotspot" } else { "reviewed_architecture" }.into(),
+            primary_target_file, target_files, precision: "source_reviewed".into(), confidence_millis: 1000,
+            summary: decision.reason.clone(), primary_anchor: None, evidence_anchors: Vec::new(), locations: Vec::new(),
+            finding_ids: policy.matching_finding_ids.clone(), context_labels: vec![format!("review:{}", decision.review_id), format!("action:{:?}", decision.action)],
+            provenance: vec!["reviewed_architectural_policy".into()], doctrine_refs: vec!["guardian.change-governance".into()], preferred_mechanism: None,
+            obligations: vec![GuardianObligation { action: format!("Address the adopted {:?} conclusion: {}", decision.action, decision.reason), acceptance: "Preserve the reviewed contracts, execute required behavior checks and re-review changed source; fewer visible warnings alone do not establish a fix.".into() }],
+            suppressibility: guardian_packet_suppressibility("reviewed_architecture"), investigation_questions: Vec::new(),
+        });
+    }
+
     packets = compact_algorithmic_complexity_packets(packets);
 
     packets.sort_by(|left, right| {
@@ -6357,7 +6375,8 @@ fn review_severity_rank(severity: crate::review::ReviewFindingSeverity) -> u8 {
 
 fn packet_focus_rank(focus: &str) -> u8 {
     match focus {
-        "security_hotspot" => 6,
+        "security_hotspot" => 7,
+        "reviewed_architecture" => 6,
         "dead_code_proof" => 5,
         "semantic_decision" => 5,
         "hand_rolled_parsing" => 5,
@@ -7013,6 +7032,9 @@ fn build_markdown_report(
             report.convergence_history.baseline.availability,
             report.convergence_history.baseline.comparison,
             report.convergence_history.baseline.reasons),
+        format!("- Reviewed architecture: {} accepted patterns, {} source-confirmed concerns, {} stale decisions, {} unresolved concerns against recorded eligible baselines. Acceptance is not runtime verification.",
+            report.convergence_history.reviewed_policy.accepted_patterns, report.convergence_history.reviewed_policy.source_confirmed_concerns,
+            report.convergence_history.reviewed_policy.stale_decisions, report.convergence_history.reviewed_policy.confirmed_drift.len()),
         format!("- First observations: {}; not compared: {}.",
             report.convergence_history.summary.first_observed_findings,
             report.convergence_history.summary.not_compared_findings),
@@ -8410,6 +8432,7 @@ fn main() {
     #[test]
     fn guard_decision_promotes_architectonic_regressions_into_triggers() {
         let convergence = ConvergenceHistoryArtifact {
+            reviewed_policy: Default::default(),
             dead_code_scope_coverage: Default::default(),
             backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage {
                 status: crate::detectors::dead_code::BackendOrphanStatus::NotApplicable,
@@ -8501,7 +8524,9 @@ fn main() {
                 outbound_neighbor_count: 0,
             },
             attention_items: Vec::new(),
-            findings: Vec::new(),
+            findings: ["architecture:split-identity:src/main.php:id", "architecture:compatibility-scar:src/main.php:id", "architecture:duplicate-mechanism:src/main.php:id"].into_iter().map(|id| super::ConvergenceFindingDelta {
+                fingerprint: id.into(), current_id: Some(id.into()), previous_id: None, current_occurrences: Some(1), previous_occurrences: None, title: id.into(), family: "graph".into(), status: super::ConvergenceStatus::New, current_severity: Some("medium".into()), previous_severity: None, current_visible: Some(true), previous_visible: None, file_paths: vec!["src/main.php".into()],
+            }).collect(),
         };
 
         let guard = build_guard_decision_artifact(
@@ -8533,6 +8558,7 @@ fn main() {
     #[test]
     fn guard_decision_surfaces_algorithmic_complexity_regressions() {
         let convergence = ConvergenceHistoryArtifact {
+            reviewed_policy: Default::default(),
             dead_code_scope_coverage: Default::default(),
             backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage {
                 status: crate::detectors::dead_code::BackendOrphanStatus::NotApplicable,
@@ -8624,7 +8650,12 @@ fn main() {
                 outbound_neighbor_count: 0,
             },
             attention_items: Vec::new(),
-            findings: Vec::new(),
+            findings: vec![super::ConvergenceFindingDelta {
+                fingerprint: "loop".into(), current_id: Some("architecture:algorithmic-complexity:src/main.php:loop".into()), previous_id: None,
+                current_occurrences: Some(1), previous_occurrences: None, title: "Repeated loop work".into(), family: "graph".into(),
+                status: super::ConvergenceStatus::New, current_severity: Some("medium".into()), previous_severity: None, current_visible: Some(true), previous_visible: None,
+                file_paths: vec!["src/main.php".into()],
+            }],
         };
 
         let guard = build_guard_decision_artifact(

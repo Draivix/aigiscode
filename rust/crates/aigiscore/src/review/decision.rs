@@ -3,7 +3,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchitecturalConcern {
     DeadCode,
@@ -18,7 +18,7 @@ pub enum ArchitecturalConcern {
     Security,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchitecturalConclusion {
     Violation,
@@ -30,7 +30,7 @@ pub enum ArchitecturalConclusion {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchitecturalAction {
     Delete,
@@ -99,16 +99,26 @@ pub struct ArchitecturalReviewRecord {
     pub review_id: String,
     pub proposal: crate::agentic::AgenticStructuredReviewResponse,
     pub packet_findings: std::collections::BTreeMap<String, Vec<String>>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source_scope_id: String,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub finding_changes: std::collections::BTreeMap<String, crate::artifacts::ConvergenceStatus>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comparison_baseline_id: Option<String>,
 }
 
 impl ArchitecturalReviewRecord {
-    pub(crate) fn new(proposal: crate::agentic::AgenticStructuredReviewResponse, review: &crate::agentic::AgenticReviewArtifact) -> Self {
+    pub(crate) fn new(proposal: crate::agentic::AgenticStructuredReviewResponse, review: &crate::agentic::AgenticReviewArtifact, analysis: &crate::ingestion::pipeline::ProjectAnalysis) -> Self {
         let packet_findings = review.task_packets.iter()
             .filter(|packet| proposal.claims.iter().any(|claim| claim.task_packet_id == packet.id))
-            .map(|packet| (packet.id.clone(), packet.finding_ids.clone())).collect();
+            .map(|packet| (packet.id.clone(), packet.finding_ids.clone())).collect::<std::collections::BTreeMap<_, _>>();
         let mut record = Self {
             schema_version: "2026-09-10".into(),
             review_id: String::new(),
+            source_scope_id: super::scope::response_scope_id(&proposal, analysis),
+            finding_changes: review.finding_changes.iter().filter(|(id, _)| packet_findings.values().any(|ids| ids.contains(id)))
+                .map(|(id, status)| (id.clone(), *status)).collect(),
+            comparison_baseline_id: review.comparison_baseline_id.clone(),
             proposal,
             packet_findings,
         };
@@ -117,8 +127,11 @@ impl ArchitecturalReviewRecord {
     }
 
     pub(crate) fn content_id(&self) -> String {
-        let bytes = serde_json::to_vec(&(&self.schema_version, &self.proposal, &self.packet_findings))
-            .expect("review record serializes");
+        let bytes = if self.source_scope_id.is_empty() && self.finding_changes.is_empty() && self.comparison_baseline_id.is_none() {
+            serde_json::to_vec(&(&self.schema_version, &self.proposal, &self.packet_findings))
+        } else {
+            serde_json::to_vec(&(&self.schema_version, &self.proposal, &self.packet_findings, &self.source_scope_id, &self.finding_changes, &self.comparison_baseline_id))
+        }.expect("review record serializes");
         format!("{:032x}", xxhash_rust::xxh3::xxh3_128(&bytes))
     }
 }

@@ -443,14 +443,14 @@ fn validate_and_publish(
         .map_err(|source| AgentRunError::ParseReview { path: paths.raw_review.clone(), source })?;
     crate::review::validation::validate(&structured, review, analysis)
         .map_err(AgentRunError::InvalidReview)?;
-    let record = crate::review::decision::ArchitecturalReviewRecord::new(structured, review);
+    let record = crate::review::decision::ArchitecturalReviewRecord::new(structured, review, analysis);
     crate::artifacts::write_agent_review(paths, &record)
         .map_err(|source| AgentRunError::WriteReview { path: paths.review_json.clone(), source })
 }
 
 /// The HTTP adapter has no filesystem tool. Supply bounded captured excerpts,
 /// retaining original line numbers and making omitted context explicit.
-fn captured_review_context(review: &AgenticReviewArtifact, analysis: &ProjectAnalysis) -> String {
+pub(crate) fn captured_review_context(review: &AgenticReviewArtifact, analysis: &ProjectAnalysis) -> String {
     use std::fmt::Write;
     let mut out = String::from("Captured source excerpts (bounded; omitted code is unknown, not absent). Quote source text without the line-number prefix. If required context is missing, return unknown/investigate and explain what is needed.\n");
     let mut seen = std::collections::HashSet::new();

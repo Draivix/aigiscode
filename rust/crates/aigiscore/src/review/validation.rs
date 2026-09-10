@@ -16,6 +16,8 @@ pub(crate) fn validate(
     {
         return Err("review source snapshot does not match the analyzed inputs".into());
     }
+    validate_absence_claims(response, analysis, |packet| review.task_packets.iter()
+        .find(|candidate| candidate.id == packet).map(|candidate| candidate.finding_ids.as_slice()).unwrap_or(&[]))?;
     validate_proposal(response, analysis,
         &review.task_packets.iter().map(|packet| packet.id.as_str()).collect(),
         &review.execution.structured_output.must_cover_task_packets.iter().map(String::as_str).collect())
@@ -25,11 +27,41 @@ pub(crate) fn validate_record(record: &super::decision::ArchitecturalReviewRecor
     if record.schema_version != "2026-09-10" || record.review_id != record.content_id() {
         return Err("unsupported or modified review record".into());
     }
-    if record.proposal.source_snapshot_id != review_snapshot_id(analysis) {
-        return Err("review source snapshot does not match the analyzed inputs".into());
+    if super::scope::record_is_stale(record, analysis) {
+        return Err("review source scope does not match the analyzed inputs".into());
+    }
+    if record.finding_changes.keys().any(|id| !record.packet_findings.values().any(|ids| ids.contains(id))) {
+        return Err("review change evidence names an unrelated finding".into());
+    }
+    if record.comparison_baseline_id.is_none() && record.finding_changes.values().any(|status|
+        matches!(status, crate::artifacts::ConvergenceStatus::New | crate::artifacts::ConvergenceStatus::Worsened)) {
+        return Err("reviewed drift lacks its eligible baseline identity".into());
     }
     let packets = record.packet_findings.keys().map(String::as_str).collect();
+    validate_absence_claims(&record.proposal, analysis, |packet| record.packet_findings.get(packet).map(Vec::as_slice).unwrap_or(&[]))?;
     validate_proposal(&record.proposal, analysis, &packets, &packets)
+}
+
+fn validate_absence_claims<'a>(response: &AgenticStructuredReviewResponse, analysis: &ProjectAnalysis, finding_ids: impl Fn(&str) -> &'a [String]) -> Result<(), String> {
+    use crate::detectors::dead_code::DeadCodeProofScope;
+    for claim in &response.claims {
+        if claim.decision.conclusion != Conclusion::UnreachableWithinScope { continue; }
+        let ids = finding_ids(&claim.task_packet_id);
+        for implementation in &claim.decision.implementations {
+            let proven = analysis.dead_code.findings.iter().any(|finding| {
+                ids.contains(&crate::surface::dead_code_finding_id(finding))
+                    && finding.file_path == Path::new(&implementation.file_path)
+                    && implementation.symbol_id.as_deref().is_none_or(|id| id == finding.symbol_id)
+                    && matches!(finding.proof.scope, DeadCodeProofScope::LocalBinding | DeadCodeProofScope::ClassPrivateDispatch)
+                    && finding.proof.missing_evidence.is_empty()
+                    && claim.evidence_locations.iter().any(|location| location.file_path == implementation.file_path
+                        && location.line.is_some_and(|start| start <= finding.line)
+                        && location.end_line.or(location.line).is_some_and(|end| end >= finding.line))
+            });
+            if !proven { return Err(format!("unreachability requires a selected native finding with complete local or private-dispatch proof and a citation at its declaration: {}", implementation.file_path)); }
+        }
+    }
+    Ok(())
 }
 
 fn validate_proposal(

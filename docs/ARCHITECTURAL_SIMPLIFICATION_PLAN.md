@@ -121,9 +121,16 @@ Confirmed security or data-integrity faults take priority over simplification.
 | Per-item IO and unbounded work in request paths | Latency and resource use grow with real input cardinality. | Mitel query-in-loop is observed; production impact still needs measurement. |
 | Hand-built mechanisms or unnecessary dependencies | Extra behavior and maintenance can duplicate an existing platform capability. | Review against actual requirements and existing owners; preserve justified metadata/runtime engines. |
 
-Tests and CI remain paused under the current instruction. The regression cases
-and runtime acceptance requirements stay explicit; source inspection does not
-turn them into executed checks. The evidence/action contract and scoped dead-code
-unit and parsed behavior comparisons are implemented with the verification limits documented above. Continue
-reviewed policy/convergence feedback. Broader Q01–Q12 correctness obligations
-remain open.
+All six AigisCode implementation streams are delivered: typed source-bound
+reviews, scoped dead-code proofs, parsed decision comparisons, execution wiring,
+abstraction/boundary evidence and explicit reviewed-policy feedback into guard
+and convergence. The [native review observation](2026-09-10-architectural-feedback.md)
+records the concrete actor migration proposal, retained providers, unresolved
+replacement contracts and scoped removal/split proposals.
+
+Tests and CI remain paused. Native builds and real CLI/MCP artifacts establish
+the implementation observations described above; regression and application
+runtime acceptance remain unexecuted. No Draivix remediation or policy adoption
+was applied. Success in preserving behavior after an actual code migration is
+still an acceptance obligation, not a consequence of fewer warnings. Broader
+Q01–Q12 correctness obligations and the existing work lock remain open.

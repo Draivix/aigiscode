@@ -380,7 +380,7 @@ fn build_mcp_state_with_caches(
             disk_generation.map(|_| disk_identity.as_ref() == Some(&index_identity))
         },
     };
-    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context, baseline, artifact_generation, output_dir)
+    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context, baseline, artifact_generation, output_dir, write_artifacts)
 }
 
 impl AigiscodeMcpServer {
@@ -834,6 +834,46 @@ impl AigiscodeMcpServer {
     ) -> Result<Json<architecture::ImplementationContextOutput>, McpError> {
         let state = self.state().await;
         architecture::implementation_context(state.snapshot(), params).map(Json)
+    }
+
+    #[tool(
+        name = "prepare_architectural_review",
+        description = "Prepare a source-bound review of one capability from exact symbols, findings or behavior comparisons. Returns native task packets, captured excerpts and the required response schema; no model is invoked and no proposal is adopted."
+    )]
+    async fn prepare_architectural_review(
+        &self,
+        Parameters(params): Parameters<architecture::PrepareArchitecturalReviewParams>,
+    ) -> Result<Json<architecture::PreparedArchitecturalReview>, McpError> {
+        let state = self.state().await;
+        architecture::prepare_review(state.snapshot(), params).map(Json)
+    }
+
+    #[tool(
+        name = "submit_architectural_review",
+        description = "Validate and publish a proposed architectural review using its original selection, current source snapshot, exact quotes and native task bindings. Writes agent-review.json/Markdown and a review archive in the configured output directory; policy adoption is separate."
+    )]
+    async fn submit_architectural_review(
+        &self,
+        Parameters(params): Parameters<architecture::SubmitArchitecturalReviewParams>,
+    ) -> Result<Json<architecture::SubmittedArchitecturalReview>, McpError> {
+        let state = self.state().await;
+        architecture::submit_review(state.snapshot(), params).map(Json)
+    }
+
+    #[tool(
+        name = "adopt_architectural_decision",
+        description = "Prepare a source-qualified policy adoption from a validated review and explicitly selected findings. apply defaults to false. Use apply=true only for a repository-approved conclusion and reason; it updates .aigiscode/policy.json. Source-confirmed concern means source review, never executed runtime acceptance."
+    )]
+    async fn adopt_architectural_decision(
+        &self,
+        Parameters(params): Parameters<architecture::AdoptArchitecturalDecisionParams>,
+    ) -> Result<Json<architecture::AdoptedArchitecturalDecision>, McpError> {
+        let state = self.state().await;
+        let result = architecture::adopt_decision(state.snapshot(), params)?;
+        if result.applied {
+            self.live.mark_dirty(std::iter::once((PathBuf::from(crate::policy::POLICY_FILE), self::live::DirtyKind::Other)));
+        }
+        Ok(Json(result))
     }
 
     #[tool(
@@ -1985,6 +2025,11 @@ struct McpState {
     artifact_generation: crate::artifacts::PublishedArtifactStatus,
     root: String,
     analysis: ProjectAnalysis,
+    review_surface: crate::review::ReviewSurface,
+    native_convergence: crate::artifacts::ConvergenceHistoryArtifact,
+    native_guard: crate::artifacts::GuardDecisionArtifact,
+    review_output_dir: PathBuf,
+    allow_review_writes: bool,
     kuzu_path: Option<PathBuf>,
     contract_inventory: ContractInventoryOutput,
     doctrine_registry: DoctrineRegistryOutput,
@@ -2019,6 +2064,7 @@ impl McpState {
         baseline: Option<BaselineSnapshot>,
         artifact_generation: crate::artifacts::PublishedArtifactStatus,
         review_output_dir: Option<&Path>,
+        allow_review_writes: bool,
     ) -> Result<Self, McpServerError> {
         let surface = analysis.architecture_surface();
         let layers = analysis.doctrine_registry().layers.clone();
@@ -2153,10 +2199,16 @@ impl McpState {
         repo_overview.resolution_work = analysis.resolution_work.clone();
         repo_overview.ast_grep_work = analysis.ast_grep_work.clone();
         analysis.verify_inputs()?;
+        let review_output_dir = review_output_dir.map(Path::to_path_buf).unwrap_or_else(|| analysis.root.join(".aigiscode"));
         Ok(Self {
             artifact_generation,
             root,
             analysis,
+            review_surface,
+            native_convergence: convergence_artifact,
+            native_guard: guard_decision_artifact,
+            review_output_dir,
+            allow_review_writes,
             kuzu_path,
             contract_inventory,
             doctrine_registry,

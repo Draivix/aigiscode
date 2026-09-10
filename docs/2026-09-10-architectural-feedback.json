@@ -1,0 +1,944 @@
+{
+  "observation_date": "2026-09-10",
+  "product": "Native Rust MCP architectural review",
+  "repository": "draivix",
+  "source_scope": "configured project slice",
+  "source_coverage": {
+    "status": "incomplete",
+    "parsed_source_files": 9662,
+    "recovered_source_files": 16,
+    "scope_limited_files": 720,
+    "unsupported_source_files": 2
+  },
+  "native_records": [
+    {
+      "case": "actor",
+      "review_id": "0202c9dcf0447566033e56f5b1750705",
+      "source_snapshot_id": "bebc98902c882034d5431d2a07a3cf9f",
+      "source_scope_id": "bce46d002244f7da360951c76a30402f",
+      "comparison_baseline_id": null,
+      "finding_changes": {},
+      "packet_findings": {
+        "architecture-review:e300df431912b4a7a7791df0b80b7270": []
+      },
+      "claims": [
+        {
+          "task_packet_id": "architecture-review:e300df431912b4a7a7791df0b80b7270",
+          "title": "Propose one actor boundary with explicit fallback policy",
+          "severity": "medium",
+          "why_now": "Persistence and notification consumers derive different actors from the same context shape. For actorId=41, assignment self-notification suppression receives null while persistence receives 41. This is a source-supported architectural proposal; canonical precedence and fallback still require agreement.",
+          "decision": {
+            "concern": "dry_violation",
+            "conclusion": "violation",
+            "action": "consolidate",
+            "implementations": [
+              {
+                "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+                "symbol_id": null,
+                "responsibility": "Persistence attribution and realtime side-effect actor extraction"
+              },
+              {
+                "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+                "symbol_id": null,
+                "responsibility": "Assignment actor extraction used to suppress self-notifications"
+              },
+              {
+                "file_path": "app/Support/ActorContext.php",
+                "symbol_id": null,
+                "responsibility": "Existing positive-ID normalization and explicit-context actor boundary"
+              }
+            ],
+            "canonical_owner": 2,
+            "comparisons": [
+              {
+                "input_case": "Only actorId=41 is supplied; no user or ambient authentication",
+                "outcomes": [
+                  {
+                    "implementation": 0,
+                    "behavior": "Returns 41 from the explicit actorId branch"
+                  },
+                  {
+                    "implementation": 1,
+                    "behavior": "Returns null because context.user is absent"
+                  },
+                  {
+                    "implementation": 2,
+                    "behavior": "Returns 41 through positiveId"
+                  }
+                ]
+              },
+              {
+                "input_case": "actorId=0 and context.user.id=73; no ambient authentication",
+                "outcomes": [
+                  {
+                    "implementation": 0,
+                    "behavior": "Returns 0 without a positive-ID check"
+                  },
+                  {
+                    "implementation": 1,
+                    "behavior": "Returns 73 from user.id; actorId is ignored"
+                  },
+                  {
+                    "implementation": 2,
+                    "behavior": "Returns null because an explicit non-null actorId takes precedence and fails positivity"
+                  }
+                ]
+              },
+              {
+                "input_case": "actorId is nonnumeric and context.user.id=73",
+                "outcomes": [
+                  {
+                    "implementation": 0,
+                    "behavior": "Falls through to user.id and returns 73"
+                  },
+                  {
+                    "implementation": 1,
+                    "behavior": "Returns 73 from user.id"
+                  },
+                  {
+                    "implementation": 2,
+                    "behavior": "Returns null; invalid explicit actorId does not fall through to user"
+                  }
+                ]
+              },
+              {
+                "input_case": "Context is empty and ambient Auth::id() would return 73",
+                "outcomes": [
+                  {
+                    "implementation": 0,
+                    "behavior": "Returns 73 through ambient authentication"
+                  },
+                  {
+                    "implementation": 1,
+                    "behavior": "Returns null"
+                  },
+                  {
+                    "implementation": 2,
+                    "behavior": "Returns null; the helper does not read ambient authentication"
+                  }
+                ]
+              },
+              {
+                "input_case": "Only context.user.id=73 is supplied, with no getId method",
+                "outcomes": [
+                  {
+                    "implementation": 0,
+                    "behavior": "Returns 73"
+                  },
+                  {
+                    "implementation": 1,
+                    "behavior": "Returns 73"
+                  },
+                  {
+                    "implementation": 2,
+                    "behavior": "Returns 73"
+                  }
+                ]
+              },
+              {
+                "input_case": "Only context.user with getId()=73 and no public id is supplied; no ambient authentication",
+                "outcomes": [
+                  {
+                    "implementation": 0,
+                    "behavior": "Returns null after the property check and absent ambient authentication"
+                  },
+                  {
+                    "implementation": 1,
+                    "behavior": "Returns null because user.id is absent"
+                  },
+                  {
+                    "implementation": 2,
+                    "behavior": "Returns 73 through the getId method"
+                  }
+                ]
+              }
+            ],
+            "consumer_changes": [
+              {
+                "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+                "symbol_id": null,
+                "change": "Replace the private resolver calls at persistence attribution and realtime side-effect sites with ActorContext::id after approving precedence. If persistence must preserve ambient fallback, materialize that actor into the context once at the request/transaction boundary; do not add hidden authentication to the shared helper."
+              },
+              {
+                "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+                "symbol_id": null,
+                "change": "Use ActorContext::id in handleCreate and handleAssignmentChange, then retire the duplicate private resolver. Preserve skip/support/positive-assignee checks and compare the canonical actor with the assigned user before sending."
+              },
+              {
+                "file_path": "app/Support/ActorContext.php",
+                "symbol_id": null,
+                "change": "Retain this existing owner. Decide whether invalid explicit IDs stop resolution or fall through, whether getId takes precedence over the public property, and whether numeric fractional strings are acceptable before migrating callers."
+              }
+            ],
+            "preserved_behavior": [
+              "Self-assignment suppresses notification when the canonical actor equals the assigned user",
+              "Actor context remains tenant/request-bound and nullable for actorless jobs",
+              "Persistence, audit and realtime effects use the same approved actor for one operation",
+              "No shared helper starts reading ambient auth as an incidental side effect"
+            ],
+            "missing_evidence": [
+              "No repository-approved precedence/invalid-ID/ambient-fallback contract was supplied; ActorContext is a proposed survivor, not an approved replacement",
+              "Captured zero callers for ActorContext do not prove whole-application unreachability; analysis coverage and candidate search are incomplete"
+            ],
+            "verification_steps": [
+              "After contract approval, execute the six listed input cases for every migrated consumer, including worker and authenticated-request contexts",
+              "Verify create/update attribution, audit/realtime payloads and assignment notification suppression preserve the approved actor",
+              "Verify invalid, fractional and negative numeric inputs and objects with divergent getId/id values; no runtime check was executed in this review"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+              "line": 1140,
+              "end_line": 1154
+            },
+            {
+              "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+              "line": 510,
+              "end_line": 520
+            },
+            {
+              "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+              "line": 1065,
+              "end_line": 1076
+            },
+            {
+              "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+              "line": 120,
+              "end_line": 131
+            },
+            {
+              "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+              "line": 35,
+              "end_line": 47
+            },
+            {
+              "file_path": "app/Support/ActorContext.php",
+              "line": 13,
+              "end_line": 39
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "providers",
+      "review_id": "6e882e06b9e77319736f5a1bfc9eed1c",
+      "source_snapshot_id": "bebc98902c882034d5431d2a07a3cf9f",
+      "source_scope_id": "4cb507b76700401035c589fdf6eb52ce",
+      "comparison_baseline_id": null,
+      "finding_changes": {},
+      "packet_findings": {
+        "architecture-review:b15823d3f37460e4e4f4264f8fd20bc4": []
+      },
+      "claims": [
+        {
+          "task_packet_id": "architecture-review:b15823d3f37460e4e4f4264f8fd20bc4",
+          "title": "Retain the discovered SmsService provider",
+          "severity": "low",
+          "why_now": "The captured module-provider discovery convention includes SmsService/SmsServiceServiceProvider.php. Its boot method registers the send_sms action and console command. Missing named callers cannot justify removal.",
+          "decision": {
+            "concern": "dead_code",
+            "conclusion": "runtime_entry",
+            "action": "keep",
+            "implementations": [
+              {
+                "file_path": "app/Modules/SmsService/SmsServiceServiceProvider.php",
+                "symbol_id": null,
+                "responsibility": "Module bootstrap configuration, workflow action and console registration"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Register send_sms for an already-resolved registry and future afterResolving callbacks",
+              "Retain console command registration and module configuration"
+            ],
+            "missing_evidence": [
+              "Discovery source is positive registration evidence; bootstrap/providers.php is outside the configured captured scope, and no Laravel bootstrap, SMS delivery or workflow was executed"
+            ],
+            "verification_steps": [
+              "When runtime checks resume, boot with the module enabled and verify the registry and console entries without sending an SMS"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Modules/SmsService/SmsServiceServiceProvider.php",
+              "line": 12,
+              "end_line": 29
+            },
+            {
+              "file_path": "app/Modules/SmsService/SmsServiceServiceProvider.php",
+              "line": 49,
+              "end_line": 54
+            },
+            {
+              "file_path": "app/Modules/ModuleProviderDiscovery.php",
+              "line": 27,
+              "end_line": 33
+            },
+            {
+              "file_path": "app/Modules/ModuleProviderDiscovery.php",
+              "line": 90,
+              "end_line": 100
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:b15823d3f37460e4e4f4264f8fd20bc4",
+          "title": "Retain the contract-bound invoice sender",
+          "severity": "low",
+          "why_now": "AccountingServiceProvider binds InvoiceThankYouEmailDispatcher to InvoiceThankYouEmailSender. The implementation is a runtime contract boundary despite no captured direct production calls.",
+          "decision": {
+            "concern": "dead_code",
+            "conclusion": "runtime_entry",
+            "action": "keep",
+            "implementations": [
+              {
+                "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php",
+                "symbol_id": null,
+                "responsibility": "Dispatcher implementation preserving invoice/email preconditions"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Reject non-positive invoice IDs and disabled settings",
+              "Require both account and template before delegating delivery",
+              "Keep the public dispatcher contract and configured container binding"
+            ],
+            "missing_evidence": [
+              "Container binding is source evidence, not an executed dispatch or successful email delivery"
+            ],
+            "verification_steps": [
+              "When runtime checks resume, resolve the dispatcher and verify enabled/disabled settings and missing-template behavior without delivering external mail"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php",
+              "line": 12,
+              "end_line": 37
+            },
+            {
+              "file_path": "app/Modules/Accounting/AccountingServiceProvider.php",
+              "line": 132,
+              "end_line": 136
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "replacements",
+      "review_id": "3db798d63a4f20097f0436af2eb28d7d",
+      "source_snapshot_id": "bebc98902c882034d5431d2a07a3cf9f",
+      "source_scope_id": "51fcfbbb73389aa1b0a4ea98a07cd760",
+      "comparison_baseline_id": null,
+      "finding_changes": {},
+      "packet_findings": {
+        "architecture-review:068e5fda901d6dd30a999852b4e2f3a5": []
+      },
+      "claims": [
+        {
+          "task_packet_id": "architecture-review:068e5fda901d6dd30a999852b4e2f3a5",
+          "title": "Resolve the ACL effect wiring before retiring either path",
+          "severity": "medium",
+          "why_now": "The writer implements RelationMutationEffect and owns commit-sensitive publication, but the captured graph has no production calls to this implementation. This establishes a wiring question, not a deletion proof.",
+          "decision": {
+            "concern": "dual_path",
+            "conclusion": "unknown",
+            "action": "investigate",
+            "implementations": [
+              {
+                "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+                "symbol_id": null,
+                "responsibility": "Per-tenant ACL version publication with transaction-owner deduplication"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Keep afterCommitCritical publication and afterTransactionOutcome cleanup",
+              "Preserve pending-publication reconciliation and tenant validation"
+            ],
+            "missing_evidence": [
+              "No approved replacement/retirement decision or complete runtime wiring evidence was supplied",
+              "No captured consumers is bounded static evidence; the repository input scope is incomplete"
+            ],
+            "verification_steps": [
+              "Inspect the actual effects supplied to RelationMutationEffectRunner and the configured aclMembership keys",
+              "If this is the intended writer, wire it at the existing effect composition boundary and preserve commit/rollback/deduplication/retry behavior; otherwise document an explicit retirement decision"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+              "line": 17,
+              "end_line": 59
+            },
+            {
+              "file_path": "app/Services/Entity/RelationMutationEffectRunner.php",
+              "line": 17,
+              "end_line": 30
+            },
+            {
+              "file_path": "app/Services/Entity/RelationMutationEffectRunner.php",
+              "line": 34,
+              "end_line": 57
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:068e5fda901d6dd30a999852b4e2f3a5",
+          "title": "Resolve sort-target adoption as a behavior migration",
+          "severity": "medium",
+          "why_now": "The resolver declares public-to-executable sort translation, aliases and null-order metadata. No captured production consumer chooses it; no evidence establishes that an existing sort path is equivalent.",
+          "decision": {
+            "concern": "dual_path",
+            "conclusion": "unknown",
+            "action": "investigate",
+            "implementations": [
+              {
+                "file_path": "app/Services/Filter/EntitySortTargetResolver.php",
+                "symbol_id": null,
+                "responsibility": "Sort target normalization across metadata/computed/relation fields"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Preserve aliases, composite/relation targets and per-target null ordering",
+              "Preserve computed-field validation and cyclic-field protection"
+            ],
+            "missing_evidence": [
+              "No approved replacement/retirement decision or complete runtime wiring evidence was supplied",
+              "No captured consumers is bounded static evidence; the repository input scope is incomplete"
+            ],
+            "verification_steps": [
+              "Identify the currently active query-order entry points and compare the same metadata/field inputs",
+              "Approve an owner and migrate callers only after comparing empty fields, aliases, dotted relations, composite/computed fields and unsupported fields"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Services/Filter/EntitySortTargetResolver.php",
+              "line": 18,
+              "end_line": 75
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:068e5fda901d6dd30a999852b4e2f3a5",
+          "title": "Resolve filter-type adoption without erasing database semantics",
+          "severity": "medium",
+          "why_now": "The resolver conditionally maps physical tenant database types for blank-string checks. No captured production call selects it, and type coverage is incomplete; the intended migration remains unknown.",
+          "decision": {
+            "concern": "dual_path",
+            "conclusion": "unknown",
+            "action": "investigate",
+            "implementations": [
+              {
+                "file_path": "app/Services/_Core/Filter/EffectiveFilterTypeResolver.php",
+                "symbol_id": null,
+                "responsibility": "Effective filter type using declared metadata and tenant column types"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Keep declared type for unsupported/unknown physical types",
+              "Preserve tenant-specific schema access and the blank-string-check boundary"
+            ],
+            "missing_evidence": [
+              "No approved replacement/retirement decision or complete runtime wiring evidence was supplied",
+              "No captured consumers is bounded static evidence; the repository input scope is incomplete"
+            ],
+            "verification_steps": [
+              "Locate the live filter-operator type decision and compare it with physical-column resolution under the same tenant",
+              "Approve whether physical or declared type wins, then integrate one owner and validate null/blank behavior for numeric, JSON, date, text and unknown columns"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Services/_Core/Filter/EffectiveFilterTypeResolver.php",
+              "line": 12,
+              "end_line": 44
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:068e5fda901d6dd30a999852b4e2f3a5",
+          "title": "Retain the view-column contract pending implementor and consumer agreement",
+          "severity": "medium",
+          "why_now": "The interface distinguishes outer null from a resolved dynamic board with values=null. The captured graph has no implementors or production references, which is insufficient to decide whether this is an intended replacement or obsolete design.",
+          "decision": {
+            "concern": "dual_path",
+            "conclusion": "unknown",
+            "action": "investigate",
+            "implementations": [
+              {
+                "file_path": "app/Services/View/ViewColumnSliceResolverInterface.php",
+                "symbol_id": null,
+                "responsibility": "Column-slice contract with finite values and dynamic unsliced boards"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Outer null means unsupported handler; values=null means a valid unsliced dynamic board",
+              "Preserve the field identity and scalar value shapes"
+            ],
+            "missing_evidence": [
+              "No approved replacement/retirement decision or complete runtime wiring evidence was supplied",
+              "No captured consumers is bounded static evidence; the repository input scope is incomplete"
+            ],
+            "verification_steps": [
+              "Identify intended board handlers and current slice consumers before selecting a survivor",
+              "If adopted, implement and wire the contract at the existing view composition boundary and compare finite metadata columns, record-backed columns, and unsupported handlers"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Services/View/ViewColumnSliceResolverInterface.php",
+              "line": 7,
+              "end_line": 19
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "evidence",
+      "review_id": "edf20fe0651768cf95070433d3ad3b79",
+      "source_snapshot_id": "bebc98902c882034d5431d2a07a3cf9f",
+      "source_scope_id": "989c04c04c79e6acb3e72cfe77d0e1fb",
+      "comparison_baseline_id": null,
+      "finding_changes": {},
+      "packet_findings": {
+        "architecture-review:1f4e8990c9b54eb061825822631bad14": []
+      },
+      "claims": [
+        {
+          "task_packet_id": "architecture-review:1f4e8990c9b54eb061825822631bad14",
+          "title": "Separate evidence file handling from evidence acceptance rules",
+          "severity": "medium",
+          "why_now": "The same class both applies requirement/exclusion/context decisions and reads/writes JSON artifacts. These responsibilities change for different reasons. This is a proposed split based on captured method behavior, not class length or method names alone.",
+          "decision": {
+            "concern": "overengineering",
+            "conclusion": "violation",
+            "action": "split",
+            "implementations": [
+              {
+                "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+                "symbol_id": null,
+                "responsibility": "Evidence requirement decisions and artifact transport currently share one owner"
+              }
+            ],
+            "canonical_owner": 0,
+            "comparisons": [],
+            "consumer_changes": [
+              {
+                "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+                "symbol_id": null,
+                "change": "Keep the existing public service as the domain-facing facade; isolate report/template emission, directory checks and manifest decoding behind a narrow artifact owner. Reuse the existing framework File and JSON facilities, and preserve the existing profile/input-normalization collaborators instead of adding parallel resolvers."
+              }
+            ],
+            "preserved_behavior": [
+              "Keep explicit unsupported-exclusion and template-context validation",
+              "Preserve JSON decoding errors and the distinction between missing, malformed and valid evidence",
+              "Keep tenant-specific directories, manifest/report field shapes and reportPath/templatePath results",
+              "Preserve existing public CLI-facing service methods during extraction"
+            ],
+            "missing_evidence": [
+              "No existing project-local artifact owner with matching contracts has been established; select one before introducing a new class",
+              "The bounded profile does not cover every method, and no CLI or file-emission acceptance check was executed"
+            ],
+            "verification_steps": [
+              "Review existing artifact helpers before selecting the extraction target",
+              "Compare valid, missing and malformed manifests; tenant isolation; directory failures; JSON errors; and report/template return shapes",
+              "Keep CLI callers on the existing facade during extraction and execute their acceptance checks once CI resumes"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 424,
+              "end_line": 473
+            },
+            {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 1018,
+              "end_line": 1097
+            },
+            {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 21,
+              "end_line": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "local_dead_code",
+      "review_id": "7c2a2a996b8dd893083111c0c8685e91",
+      "source_snapshot_id": "bebc98902c882034d5431d2a07a3cf9f",
+      "source_scope_id": "11f43d84d56b3740981b53228b0dd6ff",
+      "comparison_baseline_id": null,
+      "finding_changes": {
+        "dead-code:app/Http/Controllers/Entity/Handlers/EntityViewHandler.php:1297:hydrateManyToManyForShow": "FirstObserved",
+        "dead-code:app/Modules/ProjectManagement/Entities/Project/Project.fields.php:4:ProjectStatusGroups": "FirstObserved",
+        "dead-code:app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php:22:RuntimeMessage": "FirstObserved",
+        "dead-code:app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php:15:RuntimeMessage": "FirstObserved"
+      },
+      "packet_findings": {
+        "architecture-review:fce420db4f5ce6b3f6a4157bfca8403c": [
+          "dead-code:app/Http/Controllers/Entity/Handlers/EntityViewHandler.php:1297:hydrateManyToManyForShow",
+          "dead-code:app/Modules/ProjectManagement/Entities/Project/Project.fields.php:4:ProjectStatusGroups",
+          "dead-code:app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php:22:RuntimeMessage",
+          "dead-code:app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php:15:RuntimeMessage"
+        ]
+      },
+      "claims": [
+        {
+          "task_packet_id": "architecture-review:fce420db4f5ce6b3f6a4157bfca8403c",
+          "title": "Remove the unused ProjectStatusGroups import binding",
+          "severity": "low",
+          "why_now": "The selected native candidate has complete local-binding evidence. The proposal removes only this use declaration, not the imported class or module.",
+          "decision": {
+            "concern": "dead_code",
+            "conclusion": "unreachable_within_scope",
+            "action": "delete",
+            "implementations": [
+              {
+                "file_path": "app/Modules/ProjectManagement/Entities/Project/Project.fields.php",
+                "symbol_id": null,
+                "responsibility": "The unused ProjectStatusGroups import binding at line 4"
+              }
+            ],
+            "canonical_owner": null,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Preserve all executable statements, metadata declarations and the imported type at its defining path"
+            ],
+            "missing_evidence": [],
+            "verification_steps": [
+              "Delete only the selected use declaration",
+              "When CI resumes, validate PHP parsing and the affected metadata/action consumers; no application execution occurred here"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Modules/ProjectManagement/Entities/Project/Project.fields.php",
+              "line": 4,
+              "end_line": 4
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:fce420db4f5ce6b3f6a4157bfca8403c",
+          "title": "Remove the unused RuntimeMessage import binding",
+          "severity": "low",
+          "why_now": "The selected native candidate has complete local-binding evidence. The proposal removes only this use declaration, not the imported class or module.",
+          "decision": {
+            "concern": "dead_code",
+            "conclusion": "unreachable_within_scope",
+            "action": "delete",
+            "implementations": [
+              {
+                "file_path": "app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php",
+                "symbol_id": null,
+                "responsibility": "The unused RuntimeMessage import binding at line 22"
+              }
+            ],
+            "canonical_owner": null,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Preserve all executable statements, metadata declarations and the imported type at its defining path"
+            ],
+            "missing_evidence": [],
+            "verification_steps": [
+              "Delete only the selected use declaration",
+              "When CI resumes, validate PHP parsing and the affected metadata/action consumers; no application execution occurred here"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php",
+              "line": 22,
+              "end_line": 22
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:fce420db4f5ce6b3f6a4157bfca8403c",
+          "title": "Remove the unused RuntimeMessage import binding",
+          "severity": "low",
+          "why_now": "The selected native candidate has complete local-binding evidence. The proposal removes only this use declaration, not the imported class or module.",
+          "decision": {
+            "concern": "dead_code",
+            "conclusion": "unreachable_within_scope",
+            "action": "delete",
+            "implementations": [
+              {
+                "file_path": "app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php",
+                "symbol_id": null,
+                "responsibility": "The unused RuntimeMessage import binding at line 15"
+              }
+            ],
+            "canonical_owner": null,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Preserve all executable statements, metadata declarations and the imported type at its defining path"
+            ],
+            "missing_evidence": [],
+            "verification_steps": [
+              "Delete only the selected use declaration",
+              "When CI resumes, validate PHP parsing and the affected metadata/action consumers; no application execution occurred here"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php",
+              "line": 15,
+              "end_line": 15
+            }
+          ]
+        },
+        {
+          "task_packet_id": "architecture-review:fce420db4f5ce6b3f6a4157bfca8403c",
+          "title": "Keep the private hydration candidate open until runtime dispatch is resolved",
+          "severity": "medium",
+          "why_now": "The native class/private-dispatch finding remains a candidate. Its proof explicitly leaves reflection, generated code and externally bound closures for runtime review; no removal is proposed as proven.",
+          "decision": {
+            "concern": "dead_code",
+            "conclusion": "unknown",
+            "action": "investigate",
+            "implementations": [
+              {
+                "file_path": "app/Http/Controllers/Entity/Handlers/EntityViewHandler.php",
+                "symbol_id": null,
+                "responsibility": "Private many-to-many relation hydration candidate"
+              }
+            ],
+            "canonical_owner": null,
+            "comparisons": [],
+            "consumer_changes": [],
+            "preserved_behavior": [
+              "Preserve relation/pivot data and distinguish absence from query failure if this path is active"
+            ],
+            "missing_evidence": [
+              "Runtime review of reflection, generated callers and externally bound closures remains missing"
+            ],
+            "verification_steps": [
+              "Resolve the stated private-dispatch caveat; if absent, remove the unused helper rather than redesigning it",
+              "If reachable, trace callers and preserve hydration behavior while addressing swallowed query errors"
+            ]
+          },
+          "evidence_locations": [
+            {
+              "file_path": "app/Http/Controllers/Entity/Handlers/EntityViewHandler.php",
+              "line": 1297,
+              "end_line": 1315
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "adoption_preview": {
+    "applied": false,
+    "decision": {
+      "action": "keep",
+      "anchor_files": [
+        "app/Modules/ModuleProviderDiscovery.php",
+        "app/Modules/SmsService/SmsServiceServiceProvider.php"
+      ],
+      "claim_index": 0,
+      "comparison_baseline_id": null,
+      "concern": "dead_code",
+      "conclusion": "runtime_entry",
+      "disposition": "accepted_pattern",
+      "finding_fingerprints": [],
+      "id": "6e882e06b9e77319736f5a1bfc9eed1c:0",
+      "observed_change": "NotCompared",
+      "reason": "Retain the module provider because the captured module-discovery convention includes it and its public boot method owns workflow and console registration; runtime bootstrap remains unexecuted.",
+      "review_id": "6e882e06b9e77319736f5a1bfc9eed1c",
+      "source_scope_id": "8dd023fde3388ebfb38804e1719fd32a"
+    },
+    "policy_path": ".aigiscode/policy.json",
+    "requires_reindex": false
+  },
+  "rejected_invented_quote": {
+    "error": {
+      "code": -32602,
+      "message": "source quote does not match: app/Entities/_Core/Cycle/HookAwareMapper.php:1140"
+    }
+  },
+  "excluded_source_rejection": {
+    "code": -32602,
+    "message": "source reference was not captured: bootstrap/providers.php"
+  },
+  "acceptance": {
+    "native_build": "completed",
+    "source_quotes_and_task_bindings": "validated by native submit API",
+    "private_exports": "archived JSON and native latest Markdown",
+    "source_quotes_omitted_from_this_receipt": true,
+    "repository_policy_applied": false,
+    "application_runtime_executed": false,
+    "automated_tests_executed": false,
+    "ci_executed": false,
+    "new_confirmed_drift_established": false
+  },
+  "reload": {
+    "native_graph_fast_loaded": true,
+    "native_analysis_restored": true,
+    "freshness": {
+      "consistency_satisfied": true,
+      "dirty_path_count": 0,
+      "dirty_paths": [],
+      "generated_at_unix_ms": 1789035603199,
+      "indexed_revision": 1,
+      "is_stale": false,
+      "observed_revision": 1,
+      "rebuilding": false,
+      "revision": 1,
+      "watcher": "disabled"
+    },
+    "review_status": "SourceAnchoredProposal",
+    "review_id": "7c2a2a996b8dd893083111c0c8685e91",
+    "summary": {
+      "total_findings": 4571,
+      "visible_findings": 4571,
+      "unreviewed_findings": 4568,
+      "accepted_by_policy": 0,
+      "suppressed_by_rule": 0,
+      "ai_reviewed": 3,
+      "rules_generated": 0,
+      "accepted_architectural_decisions": 0,
+      "source_confirmed_concerns": 0,
+      "stale_architectural_decisions": 0
+    },
+    "selected_findings": [
+      {
+        "id": "dead-code:app/Http/Controllers/Entity/Handlers/EntityViewHandler.php:1297:hydrateManyToManyForShow",
+        "review_status": "Unreviewed",
+        "is_visible": true
+      },
+      {
+        "id": "dead-code:app/Modules/ProjectManagement/Entities/Project/Project.fields.php:4:ProjectStatusGroups",
+        "review_status": "SourceReviewedProposal",
+        "is_visible": true
+      },
+      {
+        "id": "dead-code:app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php:22:RuntimeMessage",
+        "review_status": "SourceReviewedProposal",
+        "is_visible": true
+      },
+      {
+        "id": "dead-code:app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php:15:RuntimeMessage",
+        "review_status": "SourceReviewedProposal",
+        "is_visible": true
+      }
+    ],
+    "baseline_comparison": "not_compared",
+    "convergence_summary": {
+      "current_findings": 4550,
+      "previous_findings": 4550,
+      "first_observed_findings": 0,
+      "not_compared_findings": 4550,
+      "new_findings": 0,
+      "worsened_findings": 0,
+      "improved_findings": 0,
+      "unchanged_findings": 0,
+      "resolved_findings": 0
+    },
+    "reviewed_policy": {
+      "accepted_patterns": 0,
+      "source_confirmed_concerns": 0,
+      "stale_decisions": 0,
+      "confirmed_drift": []
+    }
+  },
+  "tune": {
+    "exit_code": 0,
+    "reviewed_drafts": [
+      {
+        "field": "reviewed_decisions",
+        "value": {
+          "action": "delete",
+          "anchor_files": [
+            "app/Modules/ProjectManagement/Entities/Project/Project.fields.php"
+          ],
+          "claim_index": 0,
+          "comparison_baseline_id": null,
+          "concern": "dead_code",
+          "conclusion": "unreachable_within_scope",
+          "disposition": "source_confirmed_concern",
+          "finding_fingerprints": [],
+          "id": "7c2a2a996b8dd893083111c0c8685e91:0",
+          "observed_change": "NotCompared",
+          "reason": "The selected native candidate has complete local-binding evidence. The proposal removes only this use declaration, not the imported class or module.",
+          "review_id": "7c2a2a996b8dd893083111c0c8685e91",
+          "source_scope_id": "394036ebe64f1a19b51c5e15bbcd1198"
+        },
+        "reason": "Source-anchored proposal requires repository approval of the conclusion, reason and exact affected findings. This draft records intent with no suppressed findings and is not inserted into the suggested policy patch. Use adopt_architectural_decision to preview explicitly selected findings before adoption."
+      },
+      {
+        "field": "reviewed_decisions",
+        "value": {
+          "action": "delete",
+          "anchor_files": [
+            "app/Modules/ServiceManagement/Actions/ServiceTrip/CompleteFieldServiceTripAction.php"
+          ],
+          "claim_index": 1,
+          "comparison_baseline_id": null,
+          "concern": "dead_code",
+          "conclusion": "unreachable_within_scope",
+          "disposition": "source_confirmed_concern",
+          "finding_fingerprints": [],
+          "id": "7c2a2a996b8dd893083111c0c8685e91:1",
+          "observed_change": "NotCompared",
+          "reason": "The selected native candidate has complete local-binding evidence. The proposal removes only this use declaration, not the imported class or module.",
+          "review_id": "7c2a2a996b8dd893083111c0c8685e91",
+          "source_scope_id": "45a80c57fc21b17bcce1b4ad681c6999"
+        },
+        "reason": "Source-anchored proposal requires repository approval of the conclusion, reason and exact affected findings. This draft records intent with no suppressed findings and is not inserted into the suggested policy patch. Use adopt_architectural_decision to preview explicitly selected findings before adoption."
+      },
+      {
+        "field": "reviewed_decisions",
+        "value": {
+          "action": "delete",
+          "anchor_files": [
+            "app/Modules/ServiceManagement/Services/ServiceTripRouteOptimizationService.php"
+          ],
+          "claim_index": 2,
+          "comparison_baseline_id": null,
+          "concern": "dead_code",
+          "conclusion": "unreachable_within_scope",
+          "disposition": "source_confirmed_concern",
+          "finding_fingerprints": [],
+          "id": "7c2a2a996b8dd893083111c0c8685e91:2",
+          "observed_change": "NotCompared",
+          "reason": "The selected native candidate has complete local-binding evidence. The proposal removes only this use declaration, not the imported class or module.",
+          "review_id": "7c2a2a996b8dd893083111c0c8685e91",
+          "source_scope_id": "0860399c3f4f83528566c4179faa7872"
+        },
+        "reason": "Source-anchored proposal requires repository approval of the conclusion, reason and exact affected findings. This draft records intent with no suppressed findings and is not inserted into the suggested policy patch. Use adopt_architectural_decision to preview explicitly selected findings before adoption."
+      }
+    ],
+    "review_errors": [],
+    "suggested_policy_includes_reviewed_decisions": false,
+    "suggested_policy_written_to": "configured output directory / policy.suggested.json"
+  }
+}

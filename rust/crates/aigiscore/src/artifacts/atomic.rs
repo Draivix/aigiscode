@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Publish a complete file without truncating the previous artifact on failure.
 /// This is per-file atomicity, not a transaction over the whole artifact family.
-pub(super) fn write<T>(
+pub(crate) fn write<T>(
     path: &Path,
     render: impl FnOnce(&mut BufWriter<File>) -> io::Result<T>,
 ) -> io::Result<T> {

@@ -42,6 +42,10 @@ pub fn suggest_policy_patch(
     analysis: &ProjectAnalysis,
     review_surface: &ReviewSurface,
 ) -> TuneOutput {
+    suggest_policy_patch_from_output(analysis, review_surface, None)
+}
+
+pub fn suggest_policy_patch_from_output(analysis: &ProjectAnalysis, review_surface: &ReviewSurface, output_dir: Option<&Path>) -> TuneOutput {
     let current_policy_path = analysis.root.join(POLICY_FILE);
     let suggested_policy_path = analysis.root.join(".aigiscode").join(POLICY_SUGGESTED_FILE);
     let existing_policy = read_json_map(&current_policy_path).unwrap_or_default();
@@ -114,6 +118,37 @@ pub fn suggest_policy_patch(
                 proposed
             ),
         });
+    }
+
+    // Drafts never choose findings to suppress on the reviewer's behalf.
+    // Explicit adoption binds selected current findings through the same builder.
+    match crate::artifacts::load_agent_review(&analysis.root, output_dir) {
+        Ok(Some(record)) => {
+            match crate::review::validation::validate_record(&record, analysis) {
+                Ok(()) => {
+                    for (index, claim) in record.proposal.claims.iter().enumerate() {
+                        use crate::review::decision::{ArchitecturalAction, ArchitecturalConclusion};
+                        use super::reviewed::ArchitecturalPolicyDisposition;
+                        let disposition = if claim.decision.action == ArchitecturalAction::Keep && matches!(claim.decision.conclusion, ArchitecturalConclusion::IntentionalVariation | ArchitecturalConclusion::RuntimeEntry | ArchitecturalConclusion::TestSupport) {
+                            ArchitecturalPolicyDisposition::AcceptedPattern
+                        } else if matches!(claim.decision.conclusion, ArchitecturalConclusion::Violation | ArchitecturalConclusion::IncompleteMigration | ArchitecturalConclusion::UnreachableWithinScope) {
+                            ArchitecturalPolicyDisposition::SourceConfirmedConcern
+                        } else { continue; };
+                        if review_surface.reviewed_policies.iter().any(|policy| policy.decision.review_id == record.review_id && policy.decision.claim_index == index && policy.status == super::reviewed::ReviewedPolicyStatus::Current) { continue; }
+                        match super::reviewed::draft(analysis, review_surface, &record, index, &[], disposition, claim.why_now.clone()) {
+                            Ok(decision) => suggestions.push(TuneSuggestion {
+                                field: "reviewed_decisions".into(), value: serde_json::to_value(decision).expect("typed policy draft serializes"),
+                                reason: "Source-anchored proposal requires repository approval of the conclusion, reason and exact affected findings. This draft records intent with no suppressed findings and is not inserted into the suggested policy patch. Use adopt_architectural_decision to preview explicitly selected findings before adoption.".into(),
+                            }),
+                            Err(reason) => suggestions.push(TuneSuggestion { field: "architectural_review".into(), value: JsonValue::Null, reason }),
+                        }
+                    }
+                }
+                Err(reason) => suggestions.push(TuneSuggestion { field: "architectural_review".into(), value: JsonValue::Null, reason: format!("Review cannot be adopted: {reason}") }),
+            }
+        }
+        Ok(None) => {}
+        Err(error) => suggestions.push(TuneSuggestion { field: "architectural_review".into(), value: JsonValue::Null, reason: format!("Review could not be loaded: {error}") }),
     }
 
     TuneOutput {
