@@ -203,6 +203,23 @@ pub struct SemanticReference {
     /// argument. Absence is uncertainty, not permission to inspect nearby calls.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub class_literal_argument: Option<String>,
+    /// Canonical class literals in the first sixteen positional argument slots.
+    /// Empty for languages/calls without this parser-owned evidence.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub class_literal_arguments: Vec<Option<String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct RuntimeRegistration {
+    pub file_path: PathBuf,
+    pub line: usize,
+    pub source_symbol_id: Option<String>,
+    pub model: String,
+    pub mechanism: String,
+    pub contract_type: String,
+    pub implementation_type: Option<String>,
+    pub syntactically_conditional: Option<bool>,
+    pub source_parse_complete: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
@@ -237,6 +254,8 @@ pub struct SemanticGraph {
     pub symbols: Vec<SymbolNode>,
     #[serde(default)]
     pub function_behaviors: Vec<crate::parsing::behavior::FunctionBehavior>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub runtime_registrations: Vec<RuntimeRegistration>,
     pub references: Vec<SemanticReference>,
     pub resolved_edges: Vec<ResolvedEdge>,
     #[serde(default)]
@@ -291,6 +310,7 @@ impl SemanticGraph {
         self.symbols.append(&mut other.symbols);
         self.function_behaviors.append(&mut other.function_behaviors);
         self.references.append(&mut other.references);
+        self.runtime_registrations.append(&mut other.runtime_registrations);
         self.resolved_edges.append(&mut other.resolved_edges);
         self.parse_outcomes.append(&mut other.parse_outcomes);
         self.unsupported_sources.append(&mut other.unsupported_sources);

@@ -281,6 +281,7 @@ fn record_import_from(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
                 "dotted_name" | "identifier" => {
@@ -297,6 +298,7 @@ fn record_import_from(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
                 _ => {}
@@ -332,6 +334,7 @@ fn record_import(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
                 "dotted_name" => {
@@ -348,6 +351,7 @@ fn record_import(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
                 _ => {}
@@ -378,6 +382,7 @@ fn record_superclasses(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
             }
@@ -408,6 +413,7 @@ fn record_parameter_types(
                             receiver_type_name: None,
                             call_form: None,
                             class_literal_argument: None,
+                            class_literal_arguments: Vec::new(),
                         });
                     }
                 }
@@ -440,6 +446,7 @@ fn record_call(
                 receiver_type_name: None,
                 call_form: Some(CallForm::Free),
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
         }
         "attribute" => {
@@ -470,6 +477,7 @@ fn record_call(
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
         }
         _ => {}
@@ -512,6 +520,7 @@ fn record_decorators(
                     receiver_type_name: None,
                     call_form: Some(CallForm::Free),
                     class_literal_argument: None,
+                    class_literal_arguments: Vec::new(),
                 });
             }
             "attribute" => {
@@ -542,6 +551,7 @@ fn record_decorators(
                     receiver_type_name,
                     call_form: Some(CallForm::Member),
                     class_literal_argument: None,
+                    class_literal_arguments: Vec::new(),
                 });
             }
             "call" => {
@@ -560,6 +570,7 @@ fn record_decorators(
                                 receiver_type_name: None,
                                 call_form: Some(CallForm::Free),
                                 class_literal_argument: None,
+                                class_literal_arguments: Vec::new(),
                             });
                         }
                         "attribute" => {
@@ -590,6 +601,7 @@ fn record_decorators(
                                 receiver_type_name,
                                 call_form: Some(CallForm::Member),
                                 class_literal_argument: None,
+                                class_literal_arguments: Vec::new(),
                             });
                         }
                         _ => {}

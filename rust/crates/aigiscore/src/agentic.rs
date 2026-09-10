@@ -57,6 +57,8 @@ pub struct GraphPacket {
     pub dead_code_proofs: Vec<AgenticDeadCodeProof>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub behavior_comparisons: Vec<crate::assessment::behavior::ImplementationComparison>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_paths: Option<crate::assessment::wiring::ExecutionPathAssessment>,
     pub kind: GraphPacketKind,
     pub title: String,
     pub summary: String,
@@ -273,6 +275,8 @@ pub struct AgenticTaskPacket {
     pub dead_code_proofs: Vec<AgenticDeadCodeProof>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub behavior_comparisons: Vec<crate::assessment::behavior::ImplementationComparison>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_paths: Option<crate::assessment::wiring::ExecutionPathAssessment>,
     pub status: String,
     pub priority: String,
     pub focus: String,
@@ -830,6 +834,7 @@ pub fn build_graph_packet_artifact(
         .map(|packet| GraphPacket {
             dead_code_proofs: packet.dead_code_proofs.clone(),
             behavior_comparisons: packet.behavior_comparisons.clone(),
+            execution_paths: packet.execution_paths.clone(),
             id: packet.id.clone(),
             kind: GraphPacketKind::GuardianTask,
             title: packet.title.clone(),
@@ -888,6 +893,7 @@ pub fn build_graph_packet_artifact(
             let (graph_traces, code_flows, source_sink_paths, semantic_state_flows) =
                 build_focus_file_graph_evidence_with_context(&context, &file_path, &neighbors);
             packets.push(GraphPacket {
+                execution_paths: execution_paths_for_targets(analysis, &[], &[file_path.clone()]),
                 behavior_comparisons: analysis.architectural_assessment.behavior.comparisons.iter()
                     .filter(|comparison| comparison.left.file_path == std::path::Path::new(&file_path)
                         || comparison.right.file_path == std::path::Path::new(&file_path)).take(8).cloned().collect(),
@@ -1378,6 +1384,36 @@ fn build_user_prompt(
     )
 }
 
+fn execution_paths_for_targets(
+    analysis: &ProjectAnalysis,
+    comparisons: &[crate::assessment::behavior::ImplementationComparison],
+    files: &[String],
+) -> Option<crate::assessment::wiring::ExecutionPathAssessment> {
+    let mut ids = Vec::new();
+    let mut selection_truncated = false;
+    for comparison in comparisons {
+        for implementation in std::iter::once(&comparison.left).chain(std::iter::once(&comparison.right)).chain(&comparison.related_implementations) {
+            if !ids.contains(&implementation.symbol_id) {
+                if ids.len() < 8 { ids.push(implementation.symbol_id.clone()); }
+                else { selection_truncated = true; }
+            }
+        }
+    }
+    if ids.is_empty() {
+        ids = analysis.semantic_graph.symbols.iter().filter(|symbol| {
+            files.iter().any(|file| std::path::Path::new(file) == symbol.file_path)
+                && matches!(symbol.kind, crate::graph::SymbolKind::Class | crate::graph::SymbolKind::Interface | crate::graph::SymbolKind::Struct | crate::graph::SymbolKind::Trait | crate::graph::SymbolKind::Function)
+        }).map(|symbol| symbol.id.clone()).collect();
+        selection_truncated = ids.len() > 8;
+        ids.truncate(8);
+    }
+    (!ids.is_empty()).then(|| {
+        let mut assessment = crate::assessment::wiring::assess(&analysis.semantic_graph, &analysis.contract_inventory, &ids);
+        assessment.selection_truncated = selection_truncated;
+        assessment
+    })
+}
+
 fn build_task_packets(
     analysis: &ProjectAnalysis,
     handoff: &AgentHandoffArtifact,
@@ -1414,12 +1450,15 @@ fn build_task_packets(
                 String::from("aigiscode-handoff.json"),
             ];
             let evidence_chain = build_evidence_chain(packet, &required_artifacts, context);
+            let behavior_comparisons = packet.finding_ids.iter().filter_map(|id| comparison_by_finding.get(id))
+                .filter_map(|id| comparisons.get(id)).map(|comparison| (*comparison).clone()).collect::<Vec<_>>();
+            let execution_paths = execution_paths_for_targets(analysis, &behavior_comparisons, &[packet.primary_target_file.clone()]);
             let task_packet = AgenticTaskPacket {
                 id: packet.id.clone(),
                 finding_ids: packet.finding_ids.clone(),
                 dead_code_proofs: packet.finding_ids.iter().filter_map(|id| dead_code_proofs.get(id)).cloned().collect(),
-                behavior_comparisons: packet.finding_ids.iter().filter_map(|id| comparison_by_finding.get(id))
-                    .filter_map(|id| comparisons.get(id)).map(|comparison| (*comparison).clone()).collect(),
+                behavior_comparisons,
+                execution_paths,
                 status,
                 priority: packet.priority.clone(),
                 focus: packet.focus.clone(),
@@ -5447,6 +5486,7 @@ class Consumer {
                     finding_ids: Vec::new(),
                     dead_code_proofs: Vec::new(),
                     behavior_comparisons: Vec::new(),
+                    execution_paths: None,
                     status: String::from("new"),
                     priority: String::from("high"),
                     focus: String::from("architecture"),
@@ -5509,6 +5549,7 @@ class Consumer {
                 finding_ids: Vec::new(),
                 dead_code_proofs: Vec::new(),
                 behavior_comparisons: Vec::new(),
+                execution_paths: None,
                 status: String::from("new"),
                 priority: String::from("high"),
                 focus: String::from("architecture"),

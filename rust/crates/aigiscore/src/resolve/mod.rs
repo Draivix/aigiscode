@@ -2425,6 +2425,7 @@ function setup() {
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
         // Real recursion: `$this->getHash()` inside getHash().
         graph.references.push(SemanticReference {
@@ -2439,6 +2440,7 @@ function setup() {
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         resolve_graph(&mut graph);
@@ -2673,6 +2675,7 @@ class Runner {
             receiver_type_name: Some(String::from("User")),
             call_form: Some(CallForm::Member),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         resolve_graph(&mut graph);
@@ -2745,6 +2748,7 @@ class Runner {
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         resolve_graph(&mut graph);
@@ -2815,6 +2819,7 @@ class Runner {
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         resolve_graph(&mut graph);
@@ -2866,6 +2871,7 @@ class Runner {
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         resolve_graph(&mut graph);
@@ -2922,6 +2928,7 @@ class Runner {
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         let context = ResolutionContext::from_graph(&graph, &ResolveConfig::default());
@@ -4341,6 +4348,7 @@ end
             receiver_type_name: receiver_type.map(str::to_owned),
             call_form: Some(form),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         };
         // Vendor facade static call: `Log::warning(...)` — `Log` is not a repo type.
         graph
@@ -4376,6 +4384,7 @@ end
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
         // Self-receiver call to a method defined nowhere in this class's
         // resolvable universe must stay unresolved, not bind globally.
@@ -4391,6 +4400,7 @@ end
             receiver_type_name: None,
             call_form: Some(CallForm::Member),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
 
         resolve_graph(&mut graph);
@@ -4529,6 +4539,7 @@ end
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
         graph.references.push(SemanticReference {
             file_path: PathBuf::from("src/main.rs"),
@@ -4542,6 +4553,7 @@ end
             receiver_type_name: None,
             call_form: Some(CallForm::Free),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
         graph
     }

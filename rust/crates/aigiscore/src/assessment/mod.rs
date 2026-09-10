@@ -1,5 +1,6 @@
 mod complexity;
 pub mod behavior;
+pub mod wiring;
 
 use complexity::{attach_complexity_graph_pressure, detect_algorithmic_complexity_hotspots};
 

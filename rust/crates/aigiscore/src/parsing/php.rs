@@ -416,6 +416,7 @@ fn record_use_declaration(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -442,6 +443,7 @@ fn record_trait_use_declaration(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -471,6 +473,7 @@ fn record_php_heritage(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
             }
@@ -491,6 +494,7 @@ fn record_php_heritage(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
             }
@@ -527,6 +531,7 @@ fn record_parameter_types(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -555,6 +560,7 @@ fn record_call(
                 receiver_type_name: None,
                 call_form: Some(CallForm::Free),
                 class_literal_argument: first_class_literal_argument(node, context),
+                class_literal_arguments: class_literal_arguments(node, context),
             });
         }
         "member_call_expression" | "nullsafe_member_call_expression" => {
@@ -584,6 +590,7 @@ fn record_call(
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
                 class_literal_argument: first_class_literal_argument(node, context),
+                class_literal_arguments: class_literal_arguments(node, context),
             });
         }
         "scoped_call_expression" => {
@@ -611,6 +618,7 @@ fn record_call(
                 receiver_type_name,
                 call_form: Some(CallForm::Associated),
                 class_literal_argument: first_class_literal_argument(node, context),
+                class_literal_arguments: class_literal_arguments(node, context),
             });
         }
         _ => {}
@@ -642,6 +650,7 @@ fn record_constructor_call(
         receiver_type_name: None,
         call_form: Some(CallForm::Associated),
         class_literal_argument: None,
+        class_literal_arguments: Vec::new(),
     });
 }
 
@@ -1082,6 +1091,17 @@ fn first_class_literal_argument(node: Node<'_>, context: &PhpContext<'_>) -> Opt
     let argument = arguments
         .named_children(&mut arguments.walk())
         .find(|child| child.kind() == "argument")?;
+    class_literal_argument(argument, node, context)
+}
+
+fn class_literal_arguments(node: Node<'_>, context: &PhpContext<'_>) -> Vec<Option<String>> {
+    let Some(arguments) = node.child_by_field_name("arguments") else { return Vec::new(); };
+    let values = arguments.named_children(&mut arguments.walk()).filter(|child| child.kind() == "argument").take(16)
+        .map(|argument| class_literal_argument(argument, node, context)).collect::<Vec<_>>();
+    if values.iter().all(Option::is_none) { Vec::new() } else { values }
+}
+
+fn class_literal_argument(argument: Node<'_>, node: Node<'_>, context: &PhpContext<'_>) -> Option<String> {
     if argument.child_by_field_name("name").is_some() {
         return None;
     }

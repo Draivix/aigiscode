@@ -12,6 +12,32 @@ impl RuntimePlugin for ContainerResolutionPlugin {
         "laravel_container"
     }
 
+    fn emit_registrations(&self, _repo: &RepoContext, graph: &SemanticGraph) -> Vec<crate::graph::RuntimeRegistration> {
+        let php_files = graph.files.iter().filter(|file| file.language == Language::Php).map(|file| file.path.as_path()).collect::<HashSet<_>>();
+        let bodies = graph.function_behaviors.iter().map(|body| (body.symbol_id.as_str(), body)).collect::<HashMap<_, _>>();
+        let complete_files = graph.parse_outcomes.iter().filter(|outcome| outcome.is_complete_source()).map(|outcome| outcome.file_path.as_path()).collect::<HashSet<_>>();
+        graph.references.iter().filter(|reference| reference.kind == ReferenceKind::Call
+            && php_files.contains(reference.file_path.as_path()) && reference.call_form == Some(CallForm::Member)
+            && matches!(reference.receiver_name.as_deref(), Some("$app" | "$this->app" | "app()"))
+            && matches!(reference.target_name.as_str(), "bind" | "bindIf" | "singleton" | "singletonIf" | "scoped" | "scopedIf"))
+            .filter_map(|reference| {
+                let contract_type = reference.class_literal_argument.clone()?;
+                let implementation_type = reference.class_literal_arguments.get(1).cloned().flatten();
+                let syntactically_conditional = reference.enclosing_symbol_id.as_deref().and_then(|id| bodies.get(id)).and_then(|body| {
+                    if !body.complete || body.truncated { return None; }
+                    let mut calls = body.calls.iter().filter(|call| call.target == reference.target_name && call.expression.line == reference.line);
+                    let call = calls.next()?;
+                    if calls.next().is_some() { return None; }
+                    Some(call.conditional)
+                });
+                Some(crate::graph::RuntimeRegistration {
+                    file_path: reference.file_path.clone(), line: reference.line, source_symbol_id: reference.enclosing_symbol_id.clone(),
+                    model: self.id().into(), mechanism: reference.target_name.clone(), contract_type, implementation_type,
+                    syntactically_conditional, source_parse_complete: complete_files.contains(reference.file_path.as_path()),
+                })
+            }).collect()
+    }
+
     fn emit_edges(&self, _repo: &RepoContext, graph: &SemanticGraph) -> Vec<ResolvedEdge> {
         let php_files = graph
             .files
@@ -99,6 +125,33 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn class_literal_bindings_preserve_registered_alternatives() {
+        let sources = vec![
+            (PathBuf::from("Contract.php"), String::from("<?php namespace Contracts; interface Entry {}")),
+            (PathBuf::from("Implementations.php"), String::from("<?php namespace Implementations; class First {} class Second {}")),
+            (PathBuf::from("Provider.php"), String::from("<?php\nnamespace Bootstrap;\nuse Contracts\\Entry as Port;\nuse Implementations\\First as Before;\nuse Implementations\\Second as After;\nfunction register($app, bool $flag): void {\n if ($flag) { $app->bind(Port::class, Before::class); }\n else { $app->singleton(Port::class, After::class); }\n}\n")),
+        ];
+        let mut graph = crate::graph::SemanticGraph::default();
+        for (path, source) in &sources { graph.append(crate::parsing::php::parse_php_to_graph(path, source).unwrap()); }
+        crate::resolve::resolve_graph(&mut graph);
+        let repo = RepoContext::new(".", &sources);
+        crate::plugins::apply_runtime_plugins(&repo, &mut graph);
+        assert_eq!(graph.runtime_registrations.len(), 2);
+        assert!(graph.runtime_registrations.iter().all(|registration| registration.contract_type == "Contracts\\Entry"
+            && registration.source_parse_complete && registration.syntactically_conditional == Some(true)));
+        let ids = graph.symbols.iter().filter(|symbol| matches!(symbol.name.as_str(), "First" | "Second")).map(|symbol| symbol.id.clone()).collect::<Vec<_>>();
+        let paths = crate::assessment::wiring::assess(&graph, &crate::contracts::ContractInventory::default(), &ids);
+        assert_eq!(paths.relationships[0].kind, crate::assessment::wiring::PathRelationshipKind::DeclaredContractAlternatives);
+        assert_eq!(paths.relationships[0].shared_registration_types, ["Contracts\\Entry"]);
+        assert!(paths.implementations.iter().all(|implementation| implementation.registrations.len() == 1));
+        let contract = graph.symbols.iter().find(|symbol| symbol.qualified_name == "Contracts\\Entry").unwrap();
+        let contract_link = crate::assessment::wiring::assess(&graph, &crate::contracts::ContractInventory::default(), &[contract.id.clone(), ids[0].clone()]);
+        assert_eq!(contract_link.relationships[0].kind, crate::assessment::wiring::PathRelationshipKind::ContractAndImplementation);
+        crate::plugins::apply_runtime_plugins(&repo, &mut graph);
+        assert_eq!(graph.runtime_registrations.len(), 2, "reapplying models replaces registration evidence");
+    }
 
     #[test]
     fn exact_call_arguments_and_declared_namespaces_own_container_edges() {

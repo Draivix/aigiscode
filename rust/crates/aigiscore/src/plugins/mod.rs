@@ -21,6 +21,9 @@ pub trait RuntimePlugin {
         repo: &RepoContext,
         graph: &SemanticGraph,
     ) -> Vec<crate::graph::ResolvedEdge>;
+    fn emit_registrations(&self, _repo: &RepoContext, _graph: &SemanticGraph) -> Vec<crate::graph::RuntimeRegistration> {
+        Vec::new()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,7 +199,9 @@ pub(crate) fn import_targets_by_binding(
 }
 
 pub fn apply_runtime_plugins(repo: &RepoContext, graph: &mut SemanticGraph) {
+    graph.runtime_registrations.clear();
     for plugin in default_runtime_plugins() {
+        graph.runtime_registrations.extend(plugin.emit_registrations(repo, graph));
         for edge in plugin.emit_edges(repo, graph) {
             graph.add_resolved_edge(edge);
         }
@@ -258,4 +263,3 @@ mod tests {
         assert_eq!(repo.source_lines(Path::new("missing.py")), None);
     }
 }
-

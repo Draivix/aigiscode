@@ -1,4 +1,5 @@
 mod contracts;
+mod architecture;
 mod edits;
 mod live;
 mod request;
@@ -597,7 +598,7 @@ impl AigiscodeMcpServer {
         let max_containers = params.max_containers.unwrap_or(30).clamp(1, 100);
         let prefix = params.path.trim().trim_end_matches('/').to_string();
         let state = self.state().await;
-        let graph = &state.snapshot().semantic_graph;
+        let graph = &state.snapshot().analysis.semantic_graph;
 
         let in_module = |path: &Path| {
             let display = display_path(path);
@@ -768,7 +769,7 @@ impl AigiscodeMcpServer {
             .as_deref()
             .map(|kind| kind.trim().to_ascii_lowercase());
         let state = self.state().await;
-        let graph = &state.snapshot().semantic_graph;
+        let graph = &state.snapshot().analysis.semantic_graph;
 
         let tier_for = |symbol: &crate::graph::SymbolNode| -> Option<u8> {
             if let Some(kind) = kind_filter.as_deref() {
@@ -824,6 +825,18 @@ impl AigiscodeMcpServer {
     }
 
     #[tool(
+        name = "implementation_context",
+        description = "Compare exact implementations using captured bodies, callers, conditional sites and declared contracts. Accepts one to eight symbol IDs or unambiguous names. Missing callers remain a wiring question, not a deletion proof."
+    )]
+    async fn implementation_context(
+        &self,
+        Parameters(params): Parameters<architecture::ImplementationContextParams>,
+    ) -> Result<Json<architecture::ImplementationContextOutput>, McpError> {
+        let state = self.state().await;
+        architecture::implementation_context(state.snapshot(), params).map(Json)
+    }
+
+    #[tool(
         name = "symbol_usages",
         description = "Who uses this symbol: inbound resolved references grouped by caller file \
                        with line anchors, heaviest caller first. Accepts a symbol ID from \
@@ -837,7 +850,7 @@ impl AigiscodeMcpServer {
         let max_files = params.max_files.unwrap_or(25).clamp(1, 100);
         let query = params.symbol.trim().to_string();
         let state = self.state().await;
-        let graph = &state.snapshot().semantic_graph;
+        let graph = &state.snapshot().analysis.semantic_graph;
         let freshness = self.actionable_freshness(true);
 
         let target = if let Some(symbol) = graph.symbols.iter().find(|symbol| symbol.id == query) {
@@ -1590,7 +1603,7 @@ impl AigiscodeMcpServer {
         Json(GraphNeighborsOutput {
             file_path: params.file_path.clone(),
             neighbors: graph_neighbors_for_file(
-                &self.state().await.snapshot().semantic_graph,
+                &self.state().await.snapshot().analysis.semantic_graph,
                 &params.file_path,
                 max_items,
             ),
@@ -1609,7 +1622,7 @@ impl AigiscodeMcpServer {
             start_file_path: params.start_file_path.clone(),
             goal_file_path: params.goal_file_path.clone(),
             paths: graph_trace_between_files(
-                &self.state().await.snapshot().semantic_graph,
+                &self.state().await.snapshot().analysis.semantic_graph,
                 &params.start_file_path,
                 &params.goal_file_path,
                 params.max_hops.unwrap_or(5).clamp(1, 12),
@@ -1641,7 +1654,7 @@ impl AigiscodeMcpServer {
             ));
         };
         let kuzu_path = kuzu_path.to_path_buf();
-        let input_coverage = state.snapshot().semantic_graph.input_coverage();
+        let input_coverage = state.snapshot().analysis.semantic_graph.input_coverage();
         tokio::task::spawn_blocking(move || query_kuzu(&kuzu_path, &params.query))
             .await
             .map_err(|error| format!("Kuzu query worker failed: {error}"))?
@@ -1882,9 +1895,9 @@ impl AigiscodeMcpServer {
                 let dependency = uri == DEPENDENCY_GRAPH_URI;
                 let payload = tokio::task::spawn_blocking(move || {
                     if dependency {
-                        to_json_pretty(&build_dependency_graph_artifact(&state.snapshot().semantic_graph))
+                        to_json_pretty(&build_dependency_graph_artifact(&state.snapshot().analysis.semantic_graph))
                     } else {
-                        to_json_pretty(&build_evidence_graph_artifact(&state.snapshot().semantic_graph))
+                        to_json_pretty(&build_evidence_graph_artifact(&state.snapshot().analysis.semantic_graph))
                     }
                 }).await.map_err(|error| McpError::internal_error(
                     format!("graph resource worker failed: {error}"), None,
@@ -1966,11 +1979,12 @@ fn leaf_reference_name(target: &str) -> &str {
         .unwrap_or(target)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+#[cfg_attr(test, derive(Clone))]
 struct McpState {
     artifact_generation: crate::artifacts::PublishedArtifactStatus,
     root: String,
-    semantic_graph: crate::graph::SemanticGraph,
+    analysis: ProjectAnalysis,
     kuzu_path: Option<PathBuf>,
     contract_inventory: ContractInventoryOutput,
     doctrine_registry: DoctrineRegistryOutput,
@@ -2142,7 +2156,7 @@ impl McpState {
         Ok(Self {
             artifact_generation,
             root,
-            semantic_graph: analysis.semantic_graph,
+            analysis,
             kuzu_path,
             contract_inventory,
             doctrine_registry,
@@ -2183,7 +2197,7 @@ fn compute_impact_radius(
     target: &str,
     max_depth: usize,
 ) -> Result<ImpactComputation, String> {
-    let graph = &snapshot.semantic_graph;
+    let graph = &snapshot.analysis.semantic_graph;
 
     // Target resolution: exact file path first, then symbol id, then
     // unique symbol name. Ambiguity is an error, never a guess.

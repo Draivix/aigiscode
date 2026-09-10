@@ -125,6 +125,7 @@ fn walk_node(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
             }
@@ -429,6 +430,7 @@ fn record_import(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -454,6 +456,7 @@ fn record_impl_relationships(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -485,6 +488,7 @@ fn record_parameter_type_references(
                     receiver_type_name: None,
                     call_form: None,
                     class_literal_argument: None,
+                    class_literal_arguments: Vec::new(),
                 });
             }
         }
@@ -510,6 +514,7 @@ fn record_let_type_reference(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -549,6 +554,7 @@ fn record_call(
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
             return;
         }
@@ -573,6 +579,7 @@ fn record_call(
                 receiver_type_name: None,
                 call_form: Some(CallForm::Associated),
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
             return;
         }
@@ -591,6 +598,7 @@ fn record_call(
         receiver_type_name: None,
         call_form: Some(call_form),
         class_literal_argument: None,
+        class_literal_arguments: Vec::new(),
     });
 }
 
@@ -625,6 +633,7 @@ fn record_struct_expression(
         receiver_type_name: None,
         call_form: Some(CallForm::Associated),
         class_literal_argument: None,
+        class_literal_arguments: Vec::new(),
     });
 }
 

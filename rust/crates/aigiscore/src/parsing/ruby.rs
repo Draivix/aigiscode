@@ -260,6 +260,7 @@ fn record_superclass(
         receiver_type_name: None,
         call_form: None,
         class_literal_argument: None,
+        class_literal_arguments: Vec::new(),
     });
 }
 
@@ -311,6 +312,7 @@ fn record_call(
                 receiver_type_name: None,
                 call_form: None,
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
         }
         return;
@@ -334,6 +336,7 @@ fn record_call(
                     receiver_type_name: None,
                     call_form: None,
                     class_literal_argument: None,
+                    class_literal_arguments: Vec::new(),
                 });
             }
         }
@@ -365,6 +368,7 @@ fn record_call(
             CallForm::Free
         }),
         class_literal_argument: None,
+        class_literal_arguments: Vec::new(),
     });
 }
 

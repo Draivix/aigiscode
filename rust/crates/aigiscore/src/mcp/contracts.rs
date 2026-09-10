@@ -3633,6 +3633,7 @@ mod tests {
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         };
         // Resolved site: excluded from the breakdown entirely.
         graph.add_reference(reference("known_helper", ReferenceKind::Call, 1));

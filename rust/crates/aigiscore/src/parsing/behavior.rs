@@ -36,6 +36,23 @@ pub struct BehaviorCall {
     pub argument_shapes: Vec<String>,
     pub conditional: bool,
     pub arguments_truncated: bool,
+    #[serde(default)]
+    pub guards: Vec<BehaviorGuard>,
+    #[serde(default)]
+    pub guards_truncated: bool,
+    #[serde(default)]
+    pub inside_loop: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BranchArm { Consequent, Alternative, Condition, Unknown }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct BehaviorGuard {
+    /// Index into the enclosing FunctionBehavior.branches vector.
+    pub branch: usize,
+    pub arm: BranchArm,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -128,6 +145,7 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
     };
     let mut selectors = BTreeSet::new();
     let mut tokens = Vec::new();
+    let mut branch_indices = HashMap::new();
     let mut pending = vec![(body, false)];
     let mut visited = 0usize;
     while let Some((node, conditional)) = pending.pop() {
@@ -138,6 +156,7 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
         let branch = node.is_named() && is_branch(node.kind());
         if branch {
             let condition = node.child_by_field_name("condition").or_else(|| node.child_by_field_name("value")).unwrap_or(node);
+            if fact.branches.len() < 32 { branch_indices.insert(node.id(), fact.branches.len()); }
             push_bounded(&mut fact.branches, expression(condition, source, &parameter_names), &mut fact.truncated);
         }
         if node.is_named() && matches!(node.kind(), "return_statement" | "return_expression" | "return") {
@@ -164,8 +183,11 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
                     .or_else(|| node.child_by_field_name("function").and_then(|function| function.child_by_field_name("object")
                         .or_else(|| function.child_by_field_name("value"))));
                 let receiver_shape = receiver.map(|receiver| shape(receiver, source, &parameter_names).0);
+                let (guards, guards_truncated, inside_loop) = call_guards(node, declaration, &branch_indices);
                 push_bounded(&mut fact.calls, BehaviorCall {
-                    target, receiver_shape, expression: expression(node, source, &parameter_names), argument_shapes, conditional, arguments_truncated,
+                    target, receiver_shape, expression: expression(node, source, &parameter_names), argument_shapes,
+                    conditional: conditional || optional_call(node), arguments_truncated,
+                    guards, guards_truncated, inside_loop,
                 }, &mut fact.truncated);
             }
         }
@@ -177,7 +199,12 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
             tokens.push(token(node, source, &parameter_names));
         } else {
             for index in (0..node.child_count()).rev() {
-                if let Some(child) = node.child(index as u32) { pending.push((child, conditional || branch || is_loop(node.kind()))); }
+                if let Some(child) = node.child(index as u32) {
+                    let short_circuit_operand = short_circuit(node, source)
+                        && node.child_by_field_name("right").is_none_or(|right| right.id() == child.id());
+                    pending.push((child, conditional || branch || is_loop(node.kind()) || short_circuit_operand
+                        || optional_call(node) || matches!(node.kind(), "catch_clause" | "except_clause" | "rescue" | "rescue_modifier" | "assert_statement")));
+                }
             }
         }
     }
@@ -190,8 +217,40 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
         push_bounded(&mut fact.returns, expression(tail, source, &parameter_names), &mut fact.truncated);
     }
     fact.truncated |= fact.branches.iter().chain(&fact.returns).chain(&fact.writes).any(|expression| expression.shape_truncated)
-        || fact.calls.iter().any(|call| call.expression.shape_truncated || call.arguments_truncated);
+        || fact.calls.iter().any(|call| call.expression.shape_truncated || call.arguments_truncated || call.guards_truncated);
     fact
+}
+
+fn call_guards(mut child: Node<'_>, declaration: Node<'_>, branches: &HashMap<usize, usize>) -> (Vec<BehaviorGuard>, bool, bool) {
+    let mut guards = Vec::new();
+    let mut truncated = false;
+    let mut inside_loop = false;
+    while let Some(parent) = child.parent().filter(|parent| parent.id() != declaration.id()) {
+        inside_loop |= is_loop(parent.kind());
+        if is_branch(parent.kind()) {
+            if let Some(index) = branches.get(&parent.id()) {
+                let field_matches = |field| parent.child_by_field_name(field).is_some_and(|node| node.id() == child.id());
+                let arm = if field_matches("condition") || field_matches("value") { BranchArm::Condition }
+                    else if field_matches("alternative") || matches!(child.kind(), "else_clause" | "else_if_clause" | "elif_clause" | "elsif") { BranchArm::Alternative }
+                    else if field_matches("consequence") || field_matches("body") { BranchArm::Consequent }
+                    else { BranchArm::Unknown };
+                if guards.len() < 8 { guards.push(BehaviorGuard { branch: *index, arm }); }
+                else { truncated = true; }
+            } else { truncated = true; }
+        }
+        child = parent;
+    }
+    (guards, truncated, inside_loop)
+}
+
+fn short_circuit(node: Node<'_>, source: &str) -> bool {
+    let operator = node.child_by_field_name("operator").map(|operator| text(operator, source));
+    operator.is_some_and(|operator| matches!(operator, "&&" | "||" | "??" | "and" | "or" | "&&=" | "||=" | "??="))
+}
+
+fn optional_call(node: Node<'_>) -> bool {
+    node.kind().starts_with("nullsafe_") || node.child_by_field_name("optional_chain").is_some()
+        || node.child_by_field_name("function").is_some_and(|function| function.child_by_field_name("optional_chain").is_some())
 }
 
 fn push_bounded<T>(items: &mut Vec<T>, item: T, truncated: &mut bool) {
@@ -312,11 +371,11 @@ fn is_loop(kind: &str) -> bool {
 }
 
 fn is_branch(kind: &str) -> bool {
-    matches!(kind, "if_statement" | "if_expression" | "elif_clause" | "conditional_expression" | "conditional_operator" | "switch_statement" | "match_expression" | "if" | "unless" | "case" | "when")
+    matches!(kind, "if_statement" | "if_expression" | "elif_clause" | "else_if_clause" | "elsif" | "conditional_expression" | "conditional_operator" | "switch_statement" | "match_expression" | "match_statement" | "case_clause" | "if" | "unless" | "case" | "when")
 }
 
 fn callable(kind: &str) -> bool {
-    matches!(kind, "function_item" | "function_declaration" | "function_definition" | "method_declaration" | "method_definition" | "method" | "singleton_method" | "arrow_function" | "function_expression" | "generator_function_declaration" | "generator_function" | "lambda")
+    matches!(kind, "function_item" | "function_declaration" | "function_definition" | "method_declaration" | "method_definition" | "method" | "singleton_method" | "arrow_function" | "function_expression" | "generator_function_declaration" | "generator_function" | "lambda" | "anonymous_function" | "anonymous_function_creation_expression" | "closure_expression" | "lambda_expression")
 }
 
 fn comment(kind: &str) -> bool { kind.contains("comment") }

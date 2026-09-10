@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "aigiscode/artifact_generation": {
+      "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/permission/.generations/18d3e56accbd359f-1d4ea8-0",
+      "generation": "18d3e56accbd359f-1d4ea8-0",
+      "inputs_match_index": true
+    },
+    "aigiscode/ast_grep_coverage": {
+      "other_gap_files": 0,
+      "oversized_files": 0,
+      "scope_limited_files": 0,
+      "status": "complete",
+      "unsupported_files": 0
+    },
+    "aigiscode/backend_orphan_coverage": {
+      "gap_count": 0,
+      "status": "deferred_boundary"
+    },
+    "aigiscode/freshness": {
+      "consistency_satisfied": true,
+      "dirty_path_count": 0,
+      "dirty_paths": [],
+      "generated_at_unix_ms": 1789025725125,
+      "indexed_revision": 1,
+      "is_stale": false,
+      "observed_revision": 1,
+      "rebuilding": false,
+      "revision": 1,
+      "watcher": "disabled"
+    },
+    "aigiscode/input_coverage": {
+      "files_without_parse_evidence": 0,
+      "recovered_source_files": 0,
+      "scope_limited_files": 0,
+      "status": "complete",
+      "unsupported_source_files": 0
+    }
+  },
+  "source_snapshot_id": "c2f9a2089bb2a37a7ae9879a7fdea0f5",
+  "after_mutation": [
+    {
+      "symbol_id": "method:AclMembershipWriter.php:class:AclMembershipWriter.php:AclMembershipWriter:afterMutation",
+      "file_path": "AclMembershipWriter.php",
+      "nested_callables": 2,
+      "calls": [
+        {
+          "target": "transactionBoundaryOwner",
+          "conditional": false,
+          "guards": []
+        },
+        {
+          "target": "currentTenant",
+          "conditional": false,
+          "guards": []
+        },
+        {
+          "target": "ownsActiveTransaction",
+          "conditional": true,
+          "guards": [
+            {
+              "arm": "condition",
+              "branch": 0
+            }
+          ]
+        },
+        {
+          "target": "publish",
+          "conditional": true,
+          "guards": [
+            {
+              "arm": "consequent",
+              "branch": 0
+            }
+          ]
+        },
+        {
+          "target": "isset",
+          "conditional": true,
+          "guards": [
+            {
+              "arm": "condition",
+              "branch": 1
+            }
+          ]
+        },
+        {
+          "target": "afterCommitCritical",
+          "conditional": false,
+          "guards": []
+        },
+        {
+          "target": "afterTransactionOutcome",
+          "conditional": false,
+          "guards": []
+        }
+      ]
+    }
+  ]
+}

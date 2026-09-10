@@ -70,6 +70,7 @@ pub struct SemanticGraphProject {
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(Clone))]
 pub struct ProjectAnalysis {
     pub root: PathBuf,
     pub scan: ScanResult,

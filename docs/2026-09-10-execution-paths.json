@@ -1,0 +1,599 @@
+[
+  {
+    "request_id": 15,
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/draivix/.generations/18d3e4fd8db06df4-1bcd7f-0",
+        "generation": "18d3e4fd8db06df4-1bcd7f-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/backend_orphan_coverage": {
+        "gap_count": 0,
+        "status": "deferred_input_coverage"
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789025353032,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 16,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_source_files": 2
+      }
+    },
+    "source_snapshot_id": "d1c7792041aa31c17c2c60dd71591cb7",
+    "execution_paths": {
+      "implementations": [
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Services/View/ViewColumnSliceResolverInterface.php",
+            "line": 7,
+            "name": "App\\Services\\View\\ViewColumnSliceResolverInterface",
+            "symbol_id": "interface:app/Services/View/ViewColumnSliceResolverInterface.php:ViewColumnSliceResolverInterface"
+          },
+          "implemented_contracts": [],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 0,
+          "production_calls": [],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        }
+      ],
+      "input_parse_complete": false,
+      "missing_evidence": [
+        "Captured call sites do not establish that both paths execute for the same input; inspect selector branches, early exits and dispatch",
+        "No captured consumer is not a deletion proof: verify registrations, excluded sources and intended replacement wiring",
+        "Preserve provider alternatives, version boundaries, transaction/retry ownership and public contracts; state retirement conditions before migration",
+        "Runtime registrations retain their model and parse coverage; contract-name mentions are weaker evidence, and missing matches do not establish absent registration"
+      ],
+      "relationships": [],
+      "selection_truncated": false
+    }
+  },
+  {
+    "request_id": 13,
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/draivix/.generations/18d3e4fd8db06df4-1bcd7f-0",
+        "generation": "18d3e4fd8db06df4-1bcd7f-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/backend_orphan_coverage": {
+        "gap_count": 0,
+        "status": "deferred_input_coverage"
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789025353032,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 16,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_source_files": 2
+      }
+    },
+    "source_snapshot_id": "d1c7792041aa31c17c2c60dd71591cb7",
+    "execution_paths": {
+      "implementations": [
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Services/Filter/EntitySortTargetResolver.php",
+            "line": 20,
+            "name": "App\\Services\\Filter\\EntitySortTargetResolver",
+            "symbol_id": "class:app/Services/Filter/EntitySortTargetResolver.php:EntitySortTargetResolver"
+          },
+          "implemented_contracts": [],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 0,
+          "production_calls": [],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        }
+      ],
+      "input_parse_complete": false,
+      "missing_evidence": [
+        "Captured call sites do not establish that both paths execute for the same input; inspect selector branches, early exits and dispatch",
+        "No captured consumer is not a deletion proof: verify registrations, excluded sources and intended replacement wiring",
+        "Preserve provider alternatives, version boundaries, transaction/retry ownership and public contracts; state retirement conditions before migration",
+        "Runtime registrations retain their model and parse coverage; contract-name mentions are weaker evidence, and missing matches do not establish absent registration"
+      ],
+      "relationships": [],
+      "selection_truncated": false
+    }
+  },
+  {
+    "request_id": 12,
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/draivix/.generations/18d3e4fd8db06df4-1bcd7f-0",
+        "generation": "18d3e4fd8db06df4-1bcd7f-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/backend_orphan_coverage": {
+        "gap_count": 0,
+        "status": "deferred_input_coverage"
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789025353032,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 16,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_source_files": 2
+      }
+    },
+    "source_snapshot_id": "d1c7792041aa31c17c2c60dd71591cb7",
+    "execution_paths": {
+      "implementations": [
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+            "line": 17,
+            "name": "App\\Services\\_Core\\Permission\\AclMembershipWriter",
+            "symbol_id": "class:app/Services/_Core/Permission/AclMembershipWriter.php:AclMembershipWriter"
+          },
+          "implemented_contracts": [
+            {
+              "file_path": "app/Services/Entity/Contracts/RelationMutationEffect.php",
+              "line": 9,
+              "name": "App\\Services\\Entity\\Contracts\\RelationMutationEffect",
+              "symbol_id": "interface:app/Services/Entity/Contracts/RelationMutationEffect.php:RelationMutationEffect"
+            }
+          ],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 0,
+          "production_calls": [],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        }
+      ],
+      "input_parse_complete": false,
+      "missing_evidence": [
+        "Captured call sites do not establish that both paths execute for the same input; inspect selector branches, early exits and dispatch",
+        "No captured consumer is not a deletion proof: verify registrations, excluded sources and intended replacement wiring",
+        "Preserve provider alternatives, version boundaries, transaction/retry ownership and public contracts; state retirement conditions before migration",
+        "Runtime registrations retain their model and parse coverage; contract-name mentions are weaker evidence, and missing matches do not establish absent registration"
+      ],
+      "relationships": [],
+      "selection_truncated": false
+    }
+  },
+  {
+    "request_id": 14,
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/draivix/.generations/18d3e4fd8db06df4-1bcd7f-0",
+        "generation": "18d3e4fd8db06df4-1bcd7f-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/backend_orphan_coverage": {
+        "gap_count": 0,
+        "status": "deferred_input_coverage"
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789025353032,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 16,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_source_files": 2
+      }
+    },
+    "source_snapshot_id": "d1c7792041aa31c17c2c60dd71591cb7",
+    "execution_paths": {
+      "implementations": [
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Services/_Core/Filter/EffectiveFilterTypeResolver.php",
+            "line": 12,
+            "name": "App\\Services\\_Core\\Filter\\EffectiveFilterTypeResolver",
+            "symbol_id": "class:app/Services/_Core/Filter/EffectiveFilterTypeResolver.php:EffectiveFilterTypeResolver"
+          },
+          "implemented_contracts": [],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 0,
+          "production_calls": [],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        }
+      ],
+      "input_parse_complete": false,
+      "missing_evidence": [
+        "Captured call sites do not establish that both paths execute for the same input; inspect selector branches, early exits and dispatch",
+        "No captured consumer is not a deletion proof: verify registrations, excluded sources and intended replacement wiring",
+        "Preserve provider alternatives, version boundaries, transaction/retry ownership and public contracts; state retirement conditions before migration",
+        "Runtime registrations retain their model and parse coverage; contract-name mentions are weaker evidence, and missing matches do not establish absent registration"
+      ],
+      "relationships": [],
+      "selection_truncated": false
+    }
+  },
+  {
+    "request_id": 11,
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/draivix/.generations/18d3e4fd8db06df4-1bcd7f-0",
+        "generation": "18d3e4fd8db06df4-1bcd7f-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/backend_orphan_coverage": {
+        "gap_count": 0,
+        "status": "deferred_input_coverage"
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789025353032,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 16,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_source_files": 2
+      }
+    },
+    "source_snapshot_id": "d1c7792041aa31c17c2c60dd71591cb7",
+    "execution_paths": {
+      "implementations": [
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+            "line": 1140,
+            "name": "HookAwareMapper::resolveActorId",
+            "symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId"
+          },
+          "implemented_contracts": [],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 3,
+          "production_calls": [
+            {
+              "confidence_millis": 950,
+              "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+              "guard_conditions": [],
+              "inside_loop": false,
+              "kind": "Call",
+              "line": 515,
+              "relation": "Call",
+              "source_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:queueCreate",
+              "syntactically_conditional": false,
+              "target_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId"
+            },
+            {
+              "confidence_millis": 950,
+              "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+              "guard_conditions": [],
+              "inside_loop": false,
+              "kind": "Call",
+              "line": 575,
+              "relation": "Call",
+              "source_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:queueUpdate",
+              "syntactically_conditional": false,
+              "target_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId"
+            },
+            {
+              "confidence_millis": 950,
+              "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+              "guard_conditions": [],
+              "inside_loop": false,
+              "kind": "Call",
+              "line": 1071,
+              "relation": "Call",
+              "source_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:publishOutboxEntityEvent",
+              "syntactically_conditional": false,
+              "target_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId"
+            }
+          ],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        },
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+            "line": 120,
+            "name": "AssignmentNotificationService::resolveActorId",
+            "symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId"
+          },
+          "implemented_contracts": [],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 2,
+          "production_calls": [
+            {
+              "confidence_millis": 950,
+              "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+              "guard_conditions": [],
+              "inside_loop": false,
+              "kind": "Call",
+              "line": 41,
+              "relation": "Call",
+              "source_symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:handleCreate",
+              "syntactically_conditional": false,
+              "target_symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId"
+            },
+            {
+              "confidence_millis": 950,
+              "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+              "guard_conditions": [],
+              "inside_loop": false,
+              "kind": "Call",
+              "line": 73,
+              "relation": "Call",
+              "source_symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:handleAssignmentChange",
+              "syntactically_conditional": false,
+              "target_symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId"
+            }
+          ],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        },
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Support/ActorContext.php",
+            "line": 10,
+            "name": "App\\Support\\ActorContext",
+            "symbol_id": "class:app/Support/ActorContext.php:ActorContext"
+          },
+          "implemented_contracts": [],
+          "non_call_reference_count": 0,
+          "non_call_references": [],
+          "production_call_count": 0,
+          "production_calls": [],
+          "registrations": [],
+          "test_call_count": 0,
+          "truncated": false
+        }
+      ],
+      "input_parse_complete": false,
+      "missing_evidence": [
+        "Captured call sites do not establish that both paths execute for the same input; inspect selector branches, early exits and dispatch",
+        "No captured consumer is not a deletion proof: verify registrations, excluded sources and intended replacement wiring",
+        "Preserve provider alternatives, version boundaries, transaction/retry ownership and public contracts; state retirement conditions before migration",
+        "Runtime registrations retain their model and parse coverage; contract-name mentions are weaker evidence, and missing matches do not establish absent registration"
+      ],
+      "relationships": [
+        {
+          "kind": "both_have_captured_consumers",
+          "left_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId",
+          "right_symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId",
+          "shared_caller_ids": [],
+          "shared_contract_ids": [],
+          "shared_registration_types": [],
+          "truncated": false
+        },
+        {
+          "kind": "one_side_without_captured_consumers",
+          "left_symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId",
+          "right_symbol_id": "class:app/Support/ActorContext.php:ActorContext",
+          "shared_caller_ids": [],
+          "shared_contract_ids": [],
+          "shared_registration_types": [],
+          "truncated": false
+        },
+        {
+          "kind": "one_side_without_captured_consumers",
+          "left_symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId",
+          "right_symbol_id": "class:app/Support/ActorContext.php:ActorContext",
+          "shared_caller_ids": [],
+          "shared_contract_ids": [],
+          "shared_registration_types": [],
+          "truncated": false
+        }
+      ],
+      "selection_truncated": false
+    }
+  },
+  {
+    "request_id": 16,
+    "metadata": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/.tmp/behavior-comparison/draivix/.generations/18d3e4fd8db06df4-1bcd7f-0",
+        "generation": "18d3e4fd8db06df4-1bcd7f-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/backend_orphan_coverage": {
+        "gap_count": 0,
+        "status": "deferred_input_coverage"
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789025353032,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 16,
+        "scope_limited_files": 720,
+        "status": "incomplete",
+        "unsupported_source_files": 2
+      }
+    },
+    "source_snapshot_id": "d1c7792041aa31c17c2c60dd71591cb7",
+    "execution_paths": {
+      "implementations": [
+        {
+          "contract_name_mentions": [],
+          "declared_implementors": [],
+          "implementation": {
+            "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php",
+            "line": 12,
+            "name": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailSender",
+            "symbol_id": "class:app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php:InvoiceThankYouEmailSender"
+          },
+          "implemented_contracts": [
+            {
+              "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailDispatcher.php",
+              "line": 12,
+              "name": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailDispatcher",
+              "symbol_id": "interface:app/Modules/Accounting/Services/InvoiceThankYouEmailDispatcher.php:InvoiceThankYouEmailDispatcher"
+            }
+          ],
+          "non_call_reference_count": 1,
+          "non_call_references": [
+            {
+              "confidence_millis": 900,
+              "file_path": "app/Modules/Accounting/AccountingServiceProvider.php",
+              "guard_conditions": [],
+              "inside_loop": null,
+              "kind": "Import",
+              "line": 47,
+              "relation": "Import",
+              "source_symbol_id": null,
+              "syntactically_conditional": null,
+              "target_symbol_id": "class:app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php:InvoiceThankYouEmailSender"
+            }
+          ],
+          "production_call_count": 0,
+          "production_calls": [],
+          "registrations": [
+            {
+              "contract_type": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailDispatcher",
+              "file_path": "app/Modules/Accounting/AccountingServiceProvider.php",
+              "implementation_type": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailSender",
+              "line": 135,
+              "mechanism": "bind",
+              "model": "laravel_container",
+              "source_parse_complete": true,
+              "source_symbol_id": "method:app/Modules/Accounting/AccountingServiceProvider.php:class:app/Modules/Accounting/AccountingServiceProvider.php:AccountingServiceProvider:register",
+              "syntactically_conditional": null
+            }
+          ],
+          "test_call_count": 0,
+          "truncated": false
+        }
+      ],
+      "input_parse_complete": false,
+      "missing_evidence": [
+        "Captured call sites do not establish that both paths execute for the same input; inspect selector branches, early exits and dispatch",
+        "No captured consumer is not a deletion proof: verify registrations, excluded sources and intended replacement wiring",
+        "Preserve provider alternatives, version boundaries, transaction/retry ownership and public contracts; state retirement conditions before migration",
+        "Runtime registrations retain their model and parse coverage; contract-name mentions are weaker evidence, and missing matches do not establish absent registration"
+      ],
+      "relationships": [],
+      "selection_truncated": false
+    }
+  }
+]

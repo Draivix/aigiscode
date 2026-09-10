@@ -7537,6 +7537,7 @@ mod tests {
             },
             packets: vec![GraphPacket {
                 behavior_comparisons: Vec::new(),
+                execution_paths: None,
                 dead_code_proofs: Vec::new(),
                 id: String::from("packet-1"),
                 kind: GraphPacketKind::GuardianTask,
@@ -7651,6 +7652,7 @@ mod tests {
             },
             packets: vec![GraphPacket {
                 behavior_comparisons: Vec::new(),
+                execution_paths: None,
                 dead_code_proofs: Vec::new(),
                 id: String::from("packet-1"),
                 kind: GraphPacketKind::GuardianTask,

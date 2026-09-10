@@ -406,6 +406,7 @@ fn record_import_statement(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -458,6 +459,7 @@ fn record_export_from_statement(
                 receiver_type_name: None,
                 call_form: None,
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
             recorded_named = true;
         }
@@ -476,6 +478,7 @@ fn record_export_from_statement(
             receiver_type_name: None,
             call_form: None,
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
@@ -527,6 +530,7 @@ fn record_import_clause(
                             receiver_type_name: None,
                             call_form: None,
                             class_literal_argument: None,
+                            class_literal_arguments: Vec::new(),
                         });
                     }
                 }
@@ -543,6 +547,7 @@ fn record_import_clause(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                 }
                 "named_imports" => {
@@ -573,6 +578,7 @@ fn record_import_clause(
                                 receiver_type_name: None,
                                 call_form: None,
                                 class_literal_argument: None,
+                                class_literal_arguments: Vec::new(),
                             });
                         }
                     }
@@ -619,6 +625,7 @@ fn record_js_heritage(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                     let mut owner = parent.parent();
                     let mut class_extends = false;
@@ -681,6 +688,7 @@ fn record_js_parameter_types(
                         receiver_type_name: None,
                         call_form: None,
                         class_literal_argument: None,
+                        class_literal_arguments: Vec::new(),
                     });
                     context.bindings.named_reference(type_annotation, reference_index, false);
                 }
@@ -718,6 +726,7 @@ fn record_call(
                 receiver_type_name: None,
                 call_form: None,
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
         }
         return;
@@ -736,6 +745,7 @@ fn record_call(
                 receiver_type_name: None,
                 call_form: Some(CallForm::Free),
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
         }
         "member_expression" => {
@@ -766,6 +776,7 @@ fn record_call(
                 receiver_type_name,
                 call_form: Some(CallForm::Member),
                 class_literal_argument: None,
+                class_literal_arguments: Vec::new(),
             });
         }
         _ => {}
@@ -819,6 +830,7 @@ fn record_constructor_call(
             receiver_type_name: None,
             call_form: Some(CallForm::Associated),
             class_literal_argument: None,
+            class_literal_arguments: Vec::new(),
         });
     }
 }
