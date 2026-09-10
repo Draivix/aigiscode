@@ -1,4 +1,5 @@
 pub mod javascript;
+pub mod behavior;
 pub mod php;
 pub mod python;
 pub mod ruby;

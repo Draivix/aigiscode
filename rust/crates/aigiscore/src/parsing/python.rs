@@ -45,6 +45,7 @@ pub fn parse_python_to_graph(
 
     let mut context = PythonContext { file_path, source };
     walk_tree(tree.root_node(), &mut context, &mut graph);
+    super::behavior::capture(&mut graph, tree.root_node(), source);
     trace(&format!(
         "python walk complete {}",
         context.file_path.display()

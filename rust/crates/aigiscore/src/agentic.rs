@@ -55,6 +55,8 @@ pub struct GraphPacket {
     pub id: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dead_code_proofs: Vec<AgenticDeadCodeProof>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub behavior_comparisons: Vec<crate::assessment::behavior::ImplementationComparison>,
     pub kind: GraphPacketKind,
     pub title: String,
     pub summary: String,
@@ -269,6 +271,8 @@ pub struct AgenticTaskPacket {
     pub finding_ids: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dead_code_proofs: Vec<AgenticDeadCodeProof>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub behavior_comparisons: Vec<crate::assessment::behavior::ImplementationComparison>,
     pub status: String,
     pub priority: String,
     pub focus: String,
@@ -825,6 +829,7 @@ pub fn build_graph_packet_artifact(
         .iter()
         .map(|packet| GraphPacket {
             dead_code_proofs: packet.dead_code_proofs.clone(),
+            behavior_comparisons: packet.behavior_comparisons.clone(),
             id: packet.id.clone(),
             kind: GraphPacketKind::GuardianTask,
             title: packet.title.clone(),
@@ -883,6 +888,9 @@ pub fn build_graph_packet_artifact(
             let (graph_traces, code_flows, source_sink_paths, semantic_state_flows) =
                 build_focus_file_graph_evidence_with_context(&context, &file_path, &neighbors);
             packets.push(GraphPacket {
+                behavior_comparisons: analysis.architectural_assessment.behavior.comparisons.iter()
+                    .filter(|comparison| comparison.left.file_path == std::path::Path::new(&file_path)
+                        || comparison.right.file_path == std::path::Path::new(&file_path)).take(8).cloned().collect(),
                 dead_code_proofs: analysis.dead_code.findings.iter()
                     .filter(|finding| finding.file_path == std::path::Path::new(&file_path))
                     .map(AgenticDeadCodeProof::from_finding).collect(),
@@ -1379,6 +1387,10 @@ fn build_task_packets(
 ) -> Vec<AgenticTaskPacket> {
     let dead_code_proofs = analysis.dead_code.findings.iter().map(AgenticDeadCodeProof::from_finding)
         .map(|proof| (proof.finding_id.clone(), proof)).collect::<HashMap<_, _>>();
+    let comparisons = analysis.architectural_assessment.behavior.comparisons.iter().map(|comparison| (comparison.id.as_str(), comparison)).collect::<HashMap<_, _>>();
+    let comparison_by_finding = analysis.architectural_assessment.findings.iter()
+        .filter_map(|finding| finding.behavior_comparison_id.as_deref().map(|id| (crate::surface::duplicate_mechanism_finding_id(finding), id)))
+        .collect::<HashMap<_, _>>();
     let mut packets = handoff
         .guardian_packets
         .iter()
@@ -1406,6 +1418,8 @@ fn build_task_packets(
                 id: packet.id.clone(),
                 finding_ids: packet.finding_ids.clone(),
                 dead_code_proofs: packet.finding_ids.iter().filter_map(|id| dead_code_proofs.get(id)).cloned().collect(),
+                behavior_comparisons: packet.finding_ids.iter().filter_map(|id| comparison_by_finding.get(id))
+                    .filter_map(|id| comparisons.get(id)).map(|comparison| (*comparison).clone()).collect(),
                 status,
                 priority: packet.priority.clone(),
                 focus: packet.focus.clone(),
@@ -5432,6 +5446,7 @@ class Consumer {
                     id: String::from("guardian:test"),
                     finding_ids: Vec::new(),
                     dead_code_proofs: Vec::new(),
+                    behavior_comparisons: Vec::new(),
                     status: String::from("new"),
                     priority: String::from("high"),
                     focus: String::from("architecture"),
@@ -5493,6 +5508,7 @@ class Consumer {
                 id: String::from("guardian:test"),
                 finding_ids: Vec::new(),
                 dead_code_proofs: Vec::new(),
+                behavior_comparisons: Vec::new(),
                 status: String::from("new"),
                 priority: String::from("high"),
                 focus: String::from("architecture"),

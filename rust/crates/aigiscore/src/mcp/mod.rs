@@ -4088,6 +4088,7 @@ fn helper() {}"#,
                     top_anchor_files: vec![String::from("src/primary.rs")],
                 },
                 packets: vec![GraphPacket {
+                    behavior_comparisons: Vec::new(),
                     dead_code_proofs: Vec::new(),
                     id: String::from("packet-1"),
                     kind: GraphPacketKind::FocusFile,

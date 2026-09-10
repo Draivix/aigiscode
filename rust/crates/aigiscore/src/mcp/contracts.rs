@@ -1332,6 +1332,8 @@ pub struct OverviewOutput {
     #[serde(default)]
     pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default)]
+    pub behavior_comparison_coverage: crate::assessment::behavior::BehaviorComparisonCoverage,
+    #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
@@ -1393,6 +1395,7 @@ impl OverviewOutput {
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             backend_orphan_coverage: surface.overview.backend_orphan_coverage.clone(),
             dead_code_scope_coverage: surface.overview.dead_code_scope_coverage.clone(),
+            behavior_comparison_coverage: surface.overview.behavior_comparison_coverage.clone(),
             generated_path_prefixes: surface.overview.generated_path_prefixes.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
@@ -2017,6 +2020,8 @@ pub struct QualityEvaluationOutput {
     #[serde(default)]
     pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default)]
+    pub behavior_comparison_coverage: crate::assessment::behavior::BehaviorComparisonCoverage,
+    #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub root: String,
     #[serde(default)]
@@ -2228,6 +2233,7 @@ impl QualityEvaluationOutput {
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             backend_orphan_coverage: surface.overview.backend_orphan_coverage.clone(),
             dead_code_scope_coverage: surface.overview.dead_code_scope_coverage.clone(),
+            behavior_comparison_coverage: surface.overview.behavior_comparison_coverage.clone(),
             summary: format!(
                 "{}{} visible findings across {} dimensions; {} remain unreviewed.",
                 if surface.overview.input_coverage.is_complete() && surface.overview.ast_grep_coverage.is_complete() && surface.overview.backend_orphan_coverage.is_complete() { "" } else { "Partial evidence: " },
@@ -2353,6 +2359,8 @@ pub struct CoverageReportOutput {
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default)]
     pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
+    #[serde(default)]
+    pub behavior_comparison_coverage: crate::assessment::behavior::BehaviorComparisonCoverage,
     #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub root: String,
@@ -2576,6 +2584,7 @@ impl CoverageReportOutput {
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             backend_orphan_coverage: surface.overview.backend_orphan_coverage.clone(),
             dead_code_scope_coverage: surface.overview.dead_code_scope_coverage.clone(),
+            behavior_comparison_coverage: surface.overview.behavior_comparison_coverage.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
             unresolved_reference_sites: surface.overview.unresolved_reference_sites,
@@ -3713,7 +3722,8 @@ final class OrderByValidator {
 
         let mut analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
         analysis.architectural_assessment = ArchitecturalAssessment {
-            findings: vec![ArchitecturalAssessmentFinding {
+            behavior: Default::default(),
+            findings: vec![ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::HandRolledParsing,
                 file_path: PathBuf::from("app/Services/Filter/QueryContractParser.php"),

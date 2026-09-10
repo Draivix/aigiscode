@@ -282,6 +282,7 @@ pub struct AigiscodeReportArtifact<'a> {
 
 #[derive(Debug, Serialize)]
 pub struct ReportSummary {
+    pub behavior_comparison_coverage: crate::assessment::behavior::BehaviorComparisonCoverage,
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default)]
@@ -1194,6 +1195,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
+            behavior_comparison_coverage: analysis.architectural_assessment.behavior.coverage.clone(),
             dead_code_scope_coverage: analysis.dead_code.scope_coverage.clone(),
             backend_orphan_coverage: analysis.dead_code.backend_orphan_coverage.clone(),
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
@@ -5173,6 +5175,8 @@ fn build_guardian_packets(
                 });
             }
             crate::assessment::ArchitecturalAssessmentKind::DuplicateMechanism => {
+                let semantic = finding.behavior_comparison_id.is_some();
+                let focus = if semantic { "semantic_decision" } else { "duplicate_mechanism" };
                 let mut target_files = vec![finding.file_path.display().to_string()];
                 target_files.extend(
                     finding
@@ -5190,11 +5194,7 @@ fn build_guardian_packets(
                         finding.bottleneck_centrality_millis
                     ));
                 }
-                let finding_id = format!(
-                    "architecture:duplicate-mechanism:{}:{}",
-                    finding.file_path.display(),
-                    finding.related_identifiers.join("+")
-                );
+                let finding_id = crate::surface::duplicate_mechanism_finding_id(finding);
                 let doctrine_refs = vec![
                     String::from("mechanism.coherence"),
                     String::from("guardian.single-solution-path"),
@@ -5206,23 +5206,23 @@ fn build_guardian_packets(
                     doctrine_registry,
                 );
                 packets.push(GuardianPacket {
-                    id: format!(
-                        "guardian:duplicate-mechanism:{}",
-                        finding.file_path.display()
-                    ),
+                    id: finding.behavior_comparison_id.as_ref().map(|id| format!("guardian:semantic-decision:{id}"))
+                        .unwrap_or_else(|| format!("guardian:duplicate-mechanism:{}", finding.file_path.display())),
                     priority: if finding.severity_millis >= 700 || target_files.len() >= 3 {
                         String::from("high")
                     } else {
                         String::from("medium")
                     },
-                    focus: String::from("duplicate_mechanism"),
+                    focus: String::from(focus),
                     primary_target_file: finding.file_path.display().to_string(),
-                    precision: String::from("heuristic"),
+                    precision: String::from(if semantic { "modeled" } else { "heuristic" }),
                     confidence_millis: finding.severity_millis,
-                    summary: format!(
-                        "{} is mixing competing orchestration mechanisms for the same concern. Choose one sanctioned pathway and retire the parallel routes.",
+                    summary: if semantic {
+                        format!("Compare the captured input decisions around {} under the same concrete inputs; preserve deliberate adapters and identify the surviving owner before proposing consolidation", finding.file_path.display())
+                    } else { format!(
+                        "{} has candidate orchestration mechanisms for a related concern. Compare contracts and runtime selection before deciding whether any path should be retired.",
                         finding.file_path.display()
-                    ),
+                    ) },
                     target_files,
                     primary_anchor: best_effort_anchor_for_architectural_assessment(
                         finding,
@@ -5242,14 +5242,14 @@ fn build_guardian_packets(
                     doctrine_refs,
                     preferred_mechanism: preferred_mechanism.clone(),
                     obligations: guardian_packet_obligations(
-                        "duplicate_mechanism",
+                        focus,
                         &finding.file_path.display().to_string(),
                         preferred_mechanism.as_deref(),
                         &context_labels,
                     ),
-                    suppressibility: guardian_packet_suppressibility("duplicate_mechanism"),
+                    suppressibility: guardian_packet_suppressibility(focus),
                     investigation_questions: guardian_packet_questions(
-                        "duplicate_mechanism",
+                        focus,
                         &finding.file_path.display().to_string(),
                         &context_labels,
                     ),
@@ -6359,6 +6359,7 @@ fn packet_focus_rank(focus: &str) -> u8 {
     match focus {
         "security_hotspot" => 6,
         "dead_code_proof" => 5,
+        "semantic_decision" => 5,
         "hand_rolled_parsing" => 5,
         "algorithmic_complexity_hotspot" => 5,
         "sanctioned_path_bypass" => 4,
@@ -6439,6 +6440,10 @@ fn guardian_packet_obligations(
     _context_labels: &[String],
 ) -> Vec<GuardianObligation> {
     match focus {
+        "semantic_decision" => vec![GuardianObligation {
+            action: format!("Compare the same concrete inputs across the implementations linked to `{primary_file}`, including missing keys, invalid values, defaults, authorization and side effects."),
+            acceptance: "A typed decision names behavior differences, the surviving owner, consumer changes and preserved behavior. Distinct schemas, adapters and shared platform primitives remain justified; missing proof stays explicit.".into(),
+        }],
         "dead_code_proof" => vec![GuardianObligation {
             action: format!("Review the typed absence-proof scope for `{primary_file}` and identify the smallest justified removal or retention."),
             acceptance: "Preserve required import effects, trait dispatch, framework discovery and intended replacements. Missing runtime proof remains explicit; zero callers alone does not authorize deletion.".into(),
@@ -6634,6 +6639,11 @@ fn guardian_packet_questions(
     context_labels: &[String],
 ) -> Vec<String> {
     match focus {
+        "semantic_decision" => vec![
+            "Which business rule repeats, and which same-input case distinguishes the implementations?".into(),
+            "Does an existing implementation already own the required validation or normalization primitive?".into(),
+            "Which consumers must migrate, and which schema, authorization, transaction or lifecycle differences justify keeping separate paths?".into(),
+        ],
         "dead_code_proof" => vec![
             format!("Which binding, class/trait, module or runtime-registration scope is complete for `{primary_file}`?"),
             "Is this unreachable within that scope, a dynamic entry, test/support code, an unfinished replacement, or still unknown?".into(),
@@ -7526,6 +7536,7 @@ mod tests {
                 top_anchor_files: vec![String::from("Primary.php")],
             },
             packets: vec![GraphPacket {
+                behavior_comparisons: Vec::new(),
                 dead_code_proofs: Vec::new(),
                 id: String::from("packet-1"),
                 kind: GraphPacketKind::GuardianTask,
@@ -7639,6 +7650,7 @@ mod tests {
                 top_anchor_files: vec![String::from("Primary.php")],
             },
             packets: vec![GraphPacket {
+                behavior_comparisons: Vec::new(),
                 dead_code_proofs: Vec::new(),
                 id: String::from("packet-1"),
                 kind: GraphPacketKind::GuardianTask,

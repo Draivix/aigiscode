@@ -1,0 +1,136 @@
+{
+  "coverage": {
+    "capture_status": "partial",
+    "function_symbols": 50830,
+    "captured_bodies": 48969,
+    "usable_bodies": 43882,
+    "pairs_considered": 50000,
+    "candidate_search_truncated": true,
+    "repeated_decision_pairs": 1295,
+    "different_contract_pairs": 588,
+    "shared_primitive_pairs": 298,
+    "cross_language_pairs": 52,
+    "unverified_contract_pairs": 162
+  },
+  "retained_comparisons": 2048,
+  "actor": [
+    {
+      "id": "behavior-comparison|method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId|method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId",
+      "kind": "repeated_decision_candidate",
+      "left": {
+        "symbol_id": "method:app/Entities/_Core/Cycle/HookAwareMapper.php:class:app/Entities/_Core/Cycle/HookAwareMapper.php:HookAwareMapper:resolveActorId",
+        "name": "HookAwareMapper::resolveActorId",
+        "file_path": "app/Entities/_Core/Cycle/HookAwareMapper.php",
+        "line": 1140,
+        "parameter_types": [
+          "array"
+        ],
+        "return_type": "?int",
+        "captured_consumer_count": 3,
+        "consumer_files": [
+          "app/Entities/_Core/Cycle/HookAwareMapper.php"
+        ],
+        "consumers_truncated": false
+      },
+      "right": {
+        "symbol_id": "method:app/Services/Notifications/AssignmentNotificationService.php:class:app/Services/Notifications/AssignmentNotificationService.php:AssignmentNotificationService:resolveActorId",
+        "name": "AssignmentNotificationService::resolveActorId",
+        "file_path": "app/Services/Notifications/AssignmentNotificationService.php",
+        "line": 120,
+        "parameter_types": [
+          "array"
+        ],
+        "return_type": "?int",
+        "captured_consumer_count": 2,
+        "consumer_files": [
+          "app/Services/Notifications/AssignmentNotificationService.php"
+        ],
+        "consumers_truncated": false
+      },
+      "related_implementations": [
+        {
+          "symbol_id": "method:app/Support/ActorContext.php:class:app/Support/ActorContext.php:ActorContext:id",
+          "name": "ActorContext::id",
+          "file_path": "app/Support/ActorContext.php",
+          "line": 13,
+          "parameter_types": [
+            "array"
+          ],
+          "return_type": "?int",
+          "captured_consumer_count": 0,
+          "consumer_files": [],
+          "consumers_truncated": false
+        },
+        {
+          "symbol_id": "method:app/Entities/_Core/EntityDeleteSideEffects.php:class:app/Entities/_Core/EntityDeleteSideEffects.php:EntityDeleteSideEffects:resolveActorId",
+          "name": "EntityDeleteSideEffects::resolveActorId",
+          "file_path": "app/Entities/_Core/EntityDeleteSideEffects.php",
+          "line": 124,
+          "parameter_types": [
+            "array"
+          ],
+          "return_type": "?int",
+          "captured_consumer_count": 1,
+          "consumer_files": [
+            "app/Entities/_Core/EntityDeleteSideEffects.php"
+          ],
+          "consumers_truncated": false
+        },
+        {
+          "symbol_id": "method:app/Services/_Core/Realtime/EntityBroadcaster.php:class:app/Services/_Core/Realtime/EntityBroadcaster.php:EntityBroadcaster:resolveActorId",
+          "name": "EntityBroadcaster::resolveActorId",
+          "file_path": "app/Services/_Core/Realtime/EntityBroadcaster.php",
+          "line": 184,
+          "parameter_types": [
+            "array"
+          ],
+          "return_type": "?int",
+          "captured_consumer_count": 1,
+          "consumer_files": [
+            "app/Services/_Core/Realtime/EntityBroadcaster.php"
+          ],
+          "consumers_truncated": false
+        },
+        {
+          "symbol_id": "method:app/Services/_Core/StateMachine/StatusTransitionPublisher.php:class:app/Services/_Core/StateMachine/StatusTransitionPublisher.php:StatusTransitionPublisher:actorId",
+          "name": "StatusTransitionPublisher::actorId",
+          "file_path": "app/Services/_Core/StateMachine/StatusTransitionPublisher.php",
+          "line": 124,
+          "parameter_types": [
+            "array"
+          ],
+          "return_type": "?int",
+          "captured_consumer_count": 1,
+          "consumer_files": [
+            "app/Services/_Core/StateMachine/StatusTransitionPublisher.php"
+          ],
+          "consumers_truncated": false
+        }
+      ],
+      "related_implementations_truncated": false,
+      "similarity_millis": 163,
+      "shared_selectors": [
+        "id",
+        "user"
+      ],
+      "left_only_selectors": [
+        "actorId"
+      ],
+      "right_only_selectors": [],
+      "branch_shapes_differ": true,
+      "return_shapes_differ": true,
+      "source_expressions_differ": true,
+      "error_handling_differ": false,
+      "write_shapes_differ": false,
+      "left_only_calls": [
+        "Auth::id",
+        "is_object"
+      ],
+      "right_only_calls": [],
+      "missing_evidence": [
+        "Compare the same concrete inputs, defaults, errors and effects before asserting semantic equivalence or choosing a surviving owner",
+        "Captured consumers do not establish complete runtime wiring; preserve deliberate adapters and public contracts"
+      ]
+    }
+  ]
+}

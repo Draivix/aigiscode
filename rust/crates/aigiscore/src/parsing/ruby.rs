@@ -38,6 +38,7 @@ pub fn parse_ruby_to_graph(
 
     let mut context = RubyContext { file_path, source };
     walk_node(tree.root_node(), &mut context, &mut graph, None, None);
+    super::behavior::capture(&mut graph, tree.root_node(), source);
     Ok(graph)
 }
 

@@ -146,7 +146,7 @@ pub(super) fn detect_algorithmic_complexity_hotspots(
             {
                 warning_families.push(String::from("scanner:ast_grep"));
             }
-            findings.push(ArchitecturalAssessmentFinding {
+            findings.push(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::AlgorithmicComplexityHotspot,
                 file_path: path.clone(),

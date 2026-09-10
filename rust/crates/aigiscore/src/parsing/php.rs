@@ -47,6 +47,7 @@ pub fn parse_php_to_graph(
         names: names::PhpNames::new(tree.root_node(), source),
     };
     walk_tree(tree.root_node(), &mut context, &mut graph);
+    super::behavior::capture(&mut graph, tree.root_node(), source);
     trace(&format!(
         "php walk complete {}",
         context.file_path.display()

@@ -40,6 +40,7 @@ pub fn parse_rust_to_graph(
 
     let mut context = RustExtractionContext::new(file_path, source);
     walk_node(root, &mut context, &mut graph, None, None, false);
+    super::behavior::capture(&mut graph, root, source);
 
     Ok(graph)
 }

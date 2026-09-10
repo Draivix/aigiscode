@@ -28,9 +28,12 @@ long files, many dependents and zero static callers are candidate signals.
 
 ## Current implementation gaps
 
-- `assessment/mod.rs::detect_duplicate_mechanisms` groups concept tokens and
-  mechanism markers and requires at least two mechanism families. Repeated
-  implementations of the same business decision can escape this detector.
+- [Parsed implementation comparisons](BEHAVIOR_COMPARISON.md) now supplement
+  token/marker grouping with bounded body, branch, selector and call evidence.
+  The configured Draivix observation found the actor-ID disagreement and its
+  existing helper; the distinct relation-schema adapters remained unverified
+  input-contract evidence without a DRY finding. Capture and candidate search
+  are incomplete, and concrete consolidation remains a source-review proposal.
 - `abstraction_roles` and `abstraction_sprawl_concepts` derive evidence from
   names/paths; their content parameter is unused. This does not establish that
   the participating layers lack separate responsibilities.
@@ -112,7 +115,7 @@ Confirmed security or data-integrity faults take priority over simplification.
 Tests and CI remain paused under the current instruction. The regression cases
 and runtime acceptance requirements stay explicit; source inspection does not
 turn them into executed checks. The evidence/action contract and scoped dead-code
-unit are implemented with the verification limits documented above. Continue
-semantic business-rule comparison, competing-path wiring, abstraction necessity
+unit and parsed behavior comparisons are implemented with the verification limits documented above. Continue
+competing-path wiring, abstraction necessity
 and reviewed policy/convergence feedback. Broader Q01–Q12 correctness obligations
 remain open.

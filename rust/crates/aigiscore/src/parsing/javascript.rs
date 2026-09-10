@@ -73,6 +73,7 @@ pub(super) fn parse_javascript_with_dialect(
     let mut context = JavaScriptContext { file_path, source, bindings: lexical::Bindings::default() };
     walk_node(root, &mut context, &mut graph, None, None);
     context.bindings.finish(&mut graph);
+    super::behavior::capture(&mut graph, root, source);
     Ok(graph)
 }
 

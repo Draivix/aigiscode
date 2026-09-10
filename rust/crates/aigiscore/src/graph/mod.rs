@@ -235,6 +235,8 @@ pub struct ResolvedEdge {
 pub struct SemanticGraph {
     pub files: Vec<FileNode>,
     pub symbols: Vec<SymbolNode>,
+    #[serde(default)]
+    pub function_behaviors: Vec<crate::parsing::behavior::FunctionBehavior>,
     pub references: Vec<SemanticReference>,
     pub resolved_edges: Vec<ResolvedEdge>,
     #[serde(default)]
@@ -287,6 +289,7 @@ impl SemanticGraph {
         self.lexical_bindings.scoped_symbol_ids.append(&mut other.lexical_bindings.scoped_symbol_ids);
         self.files.append(&mut other.files);
         self.symbols.append(&mut other.symbols);
+        self.function_behaviors.append(&mut other.function_behaviors);
         self.references.append(&mut other.references);
         self.resolved_edges.append(&mut other.resolved_edges);
         self.parse_outcomes.append(&mut other.parse_outcomes);

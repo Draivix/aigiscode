@@ -119,6 +119,8 @@ pub struct ArchitectureSurface {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SurfaceOverview {
     #[serde(default)]
+    pub behavior_comparison_coverage: crate::assessment::behavior::BehaviorComparisonCoverage,
+    #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
@@ -501,6 +503,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
     ArchitectureSurface {
         root: analysis.root.clone(),
         overview: SurfaceOverview {
+            behavior_comparison_coverage: analysis.architectural_assessment.behavior.coverage.clone(),
             ast_grep_coverage: analysis.ast_grep_scan.coverage.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
             backend_orphan_coverage: analysis.dead_code.backend_orphan_coverage.clone(),
@@ -1024,6 +1027,10 @@ fn boundary_context_preview(analysis: &ProjectAnalysis) -> Vec<String> {
     preview
 }
 
+pub(crate) fn duplicate_mechanism_finding_id(finding: &crate::assessment::ArchitecturalAssessmentFinding) -> String {
+    format!("architecture:duplicate-mechanism:{}:{}", finding.file_path.display(), finding.related_identifiers.join("+"))
+}
+
 fn surface_finding_from_architectural_assessment(
     finding: &ArchitecturalAssessmentFinding,
     analysis: &ProjectAnalysis,
@@ -1147,30 +1154,35 @@ fn surface_finding_from_architectural_assessment(
         ArchitecturalAssessmentKind::DuplicateMechanism => {
             let mut file_paths = vec![finding.file_path.clone()];
             file_paths.extend(finding.related_file_paths.clone());
+            let comparison = finding.behavior_comparison_id.as_ref().and_then(|id| analysis.architectural_assessment.behavior.comparisons.iter().find(|comparison| &comparison.id == id));
             SurfaceFinding {
-                id: format!(
-                    "architecture:duplicate-mechanism:{}:{}",
-                    finding.file_path.display(),
-                    finding.related_identifiers.join("+")
-                ),
+                id: duplicate_mechanism_finding_id(finding),
                 fingerprint: finding.fingerprint.clone(),
                 family: SurfaceFindingFamily::Graph,
                 phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::High,
-                precision: String::from("heuristic"),
+                precision: String::from(if comparison.is_some() { "modeled" } else { "heuristic" }),
                 confidence_millis: finding.severity_millis,
-                title: String::from("Duplicate mechanism"),
-                summary: format!(
+                title: String::from(if comparison.is_some() { "Repeated decision comparison" } else { "Duplicate mechanism" }),
+                summary: comparison.map(|comparison| format!(
+                    "{} and {} contain similar input-processing decisions; compare {} shared selectors, branch/default differences and captured consumers before choosing an owner",
+                    comparison.left.name, comparison.right.name, comparison.shared_selectors.len(),
+                )).unwrap_or_else(|| format!(
                     "{} appears to route the same concern through multiple orchestration mechanisms ({})",
                     finding.file_path.display(),
                     finding.warning_families.join(", ")
-                ),
+                )),
                 file_paths,
                 line: primary_line,
                 primary_anchor,
                 evidence_anchors,
                 locations: locations.clone(),
-                supporting_context: Vec::new(),
+                supporting_context: comparison.map(|comparison| {
+                    let mut context = comparison.missing_evidence.clone();
+                    context.push(format!("Only left reads: {}; only right reads: {}", comparison.left_only_selectors.join(", "), comparison.right_only_selectors.join(", ")));
+                    context.push(format!("Source comparison: {}", comparison.id));
+                    context
+                }).unwrap_or_default(),
                 provenance: vec![
                     String::from("architectural_assessment"),
                     String::from("parsed_sources"),

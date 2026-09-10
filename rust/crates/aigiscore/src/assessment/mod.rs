@@ -1,4 +1,5 @@
 mod complexity;
+pub mod behavior;
 
 use complexity::{attach_complexity_graph_pressure, detect_algorithmic_complexity_hotspots};
 
@@ -40,6 +41,8 @@ pub enum ArchitecturalAssessmentKind {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArchitecturalAssessmentFinding {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub behavior_comparison_id: Option<String>,
     pub kind: ArchitecturalAssessmentKind,
     pub file_path: PathBuf,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -121,6 +124,8 @@ pub struct ArchitecturalComplexityFlowStep {
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ArchitecturalAssessment {
     pub findings: Vec<ArchitecturalAssessmentFinding>,
+    #[serde(default)]
+    pub behavior: behavior::BehaviorAssessment,
 }
 
 impl ArchitecturalAssessment {
@@ -252,6 +257,8 @@ pub fn build_architectural_assessment_full(
         parsed_sources,
         ast_grep_scan,
     ));
+    let behavior = semantic_graph.map(behavior::assess).unwrap_or_default();
+    findings.extend(behavior::findings(&behavior));
     if let Some(semantic_graph) = semantic_graph {
         findings.extend(detect_layer_contract_violations(semantic_graph, layers));
         findings.extend(detect_god_classes(semantic_graph));
@@ -277,7 +284,7 @@ pub fn build_architectural_assessment_full(
             // the final tiebreak everywhere output order matters.
             .then(left.fingerprint.cmp(&right.fingerprint))
     });
-    ArchitecturalAssessment { findings }
+    ArchitecturalAssessment { findings, behavior }
 }
 
 fn push_unique_string(target: &mut Vec<String>, value: String) {
@@ -362,7 +369,7 @@ fn detect_warning_heavy_hotspots(
     let mut findings = candidates
         .into_iter()
         .map(
-            |(bottleneck, count, weight, _family_count)| ArchitecturalAssessmentFinding {
+            |(bottleneck, count, weight, _family_count)| ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::WarningHeavyHotspot,
                 file_path: bottleneck.file_path.clone(),
@@ -500,7 +507,7 @@ fn detect_layer_contract_violations(
                 format!("to_layer:{}", violation.target_layer),
             ];
             related_identifiers.extend(violation.sample_sites);
-            ArchitecturalAssessmentFinding {
+            ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::LayerContractViolation,
                 file_path: source,
@@ -643,7 +650,7 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
                     .map(|(files, name)| format!("used:{name}@{files}files")),
             );
             let raw = effective_methods.min(80) * 8 + dependent_files.min(100) * 4;
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::GodClass,
                 file_path: container.file_path.clone(),
@@ -811,7 +818,7 @@ fn detect_unwired_framework_artifacts(
                 if wired {
                     continue;
                 }
-                let mut finding = ArchitecturalAssessmentFinding {
+                let mut finding = ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                     evidence_anchors: Vec::new(),
                     kind: ArchitecturalAssessmentKind::UnwiredFrameworkArtifact,
                     file_path: path.clone(),
@@ -1089,7 +1096,7 @@ fn detect_split_identity_models(
                 1500,
             );
 
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: file_counts
                     .iter()
                     .take(6)
@@ -1205,7 +1212,7 @@ fn detect_compatibility_scars(
                 1520,
             );
 
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: split_findings
                     .iter()
                     .flat_map(|finding| finding.evidence_anchors.iter().cloned())
@@ -1361,7 +1368,7 @@ fn detect_duplicate_mechanisms(
                 1420,
             );
 
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::DuplicateMechanism,
                 file_path: primary_file.clone(),
@@ -1535,7 +1542,7 @@ fn detect_sanctioned_path_bypasses(
             warning_families.dedup();
             let warning_count = warning_lines.len();
 
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::SanctionedPathBypass,
                 file_path: path.clone(),
@@ -1694,7 +1701,7 @@ fn detect_abstraction_sprawl(
                 1480,
             );
 
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::AbstractionSprawl,
                 file_path: primary_file.clone(),
@@ -1917,7 +1924,7 @@ fn detect_hand_rolled_parsing(
                 1500,
             );
 
-            Some(ArchitecturalAssessmentFinding {
+            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
                 evidence_anchors: Vec::new(),
                 kind: ArchitecturalAssessmentKind::HandRolledParsing,
                 file_path: primary_file.clone(),
@@ -2058,7 +2065,7 @@ fn detect_scheduler_dsl_stacks(
         1576,
     );
 
-    vec![ArchitecturalAssessmentFinding {
+    vec![ArchitecturalAssessmentFinding { behavior_comparison_id: None,
         evidence_anchors: Vec::new(),
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
         file_path: primary_file.clone(),
@@ -2204,7 +2211,7 @@ fn detect_filesystem_page_resolution_stacks(
         1612,
     );
 
-    vec![ArchitecturalAssessmentFinding {
+    vec![ArchitecturalAssessmentFinding { behavior_comparison_id: None,
         evidence_anchors: Vec::new(),
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
         file_path: primary_file.clone(),
@@ -2339,7 +2346,7 @@ fn detect_manifest_backed_policy_engine_stacks(
         1636,
     );
 
-    vec![ArchitecturalAssessmentFinding {
+    vec![ArchitecturalAssessmentFinding { behavior_comparison_id: None,
         evidence_anchors: Vec::new(),
         kind: ArchitecturalAssessmentKind::HandRolledParsing,
         file_path: primary_file.clone(),
