@@ -122,6 +122,13 @@ The product should be built in layers:
 
 ## Analyzer Strategy
 
+The next architectural-review priorities are dead-code proof, repeated business
+decisions, competing execution paths and abstraction necessity. Follow
+`docs/ARCHITECTURAL_SIMPLIFICATION_PLAN.md` for the current implementation sequence,
+positive/negative examples and acceptance criteria. Reviews must identify the
+surviving owner, consumer changes and preserved behavior behind a proposed removal
+or consolidation.
+
 AigisCode should combine:
 
 - its own semantic graph engine
