@@ -1,0 +1,4648 @@
+{
+  "recorded_at": "2026-09-10T02:01:25.061Z",
+  "base_commit": "c468c1a4e19bbbd81fb8d98f875ee18aa872c1b0",
+  "semantic_revision": 17,
+  "automated_tests_run": false,
+  "ci_run": false,
+  "implementation_files": [
+    {
+      "path": "rust/crates/aigiscore/src/artifacts.rs",
+      "bytes": 369503,
+      "sha256": "913c741122c6fef4c7310f508bfbc1cbf5e9c3e3630003541795905890f2dd67"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/parsing/python.rs",
+      "bytes": 38372,
+      "sha256": "356dff910901eb00c0bb2ec937d1ad046af9ef0b7f24071b811271621034481b"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/parsing/python/lexical.rs",
+      "bytes": 11686,
+      "sha256": "2b2d3b20cc60521102a2475f8def6c2cb8918e525b9aae27adf07ace0587aafa"
+    }
+  ],
+  "build": {
+    "binary": {
+      "path": "target/reliability-2026-09-09/aigiscode-python-classes",
+      "bytes": 95022536,
+      "sha256": "ae03d64779fad24baf02e99ce627282718b619bbc0bca15ebd90dd47d1fe30ea"
+    },
+    "log": {
+      "path": "target/reliability-2026-09-09/python-classes-build.txt",
+      "bytes": 156,
+      "sha256": "5dda4f638e483c68ec13a00ee4ee9a562b0f73965e329b2f61156b114c3858b0"
+    },
+    "exit": 0
+  },
+  "observation": {
+    "source_root": "target/reliability-2026-09-09/draivix-capture-identity-source",
+    "original_written": false,
+    "wall": "1:25.82",
+    "peak_rss_kib": 3623748,
+    "exit": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 132657,
+      "references": 1097074,
+      "resolved_edges": 331060,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 22,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 262
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 346
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6902
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 11950
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 38536
+      }
+    ],
+    "summary_changes": [],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/python-classes-cli-result.json",
+        "bytes": 16552,
+        "sha256": "5c2fd4b0542b3f0276226fdb98a8be1abda9440994bea4273bfeac96bfc88ec9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-cli-time.txt",
+        "bytes": 1077,
+        "sha256": "00b2fa91ca88ce6e889ebfb09cade4608b8a9ed001b459654bce9bb5c7d41b53"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-cli-trace.txt",
+        "bytes": 10972934,
+        "sha256": "f3119fb0fd4b81fd4349ed6caefe2025deab9304bd205613043a16b4876cb978"
+      }
+    ]
+  },
+  "graph": {
+    "before": {
+      "file": "target/reliability-2026-09-09/scoped-classes-artifacts/semantic-graph.json",
+      "bytes": 818075448,
+      "sha256": "5546f57a132bd24eab675c68b66d4fcf552e3aa0a5752326cdaeafe61a36e49a",
+      "counts": {
+        "files": 17067,
+        "symbols": 132657,
+        "references": 1097074,
+        "resolved_edges": 331060,
+        "lexical_bindings": 1,
+        "parse_outcomes": 17067,
+        "unsupported_sources": 146
+      },
+      "duplicate_occurrences": 2,
+      "duplicate_ids_by_language": {
+        "Python": 1
+      },
+      "cohorts": {
+        "files:Php": {
+          "count": 14011,
+          "sha256": "980e84a5c9e82b7096f8749e3c5cda2c7518b696b325c562181c0b3a81ec4553"
+        },
+        "files:TypeScript": {
+          "count": 2948,
+          "sha256": "cd68b1faae821a07b03475a010fe9c82049a5a904575a87698120d88f343b530"
+        },
+        "files:JavaScript": {
+          "count": 32,
+          "sha256": "988e6ba3dbfdc9055b18e509a35c49399e18d787d765f16719934839d41d6681"
+        },
+        "files:Python": {
+          "count": 76,
+          "sha256": "2a7385e1b9341befaa56cd873728d9dcc5becad951a211b713b9b5de2a4d3e42"
+        },
+        "symbols:Php": {
+          "count": 105772,
+          "sha256": "96bef8abf31328072033efc549add36c10824879653063854143bd5c879570dd"
+        },
+        "symbols:TypeScript": {
+          "count": 25619,
+          "sha256": "2a5f4bdfcf74e1ce3b1ba2275c8e50956e2f6c017b9b47d216250129c4ac0a74"
+        },
+        "symbols:JavaScript": {
+          "count": 146,
+          "sha256": "934344e18383a04eb20d6a0ce1d815d4ef4d105b06a5f3d1ffd9a3920f1758fe"
+        },
+        "symbols:Python": {
+          "count": 1120,
+          "sha256": "729faff3e1b3d957b5e711509368a30a725e461ecd763aeb56c671f2dffa9213"
+        },
+        "references:Php": {
+          "count": 823082,
+          "sha256": "feeeb1e573d3f0a083a431a1bfc573812595fd07f775e65f870320e533ef9324"
+        },
+        "references:TypeScript": {
+          "count": 260942,
+          "sha256": "581aed429281ae35bf2491b6f429a62228d60b0125ca799bde5c64bdc6d9560d"
+        },
+        "references:JavaScript": {
+          "count": 1527,
+          "sha256": "c0809ff7d870fe8f1919df60707e3ad2d1162ee558518265dc219bf381f3f710"
+        },
+        "references:Python": {
+          "count": 11523,
+          "sha256": "48a353a7c5cd29548e1fdf62956bbe07b85c2b1f00341cf640794a0bd9af7f41"
+        },
+        "resolved_edges:Php": {
+          "count": 274989,
+          "sha256": "bcd59efca80f39aec38b51a4912b79927c5abb197be5c45c6db97f0a181b2560"
+        },
+        "resolved_edges:TypeScript": {
+          "count": 52995,
+          "sha256": "fbbbb92899cd58f3acc65aa51e7d4f773b1e16c88137d888b5bf1876726123ef"
+        },
+        "resolved_edges:JavaScript": {
+          "count": 304,
+          "sha256": "614909e6d7f4d38ad313002f875c4b30b334d89da31ac3dff536cda61db688bb"
+        },
+        "resolved_edges:Python": {
+          "count": 2772,
+          "sha256": "99d9de11dc5d05411fa933e9329aaebfa5327e153e0bc3b30e37d6119f4b7d14"
+        }
+      }
+    },
+    "after": {
+      "file": "target/reliability-2026-09-09/python-classes-artifacts/semantic-graph.json",
+      "bytes": 818078041,
+      "sha256": "535bc1ec36526bde191978ad7cc69b35b3c1de4d3378e77591e8ca52b1be1d6c",
+      "counts": {
+        "files": 17067,
+        "symbols": 132657,
+        "references": 1097074,
+        "resolved_edges": 331060,
+        "lexical_bindings": 1,
+        "parse_outcomes": 17067,
+        "unsupported_sources": 146
+      },
+      "duplicate_occurrences": 0,
+      "duplicate_ids_by_language": {},
+      "cohorts": {
+        "files:Php": {
+          "count": 14011,
+          "sha256": "980e84a5c9e82b7096f8749e3c5cda2c7518b696b325c562181c0b3a81ec4553"
+        },
+        "files:TypeScript": {
+          "count": 2948,
+          "sha256": "cd68b1faae821a07b03475a010fe9c82049a5a904575a87698120d88f343b530"
+        },
+        "files:JavaScript": {
+          "count": 32,
+          "sha256": "988e6ba3dbfdc9055b18e509a35c49399e18d787d765f16719934839d41d6681"
+        },
+        "files:Python": {
+          "count": 76,
+          "sha256": "2a7385e1b9341befaa56cd873728d9dcc5becad951a211b713b9b5de2a4d3e42"
+        },
+        "symbols:Php": {
+          "count": 105772,
+          "sha256": "96bef8abf31328072033efc549add36c10824879653063854143bd5c879570dd"
+        },
+        "symbols:TypeScript": {
+          "count": 25619,
+          "sha256": "2a5f4bdfcf74e1ce3b1ba2275c8e50956e2f6c017b9b47d216250129c4ac0a74"
+        },
+        "symbols:JavaScript": {
+          "count": 146,
+          "sha256": "934344e18383a04eb20d6a0ce1d815d4ef4d105b06a5f3d1ffd9a3920f1758fe"
+        },
+        "symbols:Python": {
+          "count": 1120,
+          "sha256": "444734985f9cd10868f0d8fa2cca41c9bbdea647c2297dc8f5cfde4b7fc3a003"
+        },
+        "references:Php": {
+          "count": 823082,
+          "sha256": "feeeb1e573d3f0a083a431a1bfc573812595fd07f775e65f870320e533ef9324"
+        },
+        "references:TypeScript": {
+          "count": 260942,
+          "sha256": "581aed429281ae35bf2491b6f429a62228d60b0125ca799bde5c64bdc6d9560d"
+        },
+        "references:JavaScript": {
+          "count": 1527,
+          "sha256": "c0809ff7d870fe8f1919df60707e3ad2d1162ee558518265dc219bf381f3f710"
+        },
+        "references:Python": {
+          "count": 11523,
+          "sha256": "deb5a69ba7bc4936419223ca53da36f123bb809d8ba340a3ddd30d1c8996eeba"
+        },
+        "resolved_edges:Php": {
+          "count": 274989,
+          "sha256": "bcd59efca80f39aec38b51a4912b79927c5abb197be5c45c6db97f0a181b2560"
+        },
+        "resolved_edges:TypeScript": {
+          "count": 52995,
+          "sha256": "fbbbb92899cd58f3acc65aa51e7d4f773b1e16c88137d888b5bf1876726123ef"
+        },
+        "resolved_edges:JavaScript": {
+          "count": 304,
+          "sha256": "614909e6d7f4d38ad313002f875c4b30b334d89da31ac3dff536cda61db688bb"
+        },
+        "resolved_edges:Python": {
+          "count": 2772,
+          "sha256": "062980ae9e8ea34e99a55dfaf060f2573525c5ef4123a8fecf0058c2eab8885c"
+        }
+      }
+    },
+    "non_python_cohorts_unchanged": true,
+    "missing_edge_symbols": 0,
+    "scoped_class_count": 3,
+    "scoped_classes": [
+      {
+        "id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+        "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "kind": "Class",
+        "name": "FakePw",
+        "qualified_name": "FakePw",
+        "parent_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty",
+        "owner_type_name": null,
+        "return_type_name": null,
+        "visibility": "Public",
+        "parameter_count": 0,
+        "required_parameter_count": 0,
+        "start_line": 133,
+        "end_line": 136
+      },
+      {
+        "id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+        "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "kind": "Class",
+        "name": "FakePw",
+        "qualified_name": "FakePw",
+        "parent_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home",
+        "owner_type_name": null,
+        "return_type_name": null,
+        "visibility": "Public",
+        "parameter_count": 0,
+        "required_parameter_count": 0,
+        "start_line": 99,
+        "end_line": 102
+      },
+      {
+        "id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+        "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "kind": "Class",
+        "name": "FakePw",
+        "qualified_name": "FakePw",
+        "parent_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused",
+        "owner_type_name": null,
+        "return_type_name": null,
+        "visibility": "Public",
+        "parameter_count": 0,
+        "required_parameter_count": 0,
+        "start_line": 121,
+        "end_line": 124
+      }
+    ],
+    "call_bindings": {
+      "scoped_symbols": 3000,
+      "callee_known": 27207,
+      "callee_unknown": 9847,
+      "argument_known": 381,
+      "argument_unknown": 36605,
+      "invalid_count": 0,
+      "invalid_preview": [],
+      "ambiguous_known_targets": 0,
+      "selected_bindings": [
+        {
+          "reference_index": 362396,
+          "argument_index": 0,
+          "target_symbol_id": null,
+          "file": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "line": 188,
+          "target_name": "copyText"
+        },
+        {
+          "reference_index": 362413,
+          "argument_index": null,
+          "target_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+          "file": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "line": 244,
+          "target_name": "copyText"
+        },
+        {
+          "reference_index": 362481,
+          "argument_index": null,
+          "target_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+          "file": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "line": 396,
+          "target_name": "copyText"
+        }
+      ]
+    },
+    "named_bindings": {
+      "count": 3560,
+      "invalid": [],
+      "selected": []
+    },
+    "direct_method_bindings": [],
+    "duplicates_before": [
+      {
+        "id": "class:tools/satellite/tests/test_authorized_keys_audit.py:FakePw",
+        "definitions": [
+          {
+            "file": "tools/satellite/tests/test_authorized_keys_audit.py",
+            "kind": "Class",
+            "name": "FakePw",
+            "line": 99,
+            "end_line": 102
+          },
+          {
+            "file": "tools/satellite/tests/test_authorized_keys_audit.py",
+            "kind": "Class",
+            "name": "FakePw",
+            "line": 121,
+            "end_line": 124
+          },
+          {
+            "file": "tools/satellite/tests/test_authorized_keys_audit.py",
+            "kind": "Class",
+            "name": "FakePw",
+            "line": 133,
+            "end_line": 136
+          }
+        ]
+      }
+    ],
+    "duplicates_remaining": [],
+    "inspector": {
+      "path": "target/reliability-2026-09-09/python-classes-graph.cjs",
+      "bytes": 9356,
+      "sha256": "816b02fade9ac08ee783463558c7ad00464d7e8b7c1b4e5804acfeebf38bac64"
+    },
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/python-classes-before-graph.json",
+        "bytes": 11707644,
+        "sha256": "c515d81d144fa92d637df8a535bf1f9bc7e744b7cbcbf63f1b854cc3a8675ab1"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-after-graph.json",
+        "bytes": 11710524,
+        "sha256": "c69168cfe20576475d0d2b27309387fb1adaeb4cd648bf13c92a81911a5f294c"
+      }
+    ]
+  },
+  "witnesses": {
+    "constructor_edges_before": [
+      {
+        "source_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "source_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home",
+        "target_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "target_symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:FakePw",
+        "reference_target_name": "FakePw",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "SameFile",
+        "confidence_millis": 950,
+        "reason": "call:same-file",
+        "line": 104,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "source_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused",
+        "target_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "target_symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:FakePw",
+        "reference_target_name": "FakePw",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "SameFile",
+        "confidence_millis": 950,
+        "reason": "call:same-file",
+        "line": 126,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "source_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty",
+        "target_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "target_symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:FakePw",
+        "reference_target_name": "FakePw",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "SameFile",
+        "confidence_millis": 950,
+        "reason": "call:same-file",
+        "line": 138,
+        "occurrence_index": 0
+      }
+    ],
+    "selected_constructor_edges": [
+      {
+        "source_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "source_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home",
+        "target_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "target_symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+        "reference_target_name": "FakePw",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "SameFile",
+        "confidence_millis": 950,
+        "reason": "call:lexical-binding",
+        "line": 104,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "source_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused",
+        "target_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "target_symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+        "reference_target_name": "FakePw",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "SameFile",
+        "confidence_millis": 950,
+        "reason": "call:lexical-binding",
+        "line": 126,
+        "occurrence_index": 0
+      },
+      {
+        "source_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "source_symbol_id": "function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty",
+        "target_file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+        "target_symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+        "reference_target_name": "FakePw",
+        "kind": "Call",
+        "relation_kind": "Call",
+        "layer": "Structural",
+        "strength": "Hard",
+        "origin": "Resolver",
+        "resolution_tier": "SameFile",
+        "confidence_millis": 950,
+        "reason": "call:lexical-binding",
+        "line": 138,
+        "occurrence_index": 0
+      }
+    ],
+    "selected_named_bindings": [],
+    "source_files": [
+      {
+        "path": "target/reliability-2026-09-09/draivix-capture-identity-source/tools/satellite/tests/test_authorized_keys_audit.py",
+        "bytes": 4371,
+        "sha256": "c90e2a9fb9049ef61d177f60472feef0cb9c6c5175bc4d59123c3a33a8b2d645"
+      }
+    ]
+  },
+  "scanner": {
+    "before": {
+      "path": "target/reliability-2026-09-09/scoped-classes-artifacts/ast-grep-scan.json",
+      "bytes": 8225069,
+      "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+    },
+    "after": {
+      "path": "target/reliability-2026-09-09/python-classes-artifacts/ast-grep-scan.json",
+      "bytes": 8225069,
+      "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+    }
+  },
+  "architecture": {
+    "components": {
+      "strong_circular_dependencies": {
+        "before": 19,
+        "after": 19,
+        "removed": [],
+        "added": []
+      },
+      "circular_dependencies": {
+        "before": 22,
+        "after": 22,
+        "removed": [],
+        "added": []
+      }
+    },
+    "cycle_edges_before": [],
+    "cycle_edges_after": [],
+    "before": {
+      "smells": [
+        {
+          "kind": "HubLikeDependency",
+          "subject": "app",
+          "related_components": [
+            "tests",
+            "clients",
+            "resources"
+          ],
+          "relation_previews": [
+            "app <-> tests (7211 cross-module links)",
+            "clients -> app (3670 cross-module links)"
+          ],
+          "evidence_count": 15,
+          "severity_millis": 1000,
+          "fingerprint": "graph|smell|hub-like-dependency|app|clients|resources|tests"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "tests",
+          "related_components": [
+            "clients"
+          ],
+          "relation_previews": [
+            "tests -> clients (6 cross-module links)"
+          ],
+          "evidence_count": 6,
+          "severity_millis": 417,
+          "fingerprint": "graph|smell|unstable-dependency|tests|clients"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "database"
+          ],
+          "relation_previews": [
+            "app -> database (1 cross-module links)"
+          ],
+          "evidence_count": 1,
+          "severity_millis": 334,
+          "fingerprint": "graph|smell|unstable-dependency|app|database"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "resources"
+          ],
+          "relation_previews": [
+            "app -> resources (928 cross-module links)"
+          ],
+          "evidence_count": 928,
+          "severity_millis": 267,
+          "fingerprint": "graph|smell|unstable-dependency|app|resources"
+        }
+      ],
+      "coupling": [
+        {
+          "module": "app",
+          "afferent": 10,
+          "efferent": 5,
+          "instability_millis": 333
+        },
+        {
+          "module": "apps",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "bootstrap",
+          "afferent": 3,
+          "efferent": 1,
+          "instability_millis": 250
+        },
+        {
+          "module": "capacitor.config.ts",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "ci",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "clients",
+          "afferent": 1,
+          "efferent": 3,
+          "instability_millis": 750
+        },
+        {
+          "module": "config",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "database",
+          "afferent": 1,
+          "efferent": 2,
+          "instability_millis": 667
+        },
+        {
+          "module": "docker",
+          "afferent": 2,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "docs",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "eslint.config.js",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "hocuspocus-server.mjs",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "public",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "resources",
+          "afferent": 2,
+          "efferent": 3,
+          "instability_millis": 600
+        },
+        {
+          "module": "routes",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "scripts",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "server.php",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "tests",
+          "afferent": 8,
+          "efferent": 4,
+          "instability_millis": 333
+        },
+        {
+          "module": "tools",
+          "afferent": 2,
+          "efferent": 2,
+          "instability_millis": 500
+        }
+      ]
+    },
+    "after": {
+      "smells": [
+        {
+          "kind": "HubLikeDependency",
+          "subject": "app",
+          "related_components": [
+            "tests",
+            "clients",
+            "resources"
+          ],
+          "relation_previews": [
+            "app <-> tests (7211 cross-module links)",
+            "clients -> app (3670 cross-module links)"
+          ],
+          "evidence_count": 15,
+          "severity_millis": 1000,
+          "fingerprint": "graph|smell|hub-like-dependency|app|clients|resources|tests"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "tests",
+          "related_components": [
+            "clients"
+          ],
+          "relation_previews": [
+            "tests -> clients (6 cross-module links)"
+          ],
+          "evidence_count": 6,
+          "severity_millis": 417,
+          "fingerprint": "graph|smell|unstable-dependency|tests|clients"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "database"
+          ],
+          "relation_previews": [
+            "app -> database (1 cross-module links)"
+          ],
+          "evidence_count": 1,
+          "severity_millis": 334,
+          "fingerprint": "graph|smell|unstable-dependency|app|database"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "resources"
+          ],
+          "relation_previews": [
+            "app -> resources (928 cross-module links)"
+          ],
+          "evidence_count": 928,
+          "severity_millis": 267,
+          "fingerprint": "graph|smell|unstable-dependency|app|resources"
+        }
+      ],
+      "coupling": [
+        {
+          "module": "app",
+          "afferent": 10,
+          "efferent": 5,
+          "instability_millis": 333
+        },
+        {
+          "module": "apps",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "bootstrap",
+          "afferent": 3,
+          "efferent": 1,
+          "instability_millis": 250
+        },
+        {
+          "module": "capacitor.config.ts",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "ci",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "clients",
+          "afferent": 1,
+          "efferent": 3,
+          "instability_millis": 750
+        },
+        {
+          "module": "config",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "database",
+          "afferent": 1,
+          "efferent": 2,
+          "instability_millis": 667
+        },
+        {
+          "module": "docker",
+          "afferent": 2,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "docs",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "eslint.config.js",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "hocuspocus-server.mjs",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "public",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "resources",
+          "afferent": 2,
+          "efferent": 3,
+          "instability_millis": 600
+        },
+        {
+          "module": "routes",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "scripts",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "server.php",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "tests",
+          "afferent": 8,
+          "efferent": 4,
+          "instability_millis": 333
+        },
+        {
+          "module": "tools",
+          "afferent": 2,
+          "efferent": 2,
+          "instability_millis": 500
+        }
+      ]
+    }
+  },
+  "mcp": {
+    "process": {
+      "pid": 3827424,
+      "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-python-classes",
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+      "arguments": [
+        "mcp",
+        "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+        "--output-dir",
+        "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/python-classes-artifacts",
+        "--no-write"
+      ],
+      "started_at": "2026-09-10T01:58:54.535Z"
+    },
+    "requests": [
+      {
+        "id": 1,
+        "label": "initialize",
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2024-11-05",
+          "capabilities": {},
+          "clientInfo": {
+            "name": "aigiscode-python-class-review",
+            "version": "1"
+          }
+        },
+        "sent_ms": 4.464043,
+        "received_ms": 8.202033,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 2,
+        "label": "overview",
+        "method": "tools/call",
+        "params": {
+          "name": "repo_overview",
+          "arguments": {
+            "min_revision": 1,
+            "consistency": "wait_until_indexed",
+            "wait_ms": 120000
+          }
+        },
+        "sent_ms": 8.481104000000002,
+        "received_ms": 44895.805609,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 3,
+        "label": "account-home-symbol",
+        "method": "tools/call",
+        "params": {
+          "name": "find_symbol",
+          "arguments": {
+            "name": "FakePw",
+            "kind": "class",
+            "max_items": 20
+          }
+        },
+        "sent_ms": 44928.351460000005,
+        "received_ms": 44960.328848000005,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 4,
+        "label": "account-home-usages",
+        "method": "tools/call",
+        "params": {
+          "name": "symbol_usages",
+          "arguments": {
+            "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw"
+          }
+        },
+        "sent_ms": 44960.55310600001,
+        "received_ms": 44964.360398000004,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 5,
+        "label": "account-symlink-symbol",
+        "method": "tools/call",
+        "params": {
+          "name": "find_symbol",
+          "arguments": {
+            "name": "FakePw",
+            "kind": "class",
+            "max_items": 20
+          }
+        },
+        "sent_ms": 44964.549042000006,
+        "received_ms": 44992.630659,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 6,
+        "label": "account-symlink-usages",
+        "method": "tools/call",
+        "params": {
+          "name": "symbol_usages",
+          "arguments": {
+            "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw"
+          }
+        },
+        "sent_ms": 44992.825108000005,
+        "received_ms": 44996.536888,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 7,
+        "label": "account-missing-symbol",
+        "method": "tools/call",
+        "params": {
+          "name": "find_symbol",
+          "arguments": {
+            "name": "FakePw",
+            "kind": "class",
+            "max_items": 20
+          }
+        },
+        "sent_ms": 44996.687259000006,
+        "received_ms": 45025.356836000006,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 8,
+        "label": "account-missing-usages",
+        "method": "tools/call",
+        "params": {
+          "name": "symbol_usages",
+          "arguments": {
+            "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw"
+          }
+        },
+        "sent_ms": 45025.497177000005,
+        "received_ms": 45029.342698,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 9,
+        "label": "account-design",
+        "method": "tools/call",
+        "params": {
+          "name": "module_design",
+          "arguments": {
+            "path": "tools/satellite/tests/test_authorized_keys_audit.py",
+            "max_containers": 10
+          }
+        },
+        "sent_ms": 45029.585448000005,
+        "received_ms": 45114.053928,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 10,
+        "label": "cycles",
+        "method": "tools/call",
+        "params": {
+          "name": "show_cycles",
+          "arguments": {
+            "max_items": 100
+          }
+        },
+        "sent_ms": 45114.269961000005,
+        "received_ms": 45116.192396000006,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 11,
+        "label": "coverage",
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/coverage"
+        },
+        "sent_ms": 45116.460998,
+        "received_ms": 45116.727543,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 12,
+        "label": "quality",
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/quality"
+        },
+        "sent_ms": 45116.902308000004,
+        "received_ms": 45117.087678,
+        "error": null,
+        "is_error": false
+      },
+      {
+        "id": 13,
+        "label": "guard",
+        "method": "resources/read",
+        "params": {
+          "uri": "aigiscode://repo/current/guard"
+        },
+        "sent_ms": 45117.237960000006,
+        "received_ms": 45117.539128000004,
+        "error": null,
+        "is_error": false
+      }
+    ],
+    "exit": {
+      "code": 0,
+      "signal": null,
+      "elapsed_ms": 45549.446261000005
+    },
+    "overview_meta": {
+      "aigiscode/artifact_generation": {
+        "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/python-classes-artifacts/.generations/18d3d2f205e6f1e5-3a33d7-0",
+        "generation": "18d3d2f205e6f1e5-3a33d7-0",
+        "inputs_match_index": true
+      },
+      "aigiscode/ast_grep_coverage": {
+        "other_gap_files": 0,
+        "oversized_files": 0,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_files": 0
+      },
+      "aigiscode/freshness": {
+        "consistency_satisfied": true,
+        "dirty_path_count": 0,
+        "dirty_paths": [],
+        "generated_at_unix_ms": 1789005579423,
+        "indexed_revision": 1,
+        "is_stale": false,
+        "observed_revision": 1,
+        "rebuilding": false,
+        "revision": 1,
+        "watcher": "disabled"
+      },
+      "aigiscode/input_coverage": {
+        "files_without_parse_evidence": 0,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "status": "incomplete",
+        "unsupported_source_files": 146
+      }
+    },
+    "design": {
+      "container_count": 3,
+      "containers": [
+        {
+          "external_dependent_files": 0,
+          "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+          "kind": "class",
+          "method_count": 0,
+          "name": "FakePw",
+          "public_method_count": 0,
+          "public_signatures": []
+        },
+        {
+          "external_dependent_files": 0,
+          "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+          "kind": "class",
+          "method_count": 0,
+          "name": "FakePw",
+          "public_method_count": 0,
+          "public_signatures": []
+        },
+        {
+          "external_dependent_files": 0,
+          "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+          "kind": "class",
+          "method_count": 0,
+          "name": "FakePw",
+          "public_method_count": 0,
+          "public_signatures": []
+        }
+      ],
+      "file_count": 1,
+      "inbound_modules": [],
+      "outbound_modules": [],
+      "path": "tools/satellite/tests/test_authorized_keys_audit.py",
+      "truncated": false
+    },
+    "cycles": {
+      "strong_cycles": [
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Entities\\_Core\\Entity",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Contracts/EntityAuditWriter.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/Entity.php",
+              "target_symbol_id": "class:app/Entities/_Core/Entity.php:Entity"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 14,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Entities\\_Core\\Concerns\\SerializesToArray",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/Entity.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/Concerns/SerializesToArray.php",
+              "target_symbol_id": "trait:app/Entities/_Core/Concerns/SerializesToArray.php:SerializesToArray"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Entities\\_Core\\FieldNormalizer",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/Concerns/SerializesToArray.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/FieldNormalizer.php",
+              "target_symbol_id": "class:app/Entities/_Core/FieldNormalizer.php:FieldNormalizer"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 169,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "load",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/FieldNormalizer.php",
+              "source_symbol_id": "method:app/Entities/_Core/FieldNormalizer.php:class:app/Entities/_Core/FieldNormalizer.php:FieldNormalizer:normalizeDefinitions",
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/ActivityHistoryLoader.php",
+              "target_symbol_id": "method:app/Entities/_Core/ActivityHistoryLoader.php:class:app/Entities/_Core/ActivityHistoryLoader.php:ActivityHistoryLoader:load"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 446,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "getEntityTypes",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/ActivityHistoryLoader.php",
+              "source_symbol_id": "method:app/Entities/_Core/ActivityHistoryLoader.php:class:app/Entities/_Core/ActivityHistoryLoader.php:ActivityHistoryLoader:discoverEntityTypes",
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/EntityRegistry.php",
+              "target_symbol_id": "method:app/Entities/_Core/EntityRegistry.php:class:app/Entities/_Core/EntityRegistry.php:EntityRegistry:getEntityTypes"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 1105,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "load",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/EntityRegistry.php",
+              "source_symbol_id": "method:app/Entities/_Core/EntityRegistry.php:class:app/Entities/_Core/EntityRegistry.php:EntityRegistry:getUIConfig",
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/UILoader.php",
+              "target_symbol_id": "method:app/Entities/_Core/UILoader.php:class:app/Entities/_Core/UILoader.php:UILoader:load"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\_Core\\LayoutOverrideWriter",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/UILoader.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/LayoutOverrideWriter.php",
+              "target_symbol_id": "class:app/Services/_Core/LayoutOverrideWriter.php:LayoutOverrideWriter"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\_Core\\Audit\\ActionHistoryService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/LayoutOverrideWriter.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/Audit/ActionHistoryService.php",
+              "target_symbol_id": "class:app/Services/_Core/Audit/ActionHistoryService.php:ActionHistoryService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Contracts\\EntityAuditWriter",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/Audit/ActionHistoryService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Contracts/EntityAuditWriter.php",
+              "target_symbol_id": "interface:app/Contracts/EntityAuditWriter.php:EntityAuditWriter"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import",
+            "container_resolution"
+          ],
+          "edge_count": 396,
+          "files": [
+            "app/Contracts/EntityAuditWriter.php",
+            "app/Entities/StorageFile/StorageFile.php",
+            "app/Entities/Team/Team.php",
+            "app/Entities/User/User.php",
+            "app/Entities/_Core/ActivityHistoryLoader.php",
+            "app/Entities/_Core/CalendarConfigLoader.php",
+            "app/Entities/_Core/Concerns/HasDynamicProperties.php",
+            "app/Entities/_Core/Concerns/SerializesToArray.php",
+            "app/Entities/_Core/ConversionLoader.php",
+            "app/Entities/_Core/Cycle/CustomEntityFactory.php",
+            "app/Entities/_Core/Cycle/DynamicSchemaCompiler.php",
+            "app/Entities/_Core/Cycle/TenantSchemaProvider.php",
+            "app/Entities/_Core/Entity.php",
+            "app/Entities/_Core/EntityCodeDefinitionBuilder.php",
+            "app/Entities/_Core/EntityFeatureCatalog.php",
+            "app/Entities/_Core/EntityManager.php",
+            "app/Entities/_Core/EntityRegistry.php",
+            "app/Entities/_Core/FieldLoader.php",
+            "app/Entities/_Core/FieldNormalizer.php",
+            "app/Entities/_Core/FilterLoader.php"
+          ],
+          "layers": [
+            "structural",
+            "framework"
+          ],
+          "size": 46
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\Email\\EmailAuditRecordEnricher",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/Email/Email.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/Email/EmailAuditRecordEnricher.php",
+              "target_symbol_id": "class:app/Services/Email/EmailAuditRecordEnricher.php:EmailAuditRecordEnricher"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Entities\\Email\\Email",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Email/EmailAuditRecordEnricher.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Entities/Email/Email.php",
+              "target_symbol_id": "class:app/Entities/Email/Email.php:Email"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import"
+          ],
+          "edge_count": 15,
+          "files": [
+            "app/Entities/Email/Email.php",
+            "app/Services/Email/EmailAuditRecordEnricher.php",
+            "app/Services/Email/EmailSendAuditService.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 3
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 6,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\Email\\EmailSyncManager",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Jobs/Email/SyncAccountJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/Email/EmailSyncManager.php",
+              "target_symbol_id": "class:app/Services/Email/EmailSyncManager.php:EmailSyncManager"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Jobs\\Email\\SyncAccountJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Email/EmailSyncManager.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Jobs/Email/SyncAccountJob.php",
+              "target_symbol_id": "class:app/Jobs/Email/SyncAccountJob.php:SyncAccountJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 12,
+          "files": [
+            "app/Jobs/Email/SyncAccountJob.php",
+            "app/Jobs/Email/SyncFolderJob.php",
+            "app/Services/Email/EmailSyncManager.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime",
+            "framework"
+          ],
+          "size": 3
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 15,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Accounting\\Support\\SupplierInvoiceLifecycleContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php",
+              "target_symbol_id": "class:app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php:SupplierInvoiceLifecycleContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Accounting\\Services\\SupplierInvoiceAggregateService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php",
+              "target_symbol_id": "class:app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php:SupplierInvoiceAggregateService"
+            }
+          ],
+          "dominant_relations": [
+            "import"
+          ],
+          "edge_count": 2,
+          "files": [
+            "app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php",
+            "app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\CRM\\Support\\OpportunityLifecycleContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/CRM/Entities/Opportunity/Opportunity.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/CRM/Support/OpportunityLifecycleContract.php",
+              "target_symbol_id": "class:app/Modules/CRM/Support/OpportunityLifecycleContract.php:OpportunityLifecycleContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\CRM\\Entities\\Opportunity\\Opportunity",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/CRM/Support/OpportunityLifecycleContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/CRM/Entities/Opportunity/Opportunity.php",
+              "target_symbol_id": "class:app/Modules/CRM/Entities/Opportunity/Opportunity.php:Opportunity"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import"
+          ],
+          "edge_count": 6,
+          "files": [
+            "app/Modules/CRM/Entities/Opportunity/Opportunity.php",
+            "app/Modules/CRM/Support/OpportunityLifecycleContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ETL\\Services\\Import\\ImportExecutionAdapterRegistry",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php",
+              "target_symbol_id": "class:app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php:ImportExecutionAdapterRegistry"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ETL\\Contracts\\ImportExecutionAdapterContributor",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php",
+              "target_symbol_id": "interface:app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php:ImportExecutionAdapterContributor"
+            }
+          ],
+          "dominant_relations": [
+            "import"
+          ],
+          "edge_count": 2,
+          "files": [
+            "app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php",
+            "app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Services\\ExpiringMessages\\MattermostExpiringMessageService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php:MattermostExpiringMessageService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Jobs\\DeleteExpiredMattermostMessageJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php:DeleteExpiredMattermostMessageJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 4,
+          "files": [
+            "app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php",
+            "app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 10,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Services\\Calls\\MattermostPerSpeakerRecordingManifestService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php:MattermostPerSpeakerRecordingManifestService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Jobs\\ProcessMattermostPerSpeakerRecordingManifestJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php:ProcessMattermostPerSpeakerRecordingManifestJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 4,
+          "files": [
+            "app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php",
+            "app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ServerManager\\Services\\WebDecommissionService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ServerManager/Services/WebDecommissionService.php",
+              "target_symbol_id": "class:app/Modules/ServerManager/Services/WebDecommissionService.php:WebDecommissionService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 10,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ServerManager\\Jobs\\RetryWebDecommissionDeleteJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ServerManager/Services/WebDecommissionService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php",
+              "target_symbol_id": "class:app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php:RetryWebDecommissionDeleteJob"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import",
+            "container_resolution"
+          ],
+          "edge_count": 27,
+          "files": [
+            "app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php",
+            "app/Modules/ServerManager/Services/DomainStateService.php",
+            "app/Modules/ServerManager/Services/SatelliteService.php",
+            "app/Modules/ServerManager/Services/ServerSshKeyDeploymentService.php",
+            "app/Modules/ServerManager/Services/SshKeyVaultMirror.php",
+            "app/Modules/ServerManager/Services/WebDecommissionService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime",
+            "framework"
+          ],
+          "size": 6
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\SupportDesk\\Services\\Inbound\\SupportInboundTriageService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php",
+              "target_symbol_id": "class:app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php:SupportInboundTriageService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 68,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "findMailbox",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php",
+              "source_symbol_id": "method:app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php:class:app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php:SupportInboundTriageService:triageNewConversation",
+              "strength": "Hard",
+              "target_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php",
+              "target_symbol_id": "method:app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php:class:app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php:SupportDeskInboundEmailService:findMailbox"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 15,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\SupportDesk\\Jobs\\ClassifyInboundSupportEmailJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php",
+              "target_symbol_id": "class:app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php:ClassifyInboundSupportEmailJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 10,
+          "files": [
+            "app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php",
+            "app/Modules/SupportDesk/Jobs/TriageNewInboundSupportEmailJob.php",
+            "app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php",
+            "app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime"
+          ],
+          "size": 4
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Support\\CartStatusContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Entities/Cart/Cart.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Support/CartStatusContract.php",
+              "target_symbol_id": "class:app/Modules/Website/Support/CartStatusContract.php:CartStatusContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Entities\\Cart\\Cart",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Support/CartStatusContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Entities/Cart/Cart.php",
+              "target_symbol_id": "class:app/Modules/Website/Entities/Cart/Cart.php:Cart"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call"
+          ],
+          "edge_count": 3,
+          "files": [
+            "app/Modules/Website/Entities/Cart/Cart.php",
+            "app/Modules/Website/Support/CartStatusContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Support\\SiteLifecycleContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Entities/Site/Site.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Support/SiteLifecycleContract.php",
+              "target_symbol_id": "class:app/Modules/Website/Support/SiteLifecycleContract.php:SiteLifecycleContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Entities\\Site\\Site",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Support/SiteLifecycleContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Entities/Site/Site.php",
+              "target_symbol_id": "class:app/Modules/Website/Entities/Site/Site.php:Site"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call"
+          ],
+          "edge_count": 3,
+          "files": [
+            "app/Modules/Website/Entities/Site/Site.php",
+            "app/Modules/Website/Support/SiteLifecycleContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 758,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "generate",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Attachment/AttachmentService.php",
+              "source_symbol_id": "method:app/Services/Attachment/AttachmentService.php:class:app/Services/Attachment/AttachmentService.php:AttachmentService:generateThumbnail",
+              "strength": "Hard",
+              "target_file_path": "app/Services/Attachment/ThumbnailService.php",
+              "target_symbol_id": "method:app/Services/Attachment/ThumbnailService.php:class:app/Services/Attachment/ThumbnailService.php:ThumbnailService:generate"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 157,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "getContent",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Attachment/ThumbnailService.php",
+              "source_symbol_id": "method:app/Services/Attachment/ThumbnailService.php:class:app/Services/Attachment/ThumbnailService.php:ThumbnailService:generateImageThumbnail",
+              "strength": "Hard",
+              "target_file_path": "app/Services/Attachment/AttachmentService.php",
+              "target_symbol_id": "method:app/Services/Attachment/AttachmentService.php:class:app/Services/Attachment/AttachmentService.php:AttachmentService:getContent"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "container_resolution"
+          ],
+          "edge_count": 5,
+          "files": [
+            "app/Services/Attachment/AttachmentService.php",
+            "app/Services/Attachment/ThumbnailService.php"
+          ],
+          "layers": [
+            "structural",
+            "framework"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 11,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\_Core\\PermissionChecker",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Entity/ActivityHostAccessResolver.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/PermissionChecker.php",
+              "target_symbol_id": "class:app/Services/_Core/PermissionChecker.php:PermissionChecker"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 18,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\Entity\\ActivityHostAccessResolver",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/PermissionChecker.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/Entity/ActivityHostAccessResolver.php",
+              "target_symbol_id": "class:app/Services/Entity/ActivityHostAccessResolver.php:ActivityHostAccessResolver"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call"
+          ],
+          "edge_count": 4,
+          "files": [
+            "app/Services/Entity/ActivityHostAccessResolver.php",
+            "app/Services/_Core/PermissionChecker.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 240,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "escapeLikeWildcards",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/Filter/FilterJsonbHandler.php",
+              "source_symbol_id": "method:app/Services/_Core/Filter/FilterJsonbHandler.php:class:app/Services/_Core/Filter/FilterJsonbHandler.php:FilterJsonbHandler:applyJsonbFilter",
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/Filter/FilterQueryBuilder.php",
+              "target_symbol_id": "method:app/Services/_Core/Filter/FilterQueryBuilder.php:class:app/Services/_Core/Filter/FilterQueryBuilder.php:FilterQueryBuilder:escapeLikeWildcards"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 349,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "resolveJsonbFieldSpec",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/Filter/FilterQueryBuilder.php",
+              "source_symbol_id": "method:app/Services/_Core/Filter/FilterQueryBuilder.php:class:app/Services/_Core/Filter/FilterQueryBuilder.php:FilterQueryBuilder:applyAdvancedFilterToQuery",
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/Filter/FilterJsonbHandler.php",
+              "target_symbol_id": "method:app/Services/_Core/Filter/FilterJsonbHandler.php:class:app/Services/_Core/Filter/FilterJsonbHandler.php:FilterJsonbHandler:resolveJsonbFieldSpec"
+            }
+          ],
+          "dominant_relations": [
+            "call"
+          ],
+          "edge_count": 15,
+          "files": [
+            "app/Services/_Core/Filter/FilterJsonbHandler.php",
+            "app/Services/_Core/Filter/FilterQueryBuilder.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\svarc\\Services\\SvarcTransportDocumentAiParsingProposalDispatcher",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php",
+              "target_symbol_id": "class:clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php:SvarcTransportDocumentAiParsingProposalDispatcher"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 19,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\svarc\\Jobs\\SvarcTransportDocumentAiParsingProposalJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php",
+              "target_symbol_id": "class:clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php:SvarcTransportDocumentAiParsingProposalJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 5,
+          "files": [
+            "clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php",
+            "clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime",
+            "framework"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 14,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\xenium\\Services\\OpportunityProjectStatusSyncService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/xenium/Actions/Contract/ContractWorkflow.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/xenium/Services/OpportunityProjectStatusSyncService.php",
+              "target_symbol_id": "class:clients/xenium/Services/OpportunityProjectStatusSyncService.php:OpportunityProjectStatusSyncService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 11,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\xenium\\Actions\\Contract\\ContractWorkflow",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/xenium/Services/OpportunityProjectStatusSyncService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/xenium/Actions/Contract/ContractWorkflow.php",
+              "target_symbol_id": "class:clients/xenium/Actions/Contract/ContractWorkflow.php:ContractWorkflow"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import",
+            "container_resolution"
+          ],
+          "edge_count": 7,
+          "files": [
+            "clients/xenium/Actions/Contract/ContractWorkflow.php",
+            "clients/xenium/Services/OpportunityProjectStatusSyncService.php"
+          ],
+          "layers": [
+            "structural",
+            "framework"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 46,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/Components/Entity/EntityRelationPicker.vue::default",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Components/Email/EmailCompose.vue",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Components/Entity/EntityRelationPicker.vue",
+              "target_symbol_id": "module:resources/js/Components/Entity/EntityRelationPicker.vue"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 22,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/Components/Entity/EntityQuickCreateModal.vue::default",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Components/Entity/EntityRelationPicker.vue",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Components/Entity/EntityQuickCreateModal.vue",
+              "target_symbol_id": "module:resources/js/Components/Entity/EntityQuickCreateModal.vue"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 14,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/Components/Email/EmailCompose.vue",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Components/Entity/EntityQuickCreateModal.vue",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Components/Email/EmailCompose.vue",
+              "target_symbol_id": "module:resources/js/Components/Email/EmailCompose.vue"
+            }
+          ],
+          "dominant_relations": [
+            "import"
+          ],
+          "edge_count": 9,
+          "files": [
+            "resources/js/Components/Email/EmailCompose.vue",
+            "resources/js/Components/Entity/EntityQuickCreateModal.vue",
+            "resources/js/Components/Entity/EntityRelationPicker.vue",
+            "resources/js/Components/Filter/FilterBuilder.vue",
+            "resources/js/Components/Filter/FilterField.vue",
+            "resources/js/Components/Filter/FilterGroup.vue",
+            "resources/js/Components/fields/ParentRelationField.vue"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 7
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 4,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "./entityCreateSubmitRegistry::normalizeEntityCreateSubmitModule",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+              "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:normalizeEntityCreateSubmitModule"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 2,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "./entityCreateSubmitClientLoader::loadClientEntityCreateSubmitExtensions",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+              "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts:loadClientEntityCreateSubmitExtensions"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call"
+          ],
+          "edge_count": 3,
+          "files": [
+            "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+            "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        }
+      ],
+      "total_cycles": [
+        {
+          "cycle_class": "Probable Artifact",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 5,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\_Core\\TenantManager",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Console/Commands/Concerns/RequiresTenant.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/TenantManager.php",
+              "target_symbol_id": "class:app/Services/_Core/TenantManager.php:TenantManager"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 103,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "resetAll",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/TenantManager.php",
+              "source_symbol_id": "method:app/Services/_Core/TenantManager.php:class:app/Services/_Core/TenantManager.php:TenantManager:applyTenantContext",
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/CoreMetadataReset.php",
+              "target_symbol_id": "method:app/Services/_Core/CoreMetadataReset.php:class:app/Services/_Core/CoreMetadataReset.php:CoreMetadataReset:resetAll"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 18,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Entities\\_Core\\PermissionLoader",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/CoreMetadataReset.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Entities/_Core/PermissionLoader.php",
+              "target_symbol_id": "class:app/Entities/_Core/PermissionLoader.php:PermissionLoader"
+            },
+            {
+              "confidence_millis": 500,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 1455,
+              "occurrence_index": 1,
+              "origin": "Resolver",
+              "reason": "call:import-scoped; target matches test-source conventions, production visibility is unproven",
+              "reference_target_name": "where",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/_Core/PermissionLoader.php",
+              "source_symbol_id": "method:app/Entities/_Core/PermissionLoader.php:class:app/Entities/_Core/PermissionLoader.php:PermissionLoader:prepareRolePermissionsWrite",
+              "strength": "Inferred",
+              "target_file_path": "app/Modules/Mattermost/Tests/Unit/ReconcileCallRecordingArtifactsCommandTest.php",
+              "target_symbol_id": "method:app/Modules/Mattermost/Tests/Unit/ReconcileCallRecordingArtifactsCommandTest.php:class:app/Modules/Mattermost/Tests/Unit/ReconcileCallRecordingArtifactsCommandTest.php:ReconcileCallRecordingArtifactsFakeQuery:where"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Console\\Commands\\ReconcileCallRecordingArtifactsCommand",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Tests/Unit/ReconcileCallRecordingArtifactsCommandTest.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Console/Commands/ReconcileCallRecordingArtifactsCommand.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Console/Commands/ReconcileCallRecordingArtifactsCommand.php:ReconcileCallRecordingArtifactsCommand"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Console\\Commands\\Concerns\\RequiresTenant",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Console/Commands/ReconcileCallRecordingArtifactsCommand.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Console/Commands/Concerns/RequiresTenant.php",
+              "target_symbol_id": "trait:app/Console/Commands/Concerns/RequiresTenant.php:RequiresTenant"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import",
+            "type_use"
+          ],
+          "edge_count": 811,
+          "files": [
+            "app/Console/Commands/Concerns/RequiresTenant.php",
+            "app/Contracts/EntityAuditWriter.php",
+            "app/Entities/StorageFile/StorageFile.php",
+            "app/Entities/Team/Team.php",
+            "app/Entities/User/User.php",
+            "app/Entities/_Core/ActivityHistoryLoader.php",
+            "app/Entities/_Core/CalendarConfigLoader.php",
+            "app/Entities/_Core/CommandFieldWritePolicy.php",
+            "app/Entities/_Core/Concerns/HasDynamicProperties.php",
+            "app/Entities/_Core/Concerns/SerializesToArray.php",
+            "app/Entities/_Core/ConversionLoader.php",
+            "app/Entities/_Core/Cycle/CustomEntityFactory.php",
+            "app/Entities/_Core/Cycle/DynamicSchemaCompiler.php",
+            "app/Entities/_Core/Cycle/HookAwareMapper.php",
+            "app/Entities/_Core/Cycle/TenantSchemaProvider.php",
+            "app/Entities/_Core/Entity.php",
+            "app/Entities/_Core/EntityCodeDefinitionBuilder.php",
+            "app/Entities/_Core/EntityDeleteSideEffects.php",
+            "app/Entities/_Core/EntityDeleter.php",
+            "app/Entities/_Core/EntityFeatureCatalog.php"
+          ],
+          "layers": [
+            "structural",
+            "framework"
+          ],
+          "size": 79
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\Email\\EmailAuditRecordEnricher",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Entities/Email/Email.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/Email/EmailAuditRecordEnricher.php",
+              "target_symbol_id": "class:app/Services/Email/EmailAuditRecordEnricher.php:EmailAuditRecordEnricher"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Entities\\Email\\Email",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Email/EmailAuditRecordEnricher.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Entities/Email/Email.php",
+              "target_symbol_id": "class:app/Entities/Email/Email.php:Email"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "type_use",
+            "import"
+          ],
+          "edge_count": 21,
+          "files": [
+            "app/Entities/Email/Email.php",
+            "app/Services/Email/EmailAuditRecordEnricher.php",
+            "app/Services/Email/EmailSendAuditService.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 3
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 6,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\Email\\EmailSyncManager",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Jobs/Email/SyncAccountJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/Email/EmailSyncManager.php",
+              "target_symbol_id": "class:app/Services/Email/EmailSyncManager.php:EmailSyncManager"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Jobs\\Email\\SyncAccountJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Email/EmailSyncManager.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Jobs/Email/SyncAccountJob.php",
+              "target_symbol_id": "class:app/Jobs/Email/SyncAccountJob.php:SyncAccountJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 13,
+          "files": [
+            "app/Jobs/Email/SyncAccountJob.php",
+            "app/Jobs/Email/SyncFolderJob.php",
+            "app/Services/Email/EmailSyncManager.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime",
+            "framework"
+          ],
+          "size": 3
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 15,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Accounting\\Support\\SupplierInvoiceLifecycleContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php",
+              "target_symbol_id": "class:app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php:SupplierInvoiceLifecycleContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Accounting\\Services\\SupplierInvoiceAggregateService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php",
+              "target_symbol_id": "class:app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php:SupplierInvoiceAggregateService"
+            }
+          ],
+          "dominant_relations": [
+            "import"
+          ],
+          "edge_count": 2,
+          "files": [
+            "app/Modules/Accounting/Services/SupplierInvoiceAggregateService.php",
+            "app/Modules/Accounting/Support/SupplierInvoiceLifecycleContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\CRM\\Support\\OpportunityLifecycleContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/CRM/Entities/Opportunity/Opportunity.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/CRM/Support/OpportunityLifecycleContract.php",
+              "target_symbol_id": "class:app/Modules/CRM/Support/OpportunityLifecycleContract.php:OpportunityLifecycleContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\CRM\\Entities\\Opportunity\\Opportunity",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/CRM/Support/OpportunityLifecycleContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/CRM/Entities/Opportunity/Opportunity.php",
+              "target_symbol_id": "class:app/Modules/CRM/Entities/Opportunity/Opportunity.php:Opportunity"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import"
+          ],
+          "edge_count": 6,
+          "files": [
+            "app/Modules/CRM/Entities/Opportunity/Opportunity.php",
+            "app/Modules/CRM/Support/OpportunityLifecycleContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 500,
+              "kind": "Type",
+              "layer": "Structural",
+              "line": 39,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type:global",
+              "reference_target_name": "DataBoxClient",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "Global",
+              "source_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php",
+              "source_symbol_id": "method:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:class:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:DataBoxApi:__construct",
+              "strength": "Inferred",
+              "target_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php",
+              "target_symbol_id": "class:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:DataBoxClient"
+            },
+            {
+              "confidence_millis": 500,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 40,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:global",
+              "reference_target_name": "DataBoxApi",
+              "relation_kind": "Call",
+              "resolution_tier": "Global",
+              "source_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php",
+              "source_symbol_id": "method:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:class:app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php:DataBoxClient:__construct",
+              "strength": "Inferred",
+              "target_file_path": "app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php",
+              "target_symbol_id": "class:app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php:DataBoxApi"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "type_use"
+          ],
+          "edge_count": 3,
+          "files": [
+            "app/Modules/DataBox/Services/CzechDataBox/DataBoxApi.php",
+            "app/Modules/DataBox/Services/CzechDataBox/DataBoxClient.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ETL\\Services\\Import\\ImportExecutionAdapterRegistry",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php",
+              "target_symbol_id": "class:app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php:ImportExecutionAdapterRegistry"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ETL\\Contracts\\ImportExecutionAdapterContributor",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php",
+              "target_symbol_id": "interface:app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php:ImportExecutionAdapterContributor"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "type_use"
+          ],
+          "edge_count": 3,
+          "files": [
+            "app/Modules/ETL/Contracts/ImportExecutionAdapterContributor.php",
+            "app/Modules/ETL/Services/Import/ImportExecutionAdapterRegistry.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Services\\ExpiringMessages\\MattermostExpiringMessageService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php:MattermostExpiringMessageService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Jobs\\DeleteExpiredMattermostMessageJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php:DeleteExpiredMattermostMessageJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 5,
+          "files": [
+            "app/Modules/Mattermost/Jobs/DeleteExpiredMattermostMessageJob.php",
+            "app/Modules/Mattermost/Services/ExpiringMessages/MattermostExpiringMessageService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 10,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Services\\Calls\\MattermostPerSpeakerRecordingManifestService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php:MattermostPerSpeakerRecordingManifestService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Mattermost\\Jobs\\ProcessMattermostPerSpeakerRecordingManifestJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php",
+              "target_symbol_id": "class:app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php:ProcessMattermostPerSpeakerRecordingManifestJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "type_use",
+            "call"
+          ],
+          "edge_count": 6,
+          "files": [
+            "app/Modules/Mattermost/Jobs/ProcessMattermostPerSpeakerRecordingManifestJob.php",
+            "app/Modules/Mattermost/Services/Calls/MattermostPerSpeakerRecordingManifestService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ServerManager\\Services\\WebDecommissionService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ServerManager/Services/WebDecommissionService.php",
+              "target_symbol_id": "class:app/Modules/ServerManager/Services/WebDecommissionService.php:WebDecommissionService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 10,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\ServerManager\\Jobs\\RetryWebDecommissionDeleteJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/ServerManager/Services/WebDecommissionService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php",
+              "target_symbol_id": "class:app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php:RetryWebDecommissionDeleteJob"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "type_use",
+            "import"
+          ],
+          "edge_count": 33,
+          "files": [
+            "app/Modules/ServerManager/Jobs/RetryWebDecommissionDeleteJob.php",
+            "app/Modules/ServerManager/Services/DomainStateService.php",
+            "app/Modules/ServerManager/Services/SatelliteService.php",
+            "app/Modules/ServerManager/Services/ServerSshKeyDeploymentService.php",
+            "app/Modules/ServerManager/Services/SshKeyVaultMirror.php",
+            "app/Modules/ServerManager/Services/WebDecommissionService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime",
+            "framework"
+          ],
+          "size": 6
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\SupportDesk\\Services\\Inbound\\SupportInboundTriageService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php",
+              "target_symbol_id": "class:app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php:SupportInboundTriageService"
+            },
+            {
+              "confidence_millis": 500,
+              "kind": "Type",
+              "layer": "Structural",
+              "line": 47,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type:global",
+              "reference_target_name": "SupportDeskInboundEmailService",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "Global",
+              "source_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php",
+              "source_symbol_id": "method:app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php:class:app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php:SupportInboundTriageService:__construct",
+              "strength": "Inferred",
+              "target_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php",
+              "target_symbol_id": "class:app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php:SupportDeskInboundEmailService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 15,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\SupportDesk\\Jobs\\ClassifyInboundSupportEmailJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php",
+              "target_symbol_id": "class:app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php:ClassifyInboundSupportEmailJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "type_use"
+          ],
+          "edge_count": 13,
+          "files": [
+            "app/Modules/SupportDesk/Jobs/ClassifyInboundSupportEmailJob.php",
+            "app/Modules/SupportDesk/Jobs/TriageNewInboundSupportEmailJob.php",
+            "app/Modules/SupportDesk/Services/Inbound/SupportDeskInboundEmailService.php",
+            "app/Modules/SupportDesk/Services/Inbound/SupportInboundTriageService.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime"
+          ],
+          "size": 4
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Support\\CartStatusContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Entities/Cart/Cart.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Support/CartStatusContract.php",
+              "target_symbol_id": "class:app/Modules/Website/Support/CartStatusContract.php:CartStatusContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Entities\\Cart\\Cart",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Support/CartStatusContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Entities/Cart/Cart.php",
+              "target_symbol_id": "class:app/Modules/Website/Entities/Cart/Cart.php:Cart"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call"
+          ],
+          "edge_count": 3,
+          "files": [
+            "app/Modules/Website/Entities/Cart/Cart.php",
+            "app/Modules/Website/Support/CartStatusContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 9,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Support\\SiteLifecycleContract",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Entities/Site/Site.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Support/SiteLifecycleContract.php",
+              "target_symbol_id": "class:app/Modules/Website/Support/SiteLifecycleContract.php:SiteLifecycleContract"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 7,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Modules\\Website\\Entities\\Site\\Site",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Modules/Website/Support/SiteLifecycleContract.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Modules/Website/Entities/Site/Site.php",
+              "target_symbol_id": "class:app/Modules/Website/Entities/Site/Site.php:Site"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call"
+          ],
+          "edge_count": 3,
+          "files": [
+            "app/Modules/Website/Entities/Site/Site.php",
+            "app/Modules/Website/Support/SiteLifecycleContract.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 758,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "generate",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Attachment/AttachmentService.php",
+              "source_symbol_id": "method:app/Services/Attachment/AttachmentService.php:class:app/Services/Attachment/AttachmentService.php:AttachmentService:generateThumbnail",
+              "strength": "Hard",
+              "target_file_path": "app/Services/Attachment/ThumbnailService.php",
+              "target_symbol_id": "method:app/Services/Attachment/ThumbnailService.php:class:app/Services/Attachment/ThumbnailService.php:ThumbnailService:generate"
+            },
+            {
+              "confidence_millis": 500,
+              "kind": "Type",
+              "layer": "Structural",
+              "line": 48,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type:global",
+              "reference_target_name": "AttachmentService",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "Global",
+              "source_file_path": "app/Services/Attachment/ThumbnailService.php",
+              "source_symbol_id": "method:app/Services/Attachment/ThumbnailService.php:class:app/Services/Attachment/ThumbnailService.php:ThumbnailService:__construct",
+              "strength": "Inferred",
+              "target_file_path": "app/Services/Attachment/AttachmentService.php",
+              "target_symbol_id": "class:app/Services/Attachment/AttachmentService.php:AttachmentService"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "container_resolution",
+            "type_use"
+          ],
+          "edge_count": 6,
+          "files": [
+            "app/Services/Attachment/AttachmentService.php",
+            "app/Services/Attachment/ThumbnailService.php"
+          ],
+          "layers": [
+            "structural",
+            "framework"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 11,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\_Core\\PermissionChecker",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/Entity/ActivityHostAccessResolver.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/PermissionChecker.php",
+              "target_symbol_id": "class:app/Services/_Core/PermissionChecker.php:PermissionChecker"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 18,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "App\\Services\\Entity\\ActivityHostAccessResolver",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/PermissionChecker.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "app/Services/Entity/ActivityHostAccessResolver.php",
+              "target_symbol_id": "class:app/Services/Entity/ActivityHostAccessResolver.php:ActivityHostAccessResolver"
+            }
+          ],
+          "dominant_relations": [
+            "type_use",
+            "import",
+            "call"
+          ],
+          "edge_count": 7,
+          "files": [
+            "app/Services/Entity/ActivityHostAccessResolver.php",
+            "app/Services/_Core/PermissionChecker.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Call",
+              "layer": "Structural",
+              "line": 240,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "call:import-scoped",
+              "reference_target_name": "escapeLikeWildcards",
+              "relation_kind": "Call",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "app/Services/_Core/Filter/FilterJsonbHandler.php",
+              "source_symbol_id": "method:app/Services/_Core/Filter/FilterJsonbHandler.php:class:app/Services/_Core/Filter/FilterJsonbHandler.php:FilterJsonbHandler:applyJsonbFilter",
+              "strength": "Hard",
+              "target_file_path": "app/Services/_Core/Filter/FilterQueryBuilder.php",
+              "target_symbol_id": "method:app/Services/_Core/Filter/FilterQueryBuilder.php:class:app/Services/_Core/Filter/FilterQueryBuilder.php:FilterQueryBuilder:escapeLikeWildcards"
+            },
+            {
+              "confidence_millis": 500,
+              "kind": "Type",
+              "layer": "Structural",
+              "line": 41,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type:global",
+              "reference_target_name": "FilterJsonbHandler",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "Global",
+              "source_file_path": "app/Services/_Core/Filter/FilterQueryBuilder.php",
+              "source_symbol_id": "method:app/Services/_Core/Filter/FilterQueryBuilder.php:class:app/Services/_Core/Filter/FilterQueryBuilder.php:FilterQueryBuilder:__construct",
+              "strength": "Inferred",
+              "target_file_path": "app/Services/_Core/Filter/FilterJsonbHandler.php",
+              "target_symbol_id": "class:app/Services/_Core/Filter/FilterJsonbHandler.php:FilterJsonbHandler"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "type_use"
+          ],
+          "edge_count": 16,
+          "files": [
+            "app/Services/_Core/Filter/FilterJsonbHandler.php",
+            "app/Services/_Core/Filter/FilterQueryBuilder.php"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 8,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\svarc\\Services\\SvarcTransportDocumentAiParsingProposalDispatcher",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php",
+              "target_symbol_id": "class:clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php:SvarcTransportDocumentAiParsingProposalDispatcher"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 19,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\svarc\\Jobs\\SvarcTransportDocumentAiParsingProposalJob",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php",
+              "target_symbol_id": "class:clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php:SvarcTransportDocumentAiParsingProposalJob"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "dispatch"
+          ],
+          "edge_count": 5,
+          "files": [
+            "clients/svarc/Jobs/SvarcTransportDocumentAiParsingProposalJob.php",
+            "clients/svarc/Services/SvarcTransportDocumentAiParsingProposalDispatcher.php"
+          ],
+          "layers": [
+            "structural",
+            "runtime",
+            "framework"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Mixed",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 14,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\xenium\\Services\\OpportunityProjectStatusSyncService",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/xenium/Actions/Contract/ContractWorkflow.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/xenium/Services/OpportunityProjectStatusSyncService.php",
+              "target_symbol_id": "class:clients/xenium/Services/OpportunityProjectStatusSyncService.php:OpportunityProjectStatusSyncService"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 11,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "Clients\\xenium\\Actions\\Contract\\ContractWorkflow",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "clients/xenium/Services/OpportunityProjectStatusSyncService.php",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "clients/xenium/Actions/Contract/ContractWorkflow.php",
+              "target_symbol_id": "class:clients/xenium/Actions/Contract/ContractWorkflow.php:ContractWorkflow"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import",
+            "container_resolution"
+          ],
+          "edge_count": 7,
+          "files": [
+            "clients/xenium/Actions/Contract/ContractWorkflow.php",
+            "clients/xenium/Services/OpportunityProjectStatusSyncService.php"
+          ],
+          "layers": [
+            "structural",
+            "framework"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 46,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/Components/Entity/EntityRelationPicker.vue::default",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Components/Email/EmailCompose.vue",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Components/Entity/EntityRelationPicker.vue",
+              "target_symbol_id": "module:resources/js/Components/Entity/EntityRelationPicker.vue"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 22,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/Components/Entity/EntityQuickCreateModal.vue::default",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Components/Entity/EntityRelationPicker.vue",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Components/Entity/EntityQuickCreateModal.vue",
+              "target_symbol_id": "module:resources/js/Components/Entity/EntityQuickCreateModal.vue"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 14,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/Components/Email/EmailCompose.vue",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Components/Entity/EntityQuickCreateModal.vue",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Components/Email/EmailCompose.vue",
+              "target_symbol_id": "module:resources/js/Components/Email/EmailCompose.vue"
+            }
+          ],
+          "dominant_relations": [
+            "import"
+          ],
+          "edge_count": 13,
+          "files": [
+            "resources/js/Components/Email/EmailCompose.vue",
+            "resources/js/Components/Entity/EntityFieldInput.vue",
+            "resources/js/Components/Entity/EntityQuickCreateModal.vue",
+            "resources/js/Components/Entity/EntityRelationPicker.vue",
+            "resources/js/Components/Filter/FilterBuilder.vue",
+            "resources/js/Components/Filter/FilterField.vue",
+            "resources/js/Components/Filter/FilterGroup.vue",
+            "resources/js/Components/fields/ParentRelationField.vue",
+            "resources/js/Pages/Entity/components/EntityCreateSurface.vue"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 9
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "TypeImport",
+              "layer": "Structural",
+              "line": 3,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type-import:import-scoped",
+              "reference_target_name": "./entityCreateSubmitRegistry::EntityCreateSubmitExtension",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+              "target_symbol_id": "interface:resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts:EntityCreateSubmitExtension"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 2,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "./entityCreateSubmitClientLoader::loadClientEntityCreateSubmitExtensions",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+              "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts:loadClientEntityCreateSubmitExtensions"
+            }
+          ],
+          "dominant_relations": [
+            "import",
+            "call",
+            "type_use"
+          ],
+          "edge_count": 4,
+          "files": [
+            "resources/js/Pages/Entity/composables/entityCreateSubmitClientLoader.ts",
+            "resources/js/Pages/Entity/composables/entityCreateSubmitRegistry.ts"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "TypeImport",
+              "layer": "Structural",
+              "line": 2,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type-import:import-scoped",
+              "reference_target_name": "./entityFormExtensionRegistry::EntityFormExtension",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+              "target_symbol_id": "interface:resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts:EntityFormExtension"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 10,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "./entityFormClientExtensionLoader::getPreloadedEntityFormClientExtensions",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+              "target_symbol_id": "function:resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts:getPreloadedEntityFormClientExtensions"
+            }
+          ],
+          "dominant_relations": [
+            "type_use",
+            "import",
+            "call"
+          ],
+          "edge_count": 4,
+          "files": [
+            "resources/js/Pages/Entity/composables/entityFormClientExtensionLoader.ts",
+            "resources/js/Pages/Entity/composables/entityFormExtensionRegistry.ts"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        },
+        {
+          "cycle_class": "Structural",
+          "directed_witness": [
+            {
+              "confidence_millis": 900,
+              "kind": "Import",
+              "layer": "Structural",
+              "line": 38,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "import:import-scoped",
+              "reference_target_name": "@/utils/widgetGrid::createWidgetGridBlock",
+              "relation_kind": "Import",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/composables/useEntityLayout.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/utils/widgetGrid.ts",
+              "target_symbol_id": "function:resources/js/utils/widgetGrid.ts:createWidgetGridBlock"
+            },
+            {
+              "confidence_millis": 900,
+              "kind": "TypeImport",
+              "layer": "Structural",
+              "line": 24,
+              "occurrence_index": 0,
+              "origin": "Resolver",
+              "reason": "type-import:import-scoped",
+              "reference_target_name": "@/composables/useEntityLayout::LayoutBlock",
+              "relation_kind": "TypeUse",
+              "resolution_tier": "ImportScoped",
+              "source_file_path": "resources/js/utils/widgetGrid.ts",
+              "source_symbol_id": null,
+              "strength": "Hard",
+              "target_file_path": "resources/js/composables/useEntityLayout.ts",
+              "target_symbol_id": "interface:resources/js/composables/useEntityLayout.ts:LayoutBlock"
+            }
+          ],
+          "dominant_relations": [
+            "call",
+            "import",
+            "type_use"
+          ],
+          "edge_count": 21,
+          "files": [
+            "resources/js/composables/useEntityLayout.ts",
+            "resources/js/utils/widgetGrid.ts"
+          ],
+          "layers": [
+            "structural"
+          ],
+          "size": 2
+        }
+      ]
+    },
+    "witnesses": [
+      {
+        "label": "account-home",
+        "symbols": {
+          "matches": [
+            {
+              "end_line": 102,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 99,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+              "visibility": "public"
+            },
+            {
+              "end_line": 124,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 121,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+              "visibility": "public"
+            },
+            {
+              "end_line": 136,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 133,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+              "visibility": "public"
+            }
+          ],
+          "query": "FakePw",
+          "total_matches": 3,
+          "truncated": false
+        },
+        "usages": {
+          "distinct_files": 1,
+          "query": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+          "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+          "total_edges": 1,
+          "truncated": false,
+          "usages": [
+            {
+              "edge_count": 1,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "kinds": [
+                "call"
+              ],
+              "lines": [
+                104
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "account-symlink",
+        "symbols": {
+          "matches": [
+            {
+              "end_line": 102,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 99,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+              "visibility": "public"
+            },
+            {
+              "end_line": 124,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 121,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+              "visibility": "public"
+            },
+            {
+              "end_line": 136,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 133,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+              "visibility": "public"
+            }
+          ],
+          "query": "FakePw",
+          "total_matches": 3,
+          "truncated": false
+        },
+        "usages": {
+          "distinct_files": 1,
+          "query": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+          "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+          "total_edges": 1,
+          "truncated": false,
+          "usages": [
+            {
+              "edge_count": 1,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "kinds": [
+                "call"
+              ],
+              "lines": [
+                126
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "account-missing",
+        "symbols": {
+          "matches": [
+            {
+              "end_line": 102,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 99,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+              "visibility": "public"
+            },
+            {
+              "end_line": 124,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 121,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+              "visibility": "public"
+            },
+            {
+              "end_line": 136,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "inbound_edges": 1,
+              "inbound_files": 1,
+              "kind": "class",
+              "name": "FakePw",
+              "parameter_count": 0,
+              "qualified_name": "FakePw",
+              "start_line": 133,
+              "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+              "visibility": "public"
+            }
+          ],
+          "query": "FakePw",
+          "total_matches": 3,
+          "truncated": false
+        },
+        "usages": {
+          "distinct_files": 1,
+          "query": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+          "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+          "total_edges": 1,
+          "truncated": false,
+          "usages": [
+            {
+              "edge_count": 1,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "kinds": [
+                "call"
+              ],
+              "lines": [
+                138
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/1.json",
+        "bytes": 523,
+        "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/10.json",
+        "bytes": 156486,
+        "sha256": "eaf1f3dba0d38a7f8c978d79a885a060dab9dbcbebc1a07fbbbe6216a6f839b0"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/11.json",
+        "bytes": 15947,
+        "sha256": "00eb66eff4bb2d56c273af229bd92090162dad75347b1b3518b4be0caef5ce82"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/12.json",
+        "bytes": 19579,
+        "sha256": "aa6b2524a953bfbc48710deee6e6ab29587c931555e253cf78d186df9144b2b0"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/13.json",
+        "bytes": 60280,
+        "sha256": "a744f2a7bd7f3100f76daca54658eded7fe3f9ea104ac601f3384bb601b7b8e0"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/2.json",
+        "bytes": 291993,
+        "sha256": "e6891452afd2c810f9d6ea8bb88b614fc2f838ddd391dd1c2e8241dfc65185fa"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/3.json",
+        "bytes": 3711,
+        "sha256": "3223ac29d96bff219d038a160cce34473ecb012c3c4b2b4c60f3a4d01247a50e"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/4.json",
+        "bytes": 2019,
+        "sha256": "98203b3eb4df3687328427b8ab20b76b83ec9f13ee169bd78600b4e480c02256"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/5.json",
+        "bytes": 3711,
+        "sha256": "100ff4b9c96a55b415c51ffd4c24c7f7b017701ab49a19445bc0fba651ddf42e"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/6.json",
+        "bytes": 2095,
+        "sha256": "f214ccdb356b5b7902270f555a6fd19b20f54d8deecf49a1c074629695f1f57d"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/7.json",
+        "bytes": 3711,
+        "sha256": "9ee057e57286fc272713dd7c9a2bdf7bb3d7705b13b2e3afc1490345c19bbfeb"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/8.json",
+        "bytes": 2059,
+        "sha256": "589dbaedcaf47de071ca8448248e44fc3b339dcbe7fee2e990958107953b8e94"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/9.json",
+        "bytes": 2495,
+        "sha256": "58f7b10efd54d306621bfe670bc3c9ba25995e9a5026cb842e6f5a91c8a45915"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-design.json",
+        "bytes": 979,
+        "sha256": "5b09c7510f452c1fe371201a5902afeabe051a1691fbd9a3d50442d52b966307"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-home-symbol.json",
+        "bytes": 1653,
+        "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-home-usages.json",
+        "bytes": 637,
+        "sha256": "acd77f81f06e9ed6649b6e4c9b08d9cc750a48a4e2ad4318582626fe7183f835"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-missing-symbol.json",
+        "bytes": 1653,
+        "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-missing-usages.json",
+        "bytes": 657,
+        "sha256": "43b3eef929763638a779635d24e239e2421395f5dc8b5d4888a5005c60afd693"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-symlink-symbol.json",
+        "bytes": 1653,
+        "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/account-symlink-usages.json",
+        "bytes": 675,
+        "sha256": "c1fd3af029219a734ca9e591eea71c431ea6be10c9ac18c35fb9fbf7dd214769"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/coverage.json",
+        "bytes": 13631,
+        "sha256": "248a551297c088658b6c437ec601f8b92de2822bcb0c6b746a912d80863e1ff9"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/cycles.json",
+        "bytes": 100206,
+        "sha256": "e06f2f2b8067392a7bfc13aca06ffb70b5437b3684c629dd0fab1c9991371f15"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/exit.json",
+        "bytes": 56,
+        "sha256": "616bb22c0c78ceadf1df777a0737626bec71ee715269c62694ecb0f44c8eb214"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/guard.json",
+        "bytes": 57139,
+        "sha256": "55fa6b8e0aaee4f0fa99889cc20cd275047423de47985f3873e7eb1228815748"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/overview.json",
+        "bytes": 197335,
+        "sha256": "4182f7580cf7c2a0f6881ff21d2f5243fae601a02e7804eb643781e37ad26445"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/process.json",
+        "bytes": 517,
+        "sha256": "da00a9fbdbfa0b41ba784882b859237694ef6e9d09b6f788b1a975d57fd3da02"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/quality.json",
+        "bytes": 17050,
+        "sha256": "3f33b552a00f16056ecf0ab85cef7260ce87089c7d32c3b2b6d19d20f170f782"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/requests.json",
+        "bytes": 4674,
+        "sha256": "1f77a5f3d92e99a29ea3f910e337083971dcdaf87929f200db4b21447cc7231a"
+      },
+      {
+        "path": "target/reliability-2026-09-09/python-classes-mcp/stderr.txt",
+        "bytes": 6832432,
+        "sha256": "d904c6b33094eec457d9947d0caa646366b7b47dbb43f7a82aeda372fb445c5e"
+      }
+    ]
+  },
+  "self_audit": {
+    "wall": "0:03.09",
+    "peak_rss_kib": 162012,
+    "exit": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "complete",
+        "input_files": 121,
+        "scanned_files": 57,
+        "prefiltered_files": 64,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 0,
+        "gap_bytes": 0,
+        "gap_files_preview": []
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 121,
+        "parsed_source_files": 121,
+        "recovered_source_files": 2,
+        "scope_limited_files": 0,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 2,
+        "other_input_files": 143,
+        "diagnostic_count": 2,
+        "parse_issues_preview": [
+          {
+            "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 249,
+                "start_column": 50,
+                "end_line": 249,
+                "end_column": 54
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 2357,
+                "start_column": 57,
+                "end_line": 2357,
+                "end_column": 61
+              }
+            ],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "install.ps1",
+            "extension": "ps1"
+          },
+          {
+            "file_path": "install.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 266,
+      "analyzed_files": 121,
+      "symbols": 2848,
+      "references": 35165,
+      "resolved_edges": 6284,
+      "strong_cycle_count": 11,
+      "total_cycle_count": 3,
+      "architectural_smell_count": 0,
+      "warning_heavy_hotspot_count": 13,
+      "split_identity_model_count": 0,
+      "compatibility_scar_count": 0,
+      "duplicate_mechanism_count": 0,
+      "hand_rolled_parsing_count": 0,
+      "abstraction_sprawl_count": 0,
+      "algorithmic_complexity_hotspot_count": 87,
+      "ast_grep_finding_count": 54,
+      "ast_grep_algorithmic_complexity_count": 29,
+      "ast_grep_security_dangerous_api_count": 1,
+      "ast_grep_framework_misuse_count": 24,
+      "ast_grep_skipped_file_count": 64,
+      "ast_grep_skipped_bytes": 578581,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2723,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscore.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/coverage.rs",
+          "bytes": 6771,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/detectors/mod.rs",
+          "bytes": 92,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 789,
+      "security_finding_count": 0,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/self-python-classes-result.json",
+        "bytes": 7355,
+        "sha256": "c75b41698d01bf4a90832dcfb69e7226264fba622ad1a930c2e0013bb28e5d3c"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-python-classes-time.txt",
+        "bytes": 1012,
+        "sha256": "1d7faf99abc9890e5847b10908fca32b74c3cb4f33fd507a88105f8767ed0824"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-python-classes-trace.txt",
+        "bytes": 56015,
+        "sha256": "c00f4eb703698e9f0b48c29783a64f95f6307291c9ee39a402dc29feb6fefd46"
+      }
+    ]
+  },
+  "integrity": {
+    "completed_at": "2026-09-10T02:00:54.546Z",
+    "results": [
+      {
+        "name": "draivix-capture-identity-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "Two parser/resolver regressions were written and source-reviewed, not executed or compiled as test targets. Tests, CI and local quality gates remain paused.",
+    "This unit gives function-local Python classes distinct IDs and binds collected constructor/type/heritage references for affected names. It does not claim complete Python execution semantics.",
+    "Instance/inherited dispatch, factories, dynamic rebinding, metaclass behavior, initialization order and version-specific annotation scopes remain unsupported by this bounded proof. Comprehensions and scoped imports are conservative unknowns.",
+    "MCP is one-shot with watcher disabled; no edit/concurrency behavior is claimed.",
+    "The original live Draivix was not written or recaptured.",
+    "Native and secondary coverage remain incomplete, as reported by CLI exit 1.",
+    "Full Q01-Q12 acceptance, capture/configuration stability, approved CI and interactive performance remain open."
+  ]
+}

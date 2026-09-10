@@ -10,6 +10,8 @@ use std::vec::Vec;
 use thiserror::Error;
 use tree_sitter::{Node, Parser};
 
+mod lexical;
+
 #[derive(Debug, Error)]
 pub enum PythonParseError {
     #[error("failed to load tree-sitter Python grammar")]
@@ -81,8 +83,11 @@ impl<'a> PythonContext<'a> {
 }
 
 fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut SemanticGraph) {
+    let mut bindings = lexical::Bindings::default();
     let mut stack = vec![(node, None::<String>, None::<String>)];
     while let Some((current, container_symbol_id, container_type_name)) = stack.pop() {
+        bindings.observe(current, context.source);
+        let first_reference = graph.references.len();
         match current.kind() {
             "import_from_statement" => {
                 record_import_from(current, context, graph, container_symbol_id.as_deref());
@@ -93,7 +98,7 @@ fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut Semant
             "class_definition" => {
                 if let Some(name_node) = current.child_by_field_name("name") {
                     let name = context.text(name_node);
-                    let symbol = make_symbol(
+                    let mut symbol = make_symbol(
                         context,
                         SymbolKind::Class,
                         &name,
@@ -106,9 +111,17 @@ fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut Semant
                         context.line(name_node),
                         current.end_position().row + 1,
                     );
+                    let local = lexical::is_local_class(current);
+                    if local {
+                        let scope = format!("{}@{}:{}", container_symbol_id.as_deref().unwrap_or("scope"), context.line(current), current.start_position().column);
+                        symbol.id = context.symbol_id(SymbolKind::Class, Some(&scope), &name);
+                        symbol.parent_symbol_id = container_symbol_id.clone();
+                    }
+                    bindings.class(current, &symbol, local);
                     let symbol_id = symbol.id.clone();
                     graph.add_symbol(symbol);
                     record_superclasses(current, context, graph, Some(symbol_id.as_str()));
+                    bindings.references(current, first_reference..graph.references.len());
                     push_children(&mut stack, current, Some(symbol_id), Some(name));
                     continue;
                 }
@@ -143,6 +156,7 @@ fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut Semant
                     graph.add_symbol(symbol);
                     record_decorators(current, context, graph, Some(symbol_id.as_str()));
                     record_parameter_types(current, context, graph, Some(symbol_id.as_str()));
+                    bindings.references(current, first_reference..graph.references.len());
                     push_children(
                         &mut stack,
                         current,
@@ -163,6 +177,7 @@ fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut Semant
             }
             _ => {}
         }
+        bindings.references(current, first_reference..graph.references.len());
         push_children(
             &mut stack,
             current,
@@ -170,6 +185,7 @@ fn walk_tree(node: Node<'_>, context: &mut PythonContext<'_>, graph: &mut Semant
             container_type_name,
         );
     }
+    bindings.finish(graph);
 }
 
 fn push_children<'a>(
@@ -897,6 +913,89 @@ def helper():
                 && symbol.name == "run"
                 && symbol.visibility == Visibility::Public
         }));
+    }
+
+    #[test]
+    fn local_class_constructors_keep_identity_and_mask_foreign_names() {
+        let source = r#"
+def first():
+    class Local: pass
+    value = Local()
+    def closure():
+        nonlocal Local
+        return Local()
+def second():
+    class Local: pass
+    return Local()
+def third():
+    class Local: pass
+    return Local()
+def outside():
+    return Local()
+def parameter(Local):
+    return Local()
+def global_reader():
+    global Local
+    return Local()
+def changed():
+    class Changed: pass
+    def replace():
+        nonlocal Changed
+        Changed = callback
+    return Changed()
+"#;
+        let mut graph = parse_python_to_graph("local.py", source).unwrap();
+        graph.append(parse_python_to_graph("foreign.py", "class Local: pass\nclass Changed: pass\n").unwrap());
+        crate::resolve::resolve_graph(&mut graph);
+        let symbols = graph.symbols.iter().map(|symbol| (symbol.id.as_str(), symbol)).collect::<std::collections::HashMap<_, _>>();
+        assert_eq!(symbols.len(), graph.symbols.len());
+        let calls = graph.resolved_edges.iter().filter(|edge| edge.source_file_path == Path::new("local.py")
+            && edge.reference_target_name.as_deref() == Some("Local") && edge.kind == ReferenceKind::Call).collect::<Vec<_>>();
+        assert_eq!(calls.len(), 4);
+        assert!(calls.iter().all(|edge| edge.target_file_path == Path::new("local.py") && edge.reason == "call:lexical-binding"));
+        let mut owners = calls.iter().map(|edge| {
+            let class = symbols[edge.target_symbol_id.as_str()];
+            symbols[class.parent_symbol_id.as_deref().unwrap()].name.as_str()
+        }).collect::<Vec<_>>();
+        owners.sort_unstable();
+        assert_eq!(owners, ["first", "first", "second", "third"]);
+        assert!(!graph.resolved_edges.iter().any(|edge| edge.reference_target_name.as_deref() == Some("Changed")
+            && edge.kind == ReferenceKind::Call));
+    }
+
+    #[test]
+    fn local_class_lookup_skips_method_namespaces_and_default_parameter_scopes() {
+        let source = r#"
+class Local: pass
+def factory():
+    class Local: pass
+    def with_default(Local=Local()): pass
+    def typed(value: Local): pass
+    class Holder:
+        class Local: pass
+        made = Local()
+        def method(self):
+            return Local()
+    def global_reader():
+        global Local
+        return Local()
+    values = [Local() for Local in values]
+    class Child(Local): pass
+"#;
+        let mut graph = parse_python_to_graph("scopes.py", source).unwrap();
+        crate::resolve::resolve_graph(&mut graph);
+        let symbols = graph.symbols.iter().map(|symbol| (symbol.id.as_str(), symbol)).collect::<std::collections::HashMap<_, _>>();
+        let line = |text: &str| source.lines().position(|value| value.contains(text)).unwrap() + 1;
+        for (reference_line, expected_parent) in [(line("with_default"), Some("factory")), (line("def typed"), Some("factory")),
+            (line("made ="), Some("Holder")), (line("def method") + 1, Some("factory")),
+            (line("global Local") + 1, None), (line("class Child"), Some("factory"))] {
+            let edge = graph.resolved_edges.iter().find(|edge| edge.line == reference_line
+                && edge.reference_target_name.as_deref() == Some("Local")).unwrap();
+            let target = symbols[edge.target_symbol_id.as_str()];
+            let parent = target.parent_symbol_id.as_deref().map(|id| symbols[id].name.as_str());
+            assert_eq!(parent, expected_parent);
+        }
+        assert!(!graph.resolved_edges.iter().any(|edge| edge.line == line("values = [")));
     }
 
     #[test]

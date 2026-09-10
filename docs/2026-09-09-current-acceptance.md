@@ -26,11 +26,16 @@ použití cache. Současná CI akceptace a interaktivní rychlost zůstávají o
 metody a dědičnost. Na stejném korpusu zmizelo všech 46 nalezených kolizí PHP ID;
 MCP odlišuje také metody anonymního objektu od skutečných metod jeho okolního
 controlleru. [Lokální třídy a typy JS/TS](2026-09-10-scoped-classes.md) následně
-odstranily všech 17 zbývajících kolizí TypeScript ID. Jedna kolize Python ID
-zůstává otevřená. Lexikální konstrukce odlišují stejnojmenné třídy v callbackách;
+odstranily všech 17 zbývajících kolizí TypeScript ID. Lexikální konstrukce
+odlišují stejnojmenné třídy v callbackách;
 vyloučení testových metod z cizího vyhledávání a blokování odhadu přes místní
 typový alias odstranily dvě slabé cyklické komponenty. Všech 19 silných
 komponent se zachovalo; aplikační zdroj se nezměnil.
+[Lokální třídy Pythonu](2026-09-10-python-classes.md) následně oddělily tři
+deklarace `FakePw` a jejich konstruktory. Zachovaný korpus nyní nemá žádné
+duplicitní symbolové ID. Souhrnné počty nálezů a cyklů zůstaly stejné;
+tento výsledek nedokládá úplnou sémantiku Pythonu ani běhovou správnost
+nespouštěných regresních scénářů.
 
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto
