@@ -22,6 +22,10 @@ deterministické nálezy detektorů a inventář kontraktů zachovaného korpusu
 odkazy popupu PasswordVault na cizí `copyText`; CLI i MCP je váží na skutečnou
 místní deklaraci. Doplňují také explicitní neznámé vazby a zachování scope při
 použití cache. Současná CI akceptace a interaktivní rychlost zůstávají otevřené.
+[Anonymní PHP třídy](2026-09-10-anonymous-classes.md) nově mají vlastní identitu,
+metody a dědičnost. Na stejném korpusu zmizelo všech 46 nalezených kolizí PHP ID;
+18 kolizí v TypeScriptu a Pythonu zůstává otevřených. MCP odlišuje také metody
+anonymního objektu od skutečných metod jeho okolního controlleru.
 
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto

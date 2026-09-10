@@ -71,6 +71,28 @@ impl<'a> PhpContext<'a> {
         node.start_position().row + 1
     }
 
+    fn anonymous_class_name(&self, node: Node<'_>) -> String {
+        // Colons cannot occur in a PHP declaration name. Include the file so
+        // anonymous types at equal offsets in one namespace remain distinct.
+        format!(
+            "anonymous:{:032x}:L{}:B{}",
+            xxhash_rust::xxh3::xxh3_128(self.file_path.to_string_lossy().as_bytes()),
+            self.line(node),
+            node.start_byte()
+        )
+    }
+
+    fn constructed_type(&self, node: Node<'_>) -> Option<String> {
+        node.named_children(&mut node.walk())
+            .find_map(|child| match child.kind() {
+                "name" | "qualified_name" => Some(self.text(child)),
+                "anonymous_class" => Some(
+                    self.names.declaration(child, &self.anonymous_class_name(child)),
+                ),
+                _ => None,
+            })
+    }
+
     fn symbol_id(&self, kind: SymbolKind, parent: Option<&str>, name: &str) -> String {
         let prefix = match kind {
             SymbolKind::Class => "class",
@@ -92,6 +114,47 @@ fn walk_tree(node: Node<'_>, context: &mut PhpContext<'_>, graph: &mut SemanticG
     let mut stack = vec![(node, None::<String>, None::<String>)];
     while let Some((current, container_symbol_id, container_type_name)) = stack.pop() {
         match current.kind() {
+            "anonymous_class" => {
+                let name = context.anonymous_class_name(current);
+                let mut symbol = make_symbol(
+                    context,
+                    SymbolKind::Class,
+                    &name,
+                    container_symbol_id.as_deref(),
+                    None,
+                    None,
+                    Visibility::Private,
+                    0,
+                    0,
+                    context.line(current),
+                    current.end_position().row + 1,
+                );
+                symbol.qualified_name = context.names.declaration(current, &name);
+                let symbol_id = symbol.id.clone();
+                graph.add_symbol(symbol);
+                record_php_heritage(current, context, graph, Some(&symbol_id));
+                // Constructor arguments execute in the enclosing scope. Only
+                // the class body owns methods, properties and their `$this`.
+                for idx in (0..current.child_count()).rev() {
+                    if let Some(child) = current.child(idx as u32) {
+                        let in_body = Some(child) == current.child_by_field_name("body");
+                        stack.push((
+                            child,
+                            if in_body {
+                                Some(symbol_id.clone())
+                            } else {
+                                container_symbol_id.clone()
+                            },
+                            if in_body {
+                                Some(name.clone())
+                            } else {
+                                container_type_name.clone()
+                            },
+                        ));
+                    }
+                }
+                continue;
+            }
             "namespace_use_declaration" => {
                 record_use_declaration(current, context, graph, container_symbol_id.as_deref());
             }
@@ -559,20 +622,21 @@ fn record_constructor_call(
     graph: &mut SemanticGraph,
     enclosing_symbol_id: Option<&str>,
 ) {
-    let Some(target) = node
-        .children(&mut node.walk())
-        .find(|child| matches!(child.kind(), "name" | "qualified_name"))
-    else {
+    let Some(target_name) = context.constructed_type(node) else {
         return;
     };
+    let arguments_owner = node
+        .named_children(&mut node.walk())
+        .find(|child| child.kind() == "anonymous_class")
+        .unwrap_or(node);
     graph.add_reference(SemanticReference {
         file_path: context.file_path.clone(),
         enclosing_symbol_id: enclosing_symbol_id.map(str::to_owned),
         kind: ReferenceKind::Call,
-        target_name: context.text(target),
+        target_name,
         binding_name: None,
         line: context.line(node),
-        arity: Some(argument_count(node)),
+        arity: Some(argument_count(arguments_owner)),
         receiver_name: None,
         receiver_type_name: None,
         call_form: Some(CallForm::Associated),
@@ -612,6 +676,10 @@ fn parameters_node(node: Node<'_>) -> Option<Node<'_>> {
 
 fn argument_count(node: Node<'_>) -> usize {
     node.child_by_field_name("arguments")
+        .or_else(|| {
+            node.named_children(&mut node.walk())
+                .find(|child| child.kind() == "arguments")
+        })
         .map(|arguments| {
             arguments
                 .children(&mut arguments.walk())
@@ -689,13 +757,7 @@ fn infer_member_receiver_type(
         "variable_name" if context.text(receiver_node) == "$this" => {
             container_type_name.map(|name| context.names.declaration(receiver_node, name))
         }
-        "object_creation_expression" => {
-            receiver_node
-                .children(&mut receiver_node.walk())
-                .find_map(|child| {
-                    matches!(child.kind(), "name" | "qualified_name").then_some(context.text(child))
-                })
-        }
+        "object_creation_expression" => context.constructed_type(receiver_node),
         "function_call_expression"
         | "member_call_expression"
         | "nullsafe_member_call_expression"
@@ -725,6 +787,12 @@ fn collect_receiver_type(
 ) -> Option<String> {
     let mut stack = vec![node];
     while let Some(current) = stack.pop() {
+        if current.kind() == "anonymous_class" {
+            // Its arguments belong to this scope, its declarations do not.
+            stack.extend(current.named_children(&mut current.walk())
+                .filter(|child| child.kind() == "arguments"));
+            continue;
+        }
         match current.kind() {
             _ if is_php_parameter_node(current) => {
                 let name = current
@@ -748,10 +816,7 @@ fn collect_receiver_type(
                         || {
                             current.child_by_field_name("right").and_then(|right| {
                                 if right.kind() == "object_creation_expression" {
-                                    return right.children(&mut right.walk()).find_map(|child| {
-                                        matches!(child.kind(), "name" | "qualified_name")
-                                            .then_some(context.text(child))
-                                    });
+                                    return context.constructed_type(right);
                                 }
                                 infer_call_result_type(
                                     right,
@@ -805,6 +870,7 @@ fn infer_this_property_type(
         if matches!(
             node.kind(),
             "class_declaration"
+                | "anonymous_class"
                 | "enum_declaration"
                 | "trait_declaration"
                 | "interface_declaration"
@@ -817,6 +883,11 @@ fn infer_this_property_type(
 
     let mut stack = vec![class_node];
     while let Some(current) = stack.pop() {
+        if current != class_node
+            && matches!(current.kind(), "class_declaration" | "anonymous_class")
+        {
+            continue;
+        }
         match current.kind() {
             "property_declaration" => {
                 let declares_property = current
@@ -1046,6 +1117,90 @@ mod tests {
     use super::parse_php_to_graph;
     use crate::graph::{CallForm, Language, ReferenceKind, SymbolKind};
     use std::path::PathBuf;
+
+    #[test]
+    fn anonymous_classes_own_methods_but_not_constructor_arguments() {
+        let source = r#"<?php
+namespace Domain;
+interface Worker { public function work(): void; }
+class Repository { public function save(): void {} }
+class Host {
+    public function provide(): Repository { return new Repository; }
+    public function work(): void {}
+    public function run(): void {
+        $first = new class($this->provide()) implements Worker {
+            public function __construct(private Repository $store) {}
+            public function work(): void { $this->store->save(); }
+            public function again(): void { $this->work(); self::work(); }
+        };
+        $second = new class implements Worker {
+            public function work(): void {}
+        };
+        $first->work();
+        $second->work();
+        $this->work();
+        $this->store->save();
+    }
+}
+"#;
+        let mut graph = parse_php_to_graph("domain/Host.php", source).unwrap();
+        assert!(graph.parse_outcomes.iter().all(|outcome| outcome.diagnostics.is_empty()));
+        let classes = graph.symbols.iter()
+            .filter(|symbol| symbol.kind == SymbolKind::Class && symbol.name.starts_with("anonymous:"))
+            .cloned().collect::<Vec<_>>();
+        assert_eq!(classes.len(), 2);
+        assert_ne!(classes[0].id, classes[1].id);
+        let ids = graph.symbols.iter().map(|symbol| &symbol.id)
+            .collect::<std::collections::HashSet<_>>();
+        assert_eq!(ids.len(), graph.symbols.len());
+        let method = |owner: &str, name: &str| graph.symbols.iter()
+            .find(|symbol| symbol.parent_symbol_id.as_deref() == Some(owner) && symbol.name == name)
+            .unwrap().id.clone();
+        let host = graph.symbols.iter().find(|symbol| symbol.name == "Host").unwrap();
+        let host_work = method(&host.id, "work");
+        let run = method(&host.id, "run");
+        let first_work = method(&classes[0].id, "work");
+        let second_work = method(&classes[1].id, "work");
+        assert!(classes.iter().all(|symbol| symbol.parent_symbol_id.as_ref() == Some(&run)));
+        let argument_call = graph.references.iter().find(|reference| reference.target_name == "provide").unwrap();
+        assert_eq!(argument_call.enclosing_symbol_id.as_ref(), Some(&run));
+        assert_eq!(argument_call.receiver_type_name.as_deref(), Some("Domain\\Host"));
+        let constructors = graph.references.iter()
+            .filter(|reference| classes.iter().any(|symbol| symbol.qualified_name == reference.target_name))
+            .collect::<Vec<_>>();
+        assert_eq!(constructors.len(), 2);
+        assert_eq!(constructors[0].arity, Some(1));
+        assert_eq!(constructors[1].arity, Some(0));
+        for class in &classes {
+            assert!(graph.references.iter().any(|reference| reference.kind == ReferenceKind::Implements
+                && reference.enclosing_symbol_id.as_ref() == Some(&class.id)
+                && reference.target_name == "Worker"));
+        }
+        let saves = graph.references.iter().filter(|reference| reference.target_name == "save")
+            .collect::<Vec<_>>();
+        assert_eq!(saves.len(), 2);
+        assert_eq!(saves[0].receiver_type_name.as_deref(), Some("Repository"));
+        assert_eq!(saves[1].receiver_type_name, None, "inner promoted property is not a Host property");
+        let calls = graph.references.iter().filter(|reference| reference.target_name == "work")
+            .map(|reference| (reference.line, reference.receiver_name.clone())).collect::<Vec<_>>();
+        crate::resolve::resolve_graph(&mut graph);
+        for (line, receiver) in calls {
+            let expected = match receiver.as_deref() {
+                Some("$first") => &first_work,
+                Some("$second") => &second_work,
+                Some("$this") if line == 19 => &host_work,
+                Some("$this" | "self") => &first_work,
+                _ => panic!("unexpected work receiver {receiver:?}"),
+            };
+            let edges = graph.resolved_edges.iter().filter(|edge| edge.line == line
+                && edge.reference_target_name.as_deref() == Some("work")).collect::<Vec<_>>();
+            assert!(!edges.is_empty());
+            assert!(edges.iter().all(|edge| &edge.target_symbol_id == expected));
+        }
+        let other = parse_php_to_graph("domain/Other.php", source).unwrap();
+        assert!(!other.symbols.iter().any(|symbol| classes.iter()
+            .any(|class| class.qualified_name == symbol.qualified_name)));
+    }
 
     #[test]
     fn this_property_receivers_resolve_via_promoted_declared_and_docblock_types() {
