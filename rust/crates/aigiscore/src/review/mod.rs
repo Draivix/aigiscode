@@ -1,3 +1,6 @@
+pub mod decision;
+pub(crate) mod validation;
+
 use crate::detectors::hardwiring::HardwiringFinding;
 use crate::evidence::EvidenceAnchor;
 use crate::ingestion::pipeline::ProjectAnalysis;
@@ -12,6 +15,8 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReviewStatus {
     Unreviewed,
+    SourceReviewedProposal,
+    StaleReview,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -80,15 +85,80 @@ pub struct ReviewSurface {
     pub root: String,
     pub summary: ReviewSummary,
     pub findings: Vec<ReviewFinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub architectural_review: Option<ArchitecturalReviewContext>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ArchitecturalReviewStatus {
+    SourceAnchoredProposal,
+    Stale,
+    Invalid,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArchitecturalReviewContext {
+    pub status: ArchitecturalReviewStatus,
+    pub review_id: Option<String>,
+    pub source_snapshot_id: Option<String>,
+    pub reason: Option<String>,
+    pub claims: Vec<crate::agentic::AgenticStructuredClaim>,
+}
+
+/// Review proposals annotate deterministic findings; they never suppress them.
+pub(crate) fn apply_architectural_review(
+    surface: &mut ReviewSurface,
+    analysis: &ProjectAnalysis,
+    record: Result<Option<decision::ArchitecturalReviewRecord>, String>,
+) {
+    for finding in &mut surface.findings { finding.review_status = ReviewStatus::Unreviewed; }
+    surface.architectural_review = match record {
+        Ok(Some(record)) => {
+            let stale = record.proposal.source_snapshot_id != crate::agentic::review_snapshot_id(analysis);
+            let error = if record.schema_version != "2026-09-10" || record.review_id != record.content_id() {
+                Some("unsupported or modified review record".into())
+            } else if stale {
+                Some("analyzed inputs changed; conclusions require another review".into())
+            } else {
+                validation::validate_record(&record, analysis).err()
+            };
+            let valid_shape = record.schema_version == "2026-09-10" && record.review_id == record.content_id();
+            let status = if stale && valid_shape { ArchitecturalReviewStatus::Stale }
+                else if error.is_some() { ArchitecturalReviewStatus::Invalid }
+                else { ArchitecturalReviewStatus::SourceAnchoredProposal };
+            if status != ArchitecturalReviewStatus::Invalid {
+                for claim in &record.proposal.claims {
+                    if claim.decision.conclusion == decision::ArchitecturalConclusion::Unknown { continue; }
+                    if let Some(ids) = record.packet_findings.get(&claim.task_packet_id) {
+                        for finding in surface.findings.iter_mut().filter(|finding| ids.contains(&finding.id)) {
+                            finding.review_status = if stale { ReviewStatus::StaleReview } else { ReviewStatus::SourceReviewedProposal };
+                        }
+                    }
+                }
+            }
+            Some(ArchitecturalReviewContext {
+                claims: if status == ArchitecturalReviewStatus::SourceAnchoredProposal { record.proposal.claims } else { Vec::new() },
+                status, review_id: Some(record.review_id), source_snapshot_id: Some(record.proposal.source_snapshot_id), reason: error,
+            })
+        }
+        Ok(None) => None,
+        Err(reason) => Some(ArchitecturalReviewContext {
+            status: ArchitecturalReviewStatus::Invalid, review_id: None, source_snapshot_id: None, reason: Some(reason), claims: Vec::new(),
+        }),
+    };
+    surface.summary.ai_reviewed = surface.findings.iter().filter(|finding| finding.review_status == ReviewStatus::SourceReviewedProposal).count();
+    surface.summary.unreviewed_findings = surface.findings.iter().filter(|finding| finding.is_visible && finding.review_status != ReviewStatus::SourceReviewedProposal).count();
 }
 
 pub fn load_review_surface(analysis: &ProjectAnalysis) -> Result<ReviewSurface, PolicyLoadError> {
     let architecture_surface = analysis.architecture_surface();
-    Ok(build_review_surface(
+    let mut surface = build_review_surface(
         analysis,
         &architecture_surface,
         analysis.policy_bundle(),
-    ))
+    );
+    crate::artifacts::attach_architectural_review(analysis, &mut surface, None);
+    Ok(surface)
 }
 
 pub fn build_review_surface(
@@ -136,6 +206,7 @@ pub fn build_review_surface(
             rules_generated: 0,
         },
         findings,
+        architectural_review: None,
     }
 }
 

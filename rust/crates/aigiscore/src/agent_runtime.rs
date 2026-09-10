@@ -3,6 +3,7 @@ use crate::agentic::{
     AgenticReviewArtifact, AgenticStructuredReviewResponse,
 };
 use crate::artifacts::{default_agent_run_paths, default_agent_spider_report_path, AgentRunPaths};
+use crate::ingestion::pipeline::ProjectAnalysis;
 use reqwest::blocking::Client;
 use serde::Serialize;
 use serde_json::{json, Value as JsonValue};
@@ -47,6 +48,8 @@ pub struct AgentSpiderRunResult {
 
 #[derive(Debug, Error)]
 pub enum AgentRunError {
+    #[error("agent review validation failed: {0}")]
+    InvalidReview(String),
     #[error("unsupported agent adapter: {0}")]
     UnsupportedAdapter(String),
     #[error("requested adapter is not present in agentic-review.json: {0}")]
@@ -117,22 +120,23 @@ pub fn parse_agent_adapter_id(value: &str) -> Result<AgenticAdapterId, AgentRunE
         "responses-http" | "responses_http" | "openai-responses" | "openai_responses_http" => {
             Ok(AgenticAdapterId::OpenAiResponsesHttp)
         }
-        "codex-sdk" | "codex_sdk" | "codex_sdk_typescript" => {
-            Ok(AgenticAdapterId::CodexSdkTypeScript)
-        }
         other => Err(AgentRunError::UnsupportedAdapter(other.to_owned())),
     }
 }
 
 pub fn run_agent_review(
     review: &AgenticReviewArtifact,
-    repo_root: &Path,
+    analysis: &ProjectAnalysis,
     output_dir: Option<&Path>,
     adapter: AgenticAdapterId,
     model_override: Option<&str>,
 ) -> Result<AgentRunResult, AgentRunError> {
+    analysis.verify_inputs().map_err(|error| AgentRunError::InvalidReview(error.to_string()))?;
+    let repo_root = &analysis.root;
     let paths = default_agent_run_paths(repo_root, output_dir);
     fs::create_dir_all(&paths.output_dir).map_err(AgentRunError::CreateOutputDir)?;
+    crate::artifacts::prepare_agent_raw_review(&paths)
+        .map_err(|source| AgentRunError::WriteReview { path: paths.raw_review.clone(), source })?;
     let adapter_plan = review
         .execution
         .adapters
@@ -151,7 +155,7 @@ pub fn run_agent_review(
             ..
         } => run_codex_exec(
             review,
-            repo_root,
+            analysis,
             &paths,
             binary,
             model_override.unwrap_or(default_model),
@@ -169,6 +173,7 @@ pub fn run_agent_review(
             ..
         } => run_openai_responses_http(
             review,
+            analysis,
             &paths,
             endpoint,
             method,
@@ -176,22 +181,18 @@ pub fn run_agent_review(
             reasoning_effort,
             *background,
         ),
-        AgenticAdapterInvocation::CodexSdkTypeScript { .. } => Err(
-            AgentRunError::UnsupportedAdapter(String::from(
-                "codex_sdk_typescript is not implemented yet; use codex-exec today or build a Node sidecar",
-            )),
-        ),
     }
 }
 
 pub fn run_agent_spider(
     review: &AgenticReviewArtifact,
-    repo_root: &Path,
+    analysis: &ProjectAnalysis,
     output_dir: Option<&Path>,
     adapter: AgenticAdapterId,
     model_override: Option<&str>,
     packet_limit: usize,
 ) -> Result<AgentSpiderRunResult, AgentRunError> {
+    let repo_root = &analysis.root;
     let aggregate_report = default_agent_spider_report_path(repo_root, output_dir);
     let spider_root = aggregate_report
         .parent()
@@ -212,7 +213,7 @@ pub fn run_agent_spider(
         };
         let packet_result = match run_agent_review(
             &focused,
-            repo_root,
+            analysis,
             Some(&packet_output_dir),
             adapter,
             model_override,
@@ -269,7 +270,7 @@ pub fn run_agent_spider(
 #[allow(clippy::too_many_arguments)]
 fn run_codex_exec(
     review: &AgenticReviewArtifact,
-    repo_root: &Path,
+    analysis: &ProjectAnalysis,
     paths: &AgentRunPaths,
     binary: &str,
     model: &str,
@@ -278,6 +279,7 @@ fn run_codex_exec(
     json_events_flag: &str,
     sandbox: &str,
 ) -> Result<AgentRunResult, AgentRunError> {
+    let repo_root = &analysis.root;
     let schema_json = serde_json::to_vec_pretty(&review.execution.structured_output.json_schema)
         .expect("failed to serialize existing agent schema");
     fs::write(&paths.output_schema, schema_json).map_err(|source| AgentRunError::WriteSchema {
@@ -287,11 +289,14 @@ fn run_codex_exec(
 
     let artifact_dir = artifact_dir_for_prompt(repo_root, &paths.output_dir);
     let prompt = format!(
-        "{}\n\n{}\n\nRead the required AigisCode context artifacts from `{artifact_dir}` before judging the repository. Produce the final answer strictly as JSON matching the provided schema. Every claim must cite the relevant `task_packet_id`, and `report_markdown` must contain the complete human-readable report for `{}`.",
+        "{}\n\n{}\n\nRead the required AigisCode context artifacts from `{artifact_dir}` before judging the repository. Produce JSON matching the schema and echo source_snapshot_id `{}`. Cite task packets and exact captured source quotes with line spans. Use unknown/investigate with missing evidence when proof is unavailable.\n\nCurrent review context:\n{}",
         review.system_prompt,
         review.user_prompt,
-        paths.review_markdown.display(),
+        review.source_snapshot_id,
+        serde_json::to_string(review).expect("review context serializes"),
     );
+    let input = crate::artifacts::write_agent_input(paths, &prompt)
+        .map_err(|source| AgentRunError::WriteReview { path: paths.input_prompt.clone(), source })?;
 
     let mut command = Command::new(binary);
     command
@@ -307,8 +312,9 @@ fn run_codex_exec(
         .arg(schema_flag)
         .arg(&paths.output_schema)
         .arg(output_file_flag)
-        .arg(&paths.review_json)
-        .arg(prompt);
+        .arg(&paths.raw_review)
+        .arg("-")
+        .stdin(input);
 
     if paths.output_dir.strip_prefix(repo_root).is_err() {
         command.arg("--add-dir").arg(&paths.output_dir);
@@ -328,22 +334,15 @@ fn run_codex_exec(
         });
     }
 
-    let review_json =
-        fs::read_to_string(&paths.review_json).map_err(|source| AgentRunError::ReadReview {
-            path: paths.review_json.clone(),
+    use std::io::Read;
+    let mut review_json = String::new();
+    fs::File::open(&paths.raw_review).and_then(|file| file
+        .take(crate::artifacts::AGENT_REVIEW_MAX_BYTES as u64 + 1).read_to_string(&mut review_json))
+        .map_err(|source| AgentRunError::ReadReview {
+            path: paths.raw_review.clone(),
             source,
         })?;
-    let structured: AgenticStructuredReviewResponse =
-        serde_json::from_str(&review_json).map_err(|source| AgentRunError::ParseReview {
-            path: paths.review_json.clone(),
-            source,
-        })?;
-    fs::write(&paths.review_markdown, structured.report_markdown).map_err(|source| {
-        AgentRunError::WriteMarkdown {
-            path: paths.review_markdown.clone(),
-            source,
-        }
-    })?;
+    validate_and_publish(&review_json, review, analysis, paths)?;
 
     Ok(AgentRunResult {
         adapter: AgenticAdapterId::CodexExecCli,
@@ -356,6 +355,7 @@ fn run_codex_exec(
 
 fn run_openai_responses_http(
     review: &AgenticReviewArtifact,
+    analysis: &ProjectAnalysis,
     paths: &AgentRunPaths,
     endpoint: &str,
     method: &str,
@@ -381,8 +381,11 @@ fn run_openai_responses_http(
         .timeout(Duration::from_secs(300))
         .build()
         .map_err(AgentRunError::BuildHttpClient)?;
-    let request_body =
+    let mut request_body =
         build_openai_responses_request_body(review, model, reasoning_effort, background);
+    request_body["input"][1]["content"].as_array_mut().expect("user content array").push(
+        json!({"type": "input_text", "text": captured_review_context(review, analysis)}),
+    );
     let initial = send_openai_json_request(&client, endpoint, &api_key, &request_body)?;
     let mut events = vec![initial.clone()];
     let final_response = if background {
@@ -410,23 +413,13 @@ fn run_openai_responses_http(
     })?;
 
     let output_text = extract_openai_output_text(&final_response)?;
-    fs::write(&paths.review_json, output_text.as_bytes()).map_err(|source| {
+    fs::write(&paths.raw_review, output_text.as_bytes()).map_err(|source| {
         AgentRunError::WriteReview {
-            path: paths.review_json.clone(),
+            path: paths.raw_review.clone(),
             source,
         }
     })?;
-    let structured: AgenticStructuredReviewResponse =
-        serde_json::from_str(&output_text).map_err(|source| AgentRunError::ParseReview {
-            path: paths.review_json.clone(),
-            source,
-        })?;
-    fs::write(&paths.review_markdown, structured.report_markdown).map_err(|source| {
-        AgentRunError::WriteMarkdown {
-            path: paths.review_markdown.clone(),
-            source,
-        }
-    })?;
+    validate_and_publish(&output_text, review, analysis, paths)?;
 
     Ok(AgentRunResult {
         adapter: AgenticAdapterId::OpenAiResponsesHttp,
@@ -435,6 +428,53 @@ fn run_openai_responses_http(
         output_schema: paths.output_schema.clone(),
         execution_events: paths.execution_events.clone(),
     })
+}
+
+fn validate_and_publish(
+    text: &str,
+    review: &AgenticReviewArtifact,
+    analysis: &ProjectAnalysis,
+    paths: &AgentRunPaths,
+) -> Result<(), AgentRunError> {
+    if text.len() > crate::artifacts::AGENT_REVIEW_MAX_BYTES {
+        return Err(AgentRunError::InvalidReview("adapter response exceeds 4 MiB".into()));
+    }
+    let structured: AgenticStructuredReviewResponse = serde_json::from_str(text)
+        .map_err(|source| AgentRunError::ParseReview { path: paths.raw_review.clone(), source })?;
+    crate::review::validation::validate(&structured, review, analysis)
+        .map_err(AgentRunError::InvalidReview)?;
+    let record = crate::review::decision::ArchitecturalReviewRecord::new(structured, review);
+    crate::artifacts::write_agent_review(paths, &record)
+        .map_err(|source| AgentRunError::WriteReview { path: paths.review_json.clone(), source })
+}
+
+/// The HTTP adapter has no filesystem tool. Supply bounded captured excerpts,
+/// retaining original line numbers and making omitted context explicit.
+fn captured_review_context(review: &AgenticReviewArtifact, analysis: &ProjectAnalysis) -> String {
+    use std::fmt::Write;
+    let mut out = String::from("Captured source excerpts (bounded; omitted code is unknown, not absent). Quote source text without the line-number prefix. If required context is missing, return unknown/investigate and explain what is needed.\n");
+    let mut seen = std::collections::HashSet::new();
+    let mut remaining = 96_000usize;
+    for packet in review.task_packets.iter().filter(|packet| review.execution.structured_output.must_cover_task_packets.contains(&packet.id)) {
+        for location in &packet.evidence_chain.locations {
+            if remaining == 0 { break; }
+            let start = location.line.unwrap_or(1).saturating_sub(16).max(1);
+            if !seen.insert((location.file_path.clone(), start)) { continue; }
+            let Some((_, source)) = analysis.parsed_sources.iter().find(|(path, _)| path == Path::new(&location.file_path)) else { continue; };
+            let _ = writeln!(out, "\nFile: {} (excerpt starts at line {start})", location.file_path);
+            for (index, line) in source.lines().enumerate().skip(start - 1).take(96) {
+                if line.len() + 32 > remaining {
+                    out.push_str("[source budget exhausted]\n");
+                    remaining = 0;
+                    break;
+                }
+                remaining -= line.len() + 32;
+                let _ = writeln!(out, "{}: {line}", index + 1);
+            }
+            out.push_str("[end of bounded excerpt]\n");
+        }
+    }
+    out
 }
 
 fn send_openai_json_request(
@@ -661,6 +701,87 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
+    fn review_publication_rejects_stale_sources_and_fabricated_evidence() {
+        use crate::agentic::{AgenticStructuredClaim, AgenticStructuredEvidenceLocation, AgenticStructuredReviewResponse};
+        use crate::review::decision::{ArchitecturalAction, ArchitecturalConcern, ArchitecturalConclusion, ArchitecturalDecision, ReviewedImplementation};
+        let fixture = create_fixture();
+        fs::create_dir_all(fixture.join("src")).unwrap();
+        let source = "fn main() { let mode = std::env::var(\"APP_MODE\").unwrap_or_default(); println!(\"{}\", mode); }\n";
+        fs::write(fixture.join("src/main.rs"), source).unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let surface = build_architecture_surface(&analysis);
+        let doctrine = built_in_doctrine_registry();
+        let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
+        let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
+        let convergence = crate::artifacts::build_convergence_history_artifact(
+            &analysis, &crate::artifacts::BaselineSnapshot::empty(), &surface, &review_surface,
+        );
+        let guard = build_guard_decision_artifact(&analysis.root, &convergence, &analysis.external_analysis);
+        let artifact = build_agentic_review_artifact(&analysis, &doctrine, &handoff, &guard, &convergence);
+        assert!(!artifact.execution.structured_output.must_cover_task_packets.is_empty());
+        let claims = artifact.execution.structured_output.must_cover_task_packets.iter().map(|id| AgenticStructuredClaim {
+            task_packet_id: id.clone(), title: "Retain bootstrap environment access".into(), severity: "info".into(),
+            why_now: "The executable owns process configuration".into(),
+            decision: ArchitecturalDecision {
+                concern: ArchitecturalConcern::BoundaryViolation,
+                conclusion: ArchitecturalConclusion::IntentionalVariation,
+                action: ArchitecturalAction::Keep,
+                implementations: vec![ReviewedImplementation {
+                    file_path: "src/main.rs".into(), symbol_id: None, responsibility: "Process bootstrap".into(),
+                }],
+                canonical_owner: Some(0), comparisons: vec![], consumer_changes: vec![],
+                preserved_behavior: vec!["Read process configuration".into()], missing_evidence: vec![], verification_steps: vec![],
+            },
+            evidence_locations: vec![AgenticStructuredEvidenceLocation {
+                file_path: "src/main.rs".into(), line: Some(1), end_line: Some(1), quote: source.trim_end().into(),
+            }],
+        }).collect();
+        let response = AgenticStructuredReviewResponse {
+            source_snapshot_id: artifact.source_snapshot_id.clone(), verdict: "reviewed".into(), summary: "Retain the bootstrap boundary".into(), claims,
+        };
+        let output = fixture.join(".aigiscode");
+        fs::create_dir_all(&output).unwrap();
+        let paths = crate::artifacts::default_agent_run_paths(&fixture, Some(&output));
+        let publish = |response: &AgenticStructuredReviewResponse| {
+            super::validate_and_publish(&serde_json::to_string(response).unwrap(), &artifact, &analysis, &paths)
+        };
+        publish(&response).unwrap();
+        let accepted = fs::read(&paths.review_json).unwrap();
+        let markdown = fs::read(&paths.review_markdown).unwrap();
+        let mut reviewed_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
+        crate::artifacts::attach_architectural_review(&analysis, &mut reviewed_surface, Some(&output));
+        assert_eq!(reviewed_surface.architectural_review.as_ref().unwrap().status,
+            crate::review::ArchitecturalReviewStatus::SourceAnchoredProposal);
+        assert_eq!(reviewed_surface.summary.visible_findings, review_surface.summary.visible_findings);
+        let mut fabricated = response.clone();
+        fabricated.claims[0].evidence_locations[0].quote = "invented implementation".into();
+        assert!(publish(&fabricated).is_err());
+        fabricated = response.clone();
+        fabricated.claims[0].evidence_locations[0].line = Some(0);
+        assert!(publish(&fabricated).is_err());
+        fabricated = response.clone();
+        fabricated.claims[0].decision.implementations[0].symbol_id = Some("invented-symbol".into());
+        assert!(publish(&fabricated).is_err());
+        fabricated = response.clone();
+        fabricated.claims.clear();
+        assert!(publish(&fabricated).is_err());
+        fabricated = response.clone();
+        fabricated.source_snapshot_id = "old-snapshot".into();
+        assert!(publish(&fabricated).is_err());
+        fs::write(fixture.join("src/main.rs"), "fn main() {}\n").unwrap();
+        assert!(publish(&response).is_err());
+        assert_eq!(fs::read(&paths.review_json).unwrap(), accepted);
+        assert_eq!(fs::read(&paths.review_markdown).unwrap(), markdown);
+        let changed = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let mut stale_surface = build_review_surface(&changed, &build_architecture_surface(&changed), &PolicyBundle::default());
+        crate::artifacts::attach_architectural_review(&changed, &mut stale_surface, Some(&output));
+        let stale = stale_surface.architectural_review.unwrap();
+        assert_eq!(stale.status, crate::review::ArchitecturalReviewStatus::Stale);
+        assert!(stale.claims.is_empty());
+        fs::remove_dir_all(fixture).unwrap();
+    }
+
+    #[test]
     fn parses_supported_agent_adapters() {
         assert_eq!(
             parse_agent_adapter_id("codex-exec").unwrap(),
@@ -670,10 +791,7 @@ mod tests {
             parse_agent_adapter_id("openai_responses_http").unwrap(),
             AgenticAdapterId::OpenAiResponsesHttp
         );
-        assert_eq!(
-            parse_agent_adapter_id("codex-sdk").unwrap(),
-            AgenticAdapterId::CodexSdkTypeScript
-        );
+        assert!(parse_agent_adapter_id("codex-sdk").is_err());
     }
 
     #[test]
@@ -707,11 +825,7 @@ mod tests {
             artifact.execution.preferred_service_adapter,
             AgenticAdapterId::OpenAiResponsesHttp
         );
-        assert!(artifact
-            .execution
-            .adapters
-            .iter()
-            .any(|adapter| { adapter.id == AgenticAdapterId::CodexSdkTypeScript }));
+        assert_eq!(artifact.execution.adapters.len(), 2);
     }
 
     #[test]

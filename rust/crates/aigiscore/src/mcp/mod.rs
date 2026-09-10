@@ -2008,7 +2008,12 @@ impl McpState {
         let surface = analysis.architecture_surface();
         let layers = analysis.doctrine_registry().layers.clone();
         let root = display_path(&analysis.root);
-        let review_surface = build_review_surface(&analysis, &surface, analysis.policy_bundle());
+        let review_surface = prepared_context.as_ref().map(|context| context.review_surface.clone())
+            .unwrap_or_else(|| {
+                let mut review = build_review_surface(&analysis, &surface, analysis.policy_bundle());
+                crate::artifacts::attach_architectural_review(&analysis, &mut review, None);
+                review
+            });
         let finding_summaries = review_surface
             .findings
             .iter()
@@ -2082,6 +2087,7 @@ impl McpState {
             convergence: convergence_artifact,
             guard: guard_decision_artifact,
             agentic_review,
+            review_surface: _,
         } = match prepared_context {
                 Some(context) => context,
                 None => {
@@ -2100,7 +2106,7 @@ impl McpState {
                     let agentic_review = crate::agentic::build_agentic_review_artifact(
                         &analysis, doctrine_registry_native, &handoff, &guard, &convergence,
                     );
-                    ArtifactContext { convergence, guard, agentic_review }
+                    ArtifactContext { review_surface: review_surface.clone(), convergence, guard, agentic_review }
                 }
             };
         let graph_packets = build_graph_packet_artifact(&agentic_review, &analysis);

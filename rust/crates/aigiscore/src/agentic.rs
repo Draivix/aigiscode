@@ -18,6 +18,7 @@ use std::time::Instant;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AgenticReviewArtifact {
     pub root: String,
+    pub source_snapshot_id: String,
     pub contract_version: String,
     pub transport: AgenticTransportContract,
     pub execution: AgenticExecutionContract,
@@ -139,14 +140,12 @@ pub struct AgenticExecutionContract {
 pub enum AgenticAdapterId {
     CodexExecCli,
     OpenAiResponsesHttp,
-    CodexSdkTypeScript,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AgenticAuthMode {
     ApiKey,
-    ChatGptOAuth,
     SavedCliAuth,
 }
 
@@ -155,7 +154,6 @@ pub enum AgenticAuthMode {
 pub enum AgenticAdapterRuntime {
     LocalCli,
     RustHttp,
-    TypeScriptSidecar,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -192,14 +190,6 @@ pub enum AgenticAdapterInvocation {
         tool_recommendations: Vec<String>,
         required_context_artifacts: Vec<String>,
     },
-    CodexSdkTypeScript {
-        package_name: String,
-        node_runtime: String,
-        default_model: String,
-        transport_bridge: String,
-        required_context_artifacts: Vec<String>,
-        auth_note: String,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -214,7 +204,6 @@ pub struct AgenticStructuredOutputContract {
     pub schema_name: String,
     pub schema_version: String,
     pub must_cover_task_packets: Vec<String>,
-    pub required_markdown_sections: Vec<String>,
     pub json_schema: JsonValue,
 }
 
@@ -274,6 +263,8 @@ pub struct AgenticContextArtifact {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct AgenticTaskPacket {
     pub id: String,
+    #[serde(default)]
+    pub finding_ids: Vec<String>,
     pub status: String,
     pub priority: String,
     pub focus: String,
@@ -499,29 +490,33 @@ pub struct AgenticPathEndpoint {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct AgenticStructuredReviewResponse {
+    pub source_snapshot_id: String,
     pub verdict: String,
     pub summary: String,
     pub claims: Vec<AgenticStructuredClaim>,
-    pub next_actions: Vec<String>,
-    pub report_markdown: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct AgenticStructuredClaim {
     pub task_packet_id: String,
     pub title: String,
     pub severity: String,
     pub why_now: String,
-    pub recommended_action: String,
+    pub decision: crate::review::decision::ArchitecturalDecision,
     pub evidence_locations: Vec<AgenticStructuredEvidenceLocation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct AgenticStructuredEvidenceLocation {
     pub file_path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub line: Option<usize>,
+    pub end_line: Option<usize>,
+    pub quote: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -562,6 +557,12 @@ pub struct GraphTraceOutput {
     pub start_file_path: String,
     pub goal_file_path: String,
     pub paths: Vec<AgenticGraphTrace>,
+}
+
+pub(crate) fn review_snapshot_id(analysis: &ProjectAnalysis) -> String {
+    let identity = crate::artifacts::SnapshotIdentity::capture(analysis);
+    let bytes = serde_json::to_vec(&identity).expect("snapshot identity is serializable");
+    format!("{:032x}", xxhash_rust::xxh3::xxh3_128(&bytes))
 }
 
 pub fn focus_agentic_review_artifact(
@@ -725,7 +726,8 @@ pub fn build_agentic_review_artifact(
 
     AgenticReviewArtifact {
         root: analysis.root.display().to_string(),
-        contract_version: String::from("2026-03-28"),
+        source_snapshot_id: review_snapshot_id(analysis),
+        contract_version: String::from("2026-09-10"),
         transport: AgenticTransportContract {
             provider_family: String::from("openai"),
             recommended_protocol: String::from("responses_api"),
@@ -736,12 +738,12 @@ pub fn build_agentic_review_artifact(
                 String::from("gpt-5.2-codex"),
                 String::from("gpt-5.1-codex-max"),
             ],
-            recommended_tool_runtime: String::from("responses_api_shell_tool"),
+            recommended_tool_runtime: String::from("captured_source_context"),
             supports_background_responses: true,
-            shell_tool_supported: true,
+            shell_tool_supported: false,
             browser_oauth_supported_as_primary: false,
             official_rust_sdk_documented: false,
-            official_codex_sdk_strategy: String::from("optional_typescript_sidecar"),
+            official_codex_sdk_strategy: String::from("native_cli_or_http"),
             implementation_guidance: vec![
                 String::from(
                     "Treat the graph artifacts as the source of truth and keep the provider integration behind a typed Rust adapter.",
@@ -753,13 +755,10 @@ pub fn build_agentic_review_artifact(
                     "Default to gpt-5.4 for broad code-and-reasoning workflows; use Codex-tuned models only when the task is primarily coding-specific.",
                 ),
                 String::from(
-                    "Use Responses API background runs plus the shell tool for long-running agent loops that must inspect, edit, test, and report on real repositories.",
+                    "The HTTP adapter reviews graph context and bounded captured source excerpts without filesystem tools. Use the local adapter for read-only repository inspection.",
                 ),
                 String::from(
                     "If a provider SDK is unavailable in Rust, keep the request/response contract native in Rust and send HTTP requests directly.",
-                ),
-                String::from(
-                    "If the official Codex SDK becomes necessary for local-agent control semantics, isolate it behind a thin TypeScript sidecar instead of leaking Node into the product core.",
                 ),
             ],
         },
@@ -1156,15 +1155,8 @@ fn build_execution_contract(
     ];
     let structured_output = AgenticStructuredOutputContract {
         schema_name: String::from("aigiscode_agentic_review_response"),
-        schema_version: String::from("2026-03-28"),
+        schema_version: String::from("2026-09-10"),
         must_cover_task_packets,
-        required_markdown_sections: vec![
-            String::from("Verdict"),
-            String::from("Top Claims"),
-            String::from("Evidence"),
-            String::from("Obligations"),
-            String::from("Next Actions"),
-        ],
         json_schema: normalize_codex_output_schema(
             serde_json::to_value(schema_for!(AgenticStructuredReviewResponse))
                 .expect("failed to serialize agentic structured response schema"),
@@ -1214,31 +1206,8 @@ fn build_execution_contract(
                     reasoning_effort: String::from("medium"),
                     background: true,
                     tool_profile: String::from("graph_backed_repository_review"),
-                    tool_recommendations: vec![
-                        String::from("shell"),
-                        String::from("apply_patch"),
-                    ],
+                    tool_recommendations: Vec::new(),
                     required_context_artifacts: required_context_artifacts.clone(),
-                },
-            },
-            AgenticAdapterPlan {
-                id: AgenticAdapterId::CodexSdkTypeScript,
-                runtime: AgenticAdapterRuntime::TypeScriptSidecar,
-                auth_modes: vec![AgenticAuthMode::ApiKey, AgenticAuthMode::ChatGptOAuth],
-                supports_structured_output: true,
-                supports_background: true,
-                purpose: String::from(
-                    "Optional thin sidecar when the official TypeScript Codex SDK is required for local-agent control semantics.",
-                ),
-                invocation: AgenticAdapterInvocation::CodexSdkTypeScript {
-                    package_name: String::from("@openai/codex-sdk"),
-                    node_runtime: String::from("node18_plus"),
-                    default_model: String::from("gpt-5.3-codex"),
-                    transport_bridge: String::from("thin_typescript_sidecar_over_stdio_or_jsonl"),
-                    required_context_artifacts: required_context_artifacts.clone(),
-                    auth_note: String::from(
-                        "The official Codex SDK is TypeScript-first. Keep auth/session handling in the sidecar and keep graphing, doctrine, and report validation in Rust.",
-                    ),
                 },
             },
         ],
@@ -1256,7 +1225,7 @@ fn build_execution_contract(
                 content: user_prompt.to_owned(),
             }],
             tool_profile: String::from("graph_backed_repository_review"),
-            tool_recommendations: vec![String::from("shell"), String::from("apply_patch")],
+            tool_recommendations: Vec::new(),
             required_context_artifacts,
         },
     }
@@ -1308,6 +1277,7 @@ fn build_system_prompt(
     verdict: &GuardVerdict,
     focus_files: &[String],
 ) -> String {
+    let architectural_contract = "Return source_snapshot_id from this contract. Every required packet needs a typed architectural decision. Identify implementation responsibilities, compare the same inputs, name the surviving owner and consumer migrations, and preserve required behavior. Cite exact source quotes with inclusive line spans. Similarity and zero static callers are candidate signals, not proof. Retain justified framework discovery, public boundaries and intended replacements. If source or runtime proof is missing, say unknown/investigate with missing_evidence; do not invent quotes or imply runtime verification. Conclusions remain reviewer proposals even when source anchors validate.";
     let doctrine_count = doctrine_registry.clauses.len();
     let focus_line = if focus_files.is_empty() {
         String::from("No focus files were preselected; use the graph and guard state to find the right slice.")
@@ -1318,7 +1288,7 @@ fn build_system_prompt(
         "You are AigisCode's graph-backed architectural reviewer. Use dependency-graph.json for low-noise architecture, evidence-graph.json for detailed evidence, contract-inventory.json for extracted runtime/public contracts, doctrine-registry.json for sanctioned mechanisms, and guard-decision.json for governance. Check input_coverage, ast_grep_coverage and baseline comparison before drawing absence or change conclusions: FirstObserved and NotCompared are not regressions, and a null delta is not zero change. Prefer graph-backed claims over file-local guesses, do not invent new framework paths when doctrine names a sanctioned mechanism, and keep recommendations architecture-aware and diff-local only when comparison is available. Current guard verdict: {}. Doctrine clauses available: {}. {}",
         guard_verdict_label(*verdict),
         doctrine_count,
-        focus_line
+        format!("{focus_line} {architectural_contract}")
     )
 }
 
@@ -1407,6 +1377,7 @@ fn build_task_packets(
             let evidence_chain = build_evidence_chain(packet, &required_artifacts, context);
             let task_packet = AgenticTaskPacket {
                 id: packet.id.clone(),
+                finding_ids: packet.finding_ids.clone(),
                 status,
                 priority: packet.priority.clone(),
                 focus: packet.focus.clone(),
@@ -4022,15 +3993,10 @@ mod tests {
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
         let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
         let convergence = crate::artifacts::build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &surface,
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,
@@ -4051,10 +4017,10 @@ mod tests {
             artifact.execution.structured_output.schema_name,
             "aigiscode_agentic_review_response"
         );
-        assert_eq!(artifact.contract_version, "2026-03-28");
+        assert_eq!(artifact.contract_version, "2026-09-10");
         assert_eq!(
             artifact.execution.structured_output.schema_version,
-            "2026-03-28"
+            "2026-09-10"
         );
         assert!(artifact
             .execution
@@ -4153,6 +4119,7 @@ mod tests {
         };
         let review_surface = crate::review::ReviewSurface {
             root: analysis.root.display().to_string(),
+            architectural_review: None,
             summary: crate::review::ReviewSummary {
                 total_findings: 1,
                 visible_findings: 1,
@@ -4186,15 +4153,10 @@ mod tests {
             }],
         };
         let convergence = crate::artifacts::build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &analysis.architecture_surface(),
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,
@@ -4222,15 +4184,10 @@ mod tests {
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
         let handoff = build_agent_handoff_artifact(&analysis, &review_surface, &doctrine);
         let convergence = crate::artifacts::build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &surface,
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,
@@ -4252,7 +4209,7 @@ mod tests {
         assert_eq!(
             artifact.execution.structured_output.json_schema["$defs"]
                 ["AgenticStructuredEvidenceLocation"]["required"],
-            serde_json::json!(["file_path", "line"])
+            serde_json::json!(["end_line", "file_path", "line", "quote"])
         );
     }
 
@@ -4446,15 +4403,10 @@ fn helper() {}"#,
         let surface = analysis.architecture_surface();
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
         let convergence = build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &surface,
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,
@@ -4500,15 +4452,10 @@ fn helper() {}"#,
         let surface = analysis.architecture_surface();
         let review_surface = build_review_surface(&analysis, &surface, &PolicyBundle::default());
         let convergence = build_convergence_history_artifact(
-            &analysis.root,
-            &analysis.semantic_graph,
-            None,
-            None,
-            None,
+            &analysis,
+            &crate::artifacts::BaselineSnapshot::empty(),
             &surface,
             &review_surface,
-            &analysis.contract_inventory,
-            &doctrine,
         );
         let guard = build_guard_decision_artifact(
             &analysis.root,
@@ -5434,6 +5381,7 @@ class Consumer {
     fn focuses_review_on_single_task_packet() {
         let artifact = AgenticReviewArtifact {
             root: String::from("/tmp/example"),
+            source_snapshot_id: String::from("example-snapshot"),
             contract_version: String::from("2026-03-28"),
             transport: AgenticTransportContract {
                 provider_family: String::from("openai"),
@@ -5454,6 +5402,7 @@ class Consumer {
                 "user prompt",
                 &[AgenticTaskPacket {
                     id: String::from("guardian:test"),
+                    finding_ids: Vec::new(),
                     status: String::from("new"),
                     priority: String::from("high"),
                     focus: String::from("architecture"),
@@ -5513,6 +5462,7 @@ class Consumer {
             user_prompt: String::from("user prompt"),
             task_packets: vec![AgenticTaskPacket {
                 id: String::from("guardian:test"),
+                finding_ids: Vec::new(),
                 status: String::from("new"),
                 priority: String::from("high"),
                 focus: String::from("architecture"),

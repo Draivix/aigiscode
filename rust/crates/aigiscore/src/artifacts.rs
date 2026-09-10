@@ -64,6 +64,9 @@ pub const AGENTIC_REVIEW_FILE: &str = "agentic-review.json";
 pub const GRAPH_PACKETS_FILE: &str = "graph-packets.json";
 pub const REPOSITORY_TOPOLOGY_FILE: &str = "repository-topology.json";
 pub const AGENT_REVIEW_JSON_FILE: &str = "agent-review.json";
+pub const AGENT_REVIEW_RAW_FILE: &str = "agent-review.raw.json";
+pub const AGENT_INPUT_FILE: &str = "agent-input.txt";
+pub(crate) const AGENT_REVIEW_MAX_BYTES: usize = 4 * 1024 * 1024;
 pub const AGENT_REVIEW_MARKDOWN_FILE: &str = "agent-review.md";
 pub const AGENT_OUTPUT_SCHEMA_FILE: &str = "agent-output-schema.json";
 pub const AGENT_EXECUTION_EVENTS_FILE: &str = "agent-execution.jsonl";
@@ -216,6 +219,8 @@ impl ArtifactPaths {
 pub struct AgentRunPaths {
     pub output_dir: PathBuf,
     pub review_json: PathBuf,
+    pub raw_review: PathBuf,
+    pub input_prompt: PathBuf,
     pub review_markdown: PathBuf,
     pub output_schema: PathBuf,
     pub execution_events: PathBuf,
@@ -969,11 +974,94 @@ pub fn default_agent_run_paths(root: &Path, output_dir: Option<&Path>) -> AgentR
         .unwrap_or_else(|| default_output_dir(root));
     AgentRunPaths {
         review_json: output_dir.join(AGENT_REVIEW_JSON_FILE),
+        raw_review: output_dir.join(AGENT_REVIEW_RAW_FILE),
+        input_prompt: output_dir.join(AGENT_INPUT_FILE),
         review_markdown: output_dir.join(AGENT_REVIEW_MARKDOWN_FILE),
         output_schema: output_dir.join(AGENT_OUTPUT_SCHEMA_FILE),
         execution_events: output_dir.join(AGENT_EXECUTION_EVENTS_FILE),
         output_dir,
     }
+}
+
+/// Each export is atomic; JSON is authoritative if Markdown publication fails.
+pub(crate) fn write_agent_review(
+    paths: &AgentRunPaths,
+    response: &crate::review::decision::ArchitecturalReviewRecord,
+) -> io::Result<()> {
+    let bytes = serde_json::to_vec_pretty(response).map_err(io::Error::other)?;
+    if bytes.len() > AGENT_REVIEW_MAX_BYTES {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "review record exceeds 4 MiB"));
+    }
+    atomic::write(&paths.review_json, |writer| {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            writer.get_ref().set_permissions(fs::Permissions::from_mode(0o600))?;
+        }
+        writer.write_all(&bytes)
+    })?;
+    atomic::write(&paths.review_markdown, |writer| {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            writer.get_ref().set_permissions(fs::Permissions::from_mode(0o600))?;
+        }
+        writer.write_all(crate::review::decision::render_review(response).as_bytes())
+    })
+}
+
+pub(crate) fn prepare_agent_raw_review(paths: &AgentRunPaths) -> io::Result<()> {
+    match fs::remove_file(&paths.raw_review) {
+        Ok(()) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error),
+    }
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(&paths.raw_review).map(|_| ())
+}
+
+pub(crate) fn write_agent_input(paths: &AgentRunPaths, prompt: &str) -> io::Result<fs::File> {
+    atomic::write(&paths.input_prompt, |writer| {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            writer.get_ref().set_permissions(fs::Permissions::from_mode(0o600))?;
+        }
+        writer.write_all(prompt.as_bytes())
+    })?;
+    fs::File::open(&paths.input_prompt)
+}
+
+pub(crate) fn attach_architectural_review(
+    analysis: &ProjectAnalysis,
+    surface: &mut ReviewSurface,
+    output_dir: Option<&Path>,
+) {
+    use std::io::Read;
+    let path = default_agent_run_paths(&analysis.root, output_dir).review_json;
+    let record = (|| -> io::Result<Option<crate::review::decision::ArchitecturalReviewRecord>> {
+        let file = match fs::File::open(&path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        if !file.metadata()?.is_file() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "review record is not a regular file"));
+        }
+        let mut bytes = Vec::new();
+        file.take(AGENT_REVIEW_MAX_BYTES as u64 + 1).read_to_end(&mut bytes)?;
+        if bytes.len() > AGENT_REVIEW_MAX_BYTES {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "review record exceeds 4 MiB"));
+        }
+        serde_json::from_slice(&bytes).map(Some).map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
+    })();
+    crate::review::apply_architectural_review(surface, analysis, record.map_err(|error| format!("{}: {error}", path.display())));
 }
 
 pub fn default_agent_spider_report_path(root: &Path, output_dir: Option<&Path>) -> PathBuf {
@@ -991,6 +1079,7 @@ pub fn write_project_analysis_artifacts(
 }
 
 pub(crate) struct ArtifactContext {
+    pub review_surface: ReviewSurface,
     pub convergence: ConvergenceHistoryArtifact,
     pub guard: GuardDecisionArtifact,
     pub agentic_review: AgenticReviewArtifact,
@@ -1043,7 +1132,8 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let policy_bundle = analysis.policy_bundle();
     let doctrine_registry = analysis.doctrine_registry();
     let review_started = Instant::now();
-    let review_surface = build_review_surface(analysis, &surface, policy_bundle);
+    let mut review_surface = build_review_surface(analysis, &surface, policy_bundle);
+    attach_architectural_review(analysis, &mut review_surface, Some(&output_dir));
     trace_artifact_step("review_surface.build", review_started.elapsed().as_millis());
     let convergence_started = Instant::now();
     let convergence_history = build_convergence_history_artifact(
@@ -1314,6 +1404,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     Ok((
         paths,
         ArtifactContext {
+            review_surface,
             convergence: convergence_history,
             guard: guard_decision,
             agentic_review,

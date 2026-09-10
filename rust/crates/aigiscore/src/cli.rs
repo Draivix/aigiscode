@@ -37,7 +37,8 @@ struct AgentContext {
 fn build_agent_context(result: &ProjectAnalysis, output_dir: Option<&Path>) -> Result<AgentContext, i32> {
     let surface = result.architecture_surface();
     let doctrine = result.doctrine_registry();
-    let review_surface = build_review_surface(result, &surface, result.policy_bundle());
+    let mut review_surface = build_review_surface(result, &surface, result.policy_bundle());
+    crate::artifacts::attach_architectural_review(result, &mut review_surface, output_dir);
     let baseline = BaselineSnapshot::load(output_dir.unwrap_or(&default_output_dir(&result.root)))
         .map_err(|error| { eprintln!("{error}"); 1 })?;
     let convergence = build_convergence_history_artifact(
@@ -740,10 +741,10 @@ fn print_usage_and_exit() -> ! {
          graph options:\n\
          --kuzu                    materialize the optional Kuzu graph artifact beside JSON output\n\
          agent-run options:\n\
-          --adapter <name>         one of: codex-exec, responses-http, codex-sdk\n\
+          --adapter <name>         one of: codex-exec, responses-http\n\
           --model <model>          override the adapter's default model\n\
          agent-spider options:\n\
-          --adapter <name>         one of: codex-exec, responses-http, codex-sdk\n\
+          --adapter <name>         one of: codex-exec, responses-http\n\
           --model <model>          override the adapter's default model\n\
           --limit <n>              crawl only the top N task packets (default: 3)\n\
          external tools:\n\
@@ -1165,7 +1166,7 @@ fn run_agent_run_command(path: PathBuf, options: AgentRunOptions) -> i32 {
             };
             let run_result = match run_agent_review(
                 &context.review,
-                &result.root,
+                &result,
                 options.output_dir.as_deref(),
                 options.adapter,
                 options.model.as_deref(),
@@ -1202,7 +1203,7 @@ fn run_agent_spider_command(path: PathBuf, options: AgentSpiderOptions) -> i32 {
             };
             let spider_result = match run_agent_spider(
                 &context.review,
-                &result.root,
+                &result,
                 options.output_dir.as_deref(),
                 options.adapter,
                 options.model.as_deref(),

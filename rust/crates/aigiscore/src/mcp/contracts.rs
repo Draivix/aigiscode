@@ -367,6 +367,8 @@ pub struct RepoOverviewOutput {
     pub overview: OverviewOutput,
     pub contract_inventory: ContractInventoryOutput,
     pub review_summary: ReviewSummaryOutput,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub architectural_review: Option<ArchitecturalReviewOutput>,
     pub convergence: ConvergenceSummaryOutput,
     pub guard_decision: GuardDecisionOutput,
     pub feedback_loop: FeedbackLoopOutput,
@@ -382,6 +384,15 @@ pub struct RepoOverviewOutput {
     /// the graph reflects its latest edits or is honestly stale. See [`Freshness`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub freshness: Option<Freshness>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ArchitecturalReviewOutput {
+    pub status: String,
+    pub review_id: Option<String>,
+    pub source_snapshot_id: Option<String>,
+    pub proposal_count: usize,
+    pub reason: Option<String>,
 }
 
 /// Budgeted orientation brief — the answer to "what is this repo and where do
@@ -661,6 +672,13 @@ impl RepoOverviewOutput {
             )
             .capped(Self::CONTRACT_CATEGORY_CAP, Self::CONTRACT_LOCATION_CAP),
             review_summary: ReviewSummaryOutput::from_review_surface(review_surface),
+            architectural_review: review_surface.architectural_review.as_ref().map(|review| ArchitecturalReviewOutput {
+                status: format!("{:?}", review.status),
+                review_id: review.review_id.clone(),
+                source_snapshot_id: review.source_snapshot_id.clone(),
+                proposal_count: review.claims.len(),
+                reason: review.reason.clone(),
+            }),
             convergence: convergence.summary.clone(),
             guard_decision: guard_decision.clone(),
             feedback_loop: FeedbackLoopOutput::from_handoff(handoff),

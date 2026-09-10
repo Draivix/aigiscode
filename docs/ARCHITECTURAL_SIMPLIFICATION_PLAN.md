@@ -34,12 +34,12 @@ long files, many dependents and zero static callers are candidate signals.
 - `abstraction_roles` and `abstraction_sprawl_concepts` derive evidence from
   names/paths; their content parameter is unused. This does not establish that
   the participating layers lack separate responsibilities.
-- `AgenticStructuredClaim` has a free-text recommended action and locations,
-  but lacks a structured survivor, competing implementations, behavior comparison,
-  removal preconditions and evidence-qualified conclusion.
-- `ReviewStatus` currently only represents `Unreviewed`. Policy acceptance and
-  exclusion exist, but a source-backed architectural decision needs a richer
-  lifecycle tied to the reviewed source identity.
+- The [architectural review contract](ARCHITECTURAL_REVIEW_CONTRACT.md) now carries
+  typed actions, survivors, comparisons, preserved behavior and missing evidence.
+  Both adapters validate source identity, citations and packet coverage before
+  publication. Source-reviewed proposals and stale/invalid review records are
+  represented in the review surface. Semantic acceptance and regression execution
+  remain open; reference validation alone does not prove the proposed conclusion.
 - Dead-code coverage is still too coarse for some decisions. A gap elsewhere in
   a repository should not erase an independently provable local conclusion;
   conversely, a complete local parse cannot prove whole-application unreachability.
