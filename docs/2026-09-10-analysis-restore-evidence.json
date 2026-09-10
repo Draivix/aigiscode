@@ -1,0 +1,1968 @@
+{
+  "recorded_at": "2026-09-10T02:24:15.802Z",
+  "base_commit": "6cc333567cdee7787153d0de13d3c4dffc7925cc",
+  "semantic_revision": 17,
+  "automated_tests_run": false,
+  "ci_run": false,
+  "implementation_files": [
+    {
+      "path": "rust/crates/aigiscore/src/artifacts.rs",
+      "bytes": 370037,
+      "sha256": "ffb1a8b673cd95c71e0bf9147110abac8903ee37c371e10043d8ca629282227c"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/artifacts/baseline.rs",
+      "bytes": 13294,
+      "sha256": "bde7cb13c84af5550ab0104b933a8980caee76806abe726731483ca80fbbf094"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/artifacts/analysis_cache.rs",
+      "bytes": 2330,
+      "sha256": "ac3a558891ffe109829a27c6ceb50d666cfa4f5b2b2666e1eb1384b82937a6b2"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+      "bytes": 54174,
+      "sha256": "0febe6e9f94a4baaed786eb91907c7e61e1c8b98da0d09b1ce7a0b22bd2ba595"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/mcp/mod.rs",
+      "bytes": 167144,
+      "sha256": "f232863c3ca1ef167e4275348a04e3e51656154643e6b158c177b017d3394ab5"
+    }
+  ],
+  "build": {
+    "binary": {
+      "path": "target/reliability-2026-09-09/aigiscode-analysis-restore",
+      "bytes": 95408632,
+      "sha256": "3b4e1b83a3ea14e6b3e975b90522f00b37347c1b73058ade7e523ce40aa17b9d"
+    },
+    "log": {
+      "path": "target/reliability-2026-09-09/analysis-restore-build.txt",
+      "bytes": 156,
+      "sha256": "5e0f34cace836d4e2873fe86c0cf5efe5fe9fb402c5066f93e67197fd1b8e3b4"
+    },
+    "exit": 0
+  },
+  "observation": {
+    "source_root": "target/reliability-2026-09-09/draivix-capture-identity-source",
+    "original_written": false,
+    "wall": "1:25.37",
+    "peak_rss_kib": 3580056,
+    "exit": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 132657,
+      "references": 1097074,
+      "resolved_edges": 331060,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 22,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 275
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 373
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 6504
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 12483
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 39537
+      }
+    ],
+    "summary_changed_fields": [],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/analysis-restore-cli-result.txt",
+        "bytes": 16592,
+        "sha256": "3f9e037d9be7307e525838cf52579968b7a1b5eeb39130491d7a87acfafbc12f"
+      },
+      {
+        "path": "target/reliability-2026-09-09/analysis-restore-cli-time.txt",
+        "bytes": 972,
+        "sha256": "8e8ef8c17411d3f1fb983a94fcb2fdd8ad2f1fc12bc6f192c05016f63b690577"
+      },
+      {
+        "path": "target/reliability-2026-09-09/analysis-restore-cli-trace.txt",
+        "bytes": 10972931,
+        "sha256": "bb25e67df654ec45497d1888d0790c645170b92ec83360215fb1b086b379e478"
+      }
+    ]
+  },
+  "native_findings": {
+    "before": {
+      "path": "target/reliability-2026-09-09/python-classes-artifacts/deterministic-findings.json",
+      "bytes": 11347716,
+      "sha256": "cf05c539ef9b3093688eea10356cb611a53821f481f8093c3c7b69561b629461"
+    },
+    "after": {
+      "path": "target/reliability-2026-09-09/analysis-restore-artifacts/deterministic-findings.json",
+      "bytes": 11347716,
+      "sha256": "cb6b925820e24320c461432185dbb678d345a4d89c69e40fcf4b5bd479766f84"
+    },
+    "field_comparisons": [
+      {
+        "field": "root",
+        "identical": true,
+        "before_sha256": "35aea1d27be1ee94770ecdbae8dadbdf3d4673c8d8403ae3d2109644f555579d",
+        "after_sha256": "35aea1d27be1ee94770ecdbae8dadbdf3d4673c8d8403ae3d2109644f555579d"
+      },
+      {
+        "field": "input_coverage",
+        "identical": true,
+        "before_sha256": "1d2abafb9d135ac429fa26b97a03aa83f694011cbd8a69cb93fb3f0c2ab5af52",
+        "after_sha256": "1d2abafb9d135ac429fa26b97a03aa83f694011cbd8a69cb93fb3f0c2ab5af52"
+      },
+      {
+        "field": "scanned_files",
+        "identical": true,
+        "before_sha256": "0ec0a3a40322371125f6ef9b944f9a44b06b2a8f13b9687835b2d72bdab4e0ba",
+        "after_sha256": "0ec0a3a40322371125f6ef9b944f9a44b06b2a8f13b9687835b2d72bdab4e0ba"
+      },
+      {
+        "field": "analyzed_files",
+        "identical": true,
+        "before_sha256": "60cbbe1b72b270bfb8578f022584dba9943a4ca215eb63dc2002c11dcfbfd22c",
+        "after_sha256": "60cbbe1b72b270bfb8578f022584dba9943a4ca215eb63dc2002c11dcfbfd22c"
+      },
+      {
+        "field": "symbols",
+        "identical": true,
+        "before_sha256": "19ab1f57b74cc323181fb13691d083e1442743364d2c0bfa450f8e68c9e5ec1b",
+        "after_sha256": "19ab1f57b74cc323181fb13691d083e1442743364d2c0bfa450f8e68c9e5ec1b"
+      },
+      {
+        "field": "references",
+        "identical": true,
+        "before_sha256": "653b0ffa965e50d1a1c89ce9833278d47072623d88c11285349cf7dca6fa49d2",
+        "after_sha256": "653b0ffa965e50d1a1c89ce9833278d47072623d88c11285349cf7dca6fa49d2"
+      },
+      {
+        "field": "resolved_edges",
+        "identical": true,
+        "before_sha256": "fb6a97f1ebe8918b508e2647524a58c90e8fc0f8a30ea553b6b35196603be24d",
+        "after_sha256": "fb6a97f1ebe8918b508e2647524a58c90e8fc0f8a30ea553b6b35196603be24d"
+      },
+      {
+        "field": "graph_analysis",
+        "identical": true,
+        "before_sha256": "cde5c1dfca82189f71ec15afee7a8af23669faab29817ded75c6e1d93562afbc",
+        "after_sha256": "cde5c1dfca82189f71ec15afee7a8af23669faab29817ded75c6e1d93562afbc"
+      },
+      {
+        "field": "architectural_assessment",
+        "identical": true,
+        "before_sha256": "b260ca335ad078160172d063e2d05a9a3d68c29b48cb77d33e236879852c02cf",
+        "after_sha256": "b260ca335ad078160172d063e2d05a9a3d68c29b48cb77d33e236879852c02cf"
+      },
+      {
+        "field": "dead_code",
+        "identical": true,
+        "before_sha256": "9d0f2143c61cfbb6c0cf0425ce8b447811a32d48ec37333ba8b3700218631b36",
+        "after_sha256": "9d0f2143c61cfbb6c0cf0425ce8b447811a32d48ec37333ba8b3700218631b36"
+      },
+      {
+        "field": "hardwiring",
+        "identical": true,
+        "before_sha256": "7f633c97bfd364a50d3b8b1c95a4bdcf03535f4f90567859567f62700f0bc55c",
+        "after_sha256": "7f633c97bfd364a50d3b8b1c95a4bdcf03535f4f90567859567f62700f0bc55c"
+      },
+      {
+        "field": "ast_grep_scan",
+        "identical": true,
+        "before_sha256": "02c712b53ddfbcc5d95d0120661d86b4264ef24e55a5d5f8b4b45211361e4f5c",
+        "after_sha256": "02c712b53ddfbcc5d95d0120661d86b4264ef24e55a5d5f8b4b45211361e4f5c"
+      },
+      {
+        "field": "security_analysis",
+        "identical": true,
+        "before_sha256": "879d402f433801e6a6bcc86c14d9877fed6b177bdf9814d159b4a92f8c79e2a3",
+        "after_sha256": "879d402f433801e6a6bcc86c14d9877fed6b177bdf9814d159b4a92f8c79e2a3"
+      },
+      {
+        "field": "contract_inventory",
+        "identical": true,
+        "before_sha256": "6ba755f2b1462d1b1f2fc99f897896e23110206b3a889152d69af5205d17efaa",
+        "after_sha256": "6ba755f2b1462d1b1f2fc99f897896e23110206b3a889152d69af5205d17efaa"
+      },
+      {
+        "field": "timings",
+        "identical": false,
+        "before_sha256": "6b738703c16f952204681bcc5bfbf8a81d4af825ffd0cddd8d8fc522647119aa",
+        "after_sha256": "d519bfbc0cc1421e207a344254d8100eb18a7edbeb2da663323f0b0b89799a81"
+      }
+    ]
+  },
+  "graph": {
+    "before": {
+      "path": "target/reliability-2026-09-09/python-classes-artifacts/semantic-graph.json",
+      "bytes": 818078041,
+      "sha256": "535bc1ec36526bde191978ad7cc69b35b3c1de4d3378e77591e8ca52b1be1d6c"
+    },
+    "after": {
+      "path": "target/reliability-2026-09-09/analysis-restore-artifacts/semantic-graph.json",
+      "bytes": 818078041,
+      "sha256": "535bc1ec36526bde191978ad7cc69b35b3c1de4d3378e77591e8ca52b1be1d6c"
+    },
+    "identical": true
+  },
+  "artifact_comparisons": [
+    {
+      "name": "ast-grep-scan.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/python-classes-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/analysis-restore-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      },
+      "identical": true
+    },
+    {
+      "name": "contract-inventory.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/python-classes-artifacts/contract-inventory.json",
+        "bytes": 143773,
+        "sha256": "dc653ad63ce0f02fba622bf920114c1a5baa213239cb877fbc1c03d8ec85ea88"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/analysis-restore-artifacts/contract-inventory.json",
+        "bytes": 143773,
+        "sha256": "dc653ad63ce0f02fba622bf920114c1a5baa213239cb877fbc1c03d8ec85ea88"
+      },
+      "identical": true
+    },
+    {
+      "name": "dependency-graph.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/python-classes-artifacts/dependency-graph.json",
+        "bytes": 222951479,
+        "sha256": "cc6fc5b2d55be91e6c790086665152b462ed76b1a660a3b754c7099c4f54f183"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/analysis-restore-artifacts/dependency-graph.json",
+        "bytes": 222951479,
+        "sha256": "cc6fc5b2d55be91e6c790086665152b462ed76b1a660a3b754c7099c4f54f183"
+      },
+      "identical": true
+    },
+    {
+      "name": "evidence-graph.json",
+      "before": {
+        "path": "target/reliability-2026-09-09/python-classes-artifacts/evidence-graph.json",
+        "bytes": 490823119,
+        "sha256": "96f5250cf94921d543571b24bdcf865086a7cc7e8c3555547a627d9c2ba0624a"
+      },
+      "after": {
+        "path": "target/reliability-2026-09-09/analysis-restore-artifacts/evidence-graph.json",
+        "bytes": 490823119,
+        "sha256": "96f5250cf94921d543571b24bdcf865086a7cc7e8c3555547a627d9c2ba0624a"
+      },
+      "identical": true
+    }
+  ],
+  "manifest": {
+    "file": {
+      "path": "target/reliability-2026-09-09/analysis-restore-artifacts/scan-manifest.json",
+      "bytes": 2248758,
+      "sha256": "c35b947232aee81382e2bad84ead47b868343f62e1b08cf63101a5f28bf64698"
+    },
+    "deterministic_findings_xxh3": "61d0bd2ddc6dcfc3",
+    "semantic_graph_xxh3": "9ee4033fef054441",
+    "snapshot_identity": {
+      "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+      "engine_version": "0.1.0",
+      "engine_fingerprint": "770e37ec65856c58",
+      "semantic_revision": 17,
+      "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+      "input_inventory_fingerprint": "cfca57f2dc4e058e",
+      "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+      "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+      "resolve_config_fingerprint": "9afcc2b4046f9940",
+      "assessment_config_fingerprint": "15d53a85edc70ec3",
+      "external_tools": [],
+      "external_checks_complete": true
+    }
+  },
+  "mcp": {
+    "stale": {
+      "process": {
+        "pid": 3909245,
+        "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-analysis-restore",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+        "arguments": [
+          "mcp",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "--output-dir",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/python-classes-artifacts",
+          "--no-write"
+        ],
+        "started_at": "2026-09-10T02:17:27.111Z"
+      },
+      "requests": [
+        {
+          "id": 1,
+          "label": "initialize",
+          "method": "initialize",
+          "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+              "name": "aigiscode-analysis-restore-review",
+              "version": "1"
+            }
+          },
+          "sent_ms": 3.8491420000000005,
+          "received_ms": 7.910988,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "label": "overview",
+          "method": "tools/call",
+          "params": {
+            "name": "repo_overview",
+            "arguments": {
+              "min_revision": 1,
+              "consistency": "wait_until_indexed",
+              "wait_ms": 120000
+            }
+          },
+          "sent_ms": 8.215512,
+          "received_ms": 74164.384944,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "label": "account-home-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 74199.308203,
+          "received_ms": 74241.348608,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "label": "account-home-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw"
+            }
+          },
+          "sent_ms": 74241.505955,
+          "received_ms": 74244.990569,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "label": "account-symlink-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 74245.16383199999,
+          "received_ms": 74284.950189,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 6,
+          "label": "account-symlink-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw"
+            }
+          },
+          "sent_ms": 74285.093014,
+          "received_ms": 74287.971026,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 7,
+          "label": "account-missing-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 74288.12622199999,
+          "received_ms": 74330.446401,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 8,
+          "label": "account-missing-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw"
+            }
+          },
+          "sent_ms": 74330.661225,
+          "received_ms": 74333.810825,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 9,
+          "label": "account-design",
+          "method": "tools/call",
+          "params": {
+            "name": "module_design",
+            "arguments": {
+              "path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "max_containers": 10
+            }
+          },
+          "sent_ms": 74333.953861,
+          "received_ms": 74451.284585,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 10,
+          "label": "cycles",
+          "method": "tools/call",
+          "params": {
+            "name": "show_cycles",
+            "arguments": {
+              "max_items": 100
+            }
+          },
+          "sent_ms": 74451.446658,
+          "received_ms": 74452.974787,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 11,
+          "label": "coverage",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/coverage"
+          },
+          "sent_ms": 74453.215136,
+          "received_ms": 74453.48830699999,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 12,
+          "label": "quality",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/quality"
+          },
+          "sent_ms": 74453.663552,
+          "received_ms": 74453.911088,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 13,
+          "label": "guard",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/guard"
+          },
+          "sent_ms": 74454.07334999999,
+          "received_ms": 74454.436919,
+          "error": null,
+          "is_error": false
+        }
+      ],
+      "first_useful_ms": 74164.384944,
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 75121.52565899999
+      },
+      "overview_meta": {
+        "aigiscode/artifact_generation": {
+          "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/python-classes-artifacts/.generations/18d3d2f205e6f1e5-3a33d7-0",
+          "generation": "18d3d2f205e6f1e5-3a33d7-0",
+          "inputs_match_index": false
+        },
+        "aigiscode/ast_grep_coverage": {
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "aigiscode/freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1789006721269,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        },
+        "aigiscode/input_coverage": {
+          "files_without_parse_evidence": 0,
+          "recovered_source_files": 80,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_source_files": 146
+        }
+      },
+      "guard_baseline": {
+        "availability": "verified",
+        "comparison": "not_compared",
+        "current": {
+          "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "engine_version": "0.1.0",
+          "engine_fingerprint": "770e37ec65856c58",
+          "semantic_revision": 17,
+          "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+          "input_inventory_fingerprint": "cfca57f2dc4e058e",
+          "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+          "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+          "resolve_config_fingerprint": "9afcc2b4046f9940",
+          "assessment_config_fingerprint": "15d53a85edc70ec3",
+          "external_tools": [],
+          "external_checks_complete": true
+        },
+        "previous": {
+          "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "engine_version": "0.1.0",
+          "engine_fingerprint": "d47d1b442dc2b2c3",
+          "semantic_revision": 17,
+          "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+          "input_inventory_fingerprint": "cfca57f2dc4e058e",
+          "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+          "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+          "resolve_config_fingerprint": "9afcc2b4046f9940",
+          "assessment_config_fingerprint": "15d53a85edc70ec3",
+          "external_tools": [],
+          "external_checks_complete": true
+        },
+        "reasons": [
+          "current_inputs_incomplete",
+          "current_secondary_checks_incomplete",
+          "previous_secondary_checks_incomplete",
+          "previous_inputs_incomplete",
+          "different_engine"
+        ]
+      },
+      "trace_native_restore": [],
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/1.json",
+          "bytes": 523,
+          "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/10.json",
+          "bytes": 156487,
+          "sha256": "257f88cecbcf472cd11d55d29a34b3f128a6e329f3b8798944c0e052e39d0a4d"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/11.json",
+          "bytes": 15948,
+          "sha256": "58e3459511ffbd2a3efa02bb1c12dbacfb8daf920c9d19f9f43a14fd4d26d3cb"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/12.json",
+          "bytes": 19580,
+          "sha256": "3a7752c5cda71e2951334eb6bd92ed66e29ada6bef5e531a7ec7e57d09c35e2e"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/13.json",
+          "bytes": 60310,
+          "sha256": "595b82078fe7c09d40ab265d641717da7cf34cf3fa02d949db889ad70428cdd6"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/2.json",
+          "bytes": 292034,
+          "sha256": "51950ff83bbd46188acd5e9c12dc8e9e86b93ea7edbdbe82e5ac56039a7cdc06"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/3.json",
+          "bytes": 3712,
+          "sha256": "931cd7801a64d959de0198522f3720f83b826432dee79493f483a45d5813b31b"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/4.json",
+          "bytes": 2020,
+          "sha256": "30d299c229a64a6fe02f7b15ce5afdb5a462ea53f6823a2a3ae3d55e4b654f56"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/5.json",
+          "bytes": 3712,
+          "sha256": "c7a5ab1eeae7ee4bdc936f318ab5fca84b23c3ee7e79eeda91f4c519d7a8b1ae"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/6.json",
+          "bytes": 2096,
+          "sha256": "2e90ea701a24190cf9e4473b4b024ee7e2e37f8d1bc8e4e54fc75f5e77cd2621"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/7.json",
+          "bytes": 3712,
+          "sha256": "ae4deb4c6b4d77b20c45451125512ec34a4da443a31685f192989770e4c72908"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/8.json",
+          "bytes": 2060,
+          "sha256": "5c4bbf2a83c817c8d0cac2a7f868c06517bfae9a5fffccd0540baa802b3d7e1b"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/9.json",
+          "bytes": 2496,
+          "sha256": "a9fea0efe84864e8fb681bc8863b5538d5519b43bdbacd6f18e43d734aea0458"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-design.json",
+          "bytes": 979,
+          "sha256": "5b09c7510f452c1fe371201a5902afeabe051a1691fbd9a3d50442d52b966307"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-home-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-home-usages.json",
+          "bytes": 637,
+          "sha256": "acd77f81f06e9ed6649b6e4c9b08d9cc750a48a4e2ad4318582626fe7183f835"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-missing-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-missing-usages.json",
+          "bytes": 657,
+          "sha256": "43b3eef929763638a779635d24e239e2421395f5dc8b5d4888a5005c60afd693"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-symlink-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/account-symlink-usages.json",
+          "bytes": 675,
+          "sha256": "c1fd3af029219a734ca9e591eea71c431ea6be10c9ac18c35fb9fbf7dd214769"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/coverage.json",
+          "bytes": 13631,
+          "sha256": "248a551297c088658b6c437ec601f8b92de2822bcb0c6b746a912d80863e1ff9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/cycles.json",
+          "bytes": 100206,
+          "sha256": "e06f2f2b8067392a7bfc13aca06ffb70b5437b3684c629dd0fab1c9991371f15"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/exit.json",
+          "bytes": 55,
+          "sha256": "0bc3631f7afaed7616cddf83aa2d9d82e8c6e3d6283cb155094350bb6742ef43"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/guard.json",
+          "bytes": 57165,
+          "sha256": "7bc2e85648391d9632629de2ea0af01a5b93456a781ca826815b4fdda0d8498e"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/overview.json",
+          "bytes": 197363,
+          "sha256": "94b2a44c24e685901fffd2015563b658a70dd5f2984f69c8eb4c238a1b93b8a5"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/process.json",
+          "bytes": 519,
+          "sha256": "63e3d3b1e011acc66faaca8294d5ca0d7a219d1c9c99ccd2df0c68dd03c1314d"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/quality.json",
+          "bytes": 17050,
+          "sha256": "3f33b552a00f16056ecf0ab85cef7260ce87089c7d32c3b2b6d19d20f170f782"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/requests.json",
+          "bytes": 4610,
+          "sha256": "ab2e88c6ae3f727d90bc2357c35aec8435830b43d7a2f619302c4add4c684b29"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-stale-mcp/stderr.txt",
+          "bytes": 10971025,
+          "sha256": "b5b6a4af8f8ebe3d92e504e583cb4aaf4ec954665e2e8d4aa1626f71284e8601"
+        }
+      ]
+    },
+    "cached": {
+      "process": {
+        "pid": 3929675,
+        "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-analysis-restore",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+        "arguments": [
+          "mcp",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "--output-dir",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/analysis-restore-artifacts",
+          "--no-write"
+        ],
+        "started_at": "2026-09-10T02:22:00.192Z"
+      },
+      "requests": [
+        {
+          "id": 1,
+          "label": "initialize",
+          "method": "initialize",
+          "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+              "name": "aigiscode-analysis-restore-review",
+              "version": "1"
+            }
+          },
+          "sent_ms": 4.6109860000000005,
+          "received_ms": 8.048593,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "label": "overview",
+          "method": "tools/call",
+          "params": {
+            "name": "repo_overview",
+            "arguments": {
+              "min_revision": 1,
+              "consistency": "wait_until_indexed",
+              "wait_ms": 120000
+            }
+          },
+          "sent_ms": 8.34274,
+          "received_ms": 16609.355455999998,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "label": "account-home-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 16656.099342999998,
+          "received_ms": 16694.980767,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "label": "account-home-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw"
+            }
+          },
+          "sent_ms": 16695.222880999998,
+          "received_ms": 16700.508846999997,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "label": "account-symlink-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 16700.766943,
+          "received_ms": 16737.174106,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 6,
+          "label": "account-symlink-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw"
+            }
+          },
+          "sent_ms": 16737.379089,
+          "received_ms": 16740.391915,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 7,
+          "label": "account-missing-symbol",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "FakePw",
+              "kind": "class",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 16740.548999,
+          "received_ms": 16772.181869,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 8,
+          "label": "account-missing-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw"
+            }
+          },
+          "sent_ms": 16772.344904999998,
+          "received_ms": 16776.260592,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 9,
+          "label": "account-design",
+          "method": "tools/call",
+          "params": {
+            "name": "module_design",
+            "arguments": {
+              "path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "max_containers": 10
+            }
+          },
+          "sent_ms": 16776.440318,
+          "received_ms": 16860.761197,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 10,
+          "label": "cycles",
+          "method": "tools/call",
+          "params": {
+            "name": "show_cycles",
+            "arguments": {
+              "max_items": 100
+            }
+          },
+          "sent_ms": 16860.990024,
+          "received_ms": 16862.430974,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 11,
+          "label": "coverage",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/coverage"
+          },
+          "sent_ms": 16862.671566999998,
+          "received_ms": 16862.918245,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 12,
+          "label": "quality",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/quality"
+          },
+          "sent_ms": 16863.107035,
+          "received_ms": 16863.337037999998,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 13,
+          "label": "guard",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/guard"
+          },
+          "sent_ms": 16863.504064999997,
+          "received_ms": 16863.816648,
+          "error": null,
+          "is_error": false
+        }
+      ],
+      "first_useful_ms": 16609.355455999998,
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 17275.935927
+      },
+      "overview_meta": {
+        "aigiscode/artifact_generation": {
+          "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/analysis-restore-artifacts/.generations/18d3d44809d2c7ca-3bd83e-0",
+          "generation": "18d3d44809d2c7ca-3bd83e-0",
+          "inputs_match_index": true
+        },
+        "aigiscode/ast_grep_coverage": {
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "aigiscode/freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1789006936792,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        },
+        "aigiscode/input_coverage": {
+          "files_without_parse_evidence": 0,
+          "recovered_source_files": 80,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_source_files": 146
+        }
+      },
+      "guard_baseline": {
+        "availability": "verified",
+        "comparison": "not_compared",
+        "current": {
+          "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "engine_version": "0.1.0",
+          "engine_fingerprint": "770e37ec65856c58",
+          "semantic_revision": 17,
+          "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+          "input_inventory_fingerprint": "cfca57f2dc4e058e",
+          "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+          "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+          "resolve_config_fingerprint": "9afcc2b4046f9940",
+          "assessment_config_fingerprint": "15d53a85edc70ec3",
+          "external_tools": [],
+          "external_checks_complete": true
+        },
+        "previous": {
+          "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "engine_version": "0.1.0",
+          "engine_fingerprint": "770e37ec65856c58",
+          "semantic_revision": 17,
+          "source_fingerprint": "6f443d3783ff1c41a49651c388b3201f",
+          "input_inventory_fingerprint": "cfca57f2dc4e058e",
+          "semantic_env_fingerprint": "26806311af4518c26d16c38049fca478",
+          "scope_fingerprint": "edd6652d1978e39181c3cf60c26ad9df",
+          "resolve_config_fingerprint": "9afcc2b4046f9940",
+          "assessment_config_fingerprint": "15d53a85edc70ec3",
+          "external_tools": [],
+          "external_checks_complete": true
+        },
+        "reasons": [
+          "current_inputs_incomplete",
+          "current_secondary_checks_incomplete",
+          "previous_secondary_checks_incomplete",
+          "previous_inputs_incomplete"
+        ]
+      },
+      "trace_native_restore": [
+        "[aigiscore] fast_load.native_analysis restored elapsed_ms=78",
+        "[aigiscore] fast-loaded graph from artifacts (17067 files, 132657 symbols); skipping Parse+Resolve; restored native analysis"
+      ],
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/1.json",
+          "bytes": 523,
+          "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/10.json",
+          "bytes": 156488,
+          "sha256": "a1904f67c59425bd32fd07b5d004a3757a37d27b79199c9148265f6e93f9d1af"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/11.json",
+          "bytes": 15949,
+          "sha256": "ff1fe94ec11759562da2acba9def1770143ebd497498748651cf789ccc89c9c0"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/12.json",
+          "bytes": 19581,
+          "sha256": "32164460c0714cd170f77fdd932537f987190e97b645f6b3ba4f44adcc596859"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/13.json",
+          "bytes": 60282,
+          "sha256": "981b88c36b5b6ad843bf9b69ec8392399d0c1a0261cfc01096c88da0e6ee7256"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/2.json",
+          "bytes": 292075,
+          "sha256": "ee9cdfcb63b0260604f0b8c6c0197899574ba26fe0b71edefe80f53e7cd8da50"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/3.json",
+          "bytes": 3713,
+          "sha256": "fdbf2c4c2dfc2df12a675cbe512fd04117d837e8fe3c8ad198d338d097f0c250"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/4.json",
+          "bytes": 2021,
+          "sha256": "b71316b43853f7f3b18dcdc49bf025cb3af9ca613990446b3f4bb6fd60d771e0"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/5.json",
+          "bytes": 3713,
+          "sha256": "704da4c437f39792213f5974126fb96cd27ad29fa20503113c3aa3aab57f0c3a"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/6.json",
+          "bytes": 2097,
+          "sha256": "6c94705a8e167d204eae03a404fde4b6d654d27023f2d17e7f58afb40942d3b1"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/7.json",
+          "bytes": 3713,
+          "sha256": "b7157d858d456a445620f6a12fb64ad5a4c741304c3461b589257cea23eeacfd"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/8.json",
+          "bytes": 2061,
+          "sha256": "0f972f4bc103165039de47b93f2fcc379200e3a29155b2e06a5e4e8ce2c30f41"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/9.json",
+          "bytes": 2497,
+          "sha256": "1d28c54da1f31c14450cb591eed45eab366c03a5daa815dbb476210db141e35c"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-design.json",
+          "bytes": 979,
+          "sha256": "5b09c7510f452c1fe371201a5902afeabe051a1691fbd9a3d50442d52b966307"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-home-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-home-usages.json",
+          "bytes": 637,
+          "sha256": "acd77f81f06e9ed6649b6e4c9b08d9cc750a48a4e2ad4318582626fe7183f835"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-missing-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-missing-usages.json",
+          "bytes": 657,
+          "sha256": "43b3eef929763638a779635d24e239e2421395f5dc8b5d4888a5005c60afd693"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-symlink-symbol.json",
+          "bytes": 1653,
+          "sha256": "d43e6317c3608a96604fe6f9cd3be1bb4901e7befd4ecb524c337f63c2c788c9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/account-symlink-usages.json",
+          "bytes": 675,
+          "sha256": "c1fd3af029219a734ca9e591eea71c431ea6be10c9ac18c35fb9fbf7dd214769"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/coverage.json",
+          "bytes": 13631,
+          "sha256": "248a551297c088658b6c437ec601f8b92de2822bcb0c6b746a912d80863e1ff9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/cycles.json",
+          "bytes": 100206,
+          "sha256": "e06f2f2b8067392a7bfc13aca06ffb70b5437b3684c629dd0fab1c9991371f15"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/exit.json",
+          "bytes": 50,
+          "sha256": "3fb1265f8a00fe3408228f4e2e929f33aa9c1e3af2bacbcd2e84e96b568ba3de"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/guard.json",
+          "bytes": 57139,
+          "sha256": "ebba4a88cf4b1b282744e4e245f20a9d8e9490df03cafb881eb2eb83ad5b71b7"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/overview.json",
+          "bytes": 197375,
+          "sha256": "0939b78afde92979a8595274167b31988d8721ff1ba6d615f0cbd06992a62640"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/process.json",
+          "bytes": 521,
+          "sha256": "5636143f8ea0af4bd1751a4f0a8a6d2a647ae779b9e552c53dfe2a09eb7987a1"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/quality.json",
+          "bytes": 17050,
+          "sha256": "3f33b552a00f16056ecf0ab85cef7260ce87089c7d32c3b2b6d19d20f170f782"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/requests.json",
+          "bytes": 4637,
+          "sha256": "f81bdf0f75b470b2e66c4ed04cfc5bcd533ccd157705b2222a995aa0631fec58"
+        },
+        {
+          "path": "target/reliability-2026-09-09/analysis-restore-cached-mcp/stderr.txt",
+          "bytes": 8132,
+          "sha256": "d88743e9c4a0618c6f637e96d34a6b0acf2a722b8c3b92bb7a0b8a327e6878fa"
+        }
+      ]
+    },
+    "tool_comparisons": [
+      {
+        "label": "overview",
+        "identical": false,
+        "changed_top_level_fields": [
+          "artifact_files",
+          "freshness",
+          "guard_decision"
+        ],
+        "before_sha256": "aae757e714441b5e8cfc339f6362b90331cc4219e8420c0c9ccb134f01d5c092",
+        "after_sha256": "9281bdf6cf47752ada7edc9ccb370001878cad97abe0bb8246805f23aa91527f"
+      },
+      {
+        "label": "coverage",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "38a1133e5d1dcec98a28919f8b4f3860286a70d422361b6af496afdfeaafdcd1",
+        "after_sha256": "38a1133e5d1dcec98a28919f8b4f3860286a70d422361b6af496afdfeaafdcd1"
+      },
+      {
+        "label": "quality",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "d0a73da03bb7441a40305f436a3163b9072f65b9a4f3f6f4669509a38c51f033",
+        "after_sha256": "d0a73da03bb7441a40305f436a3163b9072f65b9a4f3f6f4669509a38c51f033"
+      },
+      {
+        "label": "guard",
+        "identical": false,
+        "changed_top_level_fields": [
+          "baseline"
+        ],
+        "before_sha256": "02a300f04acd206c0381b8b8868070ab851ba512bdb773aacd0171d13007f691",
+        "after_sha256": "08dee4700ae2a22ed33843d9ef05e1b9bdeb6040985cc39b7a89e05289149385"
+      },
+      {
+        "label": "cycles",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "cdc5fa11b4f7033c19bec7e9f10629c19509e8e8bbe2b7ad9b916c4a9d90786c",
+        "after_sha256": "cdc5fa11b4f7033c19bec7e9f10629c19509e8e8bbe2b7ad9b916c4a9d90786c"
+      },
+      {
+        "label": "account-design",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "a8b6197c4bd223a1bcf820b31aa4003fff8fcf4d43d01a06f060911c4449f6b4",
+        "after_sha256": "a8b6197c4bd223a1bcf820b31aa4003fff8fcf4d43d01a06f060911c4449f6b4"
+      },
+      {
+        "label": "account-home-symbol",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "30e351eb1d22df9dab7cc0e8a0766443c528d81bc471531b16662302d8a128ec",
+        "after_sha256": "30e351eb1d22df9dab7cc0e8a0766443c528d81bc471531b16662302d8a128ec"
+      },
+      {
+        "label": "account-home-usages",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "bfda9861b7b8b61f851288911b4f162d8c8a802d9d5711a642f44e56aef1130c",
+        "after_sha256": "bfda9861b7b8b61f851288911b4f162d8c8a802d9d5711a642f44e56aef1130c"
+      },
+      {
+        "label": "account-symlink-symbol",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "30e351eb1d22df9dab7cc0e8a0766443c528d81bc471531b16662302d8a128ec",
+        "after_sha256": "30e351eb1d22df9dab7cc0e8a0766443c528d81bc471531b16662302d8a128ec"
+      },
+      {
+        "label": "account-symlink-usages",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "e6ebb94c5f246bd8aa19b20002fcfa68753b26a92b69c4ce40ce85d7a7ba078c",
+        "after_sha256": "e6ebb94c5f246bd8aa19b20002fcfa68753b26a92b69c4ce40ce85d7a7ba078c"
+      },
+      {
+        "label": "account-missing-symbol",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "30e351eb1d22df9dab7cc0e8a0766443c528d81bc471531b16662302d8a128ec",
+        "after_sha256": "30e351eb1d22df9dab7cc0e8a0766443c528d81bc471531b16662302d8a128ec"
+      },
+      {
+        "label": "account-missing-usages",
+        "identical": true,
+        "changed_top_level_fields": [],
+        "before_sha256": "5acffe23c919110146a5e7d5f677f5737446beb5e6d95b9138b329f31a3cf7c4",
+        "after_sha256": "5acffe23c919110146a5e7d5f677f5737446beb5e6d95b9138b329f31a3cf7c4"
+      }
+    ],
+    "previous_graph_only_fast_load": {
+      "first_useful_ms": 44895.805609,
+      "receipt": {
+        "path": "docs/2026-09-10-python-classes-evidence.json",
+        "bytes": 183602,
+        "sha256": "682a1483b998e5f2c82f6a1ce64b3bd9136ccc0298603312ddbb58d536c04307"
+      }
+    },
+    "witnesses": [
+      {
+        "label": "account-home",
+        "usages": {
+          "distinct_files": 1,
+          "query": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+          "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_reads_real_home@99:4:FakePw",
+          "total_edges": 1,
+          "truncated": false,
+          "usages": [
+            {
+              "edge_count": 1,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "kinds": [
+                "call"
+              ],
+              "lines": [
+                104
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "account-symlink",
+        "usages": {
+          "distinct_files": 1,
+          "query": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+          "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_symlinked_authorized_keys_refused@121:4:FakePw",
+          "total_edges": 1,
+          "truncated": false,
+          "usages": [
+            {
+              "edge_count": 1,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "kinds": [
+                "call"
+              ],
+              "lines": [
+                126
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "account-missing",
+        "usages": {
+          "distinct_files": 1,
+          "query": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+          "symbol_id": "class:tools/satellite/tests/test_authorized_keys_audit.py:function:tools/satellite/tests/test_authorized_keys_audit.py:test_audit_account_missing_ssh_dir_is_empty@133:4:FakePw",
+          "total_edges": 1,
+          "truncated": false,
+          "usages": [
+            {
+              "edge_count": 1,
+              "file_path": "tools/satellite/tests/test_authorized_keys_audit.py",
+              "kinds": [
+                "call"
+              ],
+              "lines": [
+                138
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "self_audit": {
+    "wall": "0:03.11",
+    "peak_rss_kib": 166180,
+    "exit": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "complete",
+        "input_files": 122,
+        "scanned_files": 57,
+        "prefiltered_files": 65,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 0,
+        "gap_bytes": 0,
+        "gap_files_preview": []
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 122,
+        "parsed_source_files": 122,
+        "recovered_source_files": 2,
+        "scope_limited_files": 0,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 2,
+        "other_input_files": 145,
+        "diagnostic_count": 2,
+        "parse_issues_preview": [
+          {
+            "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 251,
+                "start_column": 50,
+                "end_line": 251,
+                "end_column": 54
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 2357,
+                "start_column": 57,
+                "end_line": 2357,
+                "end_column": 61
+              }
+            ],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "install.ps1",
+            "extension": "ps1"
+          },
+          {
+            "file_path": "install.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 269,
+      "analyzed_files": 122,
+      "symbols": 2852,
+      "references": 35265,
+      "resolved_edges": 6307,
+      "strong_cycle_count": 11,
+      "total_cycle_count": 3,
+      "architectural_smell_count": 0,
+      "warning_heavy_hotspot_count": 13,
+      "split_identity_model_count": 0,
+      "compatibility_scar_count": 0,
+      "duplicate_mechanism_count": 0,
+      "hand_rolled_parsing_count": 0,
+      "abstraction_sprawl_count": 0,
+      "algorithmic_complexity_hotspot_count": 87,
+      "ast_grep_finding_count": 54,
+      "ast_grep_algorithmic_complexity_count": 29,
+      "ast_grep_security_dangerous_api_count": 1,
+      "ast_grep_framework_misuse_count": 24,
+      "ast_grep_skipped_file_count": 65,
+      "ast_grep_skipped_bytes": 580911,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/analysis_cache.rs",
+          "bytes": 2330,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2723,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscore.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/coverage.rs",
+          "bytes": 6771,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 789,
+      "security_finding_count": 0,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/self-analysis-restore-result.json",
+        "bytes": 7408,
+        "sha256": "3928b7b541aae9d89254e3a62540f972e9adf368e66fe3418b65c84772bc196f"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-analysis-restore-time.txt",
+        "bytes": 909,
+        "sha256": "18ba7d9f2777faadf57c88e4adb67fcb1a0466f997c9653e20f12765afe204fa"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-analysis-restore-trace.txt",
+        "bytes": 56344,
+        "sha256": "2cca1a599d6c8cd8c8e47e18001afa7d50c7fcab06539ce589e85f1196c94821"
+      }
+    ],
+    "scope_note": "Final Rust implementation and current documentation before the final observation document/receipt/acceptance paragraph were added."
+  },
+  "integrity": {
+    "completed_at": "2026-09-10T02:23:01.534Z",
+    "results": [
+      {
+        "name": "draivix-capture-identity-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "Two existing regression scenarios were extended, not run or compiled as test targets. Tests, CI and local quality gates remain paused.",
+    "Actual runtime observations cover engine upgrade fallback and unchanged-current-snapshot restoration. Configuration changes, malformed findings, external evidence, supplemental-dead-code changes and concurrent mutation branches were source-reviewed only, not exercised here.",
+    "Dead-code analysis on this incomplete corpus defers absence-based checks, so its supplemental traversal was not proven by the current observations.",
+    "MCP was one-shot with watcher disabled; no incremental edit, concurrent-client, cancellation, overflow or long-running memory acceptance is claimed.",
+    "All durations are single observations on a shared machine, not a statistical benchmark or an MCP peak-memory comparison.",
+    "Native and secondary coverage remain incomplete and CLI exit status is 1; guard baseline comparison remains not_compared.",
+    "Full Q01-Q12 acceptance, shared configuration/end-capture stability, general incremental analysis and approved CI remain open."
+  ]
+}

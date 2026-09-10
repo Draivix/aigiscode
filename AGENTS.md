@@ -78,6 +78,10 @@ the delta as completed verification. See `docs/MCP_EDIT_RECEIPTS.md`.
 `aigiscode mcp` verifies engine/scope, the admitted input inventory, declared
 semantic environment, resolver configuration, source hashes and graph checksum.
 It skips Parse+Resolve only when these match, otherwise performing a full analysis.
+When the manifest also seals native findings and current policy/doctrine agree,
+it can restore native analysis after rechecking supplemental dead-code evidence.
+Guard and convergence are still computed for the current request context. See
+`docs/NATIVE_ANALYSIS_CACHE_CONTRACT.md` for eligibility and fallback rules.
 A damaged committed generation is an explicit integrity error. Source bytes must
 also agree with the scan before parsing or fast loading; see
 `docs/INPUT_CAPTURE_CONTRACT.md` for the remaining capture limits.

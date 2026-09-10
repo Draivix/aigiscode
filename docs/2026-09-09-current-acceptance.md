@@ -37,6 +37,13 @@ duplicitní symbolové ID. Souhrnné počty nálezů a cyklů zůstaly stejné;
 tento výsledek nedokládá úplnou sémantiku Pythonu ani běhovou správnost
 nespouštěných regresních scénářů.
 
+[Obnovení nativní analýzy](2026-09-10-analysis-restore.md) snížilo naměřenou
+první odpověď volitelného fast-load z 44,90 na 16,61 s. Celé grafové artefakty,
+scanner i všechna věcná pole deterministických nálezů zůstaly shodné;
+aktuální guard a konvergence se dále přepočítávají. Skutečný přechod mezi
+sestaveními cache správně odmítl. Jde o načtení nezměněného snapshotu;
+inkrementalita změn, souběžné/chybové scénáře a schválené CI zůstávají otevřené.
+
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto
 revizi a zveřejňuje skutečný stav baseline. Reálný MCP běh potvrdil chování při

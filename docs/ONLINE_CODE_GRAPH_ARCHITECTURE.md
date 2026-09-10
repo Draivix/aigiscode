@@ -309,6 +309,14 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
 
 ### Phase 2 — Incremental core
 
+- Opt-in `AIGISCORE_FAST_LOAD=1` can now restore native analysis from the existing
+  `deterministic-findings.json`, after validating the graph/input identity, its
+  manifest checksum and current policy/doctrine fingerprint. External evidence
+  makes this cache ineligible; supplemental dead-code analysis is recomputed.
+  Current guard, convergence and agent context still rebuild. `LoadGraph` and
+  `LoadAnalysis` timings distinguish decoding from fresh analysis. This reduces
+  unchanged-snapshot startup work; parsing and global analysis on changed inputs
+  remain full passes. See the [cache contract](NATIVE_ANALYSIS_CACHE_CONTRACT.md).
 - A first native resolver cache is available behind
   `AIGISCORE_INCREMENTAL_RESOLVE=1` for `mcp --watch`. It reuses per-file native
   results when the full symbol/import context and ordered reference inputs agree;

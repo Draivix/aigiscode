@@ -32,6 +32,8 @@ pub enum IngestionPhase {
     Parse,
     Resolve,
     Analyze,
+    LoadGraph,
+    LoadAnalysis,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -200,7 +202,7 @@ pub(crate) fn analyze_project_with_caches(
     scanner: Option<&mut AstGrepScanCache>,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
     let graph_project = build_semantic_graph_project_with_resolver(root, scan_config, resolver)?;
-    finish_project_analysis(graph_project, scanner)
+    finish_project_analysis(graph_project, scanner, None)
 }
 
 /// Opt-in fast load (driven by `AIGISCORE_FAST_LOAD=1` at the call site):
@@ -228,17 +230,17 @@ pub(crate) fn analyze_project_fast_load_pinned(
     output_dir: &Path,
     scanner: Option<&mut AstGrepScanCache>,
 ) -> Result<Option<ProjectAnalysis>, ProjectAnalysisError> {
-    let Some(graph_project) = try_fast_load_graph_project(root, scan_config, Some(output_dir))? else {
+    let Some((graph_project, manifest)) = try_fast_load_graph_project(root, scan_config, Some(output_dir))? else {
         return Ok(None);
     };
-    Ok(Some(finish_project_analysis(graph_project, scanner)?))
+    Ok(Some(finish_project_analysis(graph_project, scanner, Some((output_dir, &manifest)))?))
 }
 
 fn try_fast_load_graph_project(
     root: &Path,
     scan_config: &ScanConfig,
     output_dir: Option<&Path>,
-) -> Result<Option<SemanticGraphProject>, ProjectAnalysisError> {
+) -> Result<Option<(SemanticGraphProject, crate::artifacts::ScanManifest)>, ProjectAnalysisError> {
     let scan_started = Instant::now();
     let output_dir = output_dir
         .map(Path::to_path_buf)
@@ -316,6 +318,8 @@ fn try_fast_load_graph_project(
         }
     }
 
+    let scan_elapsed = scan_started.elapsed().as_millis();
+    let graph_load_started = Instant::now();
     let file = match fs::File::open(output_dir.join(crate::artifacts::SEMANTIC_GRAPH_FILE)) {
         Ok(file) => file,
         Err(_) => return Ok(None),
@@ -331,9 +335,10 @@ fn try_fast_load_graph_project(
         return Ok(None);
     }
     update_input_inventory(&mut semantic_graph, &scan);
+    let graph_load_elapsed = graph_load_started.elapsed().as_millis();
     let structure_started = Instant::now();
     let structure = build_structure_graph(&scan.files);
-    Ok(Some(SemanticGraphProject {
+    Ok(Some((SemanticGraphProject {
         root: root.to_path_buf(),
         scan,
         structure,
@@ -344,20 +349,72 @@ fn try_fast_load_graph_project(
         timings: vec![
             PhaseTiming {
                 phase: IngestionPhase::Scan,
-                elapsed_ms: scan_started.elapsed().as_millis(),
+                elapsed_ms: scan_elapsed,
+            },
+            PhaseTiming {
+                phase: IngestionPhase::LoadGraph,
+                elapsed_ms: graph_load_elapsed,
             },
             PhaseTiming {
                 phase: IngestionPhase::Structure,
                 elapsed_ms: structure_started.elapsed().as_millis(),
             },
         ],
-    }))
+    }, manifest)))
 }
 
 fn finish_project_analysis(
     graph_project: SemanticGraphProject,
     scanner: Option<&mut AstGrepScanCache>,
+    cached: Option<(&Path, &crate::artifacts::ScanManifest)>,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
+    let analyze_started = Instant::now();
+    let doctrine_registry = load_doctrine_registry(&graph_project.root)?;
+    let policy_bundle = PolicyBundle::load(&graph_project.root)?;
+    if let Some((directory, manifest)) = cached {
+        let configuration_matches = manifest.snapshot_identity.as_ref().is_some_and(|identity| {
+            identity.external_tools.is_empty() && identity.external_checks_complete
+                && identity.assessment_config_fingerprint == crate::artifacts::SnapshotIdentity::assessment_config_fingerprint(&policy_bundle, &doctrine_registry)
+        });
+        if let Some(findings) = manifest.deterministic_findings_xxh3.as_deref()
+            .filter(|_| configuration_matches)
+            .and_then(|hash| crate::artifacts::CachedDeterministicFindings::load(directory, hash, &graph_project))
+        {
+            // Dead-code evidence can include a supplemental sweep outside the
+            // parsed slice. Re-evaluate it rather than assuming the scan manifest
+            // fingerprints those additional files.
+            let dead_code = analyze_dead_code_scoped(&graph_project.semantic_graph, &graph_project.parsed_sources,
+                &findings.contract_inventory, &graph_project.root, &graph_project.scan.scope);
+            if dead_code == findings.dead_code {
+                let mut timings = graph_project.timings;
+                let elapsed_ms = analyze_started.elapsed().as_millis();
+                timings.push(PhaseTiming { phase: IngestionPhase::LoadAnalysis, elapsed_ms });
+                trace(&format!("fast_load.native_analysis restored elapsed_ms={elapsed_ms}"));
+                return Ok(ProjectAnalysis {
+                    root: graph_project.root,
+                    scan: graph_project.scan,
+                    structure: graph_project.structure,
+                    semantic_graph: graph_project.semantic_graph,
+                    resolve_config_xxh3: graph_project.resolve_config_xxh3,
+                    resolution_work: graph_project.resolution_work,
+                    parsed_sources: graph_project.parsed_sources,
+                    graph_analysis: findings.graph_analysis,
+                    architectural_assessment: findings.architectural_assessment,
+                    contract_inventory: findings.contract_inventory,
+                    dead_code,
+                    hardwiring: findings.hardwiring,
+                    security_analysis: findings.security_analysis,
+                    ast_grep_scan: findings.ast_grep_scan,
+                    external_analysis: ExternalAnalysisResult::default(),
+                    ast_grep_work: None,
+                    doctrine_registry,
+                    policy_bundle,
+                    timings,
+                });
+            }
+        }
+        trace("fast_load.native_analysis declined; recomputing native analysis");
+    }
     let SemanticGraphProject {
         root,
         scan,
@@ -369,7 +426,6 @@ fn finish_project_analysis(
         parsed_sources,
     } = graph_project;
 
-    let analyze_started = Instant::now();
     trace("analyze start");
     let graph_started = Instant::now();
     let graph_analysis = analyze_semantic_graph(&semantic_graph, &scan.scope);
@@ -429,8 +485,6 @@ fn finish_project_analysis(
     ));
 
     let assessment_started = Instant::now();
-    let doctrine_registry = load_doctrine_registry(&root)?;
-    let policy_bundle = PolicyBundle::load(&root)?;
     let architectural_assessment = build_architectural_assessment_full(
         &graph_analysis,
         &dead_code,
@@ -745,6 +799,9 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(before, after);
         assert_eq!(analysis.external_analysis.tool_runs.len(), 1);
+        let paths = crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
+        let manifest: crate::artifacts::ScanManifest = serde_json::from_slice(&fs::read(paths.scan_manifest).unwrap()).unwrap();
+        assert!(manifest.deterministic_findings_xxh3.is_none());
     }
 
     #[test]
@@ -806,6 +863,34 @@ mod tests {
             analysis.semantic_graph.resolved_edges.len()
         );
         assert_eq!(loaded.semantic_graph, analysis.semantic_graph);
+        assert_eq!(loaded.graph_analysis, analysis.graph_analysis);
+        assert_eq!(loaded.architectural_assessment, analysis.architectural_assessment);
+        assert_eq!(loaded.contract_inventory, analysis.contract_inventory);
+        assert_eq!(loaded.dead_code, analysis.dead_code);
+        assert_eq!(loaded.hardwiring, analysis.hardwiring);
+        assert_eq!(loaded.ast_grep_scan, analysis.ast_grep_scan);
+        assert_eq!(loaded.security_analysis, analysis.security_analysis);
+        assert!(loaded.timings.iter().any(|timing| timing.phase == IngestionPhase::LoadAnalysis));
+        assert!(!loaded.timings.iter().any(|timing| timing.phase == IngestionPhase::Analyze));
+
+        // Valid JSON with unrelated counts must not stand in for this graph,
+        // even if its bytes are named by a legacy manifest.
+        let findings_path = fixture.join(".aigiscode/deterministic-findings.json");
+        let original_findings = fs::read(&findings_path).unwrap();
+        let manifest_path = fixture.join(".aigiscode/scan-manifest.json");
+        let original_manifest = fs::read(&manifest_path).unwrap();
+        let mut findings: serde_json::Value = serde_json::from_slice(&original_findings).unwrap();
+        findings["scanned_files"] = serde_json::json!(0);
+        let bytes = serde_json::to_vec(&findings).unwrap();
+        let mut manifest: serde_json::Value = serde_json::from_slice(&original_manifest).unwrap();
+        manifest["deterministic_findings_xxh3"] = serde_json::json!(format!("{:016x}", xxhash_rust::xxh3::xxh3_64(&bytes)));
+        fs::write(&findings_path, bytes).unwrap();
+        fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        let recomputed = super::analyze_project_fast_load(&fixture, &ScanConfig::default(), None).unwrap().unwrap();
+        assert!(recomputed.timings.iter().any(|timing| timing.phase == IngestionPhase::Analyze));
+        assert_eq!(recomputed.architectural_assessment, analysis.architectural_assessment);
+        fs::write(&findings_path, original_findings).unwrap();
+        fs::write(&manifest_path, original_manifest).unwrap();
 
         // A valid but unrelated graph must not be accepted for unchanged files.
         let graph_path = fixture.join(".aigiscode/semantic-graph.json");

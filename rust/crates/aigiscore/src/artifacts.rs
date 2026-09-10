@@ -33,6 +33,8 @@ use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 mod atomic;
+mod analysis_cache;
+pub(crate) use analysis_cache::CachedDeterministicFindings;
 pub mod kuzu;
 mod publication;
 pub use publication::{ArtifactSnapshot, PublishedArtifactStatus};
@@ -84,6 +86,9 @@ pub struct ScanManifest {
     pub semantic_revision: u32,
     #[serde(default)]
     pub semantic_graph_xxh3: String,
+    /// Same-generation native findings, omitted when external evidence was used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deterministic_findings_xxh3: Option<String>,
     /// xxh3 of the resolver-affecting config files (tsconfig/jsconfig/composer).
     pub resolve_config_xxh3: String,
     pub files: Vec<ScanManifestEntry>,
@@ -108,6 +113,7 @@ pub fn build_scan_manifest(
         aigiscode_version: env!("CARGO_PKG_VERSION").to_string(),
         semantic_revision: SEMANTIC_REVISION,
         semantic_graph_xxh3,
+        deterministic_findings_xxh3: None,
         resolve_config_xxh3,
         snapshot_identity: None,
         baseline_hashes: None,
@@ -1237,7 +1243,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         &paths.doctrine_registry,
         &doctrine_registry,
     )?;
-    write_json_with_style(
+    let deterministic_findings_xxh3 = write_json_with_style(
         "deterministic_findings",
         &paths.deterministic_findings,
         &findings,
@@ -1286,6 +1292,9 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     // Seal after every artifact has been written. Readers verify the transferred
     // bytes of the baseline family against this manifest before comparing runs.
     let mut manifest = build_scan_manifest(&analysis.parsed_sources, semantic_graph_xxh3, analysis.resolve_config_xxh3.clone());
+    if analysis.external_analysis.is_empty() && analysis.external_analysis.is_complete() {
+        manifest.deterministic_findings_xxh3 = Some(deterministic_findings_xxh3);
+    }
     manifest.snapshot_identity = Some(convergence_history.baseline.current.clone());
     manifest.baseline_hashes = Some(BaselineHashes {
         architecture_surface: architecture_surface_xxh3,

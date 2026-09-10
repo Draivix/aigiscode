@@ -337,9 +337,10 @@ fn build_mcp_state_with_caches(
     let analysis = match fast_analysis {
         Some(analysis) => {
             eprintln!(
-                "[aigiscore] fast-loaded graph from artifacts ({} files, {} symbols); skipping Parse+Resolve",
+                "[aigiscore] fast-loaded graph from artifacts ({} files, {} symbols); skipping Parse+Resolve{}",
                 analysis.semantic_graph.files.len(),
-                analysis.semantic_graph.symbols.len()
+                analysis.semantic_graph.symbols.len(),
+                if analysis.timings.iter().any(|timing| timing.phase == crate::ingestion::pipeline::IngestionPhase::LoadAnalysis) { "; restored native analysis" } else { "" }
             );
             analysis
         }

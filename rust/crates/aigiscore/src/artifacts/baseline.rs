@@ -37,10 +37,17 @@ pub struct SnapshotIdentity {
 }
 
 impl SnapshotIdentity {
-    pub fn capture(analysis: &ProjectAnalysis) -> Self {
+    pub(crate) fn assessment_config_fingerprint(
+        policy: &crate::policy::PolicyBundle,
+        doctrine: &crate::doctrine::DoctrineRegistry,
+    ) -> String {
         let mut assessment_config = std::collections::hash_map::DefaultHasher::new();
-        analysis.policy_bundle().fingerprint().hash(&mut assessment_config);
-        analysis.doctrine_registry().hash(&mut assessment_config);
+        policy.fingerprint().hash(&mut assessment_config);
+        doctrine.hash(&mut assessment_config);
+        format!("{:016x}", assessment_config.finish())
+    }
+
+    pub fn capture(analysis: &ProjectAnalysis) -> Self {
         let mut external_tools = analysis
             .external_analysis
             .tool_runs
@@ -68,7 +75,7 @@ impl SnapshotIdentity {
             ),
             scope_fingerprint: analysis.scan.scope_fingerprint.clone(),
             resolve_config_fingerprint: analysis.resolve_config_xxh3.clone(),
-            assessment_config_fingerprint: format!("{:016x}", assessment_config.finish()),
+            assessment_config_fingerprint: Self::assessment_config_fingerprint(analysis.policy_bundle(), analysis.doctrine_registry()),
             external_tools,
             external_checks_complete: analysis.external_analysis.is_complete(),
         }
