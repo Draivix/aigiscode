@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tree_sitter::{Node, Parser};
 
+mod lexical;
+
 #[derive(Debug, Error)]
 pub enum JavaScriptParseError {
     #[error("failed to load tree-sitter JavaScript/TypeScript grammar")]
@@ -68,14 +70,16 @@ pub(super) fn parse_javascript_with_dialect(
         } else { "tree-sitter-typescript" }
     } else { "tree-sitter-javascript" });
 
-    let mut context = JavaScriptContext { file_path, source };
+    let mut context = JavaScriptContext { file_path, source, bindings: lexical::Bindings::default() };
     walk_node(root, &mut context, &mut graph, None, None);
+    context.bindings.finish(&mut graph);
     Ok(graph)
 }
 
 struct JavaScriptContext<'a> {
     file_path: PathBuf,
     source: &'a str,
+    bindings: lexical::Bindings,
 }
 
 impl<'a> JavaScriptContext<'a> {
@@ -118,6 +122,7 @@ fn walk_node(
     container_symbol_id: Option<&str>,
     container_type_name: Option<&str>,
 ) {
+    context.bindings.observe_scope(node, context.source);
     match node.kind() {
         "import_statement" => {
             record_import_statement(node, context, graph, container_symbol_id);
@@ -161,7 +166,7 @@ fn walk_node(
         "function_declaration" => {
             if let Some(name_node) = node.child_by_field_name("name") {
                 let name = context.text(name_node);
-                let symbol = make_symbol(
+                let mut symbol = make_symbol(
                     context,
                     SymbolKind::Function,
                     &name,
@@ -174,7 +179,12 @@ fn walk_node(
                     context.line(name_node),
                     node.end_position().row + 1,
                 );
+                if lexical::scoped_declaration(node) {
+                    let scope = format!("{}@{}:{}", container_symbol_id.unwrap_or("scope"), context.line(node), node.start_position().column);
+                    symbol.id = context.symbol_id(SymbolKind::Function, Some(&scope), &name);
+                }
                 let symbol_id = symbol.id.clone();
+                context.bindings.function_declaration(node, context.source, &symbol_id);
                 graph.add_symbol(symbol);
                 record_js_parameter_types(node, context, graph, Some(symbol_id.as_str()));
                 walk_children(
@@ -186,6 +196,32 @@ fn walk_node(
                 );
             }
             return;
+        }
+        "variable_declarator" => {
+            let value = node.child_by_field_name("value").map(unwrap_function_value);
+            if let (Some(name_node), Some(value)) = (node.child_by_field_name("name"), value) {
+                if name_node.kind() == "identifier" && matches!(value.kind(), "arrow_function" | "function_expression") {
+                    let name = context.text(name_node);
+                    let mut symbol = make_symbol(
+                        context, SymbolKind::Function, &name, container_symbol_id, container_type_name,
+                        function_return_type(value, context), Visibility::Public,
+                        parameter_count(value), parameter_count(value), context.line(name_node),
+                        value.end_position().row + 1,
+                    );
+                    if lexical::scoped_declaration(node) {
+                        let scope = format!("{}@{}:{}", container_symbol_id.unwrap_or("scope"), context.line(node), node.start_position().column);
+                        symbol.id = context.symbol_id(SymbolKind::Function, Some(&scope), &name);
+                    }
+                    let symbol_id = symbol.id.clone();
+                    context.bindings.variable(node, context.source, Some(&symbol_id));
+                    context.bindings.function_scope(value, context.source, Some(&symbol_id));
+                    graph.add_symbol(symbol);
+                    record_js_parameter_types(value, context, graph, Some(&symbol_id));
+                    walk_children(value, context, graph, Some(&symbol_id), container_type_name);
+                    return;
+                }
+            }
+            context.bindings.variable(node, context.source, None);
         }
         "method_definition" => {
             if let Some(name_node) = node.child_by_field_name("name") {
@@ -217,7 +253,11 @@ fn walk_node(
             return;
         }
         "call_expression" => {
+            let reference_index = graph.references.len();
             record_call(node, context, graph, container_symbol_id);
+            if graph.references.len() > reference_index {
+                context.bindings.call(node, reference_index, context.source);
+            }
         }
         "new_expression" => {
             record_constructor_call(node, context, graph, container_symbol_id);
@@ -232,6 +272,14 @@ fn walk_node(
         container_symbol_id,
         container_type_name,
     );
+}
+
+fn unwrap_function_value(mut node: Node<'_>) -> Node<'_> {
+    while matches!(node.kind(), "parenthesized_expression" | "as_expression" | "satisfies_expression" | "non_null_expression") {
+        let Some(inner) = node.named_child(0) else { break };
+        node = inner;
+    }
+    node
 }
 
 fn walk_children(
@@ -748,6 +796,9 @@ fn record_constructor_call(
 }
 
 fn parameter_count(node: Node<'_>) -> usize {
+    if node.child_by_field_name("parameter").is_some() {
+        return 1;
+    }
     node.child_by_field_name("parameters")
         .map(|parameters| {
             parameters

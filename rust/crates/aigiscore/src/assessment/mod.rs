@@ -5253,6 +5253,7 @@ export function run(items: string[][]) {
         };
         let semantic_graph = SemanticGraph {
             files: Vec::new(),
+            lexical_bindings: Default::default(),
             symbols: vec![
                 crate::graph::SymbolNode {
                     id: String::from("symbol:src/handler.ts:handler"),

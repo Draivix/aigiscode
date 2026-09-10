@@ -82,6 +82,11 @@ A damaged committed generation is an explicit integrity error. Source bytes must
 also agree with the scan before parsing or fast loading; see
 `docs/INPUT_CAPTURE_CONTRACT.md` for the remaining capture limits.
 
+`semantic-graph.json` also carries parser-owned JS/TS `lexical_bindings` for
+callee and first-argument identities, including explicit unknown bindings that
+block name guesses. Native graph merges must preserve their reference indexes;
+see `docs/LEXICAL_BINDING_CONTRACT.md`.
+
 Full analyses publish the 20 analytical artifacts in an immutable
 `.aigiscode/.generations/<id>/` directory and atomically select it with
 `.aigiscode/current-generation.json`. The paths returned by `analyze` and `info`

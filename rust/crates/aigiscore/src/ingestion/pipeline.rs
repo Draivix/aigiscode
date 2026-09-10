@@ -552,7 +552,7 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
     let mut semantic_graph = SemanticGraph::default();
     let mut parsed_sources = Vec::new();
     for (relative_path, source, parsed) in parsed_results {
-        merge_semantic_graph(&mut semantic_graph, parsed);
+        semantic_graph.append(parsed);
         parsed_sources.push((relative_path, source));
     }
     let parse_elapsed = parse_started.elapsed().as_millis();
@@ -645,14 +645,6 @@ fn update_input_inventory(graph: &mut SemanticGraph, scan: &ScanResult) {
     graph.other_input_files = scan.files.len().saturating_sub(
         graph.files.len() + graph.unsupported_sources.len(),
     );
-}
-
-fn merge_semantic_graph(target: &mut SemanticGraph, mut parsed: SemanticGraph) {
-    target.parse_outcomes.append(&mut parsed.parse_outcomes);
-    target.files.append(&mut parsed.files);
-    target.symbols.append(&mut parsed.symbols);
-    target.references.append(&mut parsed.references);
-    target.resolved_edges.append(&mut parsed.resolved_edges);
 }
 
 fn trace(message: &str) {

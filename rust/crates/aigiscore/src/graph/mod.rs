@@ -237,6 +237,8 @@ pub struct SemanticGraph {
     pub references: Vec<SemanticReference>,
     pub resolved_edges: Vec<ResolvedEdge>,
     #[serde(default)]
+    pub lexical_bindings: LexicalBindings,
+    #[serde(default)]
     pub parse_outcomes: Vec<crate::coverage::ParseOutcome>,
     #[serde(default)]
     pub unsupported_sources: Vec<crate::coverage::UnsupportedSource>,
@@ -244,7 +246,41 @@ pub struct SemanticGraph {
     pub other_input_files: usize,
 }
 
+/// Parser-owned bindings into this graph's ordered reference vector. A missing
+/// target records a shadowing binding whose callable value is not known.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LexicalBindings {
+    pub scoped_symbol_ids: Vec<String>,
+    pub calls: Vec<LexicalCallBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LexicalCallBinding {
+    pub reference_index: usize,
+    /// None is the callee; Some(0) is the first argument's lexical binding.
+    #[serde(default)]
+    pub argument_index: Option<usize>,
+    pub target_symbol_id: Option<String>,
+}
+
 impl SemanticGraph {
+    /// Append a parsed graph while preserving reference-indexed binding facts.
+    pub fn append(&mut self, mut other: Self) {
+        let reference_offset = self.references.len();
+        for binding in &mut other.lexical_bindings.calls {
+            binding.reference_index += reference_offset;
+        }
+        self.lexical_bindings.calls.append(&mut other.lexical_bindings.calls);
+        self.lexical_bindings.scoped_symbol_ids.append(&mut other.lexical_bindings.scoped_symbol_ids);
+        self.files.append(&mut other.files);
+        self.symbols.append(&mut other.symbols);
+        self.references.append(&mut other.references);
+        self.resolved_edges.append(&mut other.resolved_edges);
+        self.parse_outcomes.append(&mut other.parse_outcomes);
+        self.unsupported_sources.append(&mut other.unsupported_sources);
+        self.other_input_files += other.other_input_files;
+    }
+
     pub fn downgrade_recovered_edges(&mut self) {
         let recovered = self.parse_outcomes.iter()
             .filter(|outcome| outcome.required_recovery)

@@ -213,11 +213,12 @@ fn parse_dispatch_hook_name(snippet: &str) -> Option<String> {
 }
 
 fn global_unique_function_targets(graph: &SemanticGraph) -> HashMap<String, HookCallbackTarget> {
+    let scoped = graph.lexical_bindings.scoped_symbol_ids.iter().collect::<HashSet<_>>();
     let mut grouped = HashMap::<String, Vec<HookCallbackTarget>>::new();
     for symbol in graph
         .symbols
         .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .filter(|symbol| symbol.kind == SymbolKind::Function && !scoped.contains(&symbol.id))
     {
         grouped
             .entry(symbol.name.clone())

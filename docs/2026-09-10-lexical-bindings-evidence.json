@@ -1,0 +1,2250 @@
+{
+  "recorded_at": "2026-09-10T00:59:17.579Z",
+  "base_commit": "aac95db6b188c086aedb6e0027e32c56d935c35a",
+  "implementation_files": [
+    {
+      "path": "rust/crates/aigiscore/src/artifacts.rs",
+      "bytes": 369503,
+      "sha256": "0a5c034aedcea3a32af750d9b3d3bb64fb334312de957da8a0937c772da078fe"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/assessment/mod.rs",
+      "bytes": 223204,
+      "sha256": "b5827eadd67d9bee7a00601c4ebb900ecba954f9733a30fbebd444665c17dd08"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/graph/mod.rs",
+      "bytes": 20768,
+      "sha256": "d771a75eae93247fe2c6daf0e770c423ba38e08a6d5bcac05f05e73091a5025b"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+      "bytes": 48557,
+      "sha256": "022dde864c829926124f3c014bc693d0209426fb40a1cbebc1ef83796779540e"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/parsing/javascript.rs",
+      "bytes": 46021,
+      "sha256": "880685699dce22036ca975adadd5859aeb58860a3d526986b9c5cdd4a99a4fb3"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/parsing/javascript/lexical.rs",
+      "bytes": 9045,
+      "sha256": "341c3fc13fe529bcd87d8a7c298b264282d0aa72761aec93b9fa4506a52d44c1"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/signals.rs",
+      "bytes": 26059,
+      "sha256": "6e581366182e023a74a680600f428a0d20c7db37716a408cd5dcf4e567c86735"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/plugins/wordpress.rs",
+      "bytes": 18216,
+      "sha256": "9eae8a909b26eb6e75f5e30cf1ed62d9c2523233d975dc11fa5cef7b5de69dbe"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/resolve/cache.rs",
+      "bytes": 14470,
+      "sha256": "f88e0e3a1e0408d5afcae8d3f26662fc32ce99175a8889ed58521651fe3f1ab8"
+    },
+    {
+      "path": "rust/crates/aigiscore/src/resolve/mod.rs",
+      "bytes": 159458,
+      "sha256": "847cf75c04adcc6e77b6c585f098fb687f18969fa8f5c9bc71cb51f41460dcca"
+    }
+  ],
+  "binary": {
+    "path": "target/reliability-2026-09-09/aigiscode-lexical-bindings",
+    "bytes": 94977632,
+    "sha256": "47657070f1da972d7e0b685f3379c963bf01072919c489adc095cf5a9985c093"
+  },
+  "build": {
+    "exit": 0,
+    "seconds": 48.43,
+    "log": {
+      "path": "target/reliability-2026-09-09/lexical-bindings-build.txt",
+      "bytes": 156,
+      "sha256": "5feb883c0c806fc2185b8b56a9da96e44caaa62f25efc3d2bb5452012e6abb1b"
+    },
+    "earlier_build_log": {
+      "path": "target/reliability-2026-09-09/lexical-bindings-first-build.txt",
+      "bytes": 156,
+      "sha256": "70ea66a2d9305d27eb2743ea9c87e7ec0c5f3cbc5b3b6f9511c8a65a0457fef9"
+    }
+  },
+  "automated_tests_run": false,
+  "ci_run": false,
+  "observation": {
+    "source_root": "target/reliability-2026-09-09/draivix-capture-identity-source",
+    "original_draivix_written": false,
+    "source_mutations_this_unit": 0,
+    "wall_seconds": 85.47,
+    "peak_rss_kib": 3550780,
+    "exit": 1,
+    "exit_reason": "Native and secondary coverage remain incomplete.",
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "incomplete",
+        "input_files": 17067,
+        "scanned_files": 8404,
+        "prefiltered_files": 8663,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 792,
+        "gap_bytes": 12818568,
+        "gap_files_preview": [
+          {
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "bytes": 204305,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "resources/js/Pages/Email/Index.vue",
+            "bytes": 198406,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "clients/trido/resources/js/Pages/PortalOfferDetail.vue",
+            "bytes": 195802,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/MessageItem.vue",
+            "bytes": 147303,
+            "reason": "vue_script_only"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/resources/js/components/ChannelList.vue",
+            "bytes": 144848,
+            "reason": "vue_script_only"
+          }
+        ]
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 17067,
+        "parsed_source_files": 17067,
+        "recovered_source_files": 80,
+        "scope_limited_files": 792,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 146,
+        "other_input_files": 6083,
+        "diagnostic_count": 810,
+        "parse_issues_preview": [
+          {
+            "file_path": "app/Console/Commands/ErpMakeEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 3,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 386,
+                "start_column": 20,
+                "end_line": 389,
+                "end_column": 1
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 409,
+                "start_column": 20,
+                "end_line": 409,
+                "end_column": 24
+              },
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 411,
+                "start_column": 6,
+                "end_line": 453,
+                "end_column": 2
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Console/Commands/ErpTestEntityCommand.php",
+            "parser": "tree-sitter-php",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 52,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 266,
+                "start_column": 16,
+                "end_line": 276,
+                "end_column": 1
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 6,
+                "end_line": 288,
+                "end_column": 6
+              },
+              {
+                "kind": "missing_node",
+                "node_kind": ";",
+                "start_line": 288,
+                "start_column": 19,
+                "end_line": 288,
+                "end_column": 19
+              }
+            ],
+            "diagnostics_truncated": true
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/CreditNote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Invoice/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "app/Modules/Accounting/resources/js/Pages/Quote/Create.vue",
+            "parser": "tree-sitter-typescript",
+            "scope": "vue_script_only",
+            "required_recovery": false,
+            "diagnostic_count": 0,
+            "diagnostics": [],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DataWedgePlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/DisplayCutoutPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderPlugin.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecorderService.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/main/java/com/draivix/app/MeetingRecordingStore.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecorderPluginApiContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStorePathContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android/app/src/test/java/com/draivix/app/MeetingRecordingStoreSessionListingContractTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/main/java/cz/autoerp/stavebnidenik/MainActivity.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "android-diary/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java",
+            "extension": "java"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "app/Modules/Mattermost/mattermost-plugin-newerp-push/server/plugin_test.go",
+            "extension": "go"
+          },
+          {
+            "file_path": "ci/overlay/baseline-guard.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/bump.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/frontend.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/gates.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/legacy-view-config.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/lib.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/mount.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "ci/overlay/tests.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calculation_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_calendar_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_assignment_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_capability_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_category_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_costing_catalog_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_customer_contact_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_field_gap_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_hr_assets_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_invoice_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_item_parameter_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_lead_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_opportunity_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_order_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_org_asset_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_parameter_definition_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_price_list_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_category_residue_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_product_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_production_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_role_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_user_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_warehouse_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktime_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/nadop/Operations/file8_worktimetype_export.sql",
+            "extension": "sql"
+          },
+          {
+            "file_path": "clients/trido/scripts/export_all_model_snapshots.sh",
+            "extension": "sh"
+          },
+          {
+            "file_path": "clients/trido/scripts/run_configurator_browser_smoke.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 23296,
+      "analyzed_files": 17067,
+      "symbols": 130737,
+      "references": 1093353,
+      "resolved_edges": 328501,
+      "strong_cycle_count": 19,
+      "total_cycle_count": 24,
+      "architectural_smell_count": 4,
+      "warning_heavy_hotspot_count": 0,
+      "split_identity_model_count": 20,
+      "compatibility_scar_count": 10,
+      "duplicate_mechanism_count": 22,
+      "hand_rolled_parsing_count": 19,
+      "abstraction_sprawl_count": 25,
+      "algorithmic_complexity_hotspot_count": 1606,
+      "ast_grep_finding_count": 10031,
+      "ast_grep_algorithmic_complexity_count": 2609,
+      "ast_grep_security_dangerous_api_count": 256,
+      "ast_grep_framework_misuse_count": 7166,
+      "ast_grep_skipped_file_count": 8663,
+      "ast_grep_skipped_bytes": 28666536,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "app/Actions/Attachment/DownloadAttachmentAction.php",
+          "bytes": 962,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MassUpdateCollectionAction.php",
+          "bytes": 1116,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/MergeCollectionAction.php",
+          "bytes": 1793,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Collection/OpenSpreadsheetCollectionAction.php",
+          "bytes": 854,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "app/Actions/Record/DuplicateRecordAction.php",
+          "bytes": 600,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 1727,
+      "security_finding_count": 66,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "timings": [
+      {
+        "phase": "Scan",
+        "elapsed_ms": 283
+      },
+      {
+        "phase": "Structure",
+        "elapsed_ms": 330
+      },
+      {
+        "phase": "Parse",
+        "elapsed_ms": 7151
+      },
+      {
+        "phase": "Resolve",
+        "elapsed_ms": 12052
+      },
+      {
+        "phase": "Analyze",
+        "elapsed_ms": 38566
+      }
+    ],
+    "summary_changes": [
+      {
+        "field": "symbols",
+        "before": 130081,
+        "after": 130737
+      },
+      {
+        "field": "references",
+        "before": 1092834,
+        "after": 1093353
+      },
+      {
+        "field": "resolved_edges",
+        "before": 328139,
+        "after": 328501
+      },
+      {
+        "field": "total_cycle_count",
+        "before": 29,
+        "after": 24
+      },
+      {
+        "field": "architectural_smell_count",
+        "before": 3,
+        "after": 4
+      }
+    ],
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/lexical-bindings-cli-result.json",
+        "bytes": 16592,
+        "sha256": "20198263b16b7d43162ce25e39318049f8bac842b4a760cd15cfd81a1fb8d4d2"
+      },
+      {
+        "path": "target/reliability-2026-09-09/lexical-bindings-cli-time.txt",
+        "bytes": 1080,
+        "sha256": "15341d6bd92f3336292a63e4b4938198457a788033e16e00b59538c42223394b"
+      },
+      {
+        "path": "target/reliability-2026-09-09/lexical-bindings-cli-trace.txt",
+        "bytes": 10968211,
+        "sha256": "911e8874cfd3829771ebd3b7b6da33eae68fd9cd3ba0c6169642305b6e9d8d63"
+      }
+    ]
+  },
+  "graph_comparison": {
+    "before": {
+      "file": "target/reliability-2026-09-09/signal-bindings-artifacts/semantic-graph.json",
+      "bytes": 793163640,
+      "fields": [
+        "files",
+        "symbols",
+        "references",
+        "resolved_edges",
+        "parse_outcomes",
+        "unsupported_sources",
+        "other_input_files"
+      ],
+      "counts": {
+        "files": 17067,
+        "symbols": 130081,
+        "references": 1092834,
+        "resolved_edges": 328139,
+        "parse_outcomes": 17067,
+        "unsupported_sources": 146
+      },
+      "by_language": {
+        "files:Php": {
+          "count": 14011,
+          "sha256": "980e84a5c9e82b7096f8749e3c5cda2c7518b696b325c562181c0b3a81ec4553"
+        },
+        "files:TypeScript": {
+          "count": 2948,
+          "sha256": "cd68b1faae821a07b03475a010fe9c82049a5a904575a87698120d88f343b530"
+        },
+        "files:JavaScript": {
+          "count": 32,
+          "sha256": "988e6ba3dbfdc9055b18e509a35c49399e18d787d765f16719934839d41d6681"
+        },
+        "files:Python": {
+          "count": 76,
+          "sha256": "2a7385e1b9341befaa56cd873728d9dcc5becad951a211b713b9b5de2a4d3e42"
+        },
+        "symbols:Php": {
+          "count": 103852,
+          "sha256": "f77c20af2bd08ec0c1e7b0a3eeb69595080a933cbf771eda61baba9de7b63e2c"
+        },
+        "symbols:TypeScript": {
+          "count": 24966,
+          "sha256": "dc9e1a7167018ed3c3d1f14b582c9f5d50d9fedadb8256b32c3a1fac4a51e88a"
+        },
+        "symbols:JavaScript": {
+          "count": 143,
+          "sha256": "5fbb53ba35ec3ae0c95206069339bd06cdd1a84c10c15e731a71231cecc5adae"
+        },
+        "symbols:Python": {
+          "count": 1120,
+          "sha256": "729faff3e1b3d957b5e711509368a30a725e461ecd763aeb56c671f2dffa9213"
+        },
+        "references:Php": {
+          "count": 819361,
+          "sha256": "2f04eef5dbfc09f057f1a797ca1e577decf9938c5bf521fc289ecbf981ee530b"
+        },
+        "references:TypeScript": {
+          "count": 260423,
+          "sha256": "a2424f4d106818849911d14b0d5944649b880b2f3a2cd701871e77907b6d94a2"
+        },
+        "references:JavaScript": {
+          "count": 1527,
+          "sha256": "b1930890f3a41007e2d5d24f81cf5c32a94fab64cb17e29d6ff407b2eb3be64c"
+        },
+        "references:Python": {
+          "count": 11523,
+          "sha256": "48a353a7c5cd29548e1fdf62956bbe07b85c2b1f00341cf640794a0bd9af7f41"
+        },
+        "resolved_edges:Php": {
+          "count": 272359,
+          "sha256": "e7089dc0d253e63d287d12f368b701ea445c01495ed0d4d823199ac5877c5051"
+        },
+        "resolved_edges:TypeScript": {
+          "count": 52706,
+          "sha256": "88b2ec859d433a5f1b9c15a34cf3a95ba7facf2de2f19416682d7723cf07f474"
+        },
+        "resolved_edges:JavaScript": {
+          "count": 302,
+          "sha256": "e77dc9282a1ed8e5b0f9b982b43fac28134575b211ecfd8dc8c34068dbfa187b"
+        },
+        "resolved_edges:Python": {
+          "count": 2772,
+          "sha256": "99d9de11dc5d05411fa933e9329aaebfa5327e153e0bc3b30e37d6119f4b7d14"
+        }
+      },
+      "duplicate_symbol_ids": 79,
+      "selected_symbols": [
+        {
+          "id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "kind": "Function",
+          "name": "setupPopup",
+          "qualified_name": "setupPopup",
+          "parent_symbol_id": null,
+          "owner_type_name": null,
+          "return_type_name": "void",
+          "visibility": "Public",
+          "parameter_count": 2,
+          "required_parameter_count": 2,
+          "start_line": 32,
+          "end_line": 424
+        }
+      ],
+      "selected_references": [
+        {
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "enclosing_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "kind": "Call",
+          "target_name": "copyText",
+          "binding_name": null,
+          "line": 188,
+          "arity": 1,
+          "receiver_name": "deps",
+          "receiver_type_name": null,
+          "call_form": "Member",
+          "reference_index": 361213
+        },
+        {
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "enclosing_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "kind": "Call",
+          "target_name": "copyText",
+          "binding_name": null,
+          "line": 244,
+          "arity": 1,
+          "receiver_name": null,
+          "receiver_type_name": null,
+          "call_form": "Free",
+          "reference_index": 361229
+        },
+        {
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "enclosing_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "kind": "Call",
+          "target_name": "copyText",
+          "binding_name": null,
+          "line": 396,
+          "arity": 1,
+          "receiver_name": null,
+          "receiver_type_name": null,
+          "call_form": "Free",
+          "reference_index": 361297
+        }
+      ],
+      "selected_edges": [
+        {
+          "source_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "source_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "target_file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+          "target_symbol_id": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+          "reference_target_name": "copyText",
+          "kind": "Call",
+          "relation_kind": "Call",
+          "layer": "Structural",
+          "strength": "Inferred",
+          "origin": "Resolver",
+          "resolution_tier": "Global",
+          "confidence_millis": 500,
+          "reason": "call:global",
+          "line": 244,
+          "occurrence_index": 0
+        },
+        {
+          "source_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "source_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "target_file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+          "target_symbol_id": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+          "reference_target_name": "copyText",
+          "kind": "Call",
+          "relation_kind": "Call",
+          "layer": "Structural",
+          "strength": "Inferred",
+          "origin": "Resolver",
+          "resolution_tier": "Global",
+          "confidence_millis": 500,
+          "reason": "call:global",
+          "line": 396,
+          "occurrence_index": 0
+        }
+      ],
+      "sha256": "76d7eb67dda634ba32db8e946c83747d66a70d6901b392cb4f29ddc08a384ee0",
+      "lexical_bindings": {
+        "scoped_symbols": 0,
+        "callee_known": 0,
+        "callee_unknown": 0,
+        "argument_known": 0,
+        "argument_unknown": 0,
+        "invalid_count": 0,
+        "invalid_preview": [],
+        "selected_bindings": []
+      }
+    },
+    "after": {
+      "file": "target/reliability-2026-09-09/lexical-bindings-artifacts/semantic-graph.json",
+      "bytes": 802932319,
+      "fields": [
+        "files",
+        "symbols",
+        "references",
+        "resolved_edges",
+        "lexical_bindings",
+        "parse_outcomes",
+        "unsupported_sources",
+        "other_input_files"
+      ],
+      "counts": {
+        "files": 17067,
+        "symbols": 130737,
+        "references": 1093353,
+        "resolved_edges": 328501,
+        "lexical_bindings": 1,
+        "parse_outcomes": 17067,
+        "unsupported_sources": 146
+      },
+      "by_language": {
+        "files:Php": {
+          "count": 14011,
+          "sha256": "980e84a5c9e82b7096f8749e3c5cda2c7518b696b325c562181c0b3a81ec4553"
+        },
+        "files:TypeScript": {
+          "count": 2948,
+          "sha256": "cd68b1faae821a07b03475a010fe9c82049a5a904575a87698120d88f343b530"
+        },
+        "files:JavaScript": {
+          "count": 32,
+          "sha256": "988e6ba3dbfdc9055b18e509a35c49399e18d787d765f16719934839d41d6681"
+        },
+        "files:Python": {
+          "count": 76,
+          "sha256": "2a7385e1b9341befaa56cd873728d9dcc5becad951a211b713b9b5de2a4d3e42"
+        },
+        "symbols:Php": {
+          "count": 103852,
+          "sha256": "f77c20af2bd08ec0c1e7b0a3eeb69595080a933cbf771eda61baba9de7b63e2c"
+        },
+        "symbols:TypeScript": {
+          "count": 25619,
+          "sha256": "f4f6498f2de07ed41d8d3aa24c6d11c1779e9528ba2457d18bfb44412e9675e6"
+        },
+        "symbols:JavaScript": {
+          "count": 146,
+          "sha256": "934344e18383a04eb20d6a0ce1d815d4ef4d105b06a5f3d1ffd9a3920f1758fe"
+        },
+        "symbols:Python": {
+          "count": 1120,
+          "sha256": "729faff3e1b3d957b5e711509368a30a725e461ecd763aeb56c671f2dffa9213"
+        },
+        "references:Php": {
+          "count": 819361,
+          "sha256": "2f04eef5dbfc09f057f1a797ca1e577decf9938c5bf521fc289ecbf981ee530b"
+        },
+        "references:TypeScript": {
+          "count": 260942,
+          "sha256": "84476356945a12b1b92013604a7b3f56e8bf4c9805b48045dad4317130e484a9"
+        },
+        "references:JavaScript": {
+          "count": 1527,
+          "sha256": "c0809ff7d870fe8f1919df60707e3ad2d1162ee558518265dc219bf381f3f710"
+        },
+        "references:Python": {
+          "count": 11523,
+          "sha256": "48a353a7c5cd29548e1fdf62956bbe07b85c2b1f00341cf640794a0bd9af7f41"
+        },
+        "resolved_edges:Php": {
+          "count": 272359,
+          "sha256": "e7089dc0d253e63d287d12f368b701ea445c01495ed0d4d823199ac5877c5051"
+        },
+        "resolved_edges:TypeScript": {
+          "count": 53066,
+          "sha256": "2970b570a068df5d69001f203bee464bc2ded10b728fa495c774582193d3e28c"
+        },
+        "resolved_edges:JavaScript": {
+          "count": 304,
+          "sha256": "614909e6d7f4d38ad313002f875c4b30b334d89da31ac3dff536cda61db688bb"
+        },
+        "resolved_edges:Python": {
+          "count": 2772,
+          "sha256": "99d9de11dc5d05411fa933e9329aaebfa5327e153e0bc3b30e37d6119f4b7d14"
+        }
+      },
+      "duplicate_symbol_ids": 79,
+      "selected_symbols": [
+        {
+          "id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "kind": "Function",
+          "name": "setupPopup",
+          "qualified_name": "setupPopup",
+          "parent_symbol_id": null,
+          "owner_type_name": null,
+          "return_type_name": "void",
+          "visibility": "Public",
+          "parameter_count": 2,
+          "required_parameter_count": 2,
+          "start_line": 32,
+          "end_line": 424
+        },
+        {
+          "id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "kind": "Function",
+          "name": "copyText",
+          "qualified_name": "copyText",
+          "parent_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "owner_type_name": null,
+          "return_type_name": null,
+          "visibility": "Public",
+          "parameter_count": 1,
+          "required_parameter_count": 1,
+          "start_line": 186,
+          "end_line": 201
+        }
+      ],
+      "selected_references": [
+        {
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "enclosing_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+          "kind": "Call",
+          "target_name": "copyText",
+          "binding_name": null,
+          "line": 188,
+          "arity": 1,
+          "receiver_name": "deps",
+          "receiver_type_name": null,
+          "call_form": "Member",
+          "reference_index": 361332
+        },
+        {
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "enclosing_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@218:8:renderResults",
+          "kind": "Call",
+          "target_name": "copyText",
+          "binding_name": null,
+          "line": 244,
+          "arity": 1,
+          "receiver_name": null,
+          "receiver_type_name": null,
+          "call_form": "Free",
+          "reference_index": 361349
+        },
+        {
+          "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "enclosing_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "kind": "Call",
+          "target_name": "copyText",
+          "binding_name": null,
+          "line": 396,
+          "arity": 1,
+          "receiver_name": null,
+          "receiver_type_name": null,
+          "call_form": "Free",
+          "reference_index": 361417
+        }
+      ],
+      "selected_edges": [
+        {
+          "source_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "source_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@218:8:renderResults",
+          "target_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "target_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+          "reference_target_name": "copyText",
+          "kind": "Call",
+          "relation_kind": "Call",
+          "layer": "Structural",
+          "strength": "Hard",
+          "origin": "Resolver",
+          "resolution_tier": "SameFile",
+          "confidence_millis": 950,
+          "reason": "call:lexical-binding",
+          "line": 244,
+          "occurrence_index": 0
+        },
+        {
+          "source_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "source_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup",
+          "target_file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+          "target_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+          "reference_target_name": "copyText",
+          "kind": "Call",
+          "relation_kind": "Call",
+          "layer": "Structural",
+          "strength": "Hard",
+          "origin": "Resolver",
+          "resolution_tier": "SameFile",
+          "confidence_millis": 950,
+          "reason": "call:lexical-binding",
+          "line": 396,
+          "occurrence_index": 0
+        }
+      ],
+      "sha256": "22d6af3dcba046658ef898d04c6b497492aa49bcd11f84866e49a423781f360c",
+      "duplicate_ids_by_language": {
+        "Php": 46,
+        "TypeScript": 17,
+        "Python": 1
+      },
+      "lexical_bindings": {
+        "scoped_symbols": 2785,
+        "callee_known": 27133,
+        "callee_unknown": 9788,
+        "argument_known": 379,
+        "argument_unknown": 36209,
+        "invalid_count": 0,
+        "invalid_preview": [],
+        "ambiguous_known_targets": 0,
+        "selected_bindings": [
+          {
+            "reference_index": 361332,
+            "argument_index": 0,
+            "target_symbol_id": null,
+            "file": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "line": 188,
+            "target_name": "copyText"
+          },
+          {
+            "reference_index": 361349,
+            "argument_index": null,
+            "target_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+            "file": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "line": 244,
+            "target_name": "copyText"
+          },
+          {
+            "reference_index": 361417,
+            "argument_index": null,
+            "target_symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+            "file": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "line": 396,
+            "target_name": "copyText"
+          }
+        ]
+      }
+    },
+    "cohort_comparison": {
+      "files:Php": {
+        "before": {
+          "count": 14011,
+          "sha256": "980e84a5c9e82b7096f8749e3c5cda2c7518b696b325c562181c0b3a81ec4553"
+        },
+        "after": {
+          "count": 14011,
+          "sha256": "980e84a5c9e82b7096f8749e3c5cda2c7518b696b325c562181c0b3a81ec4553"
+        },
+        "byte_identical_records": true
+      },
+      "files:TypeScript": {
+        "before": {
+          "count": 2948,
+          "sha256": "cd68b1faae821a07b03475a010fe9c82049a5a904575a87698120d88f343b530"
+        },
+        "after": {
+          "count": 2948,
+          "sha256": "cd68b1faae821a07b03475a010fe9c82049a5a904575a87698120d88f343b530"
+        },
+        "byte_identical_records": true
+      },
+      "files:JavaScript": {
+        "before": {
+          "count": 32,
+          "sha256": "988e6ba3dbfdc9055b18e509a35c49399e18d787d765f16719934839d41d6681"
+        },
+        "after": {
+          "count": 32,
+          "sha256": "988e6ba3dbfdc9055b18e509a35c49399e18d787d765f16719934839d41d6681"
+        },
+        "byte_identical_records": true
+      },
+      "files:Python": {
+        "before": {
+          "count": 76,
+          "sha256": "2a7385e1b9341befaa56cd873728d9dcc5becad951a211b713b9b5de2a4d3e42"
+        },
+        "after": {
+          "count": 76,
+          "sha256": "2a7385e1b9341befaa56cd873728d9dcc5becad951a211b713b9b5de2a4d3e42"
+        },
+        "byte_identical_records": true
+      },
+      "symbols:Php": {
+        "before": {
+          "count": 103852,
+          "sha256": "f77c20af2bd08ec0c1e7b0a3eeb69595080a933cbf771eda61baba9de7b63e2c"
+        },
+        "after": {
+          "count": 103852,
+          "sha256": "f77c20af2bd08ec0c1e7b0a3eeb69595080a933cbf771eda61baba9de7b63e2c"
+        },
+        "byte_identical_records": true
+      },
+      "symbols:TypeScript": {
+        "before": {
+          "count": 24966,
+          "sha256": "dc9e1a7167018ed3c3d1f14b582c9f5d50d9fedadb8256b32c3a1fac4a51e88a"
+        },
+        "after": {
+          "count": 25619,
+          "sha256": "f4f6498f2de07ed41d8d3aa24c6d11c1779e9528ba2457d18bfb44412e9675e6"
+        },
+        "byte_identical_records": false
+      },
+      "symbols:JavaScript": {
+        "before": {
+          "count": 143,
+          "sha256": "5fbb53ba35ec3ae0c95206069339bd06cdd1a84c10c15e731a71231cecc5adae"
+        },
+        "after": {
+          "count": 146,
+          "sha256": "934344e18383a04eb20d6a0ce1d815d4ef4d105b06a5f3d1ffd9a3920f1758fe"
+        },
+        "byte_identical_records": false
+      },
+      "symbols:Python": {
+        "before": {
+          "count": 1120,
+          "sha256": "729faff3e1b3d957b5e711509368a30a725e461ecd763aeb56c671f2dffa9213"
+        },
+        "after": {
+          "count": 1120,
+          "sha256": "729faff3e1b3d957b5e711509368a30a725e461ecd763aeb56c671f2dffa9213"
+        },
+        "byte_identical_records": true
+      },
+      "references:Php": {
+        "before": {
+          "count": 819361,
+          "sha256": "2f04eef5dbfc09f057f1a797ca1e577decf9938c5bf521fc289ecbf981ee530b"
+        },
+        "after": {
+          "count": 819361,
+          "sha256": "2f04eef5dbfc09f057f1a797ca1e577decf9938c5bf521fc289ecbf981ee530b"
+        },
+        "byte_identical_records": true
+      },
+      "references:TypeScript": {
+        "before": {
+          "count": 260423,
+          "sha256": "a2424f4d106818849911d14b0d5944649b880b2f3a2cd701871e77907b6d94a2"
+        },
+        "after": {
+          "count": 260942,
+          "sha256": "84476356945a12b1b92013604a7b3f56e8bf4c9805b48045dad4317130e484a9"
+        },
+        "byte_identical_records": false
+      },
+      "references:JavaScript": {
+        "before": {
+          "count": 1527,
+          "sha256": "b1930890f3a41007e2d5d24f81cf5c32a94fab64cb17e29d6ff407b2eb3be64c"
+        },
+        "after": {
+          "count": 1527,
+          "sha256": "c0809ff7d870fe8f1919df60707e3ad2d1162ee558518265dc219bf381f3f710"
+        },
+        "byte_identical_records": false
+      },
+      "references:Python": {
+        "before": {
+          "count": 11523,
+          "sha256": "48a353a7c5cd29548e1fdf62956bbe07b85c2b1f00341cf640794a0bd9af7f41"
+        },
+        "after": {
+          "count": 11523,
+          "sha256": "48a353a7c5cd29548e1fdf62956bbe07b85c2b1f00341cf640794a0bd9af7f41"
+        },
+        "byte_identical_records": true
+      },
+      "resolved_edges:Php": {
+        "before": {
+          "count": 272359,
+          "sha256": "e7089dc0d253e63d287d12f368b701ea445c01495ed0d4d823199ac5877c5051"
+        },
+        "after": {
+          "count": 272359,
+          "sha256": "e7089dc0d253e63d287d12f368b701ea445c01495ed0d4d823199ac5877c5051"
+        },
+        "byte_identical_records": true
+      },
+      "resolved_edges:TypeScript": {
+        "before": {
+          "count": 52706,
+          "sha256": "88b2ec859d433a5f1b9c15a34cf3a95ba7facf2de2f19416682d7723cf07f474"
+        },
+        "after": {
+          "count": 53066,
+          "sha256": "2970b570a068df5d69001f203bee464bc2ded10b728fa495c774582193d3e28c"
+        },
+        "byte_identical_records": false
+      },
+      "resolved_edges:JavaScript": {
+        "before": {
+          "count": 302,
+          "sha256": "e77dc9282a1ed8e5b0f9b982b43fac28134575b211ecfd8dc8c34068dbfa187b"
+        },
+        "after": {
+          "count": 304,
+          "sha256": "614909e6d7f4d38ad313002f875c4b30b334d89da31ac3dff536cda61db688bb"
+        },
+        "byte_identical_records": false
+      },
+      "resolved_edges:Python": {
+        "before": {
+          "count": 2772,
+          "sha256": "99d9de11dc5d05411fa933e9329aaebfa5327e153e0bc3b30e37d6119f4b7d14"
+        },
+        "after": {
+          "count": 2772,
+          "sha256": "99d9de11dc5d05411fa933e9329aaebfa5327e153e0bc3b30e37d6119f4b7d14"
+        },
+        "byte_identical_records": true
+      }
+    }
+  },
+  "graph_inspector": {
+    "path": "target/reliability-2026-09-09/lexical-bindings-graph.cjs",
+    "bytes": 6715,
+    "sha256": "d75cf6afdd0e5605c0cb37e76d11e9b695b63c8dfbf15fc9db64b7298fe34948"
+  },
+  "graph_inspector_method": "Read the entire native compact JSON through its known top-level field delimiters; parse complete object records and retain ordered per-language SHA-256 digests. Validate all binding reference indexes, slots, target kinds and same-file identities. This validates referential integrity, not every lexical semantic rule.",
+  "scanner": {
+    "files": [
+      {
+        "path": "target/reliability-2026-09-09/signal-bindings-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      },
+      {
+        "path": "target/reliability-2026-09-09/lexical-bindings-artifacts/ast-grep-scan.json",
+        "bytes": 8225069,
+        "sha256": "7471b532098c53e67d087f3ffc7a9699991a721033d9d2e1a8417e6527945246"
+      }
+    ],
+    "byte_identical": true
+  },
+  "architecture": {
+    "strong_components_byte_equal": true,
+    "before": {
+      "smells": [
+        {
+          "kind": "HubLikeDependency",
+          "subject": "app",
+          "related_components": [
+            "tests",
+            "clients",
+            "resources"
+          ],
+          "relation_previews": [
+            "app <-> tests (7210 cross-module links)",
+            "app <-> clients (3678 cross-module links)"
+          ],
+          "evidence_count": 17,
+          "severity_millis": 1000,
+          "fingerprint": "graph|smell|hub-like-dependency|app|clients|resources|tests"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "resources"
+          ],
+          "relation_previews": [
+            "app -> resources (963 cross-module links)"
+          ],
+          "evidence_count": 963,
+          "severity_millis": 302,
+          "fingerprint": "graph|smell|unstable-dependency|app|resources"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "database"
+          ],
+          "relation_previews": [
+            "app -> database (1 cross-module links)"
+          ],
+          "evidence_count": 1,
+          "severity_millis": 255,
+          "fingerprint": "graph|smell|unstable-dependency|app|database"
+        }
+      ],
+      "coupling": [
+        {
+          "module": "app",
+          "afferent": 10,
+          "efferent": 7,
+          "instability_millis": 412
+        },
+        {
+          "module": "apps",
+          "afferent": 2,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "bootstrap",
+          "afferent": 3,
+          "efferent": 1,
+          "instability_millis": 250
+        },
+        {
+          "module": "capacitor.config.ts",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "ci",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "clients",
+          "afferent": 3,
+          "efferent": 3,
+          "instability_millis": 500
+        },
+        {
+          "module": "config",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "database",
+          "afferent": 1,
+          "efferent": 2,
+          "instability_millis": 667
+        },
+        {
+          "module": "docker",
+          "afferent": 2,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "docs",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "eslint.config.js",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "hocuspocus-server.mjs",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "public",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "resources",
+          "afferent": 2,
+          "efferent": 5,
+          "instability_millis": 714
+        },
+        {
+          "module": "routes",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "scripts",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "server.php",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "tests",
+          "afferent": 8,
+          "efferent": 4,
+          "instability_millis": 333
+        },
+        {
+          "module": "tools",
+          "afferent": 2,
+          "efferent": 2,
+          "instability_millis": 500
+        }
+      ],
+      "components": 29
+    },
+    "after": {
+      "smells": [
+        {
+          "kind": "HubLikeDependency",
+          "subject": "app",
+          "related_components": [
+            "tests",
+            "clients",
+            "resources"
+          ],
+          "relation_previews": [
+            "app <-> tests (7210 cross-module links)",
+            "clients -> app (3670 cross-module links)"
+          ],
+          "evidence_count": 15,
+          "severity_millis": 1000,
+          "fingerprint": "graph|smell|hub-like-dependency|app|clients|resources|tests"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "tests",
+          "related_components": [
+            "clients"
+          ],
+          "relation_previews": [
+            "tests -> clients (6 cross-module links)"
+          ],
+          "evidence_count": 6,
+          "severity_millis": 417,
+          "fingerprint": "graph|smell|unstable-dependency|tests|clients"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "database"
+          ],
+          "relation_previews": [
+            "app -> database (1 cross-module links)"
+          ],
+          "evidence_count": 1,
+          "severity_millis": 334,
+          "fingerprint": "graph|smell|unstable-dependency|app|database"
+        },
+        {
+          "kind": "UnstableDependency",
+          "subject": "app",
+          "related_components": [
+            "resources"
+          ],
+          "relation_previews": [
+            "app -> resources (929 cross-module links)"
+          ],
+          "evidence_count": 929,
+          "severity_millis": 267,
+          "fingerprint": "graph|smell|unstable-dependency|app|resources"
+        }
+      ],
+      "coupling": [
+        {
+          "module": "app",
+          "afferent": 10,
+          "efferent": 5,
+          "instability_millis": 333
+        },
+        {
+          "module": "apps",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "bootstrap",
+          "afferent": 3,
+          "efferent": 1,
+          "instability_millis": 250
+        },
+        {
+          "module": "capacitor.config.ts",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "ci",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "clients",
+          "afferent": 1,
+          "efferent": 3,
+          "instability_millis": 750
+        },
+        {
+          "module": "config",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "database",
+          "afferent": 1,
+          "efferent": 2,
+          "instability_millis": 667
+        },
+        {
+          "module": "docker",
+          "afferent": 2,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "docs",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "eslint.config.js",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "hocuspocus-server.mjs",
+          "afferent": 0,
+          "efferent": 0,
+          "instability_millis": 0
+        },
+        {
+          "module": "public",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "resources",
+          "afferent": 2,
+          "efferent": 3,
+          "instability_millis": 600
+        },
+        {
+          "module": "routes",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "scripts",
+          "afferent": 0,
+          "efferent": 2,
+          "instability_millis": 1000
+        },
+        {
+          "module": "server.php",
+          "afferent": 0,
+          "efferent": 1,
+          "instability_millis": 1000
+        },
+        {
+          "module": "tests",
+          "afferent": 8,
+          "efferent": 4,
+          "instability_millis": 333
+        },
+        {
+          "module": "tools",
+          "afferent": 2,
+          "efferent": 2,
+          "instability_millis": 500
+        }
+      ],
+      "components": 24
+    },
+    "interpretation": "Counts changed after correcting graph facts on unchanged source. The new tests-to-clients warning needs test-role interpretation, not a claim of a new application defect."
+  },
+  "mcp": {
+    "final": {
+      "process": {
+        "pid": 3422865,
+        "binary": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/aigiscode-lexical-bindings",
+        "root": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+        "arguments": [
+          "mcp",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/draivix-capture-identity-source",
+          "--output-dir",
+          "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/lexical-bindings-artifacts",
+          "--no-write"
+        ],
+        "started_at": "2026-09-10T00:28:20.468Z"
+      },
+      "requests": [
+        {
+          "id": 1,
+          "label": "initialize",
+          "method": "initialize",
+          "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+              "name": "aigiscode-lexical-binding-review",
+              "version": "1"
+            }
+          },
+          "sent_ms": 4.690031999999999,
+          "received_ms": 8.886574,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "label": "overview",
+          "method": "tools/call",
+          "params": {
+            "name": "repo_overview",
+            "arguments": {
+              "min_revision": 1,
+              "consistency": "wait_until_indexed",
+              "wait_ms": 120000
+            }
+          },
+          "sent_ms": 9.183039999999998,
+          "received_ms": 43984.476105,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 3,
+          "label": "find-copyText",
+          "method": "tools/call",
+          "params": {
+            "name": "find_symbol",
+            "arguments": {
+              "name": "copyText",
+              "kind": "function",
+              "max_items": 20
+            }
+          },
+          "sent_ms": 43985.281009000006,
+          "received_ms": 44023.456531,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 4,
+          "label": "local-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText"
+            }
+          },
+          "sent_ms": 44023.82133100001,
+          "received_ms": 44026.972083,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 5,
+          "label": "vue-usages",
+          "method": "tools/call",
+          "params": {
+            "name": "symbol_usages",
+            "arguments": {
+              "symbol": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText"
+            }
+          },
+          "sent_ms": 44027.127703000006,
+          "received_ms": 44030.158267000006,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 6,
+          "label": "coverage",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/coverage"
+          },
+          "sent_ms": 44030.37213,
+          "received_ms": 44030.702467,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 7,
+          "label": "quality",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/quality"
+          },
+          "sent_ms": 44030.893835,
+          "received_ms": 44031.163664,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 8,
+          "label": "guard",
+          "method": "resources/read",
+          "params": {
+            "uri": "aigiscode://repo/current/guard"
+          },
+          "sent_ms": 44031.428419,
+          "received_ms": 44031.815102,
+          "error": null,
+          "is_error": false
+        }
+      ],
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 44464.807386
+      },
+      "overview_meta": {
+        "aigiscode/artifact_generation": {
+          "directory": "/home/david/Work/Programming/aigiscode/target/reliability-2026-09-09/lexical-bindings-artifacts/.generations/18d3cd730490c531-335c01-0",
+          "generation": "18d3cd730490c531-335c01-0",
+          "inputs_match_index": true
+        },
+        "aigiscode/ast_grep_coverage": {
+          "other_gap_files": 0,
+          "oversized_files": 0,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_files": 0
+        },
+        "aigiscode/freshness": {
+          "consistency_satisfied": true,
+          "dirty_path_count": 0,
+          "dirty_paths": [],
+          "generated_at_unix_ms": 1789000144445,
+          "indexed_revision": 1,
+          "is_stale": false,
+          "observed_revision": 1,
+          "rebuilding": false,
+          "revision": 1,
+          "watcher": "disabled"
+        },
+        "aigiscode/input_coverage": {
+          "files_without_parse_evidence": 0,
+          "recovered_source_files": 80,
+          "scope_limited_files": 792,
+          "status": "incomplete",
+          "unsupported_source_files": 146
+        }
+      },
+      "find_symbol": {
+        "matches": [
+          {
+            "end_line": 201,
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "inbound_edges": 2,
+            "inbound_files": 1,
+            "kind": "function",
+            "name": "copyText",
+            "parameter_count": 1,
+            "qualified_name": "copyText",
+            "start_line": 186,
+            "symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+            "visibility": "public"
+          },
+          {
+            "end_line": 105,
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/quickaccess/app.ts",
+            "inbound_edges": 2,
+            "inbound_files": 1,
+            "kind": "function",
+            "name": "copyText",
+            "parameter_count": 1,
+            "qualified_name": "copyText",
+            "start_line": 90,
+            "symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/quickaccess/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/quickaccess/app.ts:setupQuickaccess@90:8:copyText",
+            "visibility": "public"
+          },
+          {
+            "end_line": 1127,
+            "file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+            "inbound_edges": 2,
+            "inbound_files": 1,
+            "kind": "function",
+            "name": "copyText",
+            "parameter_count": 2,
+            "qualified_name": "copyText",
+            "start_line": 1120,
+            "symbol_id": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+            "visibility": "public"
+          },
+          {
+            "end_line": 1791,
+            "file_path": "resources/js/Components/Email/EmailPreview.vue",
+            "inbound_edges": 1,
+            "inbound_files": 1,
+            "kind": "function",
+            "name": "htmlToCopyText",
+            "parameter_count": 1,
+            "qualified_name": "htmlToCopyText",
+            "start_line": 1765,
+            "symbol_id": "function:resources/js/Components/Email/EmailPreview.vue:htmlToCopyText",
+            "visibility": "public"
+          },
+          {
+            "end_line": 23,
+            "file_path": "resources/js/chat/utils/clipboard.ts",
+            "inbound_edges": 29,
+            "inbound_files": 15,
+            "kind": "function",
+            "name": "copyTextToClipboard",
+            "parameter_count": 1,
+            "qualified_name": "copyTextToClipboard",
+            "start_line": 3,
+            "symbol_id": "function:resources/js/chat/utils/clipboard.ts:copyTextToClipboard",
+            "visibility": "public"
+          }
+        ],
+        "query": "copyText",
+        "total_matches": 5,
+        "truncated": false
+      },
+      "local_usages": {
+        "distinct_files": 1,
+        "query": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+        "symbol_id": "function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:function:app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts:setupPopup@186:8:copyText",
+        "total_edges": 2,
+        "truncated": false,
+        "usages": [
+          {
+            "edge_count": 2,
+            "file_path": "app/Modules/PasswordVault/Resources/web-addons/vault-addon/src/popup/app.ts",
+            "kinds": [
+              "call"
+            ],
+            "lines": [
+              244,
+              396
+            ]
+          }
+        ]
+      },
+      "vue_usages": {
+        "distinct_files": 1,
+        "query": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+        "symbol_id": "function:app/Modules/Website/resources/js/Pages/Cms/Show.vue:copyText",
+        "total_edges": 2,
+        "truncated": false,
+        "usages": [
+          {
+            "edge_count": 2,
+            "file_path": "app/Modules/Website/resources/js/Pages/Cms/Show.vue",
+            "kinds": [
+              "call"
+            ],
+            "lines": [
+              1110,
+              1117
+            ]
+          }
+        ]
+      },
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/1.json",
+          "bytes": 523,
+          "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/2.json",
+          "bytes": 292075,
+          "sha256": "5858a6f0c81024fba1b830e87501238f52b427a81dfa6aab3617e79c964b89f6"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/3.json",
+          "bytes": 5171,
+          "sha256": "8adfa8b2737337fac28ea19ecc4b1facedb541e04a935929fccc7509e1dec98f"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/4.json",
+          "bytes": 2197,
+          "sha256": "4fb32569c16ab5df1547cbbef5905c1356080816ec46c5147917762f35e07858"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/5.json",
+          "bytes": 1649,
+          "sha256": "f4b5efef0c013d386fe243a0d0a51a7f36a3e3d3272e8b09047b02e6b933b2b2"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/6.json",
+          "bytes": 15948,
+          "sha256": "68873496914f30bb5e0b08dabd599764cd45d703db9b18f03887d63bf3343d02"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/7.json",
+          "bytes": 19580,
+          "sha256": "bafb58ae6182e32225bdaaa778af5fd06f5539634ee22e46e27cf2ebbffe8331"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/8.json",
+          "bytes": 60281,
+          "sha256": "4d3c1223cbfe3cd6273e466cdd3cb1c1aff3abe13955d90eed3860f25e638b38"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/coverage.json",
+          "bytes": 13631,
+          "sha256": "23561f8464ccd5bc215d79d5cc9bb57c16a85ba689f5918eef7b10109f5cb9db"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/exit.json",
+          "bytes": 50,
+          "sha256": "71bad204a0dbac93427f6be7b3b8d3e1a95b3fef7f91a0367553dac53d6d3f36"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/find-copyText.json",
+          "bytes": 2544,
+          "sha256": "adcebe2a694b0e3b20c000828ec3492c036d23d878f32a83d19454ba94a15faa"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/guard.json",
+          "bytes": 57139,
+          "sha256": "f48d1bbf5180daf1a91558dd985c7c20630cd25a8e5c70d91c1754a070c473f6"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/local-usages.json",
+          "bytes": 734,
+          "sha256": "7ca92cefbcb5b35110218256e4ddadab3ef4210403887164b194dec31cd3b995"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/overview.json",
+          "bytes": 197375,
+          "sha256": "9c7cc125d49ff9fdec3efe250ee740b12456a17877ab127dabc851e7d4c74794"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/process.json",
+          "bytes": 521,
+          "sha256": "b9b86b60a516a77948b26baf18a6bce110e2acf5324123ebc01d9c4098e1dd48"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/quality.json",
+          "bytes": 17050,
+          "sha256": "58c95a34d92487fbab31cbe29ce9aa54b30d063364163d4d64ab4e5ef7e8208e"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/requests.json",
+          "bytes": 2694,
+          "sha256": "50ef5d8316f4d849dfccd128467622fe15da2bbe8c47977a9e2bde8889e9028b"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/stderr.txt",
+          "bytes": 6827780,
+          "sha256": "7fbed0db54a19d6a9eb2dc0fe3666386961d2d2baa756a30780c7b5c84fce4d8"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp/vue-usages.json",
+          "bytes": 460,
+          "sha256": "959afe8766a3ce9730854175f026ae19cd4c35cd8ef92795b67fd3ce3977636d"
+        }
+      ]
+    },
+    "initial_attempt": {
+      "requests": [
+        {
+          "id": 1,
+          "label": "initialize",
+          "method": "initialize",
+          "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {
+              "name": "aigiscode-lexical-binding-review",
+              "version": "1"
+            }
+          },
+          "sent_ms": 5.253233000000002,
+          "received_ms": 9.691095,
+          "error": null,
+          "is_error": false
+        },
+        {
+          "id": 2,
+          "label": "overview",
+          "method": "tools/call",
+          "params": {
+            "name": "repo_overview",
+            "arguments": {}
+          },
+          "sent_ms": 10.012580000000003,
+          "received_ms": 30012.135378000003,
+          "error": {
+            "code": -32603,
+            "message": "Initial index is still building; retry when ready",
+            "data": {
+              "freshness": {
+                "consistency_satisfied": false,
+                "dirty_path_count": 0,
+                "dirty_paths": [],
+                "generated_at_unix_ms": 1788999846460,
+                "indexed_revision": 0,
+                "is_stale": true,
+                "observed_revision": 1,
+                "rebuilding": true,
+                "revision": 0,
+                "watcher": "disabled"
+              },
+              "index_state": "indexing",
+              "retryable": true
+            }
+          },
+          "is_error": false
+        }
+      ],
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "elapsed_ms": 45262.352904
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "error": {
+          "code": -32603,
+          "message": "Initial index is still building; retry when ready",
+          "data": {
+            "freshness": {
+              "consistency_satisfied": false,
+              "dirty_path_count": 0,
+              "dirty_paths": [],
+              "generated_at_unix_ms": 1788999846460,
+              "indexed_revision": 0,
+              "is_stale": true,
+              "observed_revision": 1,
+              "rebuilding": true,
+              "revision": 0,
+              "watcher": "disabled"
+            },
+            "index_state": "indexing",
+            "retryable": true
+          }
+        }
+      },
+      "interpretation": "Default 30-second initial wait returned a typed retryable indexing response. The observation client closed; a new connection used the documented explicit wait. Not an injected failure or an analysis failure.",
+      "raw": [
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp-initial/1.json",
+          "bytes": 523,
+          "sha256": "2c4ee705dc59f14b6ed7bfdf380e968de9be4dcd9302590afc8fb7233330e1e9"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp-initial/2.json",
+          "bytes": 392,
+          "sha256": "f62e23954c317a11d42b11c1fec088c6e986ae74bdf56ee90060b96686e12b32"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp-initial/exit.json",
+          "bytes": 50,
+          "sha256": "2434491d591ab7d5b14b011495ac6baafb958147bd810ce342f53a535a67286a"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp-initial/process.json",
+          "bytes": 521,
+          "sha256": "77623c38eb850d9723586be14899ec85704be83b7e26bca33e4655b54d0d20d4"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp-initial/requests.json",
+          "bytes": 1191,
+          "sha256": "e7719039ac40574f63f37fc4dda872dc8a3b12adbc54ab8198db2d87b3152214"
+        },
+        {
+          "path": "target/reliability-2026-09-09/lexical-bindings-mcp-initial/stderr.txt",
+          "bytes": 6827753,
+          "sha256": "9b8153051435e2ef4789445a19971369af5d5b4fc27a86072ad3c5d28bda683c"
+        }
+      ]
+    }
+  },
+  "self_audit": {
+    "wall_seconds": 2.96,
+    "peak_rss_kib": 162332,
+    "exit": 1,
+    "summary": {
+      "ast_grep_coverage": {
+        "status": "complete",
+        "input_files": 120,
+        "scanned_files": 57,
+        "prefiltered_files": 63,
+        "oversized_files": 0,
+        "unsupported_files": 0,
+        "other_gap_files": 0,
+        "scope_limited_files": 0,
+        "gap_bytes": 0,
+        "gap_files_preview": []
+      },
+      "input_coverage": {
+        "status": "incomplete",
+        "supported_source_files": 120,
+        "parsed_source_files": 120,
+        "recovered_source_files": 2,
+        "scope_limited_files": 0,
+        "files_without_parse_evidence": 0,
+        "unsupported_source_files": 2,
+        "other_input_files": 134,
+        "diagnostic_count": 2,
+        "parse_issues_preview": [
+          {
+            "file_path": "rust/crates/aigiscore/src/ingestion/pipeline.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 249,
+                "start_column": 50,
+                "end_line": 249,
+                "end_column": 54
+              }
+            ],
+            "diagnostics_truncated": false
+          },
+          {
+            "file_path": "rust/crates/aigiscore/src/mcp/contracts.rs",
+            "parser": "tree-sitter-rust",
+            "scope": "source",
+            "required_recovery": true,
+            "diagnostic_count": 1,
+            "diagnostics": [
+              {
+                "kind": "error_node",
+                "node_kind": "ERROR",
+                "start_line": 2357,
+                "start_column": 57,
+                "end_line": 2357,
+                "end_column": 61
+              }
+            ],
+            "diagnostics_truncated": false
+          }
+        ],
+        "unsupported_sources_preview": [
+          {
+            "file_path": "install.ps1",
+            "extension": "ps1"
+          },
+          {
+            "file_path": "install.sh",
+            "extension": "sh"
+          }
+        ],
+        "deferred_checks": [
+          "unused_imports",
+          "unused_private_functions",
+          "orphan_modules",
+          "confirmed_orphan_files"
+        ]
+      },
+      "scanned_files": 256,
+      "analyzed_files": 120,
+      "symbols": 2817,
+      "references": 34536,
+      "resolved_edges": 6199,
+      "strong_cycle_count": 11,
+      "total_cycle_count": 4,
+      "architectural_smell_count": 0,
+      "warning_heavy_hotspot_count": 13,
+      "split_identity_model_count": 0,
+      "compatibility_scar_count": 0,
+      "duplicate_mechanism_count": 0,
+      "hand_rolled_parsing_count": 0,
+      "abstraction_sprawl_count": 0,
+      "algorithmic_complexity_hotspot_count": 84,
+      "ast_grep_finding_count": 54,
+      "ast_grep_algorithmic_complexity_count": 29,
+      "ast_grep_security_dangerous_api_count": 1,
+      "ast_grep_framework_misuse_count": 24,
+      "ast_grep_skipped_file_count": 63,
+      "ast_grep_skipped_bytes": 555041,
+      "ast_grep_skipped_files_preview": [
+        {
+          "file_path": "rust/crates/aigiscore/src/artifacts/atomic.rs",
+          "bytes": 2723,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscode.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/bin/aigiscore.rs",
+          "bytes": 80,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/coverage.rs",
+          "bytes": 6771,
+          "reason": "no_family_prefilter_hit"
+        },
+        {
+          "file_path": "rust/crates/aigiscore/src/detectors/mod.rs",
+          "bytes": 92,
+          "reason": "no_family_prefilter_hit"
+        }
+      ],
+      "dead_code_count": 0,
+      "hardwiring_count": 769,
+      "security_finding_count": 0,
+      "external_tool_count": 0,
+      "external_checks": {
+        "status": "not_requested",
+        "requested": 0,
+        "completed": 0,
+        "failed": 0,
+        "unavailable": 0
+      },
+      "external_finding_count": 0
+    },
+    "raw": [
+      {
+        "path": "target/reliability-2026-09-09/self-lexical-bindings-result.json",
+        "bytes": 7196,
+        "sha256": "fefa2885973ae8743a2eb86bb67714211e19dec5dff0bdd28e010ad28bf72411"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-lexical-bindings-time.txt",
+        "bytes": 1007,
+        "sha256": "18edce9fd6e208f72950a6a6ccc97a214ac88674a99e25446cd43e06a07767e3"
+      },
+      {
+        "path": "target/reliability-2026-09-09/self-lexical-bindings-trace.txt",
+        "bytes": 55589,
+        "sha256": "0268994baf83a7517961caf7e3ddd339dd8b02e70893452324e102b80c6a0684"
+      }
+    ]
+  },
+  "integrity": {
+    "completed_at": "2026-09-10T00:32:55.324Z",
+    "results": [
+      {
+        "name": "draivix-capture-identity-source",
+        "files": 23296,
+        "delta": {
+          "added": [],
+          "removed": [],
+          "changed": []
+        },
+        "inventory_sha256": "110749280013073f56137504e81908896e00853dbfac9dee86bde0a4b428e456",
+        "configs": [
+          {
+            "path": ".aigiscode/scan.json",
+            "present": true,
+            "sha256": "bf484a44ed16bd135f1ca073845aafb9b3cf4f6fddd16643398244feea7b53ec",
+            "bytes": 132
+          },
+          {
+            "path": ".aigiscode/doctrine.json",
+            "present": true,
+            "sha256": "cafc5d851284795854a9adbdaa36656d996a7cdd7bca2b8ba0e0db4de4c299aa",
+            "bytes": 8641
+          },
+          {
+            "path": ".aigiscode/policy.json",
+            "present": false
+          },
+          {
+            "path": ".aigiscode/rules.json",
+            "present": false
+          }
+        ]
+      }
+    ]
+  },
+  "limits": [
+    "Four new regression tests were written, not run; no local suites, lint or CI execution.",
+    "The actual source-based positive/negative witness is popup copyText versus the retained Vue callers; aggregate integrity counts do not prove every scope rule.",
+    "Rebinding is conservative and flow-insensitive; dynamic properties, cross-module mutable aliases, execution order and unsupported expression shapes remain outside this proof.",
+    "Cached MCP was one-shot with watcher disabled; no concurrent/edit scenario was claimed.",
+    "Full capture/configuration stability, incremental analysis, approved CI and overall Q01-Q12 acceptance remain open.",
+    "Original live Draivix was not recaptured in this unit."
+  ]
+}

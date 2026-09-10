@@ -120,6 +120,8 @@ fn context_fingerprint(context: &ResolutionContext) -> u128 {
         declared_module_bindings,
         reference_import_map,
         language_map,
+        lexical_symbols,
+        lexical_calls,
     } = context;
     let mut hash = Xxh3::new();
     hash_map(file_index, &mut hash);
@@ -142,6 +144,8 @@ fn context_fingerprint(context: &ResolutionContext) -> u128 {
     hash_map(declared_module_bindings, &mut hash);
     hash_map(reference_import_map, &mut hash);
     hash_map(language_map, &mut hash);
+    hash_map(lexical_symbols, &mut hash);
+    hash_map(lexical_calls, &mut hash);
     hash.digest128()
 }
 
@@ -156,11 +160,8 @@ mod tests {
     fn parse(files: &[(&str, &str)]) -> SemanticGraph {
         let mut graph = SemanticGraph::default();
         for (path, source) in files {
-            let mut file = parse_source_file(PathBuf::from(path), source).unwrap();
-            graph.files.append(&mut file.files);
-            graph.symbols.append(&mut file.symbols);
-            graph.references.append(&mut file.references);
-            graph.parse_outcomes.append(&mut file.parse_outcomes);
+            let file = parse_source_file(PathBuf::from(path), source).unwrap();
+            graph.append(file);
         }
         graph
     }
@@ -179,6 +180,21 @@ mod tests {
             graph.references.len()
         );
         work
+    }
+
+    #[test]
+    fn lexical_binding_changes_invalidate_unchanged_reference_shapes() {
+        let before = parse(&[("scope.ts", "const helper = () => 1; function run(other) { return helper(); }")]);
+        let after = parse(&[("scope.ts", "const helper = () => 1; function run(helper) { return helper(); }")]);
+        assert_eq!(before.references, after.references);
+        assert_eq!(before.symbols, after.symbols);
+        assert_ne!(before.lexical_bindings, after.lexical_bindings);
+        let mut cache = ResolutionCache::default();
+        let config = ResolveConfig::default();
+        compare(&mut cache, before, &config);
+        let work = compare(&mut cache, after, &config);
+        assert_eq!(work.references_reused, 0);
+        assert!(work.references_processed > 0);
     }
 
     #[test]

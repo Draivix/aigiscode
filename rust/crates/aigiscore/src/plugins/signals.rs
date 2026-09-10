@@ -43,6 +43,9 @@ impl RuntimePlugin for SignalCallbacksPlugin {
         let same_file_functions = same_file_function_targets(graph);
         let signal_imports = signal_import_identities(graph);
         let methods_by_owner_and_name = methods_by_owner_and_name(graph);
+        let argument_bindings = graph.lexical_bindings.calls.iter()
+            .filter(|binding| binding.argument_index == Some(0))
+            .map(|binding| (binding.reference_index, &binding.target_symbol_id)).collect::<HashMap<_, _>>();
         let mut registrations = HashMap::<SignalIdentity, Vec<SignalCallbackTarget>>::new();
         let mut edges = Vec::new();
         let mut emitted = HashSet::<(PathBuf, String, usize, RelationKind)>::new();
@@ -57,7 +60,8 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             &mut emitted,
         );
 
-        for reference in graph.references.iter().filter(is_signal_connect_reference) {
+        for (reference_index, reference) in graph.references.iter().enumerate()
+            .filter(|(_, reference)| is_signal_connect_reference(reference)) {
             let Some(snippet) = repo.source_snippet(&reference.file_path, reference.line, 2) else {
                 continue;
             };
@@ -82,14 +86,21 @@ impl RuntimePlugin for SignalCallbacksPlugin {
             let Some(signal_name) = reference.receiver_name.as_deref() else {
                 continue;
             };
-            let Some(target) = resolve_callback_target(
+            let target = if let Some(binding) = argument_bindings.get(&reference_index) {
+                binding.as_ref().and_then(|id| symbols_by_id.get(id)).filter(|symbol| {
+                    matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+                }).map(|symbol| SignalCallbackTarget { symbol_id: symbol.id.clone(), file_path: symbol.file_path.clone() })
+            } else {
+                resolve_callback_target(
                 reference,
                 callback_name,
                 &symbols_by_id,
                 &import_targets,
                 &same_file_functions,
                 &methods_by_owner_and_name,
-            ) else {
+                )
+            };
+            let Some(target) = target else {
                 continue;
             };
             registrations
@@ -427,10 +438,11 @@ fn resolve_callback_target(
 fn same_file_function_targets(
     graph: &SemanticGraph,
 ) -> HashMap<(PathBuf, String), SignalCallbackTarget> {
+    let scoped = graph.lexical_bindings.scoped_symbol_ids.iter().collect::<HashSet<_>>();
     graph
         .symbols
         .iter()
-        .filter(|symbol| symbol.kind == SymbolKind::Function)
+        .filter(|symbol| symbol.kind == SymbolKind::Function && !scoped.contains(&symbol.id))
         .map(|symbol| {
             (
                 (symbol.file_path.clone(), symbol.name.clone()),
@@ -706,6 +718,27 @@ def reset_hashers(**kwargs):
 
         assert_eq!(edges.len(), 1);
         assert_eq!(edges[0].layer, GraphLayer::Framework);
+    }
+
+    #[test]
+    fn uses_lexical_callback_arguments_without_exposing_other_scopes() {
+        let fixture = create_fixture();
+        fs::write(fixture.join("signals.ts"), r#"
+function setup() {
+    const callback = () => 1;
+    signal.connect(callback);
+    signal.send();
+}
+function unrelated() { other.connect(callback); other.send(); }
+function injected(callback) { injectedSignal.connect(callback); injectedSignal.send(); }
+"#).unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        let edges = analysis.semantic_graph.resolved_edges.iter().filter(|edge| {
+            matches!(edge.relation_kind, RelationKind::EventSubscribe | RelationKind::EventPublish)
+        }).collect::<Vec<_>>();
+        assert_eq!(edges.len(), 2);
+        assert!(edges.iter().all(|edge| edge.target_symbol_id.ends_with(":callback")));
+        assert!(edges.iter().all(|edge| matches!(edge.line, 4 | 5)));
     }
 
     #[test]

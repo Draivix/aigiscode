@@ -77,6 +77,8 @@ pub struct ResolutionContext {
     declared_module_bindings: HashMap<(PathBuf, String), PathBuf>,
     reference_import_map: HashMap<(PathBuf, usize, String), Vec<PathBuf>>,
     language_map: HashMap<PathBuf, Language>,
+    lexical_symbols: HashMap<String, SymbolDefinition>,
+    lexical_calls: HashMap<(PathBuf, usize, String, usize), Option<String>>,
 }
 
 impl ResolutionContext {
@@ -99,6 +101,9 @@ impl ResolutionContext {
             .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method))
             .map(|symbol| symbol.id.as_str())
             .collect::<HashSet<_>>();
+        let scoped_symbols = graph.lexical_bindings.scoped_symbol_ids.iter().collect::<HashSet<_>>();
+        let bound_symbols = graph.lexical_bindings.calls.iter()
+            .filter_map(|binding| binding.target_symbol_id.as_ref()).collect::<HashSet<_>>();
 
         for symbol in &graph.symbols {
             let definition = SymbolDefinition {
@@ -113,6 +118,14 @@ impl ResolutionContext {
                 parameter_count: symbol.parameter_count,
                 required_parameter_count: symbol.required_parameter_count,
             };
+            if scoped_symbols.contains(&symbol.id) || bound_symbols.contains(&symbol.id) {
+                context.lexical_symbols.insert(symbol.id.clone(), definition.clone());
+            }
+            // Parser-scoped JS/TS declarations are available only through a
+            // lexical binding, never through a file/global name guess.
+            if scoped_symbols.contains(&symbol.id) {
+                continue;
+            }
 
             if symbol.kind == SymbolKind::Module {
                 context
@@ -159,7 +172,24 @@ impl ResolutionContext {
             .map(|file| file.path.clone())
             .collect::<HashSet<_>>();
 
-        for reference in &graph.references {
+        let bindings = graph.lexical_bindings.calls.iter()
+            .filter(|binding| binding.argument_index.is_none())
+            .map(|binding| (binding.reference_index, &binding.target_symbol_id)).collect::<HashMap<_, _>>();
+        let binding_keys = bindings.keys().filter_map(|index| graph.references.get(*index))
+            .map(|reference| (reference.file_path.as_path(), reference.line, reference.target_name.as_str()))
+            .collect::<HashSet<_>>();
+        let mut binding_occurrences = HashMap::new();
+        for (index, reference) in graph.references.iter().enumerate() {
+            let key = (reference.file_path.as_path(), reference.line, reference.target_name.as_str());
+            if binding_keys.contains(&key) {
+                let occurrence = *binding_occurrences.entry(key).and_modify(|value| *value += 1).or_insert(0);
+                if let Some(target) = bindings.get(&index) {
+                    context.lexical_calls.insert(
+                        (reference.file_path.clone(), reference.line, reference.target_name.clone(), occurrence),
+                        (*target).clone(),
+                    );
+                }
+            }
             if !reference.kind.is_import() {
                 continue;
             }
@@ -387,7 +417,7 @@ fn resolve_references<'a>(
                 .entry(occurrence_key)
                 .and_modify(|value| *value += 1)
                 .or_insert(0);
-            resolve_reference(reference, context).map(|edge| {
+            resolve_reference(reference, context, occurrence_index).map(|edge| {
                 (index, edge.with_reference_identity(reference.target_name.clone(), occurrence_index))
             })
         })
@@ -397,9 +427,24 @@ fn resolve_references<'a>(
 fn resolve_reference(
     reference: &SemanticReference,
     context: &ResolutionContext,
+    occurrence_index: usize,
 ) -> Option<ResolvedEdge> {
     if reference.kind.is_import() {
         return resolve_import_reference(reference, context);
+    }
+    if reference.call_form == Some(CallForm::Free) {
+        if let Some(binding) = context.lexical_calls.get(&(
+            reference.file_path.clone(), reference.line, reference.target_name.clone(), occurrence_index,
+        )) {
+            let symbol = context.lexical_symbols.get(binding.as_ref()?)?;
+            return pick_edge(reference, TieredCandidates {
+                candidates: vec![symbol],
+                tier: ResolutionTier::SameFile,
+            }).map(|mut edge| {
+                edge.reason = "call:lexical-binding".to_owned();
+                edge
+            });
+        }
     }
 
     // A type reference whose leaf is a language primitive / pseudo type (`float`,
@@ -1992,6 +2037,89 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn resolves_bound_arrows_in_their_lexical_scope_and_preserves_imports() {
+        let mut graph = parse_javascript_to_graph(PathBuf::from("popup.ts"), r#"
+import { format } from './lib';
+export function setup() {
+    const copyText = async (text: string) => format(text);
+    const child = () => copyText('nested');
+    copyText('direct');
+    child();
+    const onlyLocal = () => 1;
+    onlyLocal();
+}
+function parameters(copyText: (text: string) => void) { copyText('unknown'); }
+function sibling() { onlyLocal(); }
+function shadowImport() { const format = () => 'private'; return format(); }
+"#, true).unwrap();
+        graph.append(parse_javascript_to_graph(PathBuf::from("lib.ts"),
+            "export const format = (text: string) => text; format('module');", true).unwrap());
+        graph.append(parse_javascript_to_graph(PathBuf::from("foreign.ts"),
+            "export function copyText(text: string) { return text; }", true).unwrap());
+        resolve_graph(&mut graph);
+        let copy_calls = graph.resolved_edges.iter().filter(|edge| {
+            edge.reference_target_name.as_deref() == Some("copyText") && edge.kind == ReferenceKind::Call
+        }).collect::<Vec<_>>();
+        assert_eq!(copy_calls.len(), 2);
+        assert!(copy_calls.iter().all(|edge| {
+            edge.target_file_path == Path::new("popup.ts") && edge.reason == "call:lexical-binding"
+                && edge.strength == crate::graph::EdgeStrength::Hard
+        }));
+        assert_eq!(graph.resolved_edges.iter().filter(|edge| {
+            edge.reference_target_name.as_deref() == Some("onlyLocal") && edge.kind == ReferenceKind::Call
+        }).count(), 1);
+        assert!(graph.resolved_edges.iter().any(|edge| {
+            edge.source_file_path == Path::new("popup.ts") && edge.target_file_path == Path::new("lib.ts")
+                && edge.reference_target_name.as_deref() == Some("format") && edge.kind == ReferenceKind::Call
+                && edge.resolution_tier == ResolutionTier::ImportScoped
+        }));
+        // Appending lib.ts must rebase its call binding to its own reference.
+        assert!(graph.resolved_edges.iter().any(|edge| {
+            edge.source_file_path == Path::new("lib.ts") && edge.target_file_path == Path::new("lib.ts")
+                && edge.reason == "call:lexical-binding"
+        }));
+    }
+
+    #[test]
+    fn preserves_same_line_block_identity_and_masks_reassigned_values() {
+        let mut graph = parse_javascript_to_graph(PathBuf::from("scope.js"), r#"
+function blocks() { { const local = () => 1; local(); } { const local = () => 2; local(); } local(); }
+const recur = function internal(n) { return n ? internal(n - 1) : 0; };
+recur(1); internal(1);
+let changed = () => 1;
+changed = unknown;
+changed();
+function masked({ recur }) { recur(); }
+const single = value => value;
+single(1);
+const loop = () => 1;
+for (const loop of values) loop();
+loop();
+"#, false).unwrap();
+        resolve_graph(&mut graph);
+        let local_calls = graph.resolved_edges.iter().filter(|edge| {
+            edge.reference_target_name.as_deref() == Some("local")
+        }).collect::<Vec<_>>();
+        assert_eq!(local_calls.len(), 2);
+        assert_ne!(local_calls[0].target_symbol_id, local_calls[1].target_symbol_id);
+        assert_eq!(local_calls[0].occurrence_index, 0);
+        assert_eq!(local_calls[1].occurrence_index, 1);
+        let internal = graph.resolved_edges.iter().filter(|edge| {
+            edge.reference_target_name.as_deref() == Some("internal")
+        }).collect::<Vec<_>>();
+        assert_eq!(internal.len(), 1);
+        assert!(internal[0].target_symbol_id.ends_with(":recur"));
+        assert_eq!(graph.resolved_edges.iter().filter(|edge| edge.reference_target_name.as_deref() == Some("recur")).count(), 1);
+        assert_eq!(graph.resolved_edges.iter().filter(|edge| edge.reference_target_name.as_deref() == Some("loop")).count(), 1);
+        assert!(!graph.resolved_edges.iter().any(|edge| edge.reference_target_name.as_deref() == Some("changed")));
+        assert!(graph.lexical_bindings.calls.iter().any(|binding| {
+            binding.argument_index.is_none() && binding.target_symbol_id.is_none()
+                && graph.references[binding.reference_index].target_name == "changed"
+        }));
+        assert_eq!(graph.symbols.iter().find(|symbol| symbol.name == "single").unwrap().parameter_count, 1);
+    }
 
     #[test]
     fn rust_module_calls_require_the_matching_imported_module() {

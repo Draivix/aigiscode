@@ -18,6 +18,10 @@ sémantický graf a scanner na stabilním korpusu zůstaly shodné.
 [Rozlišení signálů](2026-09-10-signal-bindings.md) dále odstranilo přesně pět
 chybných vazeb Vue → PHP a jedno navazující upozornění na nestabilní závislost;
 deterministické nálezy detektorů a inventář kontraktů zachovaného korpusu se nezměnily.
+[Lexikální vazby JS/TS](2026-09-10-lexical-bindings.md) nyní opravují oba odhadnuté
+odkazy popupu PasswordVault na cizí `copyText`; CLI i MCP je váží na skutečnou
+místní deklaraci. Doplňují také explicitní neznámé vazby a zachování scope při
+použití cache. Současná CI akceptace a interaktivní rychlost zůstávají otevřené.
 
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto

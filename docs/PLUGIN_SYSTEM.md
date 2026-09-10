@@ -54,6 +54,9 @@ runtimes.
 ## Signal Binding Evidence
 
 Signal callbacks use the [captured parser sources](INPUT_CAPTURE_CONTRACT.md).
+Parser-owned [lexical argument bindings](LEXICAL_BINDING_CONTRACT.md) take
+precedence over callback-name lookup: an unknown local value blocks that
+fallback, while a known local function remains available in its own scope.
 The bounded call excerpt must match the actual reference receiver on the call's
 starting line. A simple callable argument can be resolved; the result of a
 callback factory call cannot be treated as the factory itself.
