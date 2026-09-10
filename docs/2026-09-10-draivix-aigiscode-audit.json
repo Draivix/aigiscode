@@ -1,0 +1,120 @@
+{
+  "date": "2026-09-10",
+  "analyzer_checkout": "d1ed4d8",
+  "target": "Draivix working tree",
+  "report_visibility": "private_local",
+  "private_report": "ignored .aigiscode/reviews/draivix-2026-09-10/audit.md",
+  "coverage": {
+    "main": {
+      "scanned_files": 12647,
+      "analyzed_files": 9662,
+      "input_coverage": "incomplete",
+      "recovered_source_files": 16,
+      "scope_limited_files": 720,
+      "unsupported_source_files": 2,
+      "visible_findings": 4571,
+      "security_sites": 38,
+      "security_files": 26,
+      "strong_cycles": 17,
+      "total_cycles": 20,
+      "dead_code_candidates": 10,
+      "behavior_comparison": {
+        "candidate_search_truncated": true,
+        "capture_status": "partial",
+        "captured_bodies": 50378,
+        "cross_language_pairs": 52,
+        "different_contract_pairs": 567,
+        "function_symbols": 50830,
+        "pairs_considered": 50000,
+        "repeated_decision_pairs": 1295,
+        "shared_primitive_pairs": 308,
+        "unverified_contract_pairs": 169,
+        "usable_bodies": 44850
+      }
+    },
+    "companion_graphs": [
+      {
+        "root_scope": "clients",
+        "exit_code": 1,
+        "scanned_files": 3700,
+        "parsed_source_files": 2435,
+        "symbols": 18793,
+        "resolved_edges": 39329,
+        "input_coverage": {
+          "status": "incomplete",
+          "recovered_source_files": 4,
+          "scope_limited_files": 65,
+          "unsupported_source_files": 44
+        },
+        "limitation": "Independent graph slice; cross-scope absence/reachability is not established. Inputs may include support/reference/generated code."
+      },
+      {
+        "root_scope": "bootstrap",
+        "exit_code": 0,
+        "scanned_files": 7,
+        "parsed_source_files": 6,
+        "symbols": 14,
+        "resolved_edges": 5,
+        "input_coverage": {
+          "status": "complete",
+          "recovered_source_files": 0,
+          "scope_limited_files": 0,
+          "unsupported_source_files": 0
+        },
+        "limitation": "Independent graph slice; cross-scope absence/reachability is not established. Inputs may include support/reference/generated code."
+      }
+    ],
+    "freshness": {
+      "consistency_satisfied": true,
+      "dirty_path_count": 0,
+      "dirty_paths": [],
+      "generated_at_unix_ms": 1789057395358,
+      "indexed_revision": 1,
+      "is_stale": false,
+      "observed_revision": 1,
+      "rebuilding": false,
+      "revision": 1,
+      "watcher": "disabled"
+    }
+  },
+  "verification": {
+    "source_review_records": 10,
+    "source_review_claims": 11,
+    "distinct_files_cited_in_reviews": 26,
+    "security_sites_screened": 38,
+    "security_source_files": 26,
+    "strong_components_screened": 17,
+    "dead_code_candidates_screened": 10,
+    "successful_mcp_methods": [
+      "convergence_report",
+      "coverage_report",
+      "graph_trace",
+      "guard_decision",
+      "impact_radius",
+      "implementation_context",
+      "list_findings",
+      "module_design",
+      "prepare_architectural_review",
+      "quality_evaluation",
+      "repo_overview",
+      "repository_topology",
+      "show_cycles",
+      "show_hotspots",
+      "submit_architectural_review",
+      "tools/list"
+    ],
+    "source_reference_validation": "native API accepted all retained review records"
+  },
+  "limits": {
+    "native_reference_validation": "11 source-anchored claims retained privately; public checkout omits security details and source quotations",
+    "source_quotes_in_private_native_archives": true,
+    "application_source_changed": false,
+    "repository_policy_adopted": false,
+    "tests_executed": false,
+    "ci_executed": false,
+    "application_runtime_executed": false,
+    "external_sast_or_dependency_advisory_gates_executed": false,
+    "production_security_certified": false,
+    "regression_introduction_time_established": false
+  }
+}
