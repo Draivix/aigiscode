@@ -1,6 +1,7 @@
 mod complexity;
 pub mod behavior;
 pub mod wiring;
+pub mod abstraction;
 
 use complexity::{attach_complexity_graph_pressure, detect_algorithmic_complexity_hotspots};
 
@@ -230,8 +231,7 @@ pub fn build_architectural_assessment_full(
     );
     let hand_rolled_parsing =
         detect_hand_rolled_parsing(&graph_analysis.bottleneck_files, parsed_sources);
-    let abstraction_sprawl =
-        detect_abstraction_sprawl(&graph_analysis.bottleneck_files, parsed_sources);
+    let abstraction_sprawl = semantic_graph.map(abstraction::findings).unwrap_or_default();
     findings.extend(split_identity_findings);
     findings.extend(compatibility_scars);
     findings.extend(duplicate_mechanisms);
@@ -528,12 +528,13 @@ fn detect_layer_contract_violations(
         .collect()
 }
 
-/// God-class detection from the signature graph alone — no body reads. A
-/// container is flagged only when BOTH signals hold: a wide public surface
+/// Broad-interface review candidates combine signature breadth and consumers;
+/// parsed bodies discount only plain field accessors. A container is proposed
+/// only when BOTH signals hold: a wide public surface
 /// (>= 25 public non-magic methods) AND wide external consumption (>= 10
 /// distinct files depending on it). Width without consumers is a big helper;
-/// consumers without width is a healthy hub. Width with consumers is a class
-/// every change ripples through.
+/// consumers without width is a narrow hub. Neither signal establishes that
+/// the class owns unrelated responsibilities or must be split.
 fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFinding> {
     const MIN_PUBLIC_METHODS: usize = 25;
     const MIN_DEPENDENT_FILES: usize = 10;
@@ -547,6 +548,7 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
     let mut public_counts: HashMap<&str, usize> = HashMap::new();
     let mut accessor_counts: HashMap<&str, usize> = HashMap::new();
     let mut containers: HashMap<&str, &crate::graph::SymbolNode> = HashMap::new();
+    let bodies = graph.function_behaviors.iter().map(|body| (body.symbol_id.as_str(), body)).collect::<HashMap<_, _>>();
     for symbol in &graph.symbols {
         if container_like(symbol.kind) {
             containers.insert(symbol.id.as_str(), symbol);
@@ -560,9 +562,10 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
             continue;
         }
         // Magic/dunder methods are framework contracts, not interface width.
-        if symbol.visibility == Visibility::Public && !symbol.name.starts_with("__") {
+        if matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && symbol.visibility == Visibility::Public && !symbol.name.starts_with("__") {
             *public_counts.entry(parent).or_default() += 1;
-            if is_trivial_accessor(&symbol.name, symbol.parameter_count) {
+            if bodies.get(symbol.id.as_str()).is_some_and(|body| abstraction::is_plain_field_accessor(body)) {
                 *accessor_counts.entry(parent).or_default() += 1;
             }
         }
@@ -671,27 +674,6 @@ fn detect_god_classes(graph: &SemanticGraph) -> Vec<ArchitecturalAssessmentFindi
         .collect::<Vec<_>>();
     findings.sort_by(|a, b| a.file_path.cmp(&b.file_path));
     findings
-}
-
-/// Framework-idiom accessors (`getX`/`isX`/`hasX` with no parameters, `setX`
-/// with one) are generated surface, not design width: an entity with 70
-/// accessors and 4 real methods is not a god class. Arity keeps the discount
-/// honest — a `getX(a, b)` with real logic still counts as interface.
-fn is_trivial_accessor(name: &str, parameter_count: usize) -> bool {
-    for (prefix, is_write) in [("get", false), ("is", false), ("has", false), ("set", true)] {
-        let Some(rest) = name.strip_prefix(prefix) else {
-            continue;
-        };
-        if !rest.chars().next().is_some_and(char::is_uppercase) {
-            return false;
-        }
-        return if is_write {
-            parameter_count == 1
-        } else {
-            parameter_count == 0
-        };
-    }
-    false
 }
 
 /// Framework artifacts that look the part but are not wired into their
@@ -1250,12 +1232,6 @@ struct DuplicateMechanismAccumulator {
 }
 
 #[derive(Debug, Default)]
-struct AbstractionSprawlAccumulator {
-    file_roles: HashMap<PathBuf, BTreeSet<String>>,
-    file_token_counts: HashMap<PathBuf, usize>,
-}
-
-#[derive(Debug, Default)]
 struct HandRolledParsingAccumulator {
     file_roles: HashMap<PathBuf, BTreeSet<String>>,
     file_scores: HashMap<PathBuf, usize>,
@@ -1592,182 +1568,6 @@ fn build_ast_grep_framework_lookup(
             .insert(finding.line);
     }
     lookup
-}
-
-fn detect_abstraction_sprawl(
-    bottlenecks: &[BottleneckFile],
-    parsed_sources: &[(PathBuf, String)],
-) -> Vec<ArchitecturalAssessmentFinding> {
-    let bottleneck_by_path = bottlenecks
-        .iter()
-        .map(|bottleneck| (bottleneck.file_path.clone(), bottleneck.centrality_millis))
-        .collect::<HashMap<_, _>>();
-    let mut groups = HashMap::<String, AbstractionSprawlAccumulator>::new();
-
-    for (path, content) in parsed_sources {
-        if is_low_signal_identity_path(path) {
-            continue;
-        }
-        let roles = abstraction_roles(path, content);
-        if roles.is_empty() {
-            continue;
-        }
-        let concepts = abstraction_sprawl_concepts(path, content);
-        if concepts.is_empty() {
-            continue;
-        }
-
-        for concept in concepts {
-            let group = groups.entry(concept).or_default();
-            group
-                .file_roles
-                .entry(path.clone())
-                .or_default()
-                .extend(roles.iter().cloned());
-            *group.file_token_counts.entry(path.clone()).or_default() += 1;
-        }
-    }
-
-    let findings = groups
-        .into_iter()
-        .filter_map(|(concept, group)| {
-            if group.file_roles.len() < 3 {
-                return None;
-            }
-
-            let role_set = group
-                .file_roles
-                .values()
-                .flat_map(|roles| roles.iter().cloned())
-                .collect::<BTreeSet<_>>();
-            if role_set.len() < 4 {
-                return None;
-            }
-            let nontrivial_roles = role_set
-                .iter()
-                .filter(|role| {
-                    !matches!(
-                        role.as_str(),
-                        "service" | "helper" | "handler" | "client" | "validator"
-                    )
-                })
-                .count();
-            if nontrivial_roles < 2 {
-                return None;
-            }
-
-            let mut ranked_files = group
-                .file_roles
-                .into_iter()
-                .map(|(path, roles)| {
-                    let token_count = group
-                        .file_token_counts
-                        .get(&path)
-                        .copied()
-                        .unwrap_or_default();
-                    let centrality = bottleneck_by_path.get(&path).copied().unwrap_or_default();
-                    (path, roles, token_count, centrality)
-                })
-                .collect::<Vec<_>>();
-            ranked_files.sort_by(|left, right| {
-                right
-                    .3
-                    .cmp(&left.3)
-                    .then(right.1.len().cmp(&left.1.len()))
-                    .then(right.2.cmp(&left.2))
-                    .then(left.0.cmp(&right.0))
-            });
-
-            let (primary_file, primary_roles, _, primary_centrality) = ranked_files.first()?;
-            if primary_roles.len() < 2 && *primary_centrality < 250 {
-                return None;
-            }
-
-            let related_file_paths = ranked_files
-                .iter()
-                .skip(1)
-                .take(6)
-                .map(|(path, _, _, _)| path.clone())
-                .collect::<Vec<_>>();
-            let mut related_identifiers = vec![format!("concept:{concept}")];
-            related_identifiers.extend(role_set.iter().take(6).map(|role| format!("role:{role}")));
-            let warning_families = role_set
-                .iter()
-                .map(|role| format!("abstraction_role:{role}"))
-                .collect::<Vec<_>>();
-            let severity = scaled_severity_millis(
-                360 + (role_set.len().min(6) * 90)
-                    + (ranked_files.len().min(5) * 80)
-                    + ((*primary_centrality / 250).min(180) as usize),
-                1480,
-            );
-
-            Some(ArchitecturalAssessmentFinding { behavior_comparison_id: None,
-                evidence_anchors: Vec::new(),
-                kind: ArchitecturalAssessmentKind::AbstractionSprawl,
-                file_path: primary_file.clone(),
-                related_file_paths,
-                related_identifiers,
-                warning_count: ranked_files.len(),
-                warning_weight: role_set.len(),
-                bottleneck_centrality_millis: *primary_centrality,
-                warning_families,
-                severity_millis: severity,
-                pressure_path: Vec::new(),
-                expensive_operation_sites: Vec::new(),
-                expensive_operation_flow: Vec::new(),
-                fingerprint: String::new(),
-            })
-        })
-        .collect::<Vec<_>>();
-
-    let mut deduped = HashMap::<PathBuf, ArchitecturalAssessmentFinding>::new();
-    for finding in findings {
-        let entry = deduped
-            .entry(finding.file_path.clone())
-            .or_insert_with(|| finding.clone());
-        if entry.severity_millis < finding.severity_millis {
-            entry.severity_millis = finding.severity_millis;
-        }
-        entry.warning_count = entry.warning_count.max(finding.warning_count);
-        entry.warning_weight = entry.warning_weight.max(finding.warning_weight);
-        entry.bottleneck_centrality_millis = entry
-            .bottleneck_centrality_millis
-            .max(finding.bottleneck_centrality_millis);
-        entry.related_file_paths = entry
-            .related_file_paths
-            .iter()
-            .cloned()
-            .chain(finding.related_file_paths.iter().cloned())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect();
-        entry.related_identifiers = entry
-            .related_identifiers
-            .iter()
-            .cloned()
-            .chain(finding.related_identifiers.iter().cloned())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect();
-        entry.warning_families = entry
-            .warning_families
-            .iter()
-            .cloned()
-            .chain(finding.warning_families.iter().cloned())
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .collect();
-    }
-
-    let mut findings = deduped.into_values().collect::<Vec<_>>();
-    findings.sort_by(|left, right| {
-        right
-            .severity_millis
-            .cmp(&left.severity_millis)
-            .then(left.file_path.cmp(&right.file_path))
-    });
-    findings
 }
 
 fn detect_hand_rolled_parsing(
@@ -2466,47 +2266,6 @@ fn duplicate_mechanism_tokens(path: &Path, content: &str) -> BTreeSet<String> {
     tokens
 }
 
-fn abstraction_roles(path: &Path, _content: &str) -> BTreeSet<String> {
-    let mut roles = BTreeSet::new();
-    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
-        let words = split_identifier_words(stem);
-        roles.extend(words.into_iter().filter(|word| is_abstraction_role(word)));
-    }
-    roles
-}
-
-fn abstraction_sprawl_concepts(path: &Path, _content: &str) -> BTreeSet<String> {
-    let mut concepts = BTreeSet::new();
-    if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
-        concepts.extend(abstraction_concepts_from_words(split_identifier_words(
-            stem,
-        )));
-    }
-    if let Some(parent) = path.parent().and_then(|parent| parent.file_name()) {
-        if let Some(parent) = parent.to_str() {
-            concepts.extend(abstraction_concepts_from_words(split_identifier_words(
-                parent,
-            )));
-        }
-    }
-    concepts
-}
-
-fn abstraction_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
-    let filtered = words
-        .into_iter()
-        .filter(|word| !is_abstraction_role(word))
-        .filter(|word| is_abstraction_concept_word(word))
-        .collect::<Vec<_>>();
-    let mut concepts = BTreeSet::new();
-    if let Some(word) = filtered.first() {
-        if word.len() >= 7 {
-            concepts.insert(word.clone());
-        }
-    }
-    concepts
-}
-
 fn parsing_roles(path: &Path) -> BTreeSet<String> {
     let mut roles = BTreeSet::new();
     if let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) {
@@ -2893,129 +2652,6 @@ fn parsing_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
             )
         })
         .collect()
-}
-
-fn is_abstraction_role(word: &str) -> bool {
-    matches!(
-        word,
-        "service"
-            | "manager"
-            | "helper"
-            | "provider"
-            | "factory"
-            | "adapter"
-            | "resolver"
-            | "registry"
-            | "builder"
-            | "gateway"
-            | "normalizer"
-            | "mapper"
-            | "wrapper"
-            | "orchestrator"
-            | "dispatcher"
-            | "compiler"
-            | "validator"
-            | "loader"
-            | "handler"
-            | "client"
-            | "planner"
-            | "router"
-            | "broadcaster"
-            | "executor"
-            | "store"
-            | "repository"
-            | "policy"
-    )
-}
-
-fn is_abstraction_concept_word(word: &str) -> bool {
-    word.len() >= 4 && !is_generic_concept_stopword(word) && !is_structural_layer_word(word)
-}
-
-/// Non-domain filler words that are never a meaningful sprawl concept.
-fn is_generic_concept_stopword(word: &str) -> bool {
-    matches!(
-        word,
-        "abstract"
-            | "default"
-            | "global"
-            | "common"
-            | "system"
-            | "value"
-            | "field"
-            | "fields"
-            | "types"
-            | "type"
-            | "data"
-            | "core"
-            | "base"
-            | "module"
-            | "modules"
-            | "view"
-            | "views"
-    )
-}
-
-/// Structural/layer directory words (universal OOP/web-app layering vocabulary,
-/// not framework-specific) and role plurals. A concept is extracted from file
-/// stems *and parent directory names*, so a layer directory like `Services/`,
-/// `Support/`, or `components/` would otherwise become a fake "concept" that
-/// groups architecturally-unrelated files sharing only that layer, guaranteeing
-/// a 4+ role spread in any large codebase. Role singulars are already filtered
-/// upstream via `is_abstraction_role`; this covers the plural/directory forms.
-fn is_structural_layer_word(word: &str) -> bool {
-    matches!(
-        word,
-        "support"
-            | "supports"
-            | "http"
-            | "console"
-            | "middleware"
-            | "resources"
-            | "resource"
-            | "foundation"
-            | "shared"
-            | "components"
-            | "component"
-            | "integrations"
-            | "integration"
-            | "actions"
-            | "action"
-            | "requests"
-            | "responses"
-            | "contracts"
-            | "concerns"
-            | "interfaces"
-            | "interface"
-            // role plurals (singulars handled by is_abstraction_role)
-            | "services"
-            | "managers"
-            | "helpers"
-            | "providers"
-            | "factories"
-            | "adapters"
-            | "resolvers"
-            | "registries"
-            | "builders"
-            | "gateways"
-            | "normalizers"
-            | "mappers"
-            | "wrappers"
-            | "orchestrators"
-            | "dispatchers"
-            | "compilers"
-            | "validators"
-            | "loaders"
-            | "handlers"
-            | "clients"
-            | "planners"
-            | "routers"
-            | "broadcasters"
-            | "executors"
-            | "stores"
-            | "repositories"
-            | "policies"
-    )
 }
 
 fn duplicate_mechanism_concepts_from_words(words: Vec<String>) -> BTreeSet<String> {
@@ -4050,7 +3686,7 @@ final class AppServiceProvider extends ServiceProvider
     }
 
     #[test]
-    fn detects_abstraction_sprawl_for_concept_with_many_roles() {
+    fn naming_roles_alone_do_not_establish_abstraction_sprawl() {
         let assessment = build_architectural_assessment(
             &GraphAnalysis {
                 bottleneck_files: vec![BottleneckFile {
@@ -4087,31 +3723,7 @@ final class AppServiceProvider extends ServiceProvider
             ],
         );
 
-        let finding = assessment
-            .findings
-            .iter()
-            .find(|finding| finding.kind == ArchitecturalAssessmentKind::AbstractionSprawl)
-            .expect("expected abstraction sprawl finding");
-        assert_eq!(
-            finding.file_path,
-            PathBuf::from("app/Notifications/NotificationService.php")
-        );
-        assert!(finding
-            .related_identifiers
-            .iter()
-            .any(|identifier| identifier.starts_with("concept:notification")));
-        assert!(finding
-            .warning_families
-            .contains(&String::from("abstraction_role:service")));
-        assert!(finding
-            .warning_families
-            .contains(&String::from("abstraction_role:builder")));
-        assert!(finding
-            .warning_families
-            .contains(&String::from("abstraction_role:registry")));
-        assert!(finding
-            .warning_families
-            .contains(&String::from("abstraction_role:resolver")));
+        assert!(assessment.findings.iter().all(|finding| finding.kind != ArchitecturalAssessmentKind::AbstractionSprawl));
     }
 
     #[test]
@@ -5770,97 +5382,30 @@ export function run(items: string[][]) {
     }
 
     #[test]
-    fn god_class_discounts_framework_idiom_accessors() {
-        use crate::graph::{
-            EdgeOrigin, EdgeStrength, GraphLayer, ReferenceKind, ResolutionTier, ResolvedEdge,
-            SymbolNode,
-        };
-        let mut graph = SemanticGraph::default();
-        let class_id = "class:app/Entity.php:Entity";
-        graph.symbols.push(SymbolNode {
-            id: class_id.to_string(),
-            file_path: PathBuf::from("app/Entity.php"),
-            kind: SymbolKind::Class,
-            name: String::from("Entity"),
-            qualified_name: String::from("Entity"),
-            parent_symbol_id: None,
-            owner_type_name: None,
-            return_type_name: None,
-            visibility: Visibility::Public,
-            parameter_count: 0,
-            required_parameter_count: 0,
-            start_line: 1,
-            end_line: 400,
-        });
-        let add_method = |graph: &mut SemanticGraph, name: &str, params: usize, line: usize| {
-            graph.symbols.push(SymbolNode {
-                id: format!("method:app/Entity.php:Entity:{name}"),
-                file_path: PathBuf::from("app/Entity.php"),
-                kind: SymbolKind::Method,
-                name: String::from(name),
-                qualified_name: format!("Entity::{name}"),
-                parent_symbol_id: Some(class_id.to_string()),
-                owner_type_name: Some(String::from("Entity")),
-                return_type_name: None,
-                visibility: Visibility::Public,
-                parameter_count: params,
-                required_parameter_count: params,
-                start_line: line,
-                end_line: line,
-            });
-        };
-        // 28 idiomatic accessors + 3 real methods with wide consumption:
-        // entity idiom, not a god class.
-        for index in 0..14 {
-            add_method(&mut graph, &format!("getField{index}"), 0, 10 + index);
-            add_method(&mut graph, &format!("setField{index}"), 1, 30 + index);
+    fn broad_surface_discounts_only_captured_field_accessors() {
+        fn entity_graph(real_methods: usize) -> SemanticGraph {
+            let mut source = String::from("<?php\nclass Entity {\n");
+            for index in 0..14 {
+                source.push_str(&format!(" public int $field{index} = 0;\n public function getField{index}(): int {{ return $this->field{index}; }}\n public function setField{index}(int $value): void {{ $this->field{index} = $value; }}\n"));
+            }
+            for index in 0..real_methods {
+                source.push_str(&format!(" public function getComputed{index}(): int {{ return $this->field0 + {index}; }}\n"));
+            }
+            source.push_str("}\n");
+            let mut graph = crate::parsing::php::parse_php_to_graph("app/Entity.php", &source).unwrap();
+            for caller in 0..12 {
+                let source = format!("<?php\nfunction useEntity{caller}(Entity $entity): int {{ return $entity->getField{}(); }}\n", caller % 14);
+                graph.append(crate::parsing::php::parse_php_to_graph(format!("app/callers/Consumer{caller}.php"), &source).unwrap());
+            }
+            crate::resolve::resolve_graph(&mut graph);
+            graph
         }
-        for index in 0..3 {
-            add_method(&mut graph, &format!("compute{index}"), 0, 50 + index);
-        }
-        let edge_to = |src: &str, method: &str| ResolvedEdge {
-            source_file_path: PathBuf::from(src),
-            source_symbol_id: None,
-            target_file_path: PathBuf::from("app/Entity.php"),
-            target_symbol_id: format!("method:app/Entity.php:Entity:{method}"),
-            reference_target_name: None,
-            kind: ReferenceKind::Call,
-            relation_kind: RelationKind::Call,
-            layer: GraphLayer::Structural,
-            strength: EdgeStrength::Hard,
-            origin: EdgeOrigin::Resolver,
-            resolution_tier: ResolutionTier::ImportScoped,
-            confidence_millis: 900,
-            reason: String::from("test"),
-            line: 5,
-            occurrence_index: 0,
-        };
-        for caller in 0..12 {
-            graph.resolved_edges.push(edge_to(
-                &format!("app/callers/C{caller}.php"),
-                &format!("getField{}", caller % 14),
-            ));
-        }
-
-        assert!(super::detect_god_classes(&graph).is_empty());
-
-        // Add real interface width beyond the accessors: now it is a god
-        // class, judged on the effective surface.
-        for index in 0..26 {
-            add_method(&mut graph, &format!("operate{index}"), 0, 60 + index);
-        }
-        let findings = super::detect_god_classes(&graph);
+        assert!(super::detect_god_classes(&entity_graph(3)).is_empty());
+        let findings = super::detect_god_classes(&entity_graph(29));
         assert_eq!(findings.len(), 1);
-        let god = &findings[0];
-        assert_eq!(god.warning_count, 29);
-        assert!(god
-            .related_identifiers
-            .iter()
-            .any(|id| id == "accessor_methods:28"));
-        assert!(god
-            .related_identifiers
-            .iter()
-            .any(|id| id == "effective_public_methods:29"));
+        assert_eq!(findings[0].warning_count, 29);
+        assert!(findings[0].related_identifiers.iter().any(|id| id == "accessor_methods:28"));
+        assert!(findings[0].related_identifiers.iter().any(|id| id == "effective_public_methods:29"));
     }
 
     #[test]

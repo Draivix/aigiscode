@@ -56,6 +56,8 @@ pub struct ContractNameMention {
 pub struct ImplementationWiring {
     pub implementation: WiringSymbol,
     pub owner: Option<WiringSymbol>,
+    #[serde(default)]
+    pub abstraction: super::abstraction::AbstractionProfile,
     pub production_call_count: usize,
     pub production_calls: Vec<WiringSite>,
     pub test_call_count: usize,
@@ -108,6 +110,7 @@ pub struct ExecutionPathAssessment {
 }
 
 pub fn assess(graph: &SemanticGraph, inventory: &ContractInventory, ids: &[String]) -> ExecutionPathAssessment {
+    let abstraction = super::abstraction::AbstractionContext::new(graph);
     let symbols = graph.symbols.iter().map(|symbol| (symbol.id.as_str(), symbol)).collect::<HashMap<_, _>>();
     let bodies = graph.function_behaviors.iter().map(|body| (body.symbol_id.as_str(), body)).collect::<HashMap<_, _>>();
     let mut implementations = Vec::new();
@@ -172,7 +175,7 @@ pub fn assess(graph: &SemanticGraph, inventory: &ContractInventory, ids: &[Strin
         registrations.truncate(16);
         contract_name_mentions.truncate(16);
         implementations.push(ImplementationWiring {
-            implementation: symbol.into(), owner: (owner.id != symbol.id).then(|| owner.into()), production_call_count, production_calls, test_call_count,
+            implementation: symbol.into(), owner: (owner.id != symbol.id).then(|| owner.into()), abstraction: abstraction.profile(symbol), production_call_count, production_calls, test_call_count,
             non_call_reference_count, non_call_references,
             implemented_contracts: implemented_contracts.into_iter().take(16).filter_map(|id| symbols.get(id).copied()).map(Into::into).collect(),
             declared_implementors: declared_implementors.into_iter().take(16).filter_map(|id| symbols.get(id).copied()).map(Into::into).collect(),

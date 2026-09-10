@@ -34,9 +34,11 @@ long files, many dependents and zero static callers are candidate signals.
   existing helper; the distinct relation-schema adapters remained unverified
   input-contract evidence without a DRY finding. Capture and candidate search
   are incomplete, and concrete consolidation remains a source-review proposal.
-- `abstraction_roles` and `abstraction_sprawl_concepts` derive evidence from
-  names/paths; their content parameter is unused. This does not establish that
-  the participating layers lack separate responsibilities.
+- [Abstraction necessity evidence](ABSTRACTION_NECESSITY.md) replaces the
+  filename-role grouping with captured private forwarding chains and method
+  responsibility profiles. Public/declared boundaries, transformations,
+  attributes and lifecycle behavior remain explicit. Broad interface size is
+  a review candidate, and plain accessor discounts now require body evidence.
 - [Execution-path evidence](EXECUTION_PATH_REVIEW.md) now connects explicit
   implementations to captured callers, branch arms, callbacks, declared
   contracts and model-owned container registrations. Native MCP observations
@@ -123,5 +125,5 @@ Tests and CI remain paused under the current instruction. The regression cases
 and runtime acceptance requirements stay explicit; source inspection does not
 turn them into executed checks. The evidence/action contract and scoped dead-code
 unit and parsed behavior comparisons are implemented with the verification limits documented above. Continue
-abstraction necessity and reviewed policy/convergence feedback. Broader Q01–Q12 correctness obligations
+reviewed policy/convergence feedback. Broader Q01–Q12 correctness obligations
 remain open.

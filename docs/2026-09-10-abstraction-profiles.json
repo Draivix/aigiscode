@@ -1,0 +1,611 @@
+[
+  {
+    "request_id": 5,
+    "source_snapshot_id": "d843f5d412e3bed461bd6b1defdfc99f",
+    "profiles": [
+      {
+        "implementation": {
+          "file_path": "app/Modules/AiChat/Services/ChatService.php",
+          "line": 40,
+          "name": "App\\Modules\\AiChat\\Services\\ChatService",
+          "symbol_id": "class:app/Modules/AiChat/Services/ChatService.php:ChatService"
+        },
+        "registrations": [],
+        "method_count": 120,
+        "methods_truncated": true,
+        "body_evidence_complete": false,
+        "delegation_chains": [],
+        "selected_methods": [
+          {
+            "method": {
+              "file_path": "app/Modules/AiChat/Services/ChatService.php",
+              "line": 243,
+              "name": "ChatService::createConversation",
+              "symbol_id": "method:app/Modules/AiChat/Services/ChatService.php:class:app/Modules/AiChat/Services/ChatService.php:ChatService:createConversation"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "default_arguments",
+              "branching",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 16,
+            "dependency_owners": [
+              {
+                "file_path": "app/Entities/_Core/EntityManager.php",
+                "line": 56,
+                "name": "App\\Entities\\_Core\\EntityManager",
+                "symbol_id": "class:app/Entities/_Core/EntityManager.php:EntityManager"
+              },
+              {
+                "file_path": "app/Models/User.php",
+                "line": 26,
+                "name": "App\\Models\\User",
+                "symbol_id": "class:app/Models/User.php:User"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Entities/AiConversation/AiConversation.php",
+                "line": 29,
+                "name": "App\\Modules\\AiChat\\Entities\\AiConversation\\AiConversation",
+                "symbol_id": "class:app/Modules/AiChat/Entities/AiConversation/AiConversation.php:AiConversation"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/ContextBuilder.php",
+                "line": 22,
+                "name": "App\\Modules\\AiChat\\Services\\ContextBuilder",
+                "symbol_id": "class:app/Modules/AiChat/Services/ContextBuilder.php:ContextBuilder"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/ProviderResolver.php",
+                "line": 28,
+                "name": "App\\Modules\\AiChat\\Services\\ProviderResolver",
+                "symbol_id": "class:app/Modules/AiChat/Services/ProviderResolver.php:ProviderResolver"
+              }
+            ],
+            "calls_without_strong_resolution": 8,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Modules/AiChat/Services/ChatService.php",
+              "line": 2062,
+              "name": "ChatService::executeToolActionSync",
+              "symbol_id": "method:app/Modules/AiChat/Services/ChatService.php:class:app/Modules/AiChat/Services/ChatService.php:ChatService:executeToolActionSync"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "default_arguments",
+              "branching",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 7,
+            "dependency_owners": [
+              {
+                "file_path": "app/Modules/AiChat/Services/AgentUiPayloadMerger.php",
+                "line": 20,
+                "name": "App\\Modules\\AiChat\\Services\\AgentUiPayloadMerger",
+                "symbol_id": "class:app/Modules/AiChat/Services/AgentUiPayloadMerger.php:AgentUiPayloadMerger"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/CapabilityActionExecutor.php",
+                "line": 37,
+                "name": "App\\Modules\\AiChat\\Services\\CapabilityActionExecutor",
+                "symbol_id": "class:app/Modules/AiChat/Services/CapabilityActionExecutor.php:CapabilityActionExecutor"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/ToolExecutor.php",
+                "line": 32,
+                "name": "App\\Modules\\AiChat\\Services\\ToolExecutor",
+                "symbol_id": "class:app/Modules/AiChat/Services/ToolExecutor.php:ToolExecutor"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Support/AgentUi/ToolActionPayloadProjector.php",
+                "line": 7,
+                "name": "App\\Modules\\AiChat\\Support\\AgentUi\\ToolActionPayloadProjector",
+                "symbol_id": "class:app/Modules/AiChat/Support/AgentUi/ToolActionPayloadProjector.php:ToolActionPayloadProjector"
+              }
+            ],
+            "calls_without_strong_resolution": 4,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Modules/AiChat/Services/ChatService.php",
+              "line": 2510,
+              "name": "ChatService::streamResponse",
+              "symbol_id": "method:app/Modules/AiChat/Services/ChatService.php:class:app/Modules/AiChat/Services/ChatService.php:ChatService:streamResponse"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "incomplete_body",
+              "branching",
+              "captured_mutation",
+              "error_handling",
+              "iteration",
+              "deferred_execution",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 39,
+            "dependency_owners": [
+              {
+                "file_path": "app/Entities/_Core/EntityManager.php",
+                "line": 56,
+                "name": "App\\Entities\\_Core\\EntityManager",
+                "symbol_id": "class:app/Entities/_Core/EntityManager.php:EntityManager"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Entities/AiConversation/AiConversation.php",
+                "line": 29,
+                "name": "App\\Modules\\AiChat\\Entities\\AiConversation\\AiConversation",
+                "symbol_id": "class:app/Modules/AiChat/Entities/AiConversation/AiConversation.php:AiConversation"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Entities/AiMessage/AiMessage.php",
+                "line": 29,
+                "name": "App\\Modules\\AiChat\\Entities\\AiMessage\\AiMessage",
+                "symbol_id": "class:app/Modules/AiChat/Entities/AiMessage/AiMessage.php:AiMessage"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/AssistantMetadataBuilder.php",
+                "line": 25,
+                "name": "App\\Modules\\AiChat\\Services\\AssistantMetadataBuilder",
+                "symbol_id": "class:app/Modules/AiChat/Services/AssistantMetadataBuilder.php:AssistantMetadataBuilder"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/ConversationBroadcaster.php",
+                "line": 30,
+                "name": "App\\Modules\\AiChat\\Services\\ConversationBroadcaster",
+                "symbol_id": "class:app/Modules/AiChat/Services/ConversationBroadcaster.php:ConversationBroadcaster"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Services/Providers/ToolCall.php",
+                "line": 10,
+                "name": "App\\Modules\\AiChat\\Services\\Providers\\ToolCall",
+                "symbol_id": "class:app/Modules/AiChat/Services/Providers/ToolCall.php:ToolCall"
+              },
+              {
+                "file_path": "app/Modules/AiChat/Support/AiConversationModeCatalog.php",
+                "line": 7,
+                "name": "App\\Modules\\AiChat\\Support\\AiConversationModeCatalog",
+                "symbol_id": "class:app/Modules/AiChat/Support/AiConversationModeCatalog.php:AiConversationModeCatalog"
+              }
+            ],
+            "calls_without_strong_resolution": 8,
+            "truncated": true
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "request_id": 6,
+    "source_snapshot_id": "d843f5d412e3bed461bd6b1defdfc99f",
+    "profiles": [
+      {
+        "implementation": {
+          "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+          "line": 19,
+          "name": "App\\Modules\\AccountingCompliance\\Services\\AccountingProductionEvidenceService",
+          "symbol_id": "class:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:AccountingProductionEvidenceService"
+        },
+        "registrations": [],
+        "method_count": 150,
+        "methods_truncated": true,
+        "body_evidence_complete": false,
+        "delegation_chains": [],
+        "selected_methods": [
+          {
+            "method": {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 424,
+              "name": "AccountingProductionEvidenceService::check",
+              "symbol_id": "method:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:class:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:AccountingProductionEvidenceService:check"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "incomplete_body",
+              "default_arguments",
+              "branching",
+              "captured_mutation",
+              "error_handling",
+              "iteration",
+              "deferred_execution",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 16,
+            "dependency_owners": [],
+            "calls_without_strong_resolution": 17,
+            "truncated": true
+          },
+          {
+            "method": {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 769,
+              "name": "AccountingProductionEvidenceService::stageTemplateArtifacts",
+              "symbol_id": "method:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:class:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:AccountingProductionEvidenceService:stageTemplateArtifacts"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "incomplete_body",
+              "branching",
+              "captured_mutation",
+              "error_handling",
+              "iteration",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 9,
+            "dependency_owners": [],
+            "calls_without_strong_resolution": 21,
+            "truncated": true
+          },
+          {
+            "method": {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 1037,
+              "name": "AccountingProductionEvidenceService::writeReport",
+              "symbol_id": "method:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:class:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:AccountingProductionEvidenceService:writeReport"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "captured_mutation",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 2,
+            "dependency_owners": [],
+            "calls_without_strong_resolution": 5,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php",
+              "line": 1070,
+              "name": "AccountingProductionEvidenceService::readManifest",
+              "symbol_id": "method:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:class:app/Modules/AccountingCompliance/Services/AccountingProductionEvidenceService.php:AccountingProductionEvidenceService:readManifest"
+            },
+            "boundary_evidence": [
+              "branching",
+              "error_handling",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 0,
+            "dependency_owners": [],
+            "calls_without_strong_resolution": 3,
+            "truncated": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "request_id": 4,
+    "source_snapshot_id": "d843f5d412e3bed461bd6b1defdfc99f",
+    "profiles": [
+      {
+        "implementation": {
+          "file_path": "app/Services/Email/EmailService.php",
+          "line": 29,
+          "name": "App\\Services\\Email\\EmailService",
+          "symbol_id": "class:app/Services/Email/EmailService.php:EmailService"
+        },
+        "registrations": [
+          {
+            "contract_type": "App\\Services\\Email\\EmailService",
+            "file_path": "app/Providers/AppServiceProvider.php",
+            "implementation_type": null,
+            "line": 497,
+            "mechanism": "bind",
+            "model": "laravel_container",
+            "source_parse_complete": true,
+            "source_symbol_id": "method:app/Providers/AppServiceProvider.php:class:app/Providers/AppServiceProvider.php:AppServiceProvider:registerEmailService",
+            "syntactically_conditional": null
+          }
+        ],
+        "method_count": 113,
+        "methods_truncated": true,
+        "body_evidence_complete": false,
+        "delegation_chains": [],
+        "selected_methods": [
+          {
+            "method": {
+              "file_path": "app/Services/Email/EmailService.php",
+              "line": 132,
+              "name": "EmailService::resolveComposeAccount",
+              "symbol_id": "method:app/Services/Email/EmailService.php:class:app/Services/Email/EmailService.php:EmailService:resolveComposeAccount"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "branching",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 5,
+            "dependency_owners": [
+              {
+                "file_path": "app/Entities/Email/Email.php",
+                "line": 83,
+                "name": "App\\Entities\\Email\\Email",
+                "symbol_id": "class:app/Entities/Email/Email.php:Email"
+              },
+              {
+                "file_path": "app/Services/Email/EmailAccessService.php",
+                "line": 33,
+                "name": "App\\Services\\Email\\EmailAccessService",
+                "symbol_id": "class:app/Services/Email/EmailAccessService.php:EmailAccessService"
+              }
+            ],
+            "calls_without_strong_resolution": 1,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Services/Email/EmailService.php",
+              "line": 575,
+              "name": "EmailService::transfer",
+              "symbol_id": "method:app/Services/Email/EmailService.php:class:app/Services/Email/EmailService.php:EmailService:transfer"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "branching",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 1,
+            "dependency_owners": [
+              {
+                "file_path": "app/Services/Email/EmailAssignmentService.php",
+                "line": 31,
+                "name": "App\\Services\\Email\\EmailAssignmentService",
+                "symbol_id": "class:app/Services/Email/EmailAssignmentService.php:EmailAssignmentService"
+              }
+            ],
+            "calls_without_strong_resolution": 1,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Services/Email/EmailService.php",
+              "line": 618,
+              "name": "EmailService::sendEmail",
+              "symbol_id": "method:app/Services/Email/EmailService.php:class:app/Services/Email/EmailService.php:EmailService:sendEmail"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "deferred_execution",
+              "non_forwarding_body"
+            ],
+            "callee_count": 2,
+            "dependency_owners": [
+              {
+                "file_path": "app/Services/_Core/Audit/ActionHistoryContext.php",
+                "line": 10,
+                "name": "App\\Services\\_Core\\Audit\\ActionHistoryContext",
+                "symbol_id": "class:app/Services/_Core/Audit/ActionHistoryContext.php:ActionHistoryContext"
+              }
+            ],
+            "calls_without_strong_resolution": 0,
+            "truncated": false
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "request_id": 3,
+    "source_snapshot_id": "d843f5d412e3bed461bd6b1defdfc99f",
+    "profiles": [
+      {
+        "implementation": {
+          "file_path": "app/Support/ActorContext.php",
+          "line": 10,
+          "name": "App\\Support\\ActorContext",
+          "symbol_id": "class:app/Support/ActorContext.php:ActorContext"
+        },
+        "registrations": [],
+        "method_count": 2,
+        "methods_truncated": false,
+        "body_evidence_complete": true,
+        "delegation_chains": [],
+        "selected_methods": [
+          {
+            "method": {
+              "file_path": "app/Support/ActorContext.php",
+              "line": 13,
+              "name": "ActorContext::id",
+              "symbol_id": "method:app/Support/ActorContext.php:class:app/Support/ActorContext.php:ActorContext:id"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "branching",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 1,
+            "dependency_owners": [],
+            "calls_without_strong_resolution": 4,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Support/ActorContext.php",
+              "line": 31,
+              "name": "ActorContext::positiveId",
+              "symbol_id": "method:app/Support/ActorContext.php:class:app/Support/ActorContext.php:ActorContext:positiveId"
+            },
+            "boundary_evidence": [
+              "branching",
+              "non_forwarding_body"
+            ],
+            "callee_count": 0,
+            "dependency_owners": [],
+            "calls_without_strong_resolution": 1,
+            "truncated": false
+          }
+        ]
+      },
+      {
+        "implementation": {
+          "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+          "line": 17,
+          "name": "App\\Services\\_Core\\Permission\\AclMembershipWriter",
+          "symbol_id": "class:app/Services/_Core/Permission/AclMembershipWriter.php:AclMembershipWriter"
+        },
+        "registrations": [],
+        "method_count": 6,
+        "methods_truncated": false,
+        "body_evidence_complete": true,
+        "delegation_chains": [],
+        "selected_methods": [
+          {
+            "method": {
+              "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+              "line": 37,
+              "name": "AclMembershipWriter::afterMutation",
+              "symbol_id": "method:app/Services/_Core/Permission/AclMembershipWriter.php:class:app/Services/_Core/Permission/AclMembershipWriter.php:AclMembershipWriter:afterMutation"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "owner_declares_contract",
+              "branching",
+              "captured_mutation",
+              "deferred_execution",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 6,
+            "dependency_owners": [
+              {
+                "file_path": "app/Entities/_Core/EntityManagerInterface.php",
+                "line": 17,
+                "name": "App\\Entities\\_Core\\EntityManagerInterface",
+                "symbol_id": "interface:app/Entities/_Core/EntityManagerInterface.php:EntityManagerInterface"
+              }
+            ],
+            "calls_without_strong_resolution": 1,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+              "line": 72,
+              "name": "AclMembershipWriter::publish",
+              "symbol_id": "method:app/Services/_Core/Permission/AclMembershipWriter.php:class:app/Services/_Core/Permission/AclMembershipWriter.php:AclMembershipWriter:publish"
+            },
+            "boundary_evidence": [
+              "owner_declares_contract",
+              "captured_mutation",
+              "error_handling",
+              "non_forwarding_body"
+            ],
+            "callee_count": 1,
+            "dependency_owners": [
+              {
+                "file_path": "app/Services/_Core/PermissionCache.php",
+                "line": 32,
+                "name": "App\\Services\\_Core\\PermissionCache",
+                "symbol_id": "class:app/Services/_Core/PermissionCache.php:PermissionCache"
+              }
+            ],
+            "calls_without_strong_resolution": 0,
+            "truncated": false
+          },
+          {
+            "method": {
+              "file_path": "app/Services/_Core/Permission/AclMembershipWriter.php",
+              "line": 85,
+              "name": "AclMembershipWriter::currentTenant",
+              "symbol_id": "method:app/Services/_Core/Permission/AclMembershipWriter.php:class:app/Services/_Core/Permission/AclMembershipWriter.php:AclMembershipWriter:currentTenant"
+            },
+            "boundary_evidence": [
+              "owner_declares_contract",
+              "branching",
+              "error_handling",
+              "composition",
+              "non_forwarding_body"
+            ],
+            "callee_count": 2,
+            "dependency_owners": [
+              {
+                "file_path": "app/Services/_Core/TenantManager.php",
+                "line": 31,
+                "name": "App\\Services\\_Core\\TenantManager",
+                "symbol_id": "class:app/Services/_Core/TenantManager.php:TenantManager"
+              },
+              {
+                "file_path": "app/Support/RuntimeMessage.php",
+                "line": 34,
+                "name": "App\\Support\\RuntimeMessage",
+                "symbol_id": "class:app/Support/RuntimeMessage.php:RuntimeMessage"
+              }
+            ],
+            "calls_without_strong_resolution": 2,
+            "truncated": false
+          }
+        ]
+      },
+      {
+        "implementation": {
+          "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php",
+          "line": 12,
+          "name": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailSender",
+          "symbol_id": "class:app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php:InvoiceThankYouEmailSender"
+        },
+        "registrations": [
+          {
+            "contract_type": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailDispatcher",
+            "file_path": "app/Modules/Accounting/AccountingServiceProvider.php",
+            "implementation_type": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailSender",
+            "line": 135,
+            "mechanism": "bind",
+            "model": "laravel_container",
+            "source_parse_complete": true,
+            "source_symbol_id": "method:app/Modules/Accounting/AccountingServiceProvider.php:class:app/Modules/Accounting/AccountingServiceProvider.php:AccountingServiceProvider:register",
+            "syntactically_conditional": null
+          }
+        ],
+        "method_count": 2,
+        "methods_truncated": false,
+        "body_evidence_complete": false,
+        "delegation_chains": [],
+        "selected_methods": [
+          {
+            "method": {
+              "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php",
+              "line": 20,
+              "name": "InvoiceThankYouEmailSender::sendForInvoiceId",
+              "symbol_id": "method:app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php:class:app/Modules/Accounting/Services/InvoiceThankYouEmailSender.php:InvoiceThankYouEmailSender:sendForInvoiceId"
+            },
+            "boundary_evidence": [
+              "public_or_protected_contract",
+              "owner_declares_contract",
+              "incomplete_body"
+            ],
+            "callee_count": 4,
+            "dependency_owners": [
+              {
+                "file_path": "app/Modules/Accounting/Services/InvoiceEmailDeliveryService.php",
+                "line": 25,
+                "name": "App\\Modules\\Accounting\\Services\\InvoiceEmailDeliveryService",
+                "symbol_id": "class:app/Modules/Accounting/Services/InvoiceEmailDeliveryService.php:InvoiceEmailDeliveryService"
+              },
+              {
+                "file_path": "app/Modules/Accounting/Services/InvoiceThankYouEmailSettings.php",
+                "line": 15,
+                "name": "App\\Modules\\Accounting\\Services\\InvoiceThankYouEmailSettings",
+                "symbol_id": "class:app/Modules/Accounting/Services/InvoiceThankYouEmailSettings.php:InvoiceThankYouEmailSettings"
+              }
+            ],
+            "calls_without_strong_resolution": 0,
+            "truncated": false
+          }
+        ]
+      }
+    ]
+  }
+]

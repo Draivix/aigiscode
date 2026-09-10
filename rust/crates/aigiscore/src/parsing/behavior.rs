@@ -13,6 +13,8 @@ pub struct BehaviorParameter {
     pub name: String,
     pub type_hint: Option<String>,
     pub has_default: bool,
+    #[serde(default)]
+    pub is_receiver: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -77,6 +79,10 @@ pub struct FunctionBehavior {
     pub structural_fingerprints: Vec<String>,
     pub complete: bool,
     pub test_guarded: bool,
+    #[serde(default)]
+    pub has_decorators_or_attributes: Option<bool>,
+    #[serde(default)]
+    pub has_calling_convention_modifier: Option<bool>,
     pub truncated: bool,
 }
 
@@ -97,8 +103,10 @@ pub(super) fn capture(graph: &mut SemanticGraph, root: Node<'_>, source: &str) {
                 parent.child_by_field_name("name").or_else(|| parent.child_by_field_name("key")).or_else(|| parent.child_by_field_name("left"))
             }));
             if let (Some(name), Some(body)) = (name, node.child_by_field_name("body")) {
+                let name_line = name.start_position().row + 1;
                 let name = text(name, source).trim_matches(['\'', '"']);
                 let candidates = symbols.get(&(name, node.start_position().row + 1))
+                    .or_else(|| symbols.get(&(name, name_line)))
                     .or_else(|| declaration.and_then(|parent| symbols.get(&(name, parent.start_position().row + 1))));
                 if let Some(candidates) = candidates {
                     if candidates.len() == 1 && captured.insert(candidates[0].id.clone()) {
@@ -114,12 +122,16 @@ pub(super) fn capture(graph: &mut SemanticGraph, root: Node<'_>, source: &str) {
 }
 
 fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, source: &str) -> FunctionBehavior {
+    let mut decorated = has_decorators_or_attributes(declaration);
+    let calling_convention = calling_convention_modifier(declaration, body);
     let mut parameter_bindings_complete = true;
     let mut parameters_truncated = false;
     let parameters = declaration.child_by_field_name("parameters").map(|parameters| {
         parameters_truncated = parameters.named_child_count() > 64;
-        parameters.named_children(&mut parameters.walk()).filter(|node| !comment(node.kind())).take(64).map(|node| {
+        parameters.named_children(&mut parameters.walk()).filter(|node| !comment(node.kind())).take(64).enumerate().map(|(index, node)| {
+            decorated |= node.named_children(&mut node.walk()).any(|child| matches!(child.kind(), "decorator" | "attribute_list" | "attribute_item"));
             let name = node.child_by_field_name("name").or_else(|| node.child_by_field_name("pattern"))
+                .or_else(|| (node.kind() == "self_parameter").then(|| node.named_children(&mut node.walk()).find(|child| child.kind() == "self")).flatten())
                 .or_else(|| node.named_child(0)).unwrap_or(node);
             parameter_bindings_complete &= matches!(name.kind(), "identifier" | "name" | "variable_name" | "self" | "self_parameter");
             parameters_truncated |= text(name, source).len() > 128
@@ -128,6 +140,8 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
                 name: bounded(text(name, source), 128),
                 type_hint: node.child_by_field_name("type").map(|node| bounded(text(node, source), 128)),
                 has_default: node.child_by_field_name("default_value").or_else(|| node.child_by_field_name("value")).is_some(),
+                is_receiver: node.kind() == "self_parameter" || (index == 0 && symbol.kind == SymbolKind::Method
+                    && declaration.kind() == "function_definition" && !decorated),
             }
         }).collect::<Vec<_>>()
     }).unwrap_or_default();
@@ -142,6 +156,8 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
         token_count: 0, structural_fingerprints: Vec::new(),
         complete: !declaration.has_error() && parameter_bindings_complete,
         test_guarded: test_guarded(declaration, source), truncated: parameters_truncated,
+        has_decorators_or_attributes: Some(decorated),
+        has_calling_convention_modifier: calling_convention,
     };
     let mut selectors = BTreeSet::new();
     let mut tokens = Vec::new();
@@ -166,7 +182,7 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
             if let Some(left) = node.child_by_field_name("left") {
                 // Local variable assignments do not establish shared state ownership.
                 if matches!(left.kind(), "member_access_expression" | "member_expression" | "attribute" | "field_expression" | "subscript_expression" | "subscript" | "element_reference") {
-                    push_bounded(&mut fact.writes, expression(left, source, &parameter_names), &mut fact.truncated);
+                    push_bounded(&mut fact.writes, expression(node, source, &parameter_names), &mut fact.truncated);
                 }
             }
         }
@@ -216,7 +232,7 @@ fn capture_body(symbol: &SymbolNode, declaration: Node<'_>, body: Node<'_>, sour
     if let Some(tail) = implicit_return(declaration, body, source) {
         push_bounded(&mut fact.returns, expression(tail, source, &parameter_names), &mut fact.truncated);
     }
-    fact.truncated |= fact.branches.iter().chain(&fact.returns).chain(&fact.writes).any(|expression| expression.shape_truncated)
+    fact.truncated |= calling_convention.is_none() || fact.branches.iter().chain(&fact.returns).chain(&fact.writes).any(|expression| expression.shape_truncated)
         || fact.calls.iter().any(|call| call.expression.shape_truncated || call.arguments_truncated || call.guards_truncated);
     fact
 }
@@ -286,6 +302,7 @@ fn shape(root: Node<'_>, source: &str, parameters: &HashMap<&str, usize>) -> (St
 
 fn token(node: Node<'_>, source: &str, parameters: &HashMap<&str, usize>) -> String {
     let value = text(node, source);
+    if node.kind() == "variable_name" && value == "$this" { return "this".into(); }
     if string_literal(node.kind()) || node.kind() == "simple_symbol" {
         if let Some(parent) = node.parent().filter(|parent| indexed_selector(parent.kind())) {
             if let Some(key) = selector(parent, source) { return format!("key:{key}"); }
@@ -364,6 +381,36 @@ fn test_guarded(mut node: Node<'_>, source: &str) -> bool {
         let Some(parent) = node.parent() else { return false; };
         node = parent;
     }
+}
+
+fn has_decorators_or_attributes(mut node: Node<'_>) -> bool {
+    loop {
+        if node.kind() == "decorated_definition" { return true; }
+        if callable(node.kind()) || matches!(node.kind(), "class_declaration" | "class_definition" | "interface_declaration"
+            | "trait_declaration" | "enum_declaration" | "impl_item" | "struct_item" | "enum_item" | "trait_item" | "mod_item") {
+            if node.named_children(&mut node.walk()).any(|child|
+                matches!(child.kind(), "decorator" | "attribute_list" | "attribute_item" | "attributes")) { return true; }
+            let mut previous = node.prev_named_sibling();
+            while let Some(comment_node) = previous.filter(|sibling| comment(sibling.kind())) { previous = comment_node.prev_named_sibling(); }
+            if previous.is_some_and(|previous| previous.kind() == "attribute_item") { return true; }
+        }
+        let Some(parent) = node.parent() else { return false; };
+        node = parent;
+    }
+}
+
+fn calling_convention_modifier(declaration: Node<'_>, body: Node<'_>) -> Option<bool> {
+    let mut pending = vec![declaration];
+    let mut visited = 0;
+    while let Some(node) = pending.pop() {
+        if node.id() == body.id() || node.start_byte() >= body.start_byte() { continue; }
+        visited += 1;
+        if visited > 1024 { return None; }
+        if matches!(node.kind(), "async" | "unsafe" | "extern" | "const" | "reference_modifier" | "rest_pattern")
+            || node.kind().contains("variadic") || node.kind().contains("splat") || node.kind().starts_with("generator_function") { return Some(true); }
+        pending.extend(node.children(&mut node.walk()));
+    }
+    Some(false)
 }
 
 fn is_loop(kind: &str) -> bool {

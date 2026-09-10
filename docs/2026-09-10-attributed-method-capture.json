@@ -1,0 +1,31 @@
+[
+  {
+    "symbol_id": "method:InvoiceThankYouEmailSender.php:class:InvoiceThankYouEmailSender.php:InvoiceThankYouEmailSender:__construct",
+    "file_path": "InvoiceThankYouEmailSender.php",
+    "line": 14,
+    "end_line": 17,
+    "complete": true,
+    "truncated": false,
+    "has_decorators_or_attributes": false,
+    "has_calling_convention_modifier": false,
+    "branch_count": 0,
+    "calls": []
+  },
+  {
+    "symbol_id": "method:InvoiceThankYouEmailSender.php:class:InvoiceThankYouEmailSender.php:InvoiceThankYouEmailSender:sendForInvoiceId",
+    "file_path": "InvoiceThankYouEmailSender.php",
+    "line": 20,
+    "end_line": 38,
+    "complete": true,
+    "truncated": false,
+    "has_decorators_or_attributes": true,
+    "has_calling_convention_modifier": false,
+    "branch_count": 2,
+    "calls": [
+      "isEnabled",
+      "emailAccountId",
+      "emailTemplateId",
+      "sendWithTemplateForInvoiceId"
+    ]
+  }
+]

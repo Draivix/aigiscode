@@ -1239,7 +1239,7 @@ fn surface_finding_from_architectural_assessment(
             severity: SurfaceFindingSeverity::High,
             precision: String::from("modeled"),
             confidence_millis: finding.severity_millis,
-            title: String::from("God class"),
+            title: String::from("Broad public interface candidate"),
             summary: {
                 let accessor_methods = finding
                     .related_identifiers
@@ -1249,14 +1249,14 @@ fn surface_finding_from_architectural_assessment(
                     .unwrap_or(0);
                 let surface_description = if accessor_methods > 0 {
                     format!(
-                        "{} public methods beyond {} framework-idiom accessors",
+                        "{} public methods beyond {} captured field accessors",
                         finding.warning_count, accessor_methods
                     )
                 } else {
                     format!("{} public methods", finding.warning_count)
                 };
                 format!(
-                    "{} exposes {} and is depended on by {} distinct files — every change to it ripples wide ({})",
+                    "{} exposes {} and has dependencies from {} distinct files ({}). Review method responsibilities and existing owners before proposing a split.",
                     finding.file_path.display(),
                     surface_description,
                     finding.warning_weight,
@@ -1398,13 +1398,13 @@ fn surface_finding_from_architectural_assessment(
                 family: SurfaceFindingFamily::Graph,
                 phase: SurfaceFindingPhase::Architecture,
                 severity: SurfaceFindingSeverity::Low,
-                precision: String::from("heuristic"),
+                precision: String::from("modeled"),
                 confidence_millis: finding.severity_millis,
-                title: String::from("Abstraction-role naming candidate"),
+                title: String::from("Private delegation chain candidate"),
                 summary: format!(
-                    "{} belongs to a naming-based group with abstraction roles ({}). Names alone do not establish duplicated behavior or a faulty boundary.",
+                    "{} contains {} captured forwarding steps. Verify dispatch, contracts and lifecycle ownership before inlining a private wrapper.",
                     finding.file_path.display(),
-                    finding.warning_families.join(", ")
+                    finding.warning_count
                 ),
                 file_paths,
                 line: primary_line,

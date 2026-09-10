@@ -4647,7 +4647,7 @@ pub fn build_agent_handoff_artifact(
         next_steps.push(format!("Refactor {sanctioned_path_bypass_count} sanctioned-path bypass hotspots where raw primitives bypass approved configuration or framework pathways."));
     }
     if abstraction_sprawl_count > 0 {
-        next_steps.push(format!("Collapse {abstraction_sprawl_count} abstraction-sprawl hotspots where one concern is split across too many helper/service/registry/factory-style layers."));
+        next_steps.push(format!("Review {abstraction_sprawl_count} captured private delegation chains; inline only when dispatch, contracts and lifecycle behavior survive the caller migration."));
     }
     if algorithmic_complexity_hotspot_count > 0 {
         next_steps.push(format!("Reduce {algorithmic_complexity_hotspot_count} algorithmic-complexity hotspots where nested iteration, repeated linear scans, sorting, or regex compilation inside loops may create superlinear runtime growth."));
@@ -5337,7 +5337,7 @@ fn build_guardian_packets(
                     precision: String::from("modeled"),
                     confidence_millis: finding.severity_millis,
                     summary: format!(
-                        "{} exposes {} public methods consumed from {} distinct files; split it along its usage clusters before it accretes further.",
+                        "{} exposes {} public methods with dependencies from {} distinct files; compare method responsibilities, shared state and existing owners before proposing a split.",
                         finding.file_path.display(),
                         finding.warning_count,
                         finding.warning_weight
@@ -5359,15 +5359,15 @@ fn build_guardian_packets(
                     ],
                     doctrine_refs,
                     preferred_mechanism: Some(String::from(
-                        "segregated_role_interfaces",
+                        "existing_responsibility_owners",
                     )),
                     obligations: vec![GuardianObligation {
                         action: format!(
-                            "Group `{}`'s externally-used methods by consumer concern and extract each group behind its own interface or focused class.",
+                            "Use `{}`'s method bodies, consumers and dependency owners to identify independent reasons to change. Reuse existing owners and explain how any proposed split preserves the public contract.",
                             finding.file_path.display()
                         ),
                         acceptance: String::from(
-                            "No single container both exposes a wide public surface and serves as the direct dependency of a wide consumer set; consumers depend on the narrow interface they actually use.",
+                            "Each proposed split names its responsibility boundary, existing owner and consumer migration while preserving state and lifecycle invariants; a justified public facade can remain intact.",
                         ),
                     }],
                     suppressibility: guardian_packet_suppressibility("god_class"),
@@ -5562,15 +5562,15 @@ fn build_guardian_packets(
                 packets.push(GuardianPacket {
                     id: format!(
                         "guardian:abstraction-sprawl:{}",
-                        finding.file_path.display()
+                        finding.related_identifiers.first().cloned().unwrap_or_else(|| finding.file_path.display().to_string())
                     ),
                     priority: String::from("low"),
                     focus: String::from("abstraction_sprawl"),
                     primary_target_file: finding.file_path.display().to_string(),
-                    precision: String::from("heuristic"),
+                    precision: String::from("modeled"),
                     confidence_millis: finding.severity_millis,
                     summary: format!(
-                        "{} is a naming-based abstraction-role candidate. Inspect the actual responsibilities and callers; retain distinct boundaries unless redundant behavior is demonstrated.",
+                        "{} contains a captured private forwarding chain. Compare what each wrapper contributes and preserve dispatch, contracts and lifecycle behavior before changing callers.",
                         finding.file_path.display()
                     ),
                     target_files,
@@ -6514,7 +6514,7 @@ fn guardian_packet_obligations(
                     preferred_mechanism.unwrap_or("one primary boundary")
                 ),
                 acceptance: String::from(
-                    "Source-backed review identifies duplicated behavior or explains why the named roles protect distinct boundaries.",
+                    "Source-backed review explains each forwarding layer's contribution and either names a safe caller migration to an existing owner or retains a justified boundary.",
                 ),
             },
             GuardianObligation {
@@ -6695,10 +6695,10 @@ fn guardian_packet_questions(
         ],
         "abstraction_sprawl" => vec![
             format!(
-                "Which abstraction in `{primary_file}` is the real boundary, and which surrounding helpers, managers, registries, or builders are only forwarding or renaming work?"
+                "Which captured wrapper in `{primary_file}` contributes a contract, transformation, invariant or lifecycle boundary, and which only forwards the same arguments?"
             ),
             format!(
-                "Does the concern around `{primary_file}` truly need this many abstraction roles, or can the flow be simplified into one primary domain/service boundary?"
+                "If a wrapper is inlined, which existing implementation receives each caller, and how are receiver dispatch, defaults, errors and side effects preserved?"
             ),
         ],
         "hand_rolled_parsing" => vec![
