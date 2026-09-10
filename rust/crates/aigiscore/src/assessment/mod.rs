@@ -3285,6 +3285,7 @@ mod tests {
         };
         let dead_code = DeadCodeResult {
             backend_orphan_coverage: Default::default(),
+            scope_coverage: Default::default(),
             findings: vec![DeadCodeFinding {
                 category: DeadCodeCategory::UnusedPrivateFunction,
                 symbol_id: String::from("a"),
@@ -3292,6 +3293,7 @@ mod tests {
                 name: String::from("unused"),
                 line: 10,
                 proof_tier: DeadCodeProofTier::Strong,
+                proof: Default::default(),
                 fingerprint: String::new(),
                 delete_verdict: String::new(),
                 delete_evidence: Vec::new(),
@@ -3372,6 +3374,7 @@ mod tests {
         };
         let dead_code = DeadCodeResult {
             backend_orphan_coverage: Default::default(),
+            scope_coverage: Default::default(),
             findings: vec![
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -3380,6 +3383,7 @@ mod tests {
                     name: String::from("unused"),
                     line: 10,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -3391,6 +3395,7 @@ mod tests {
                     name: String::from("unused2"),
                     line: 11,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -3402,6 +3407,7 @@ mod tests {
                     name: String::from("unused3"),
                     line: 12,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -3432,6 +3438,7 @@ mod tests {
         };
         let dead_code = DeadCodeResult {
             backend_orphan_coverage: Default::default(),
+            scope_coverage: Default::default(),
             findings: vec![
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedPrivateFunction,
@@ -3440,6 +3447,7 @@ mod tests {
                     name: String::from("unused"),
                     line: 10,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -3451,6 +3459,7 @@ mod tests {
                     name: String::from("unused2"),
                     line: 11,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -3462,6 +3471,7 @@ mod tests {
                     name: String::from("unused3"),
                     line: 12,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -3473,6 +3483,7 @@ mod tests {
                     name: String::from("unused4"),
                     line: 13,
                     proof_tier: DeadCodeProofTier::Strong,
+                    proof: Default::default(),
                     fingerprint: String::new(),
                     delete_verdict: String::new(),
                     delete_evidence: Vec::new(),
@@ -5574,6 +5585,7 @@ export function run(items: string[][]) {
         // OrphanJob is already an orphan finding — must not double-report.
         let dead_code = DeadCodeResult {
             backend_orphan_coverage: Default::default(),
+            scope_coverage: Default::default(),
             findings: vec![DeadCodeFinding {
                 category: DeadCodeCategory::OrphanModule,
                 symbol_id: String::from("module:app/Jobs/OrphanJob.php"),
@@ -5581,6 +5593,7 @@ export function run(items: string[][]) {
                 name: String::from("OrphanJob"),
                 line: 1,
                 proof_tier: Default::default(),
+                proof: Default::default(),
                 fingerprint: String::new(),
                 delete_verdict: String::new(),
                 delete_evidence: Vec::new(),

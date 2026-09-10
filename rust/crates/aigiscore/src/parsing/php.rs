@@ -724,15 +724,14 @@ fn infer_receiver_type_with_guards(
     inferred
 }
 
-/// PHP method visibility from its modifier list. `private` and `protected`
-/// both map to `Visibility::Private` — neither is part of the class's public
-/// shape, which is what the graph's two-level visibility models.
+/// Preserve the dispatch boundary: protected methods can be called by subclasses.
 fn php_method_visibility(node: Node<'_>, context: &PhpContext<'_>) -> Visibility {
     let mut cursor = node.walk();
     for child in node.children(&mut cursor) {
         if child.kind() == "visibility_modifier" {
             return match context.text(child).as_str() {
-                "private" | "protected" => Visibility::Private,
+                "private" => Visibility::Private,
+                "protected" => Visibility::Protected,
                 _ => Visibility::Public,
             };
         }

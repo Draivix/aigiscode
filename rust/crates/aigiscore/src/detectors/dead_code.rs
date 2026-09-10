@@ -11,6 +11,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 mod supplemental;
+mod proof;
+pub use proof::{DeadCodeProof, DeadCodeProofScope, DeadCodeScopeCoverage};
 pub use supplemental::{BackendOrphanCoverage, BackendOrphanStatus, SupplementalGap, SupplementalGapReason};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,11 +46,13 @@ pub struct DeadCodeFinding {
     #[serde(default)]
     pub proof_tier: DeadCodeProofTier,
     #[serde(default)]
+    pub proof: DeadCodeProof,
+    #[serde(default)]
     pub fingerprint: String,
-    /// Heuristic deletion candidate (`probably_delete`), never a deletion
+    /// Orphans require investigation (`investigate`), never a deletion
     /// proof: excluded callers and dynamic loading remain possible in every
     /// language. Empty for non-orphan categories. Older artifacts may contain
-    /// `safe_delete` for frontend modules.
+    /// `safe_delete` or `probably_delete` for modules.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub delete_verdict: String,
     /// The suppression channels that came back silent — the positive evidence
@@ -62,6 +66,8 @@ pub struct DeadCodeResult {
     pub findings: Vec<DeadCodeFinding>,
     #[serde(default)]
     pub backend_orphan_coverage: BackendOrphanCoverage,
+    #[serde(default)]
+    pub scope_coverage: DeadCodeScopeCoverage,
 }
 
 impl DeadCodeResult {
@@ -107,19 +113,11 @@ pub fn analyze_dead_code_scoped(
         path.extension().and_then(|extension| extension.to_str())
             .is_some_and(|extension| BACKEND_ORPHAN_EXTENSIONS.contains(&extension))
     });
-    if !graph.input_coverage().is_complete() {
-        // Missing syntax, template bindings or unsupported callers cannot prove
-        // absence of use. The coverage contract records these checks as deferred.
-        return DeadCodeResult {
-            backend_orphan_coverage: BackendOrphanCoverage {
-                status: if has_backend_sources { BackendOrphanStatus::DeferredInputCoverage } else { BackendOrphanStatus::NotApplicable },
-                ..BackendOrphanCoverage::default()
-            },
-            ..DeadCodeResult::default()
-        };
-    }
+    let scopes = proof::ProofScopes::new(graph, scope);
     let mut supplemental_sources = Vec::new();
-    let backend_orphan_coverage = if has_backend_sources {
+    let backend_orphan_coverage = if has_backend_sources && !graph.input_coverage().is_complete() {
+        BackendOrphanCoverage { status: BackendOrphanStatus::DeferredInputCoverage, ..BackendOrphanCoverage::default() }
+    } else if has_backend_sources {
         supplemental::collect(repo_root, parsed_sources, scope, |source| supplemental_sources.push(source))
     } else {
         BackendOrphanCoverage { status: BackendOrphanStatus::NotApplicable, ..BackendOrphanCoverage::default() }
@@ -135,6 +133,28 @@ pub fn analyze_dead_code_scoped(
         .iter()
         .map(|(path, source)| (path.as_path(), source.as_str()))
         .collect::<HashMap<_, _>>();
+    // PHP class/function aliases and method names are case-insensitive. Fold
+    // each source once, rather than allocating once per imported binding.
+    let php_lexical_sources = parsed_sources.iter().filter(|(path, _)| is_php_file(path))
+        .map(|(path, source)| (path.as_path(), source.to_ascii_lowercase())).collect::<HashMap<_, _>>();
+    let lexical_sources = sources_by_path.iter().map(|(path, source)| {
+        (*path, php_lexical_sources.get(path).map(String::as_str).unwrap_or(source))
+    }).collect::<HashMap<_, _>>();
+
+    let mut scope_coverage = DeadCodeScopeCoverage {
+        complete_local_binding_files: graph.files.iter().filter(|file| scopes.local_binding(&file.path)).count(),
+        module_reachability_checked: scopes.whole_modules,
+        runtime_registration_checked: backend_orphan_coverage.is_complete(),
+        ..DeadCodeScopeCoverage::default()
+    };
+    scope_coverage.deferred_local_binding_files = graph.files.len() - scope_coverage.complete_local_binding_files;
+    let private_proofs = graph.symbols.iter()
+        .filter(|symbol| matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
+            && matches!(symbol.visibility, Visibility::Private | Visibility::Protected))
+        .filter_map(|symbol| match scopes.private_dispatch(symbol) {
+            Some(proof) => { scope_coverage.checked_private_dispatch_symbols += 1; Some((symbol.id.as_str(), proof)) }
+            None => { scope_coverage.deferred_private_dispatch_symbols += 1; None }
+        }).collect::<HashMap<_, _>>();
 
     let mut findings = graph
         .symbols
@@ -142,13 +162,14 @@ pub fn analyze_dead_code_scoped(
         .enumerate()
         .filter(|(_, symbol)| {
             matches!(symbol.kind, SymbolKind::Function | SymbolKind::Method)
-                && symbol.visibility == Visibility::Private
+                && private_proofs.contains_key(symbol.id.as_str())
                 && symbol.name != "main"
                 && !is_runtime_magic_method(symbol.file_path.as_path(), &symbol.name)
                 && !has_decorator_binding(symbol, graph)
                 && !is_test_or_framework_entry_symbol(symbol, &sources_by_path)
                 && !called_symbols.contains(&symbol.id)
-                && !private_function_used_lexically_in_file(symbol, &sources_by_path)
+                && !private_function_used_lexically_in_scope(symbol,
+                    &private_proofs[symbol.id.as_str()].source_files, &lexical_sources)
         })
         .map(|(index, symbol)| {
             (
@@ -160,6 +181,7 @@ pub fn analyze_dead_code_scoped(
                     name: symbol.name.clone(),
                     line: symbol.start_line,
                     proof_tier: dead_code_proof_tier_for_symbol(symbol),
+                    proof: private_proofs[symbol.id.as_str()].clone(),
                     fingerprint: dead_code_fingerprint(
                         DeadCodeCategory::UnusedPrivateFunction,
                         &symbol.file_path,
@@ -245,6 +267,7 @@ pub fn analyze_dead_code_scoped(
         .enumerate()
         .filter(|(_, reference)| reference.kind.is_import())
         .filter_map(|(index, reference)| {
+            if !scopes.local_binding(&reference.file_path) || !lexical_sources.contains_key(reference.file_path.as_path()) { return None; }
             if is_package_export_surface(reference.file_path.as_path()) {
                 return None;
             }
@@ -301,18 +324,20 @@ pub fn analyze_dead_code_scoped(
                         })
                         .copied()
                 });
-            let resolved_import = resolved_import?;
-            let imported_symbol_name = symbols_by_id
-                .get(&resolved_import.target_symbol_id)
+            // PHP `use` is a lexical alias even when its external target is
+            // unavailable. Other languages can have implicit import effects.
+            if resolved_import.is_none() && !is_php_file(&reference.file_path) { return None; }
+            let imported_symbol_name = resolved_import.and_then(|edge| symbols_by_id
+                .get(&edge.target_symbol_id))
                 .map(|(name, _, _)| name.clone());
             let binding_name = reference
                 .binding_name
                 .clone()
                 .unwrap_or_else(|| leaf_symbol_name(&reference.target_name));
-            if used_import_targets.contains(&(
+            if resolved_import.is_some_and(|edge| used_import_targets.contains(&(
                 reference.file_path.clone(),
-                resolved_import.target_symbol_id.clone(),
-            )) {
+                edge.target_symbol_id.clone(),
+            ))) {
                 return None;
             }
             if imported_symbol_name
@@ -329,10 +354,11 @@ pub fn analyze_dead_code_scoped(
             // positions often never resolve to graph edges, so a missing resolved
             // edge is not proof an import is unused. Any mention of the binding
             // name outside import-like lines suppresses the finding.
-            if sources_by_path
+            if lexical_sources
                 .get(reference.file_path.as_path())
                 .is_some_and(|source| {
-                    import_name_used_lexically(source, reference.line, &binding_name)
+                    let lexical_name = if is_php_file(&reference.file_path) { binding_name.to_ascii_lowercase() } else { binding_name.clone() };
+                    import_name_used_lexically(source, reference.line, &lexical_name)
                 })
             {
                 return None;
@@ -341,11 +367,19 @@ pub fn analyze_dead_code_scoped(
                 index,
                 DeadCodeFinding {
                     category: DeadCodeCategory::UnusedImport,
-                    symbol_id: resolved_import.target_symbol_id.clone(),
+                    symbol_id: resolved_import.map(|edge| edge.target_symbol_id.clone())
+                        .unwrap_or_else(|| format!("binding:{}:{}:{}", normalized_path(&reference.file_path), reference.line, binding_name)),
                     file_path: reference.file_path.clone(),
                     name: binding_name,
                     line: reference.line,
                     proof_tier: dead_code_proof_tier(DeadCodeCategory::UnusedImport),
+                    proof: DeadCodeProof {
+                        scope: DeadCodeProofScope::LocalBinding,
+                        source_files: vec![reference.file_path.clone()],
+                        missing_evidence: if is_php_file(&reference.file_path) { Vec::new() } else {
+                            vec!["Preserve module initialization and side effects when removing the unused binding".into()]
+                        },
+                    },
                     fingerprint: dead_code_fingerprint(
                         DeadCodeCategory::UnusedImport,
                         &reference.file_path,
@@ -370,8 +404,10 @@ pub fn analyze_dead_code_scoped(
             .map(|(_, finding)| finding),
     );
 
-    findings.extend(detect_orphan_modules(graph, parsed_sources));
-    if backend_orphan_coverage.is_complete() {
+    if scopes.whole_modules {
+        findings.extend(detect_orphan_modules(graph, parsed_sources));
+    }
+    if scopes.whole_modules && backend_orphan_coverage.is_complete() {
         findings.extend(detect_backend_orphan_modules(
             graph, parsed_sources, contract_inventory, &supplemental_sources,
         ));
@@ -384,7 +420,7 @@ pub fn analyze_dead_code_scoped(
             .then(left.name.cmp(&right.name))
     });
 
-    DeadCodeResult { findings, backend_orphan_coverage }
+    DeadCodeResult { findings, backend_orphan_coverage, scope_coverage }
 }
 
 const FRONTEND_MODULE_EXTENSIONS: &[&str] = &["vue", "ts", "tsx", "js", "jsx", "mjs", "cjs"];
@@ -502,8 +538,13 @@ fn detect_orphan_modules(
             name: stem.to_owned(),
             line: 1,
             proof_tier: dead_code_proof_tier(DeadCodeCategory::OrphanModule),
+            proof: DeadCodeProof {
+                scope: DeadCodeProofScope::ModuleReachability,
+                source_files: vec![path.clone()],
+                missing_evidence: vec!["Excluded consumers, dynamic entries and intended replacement wiring are not disproved".into()],
+            },
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, path, stem),
-            delete_verdict: String::from("probably_delete"),
+            delete_verdict: String::from("investigate"),
             delete_evidence: vec![
                 String::from("no inbound resolved edge from non-test sources"),
                 String::from("no non-test import specifier tail matches the module stem"),
@@ -758,8 +799,13 @@ fn detect_backend_orphan_modules(
             name: stem.clone(),
             line: 1,
             proof_tier: DeadCodeProofTier::Heuristic,
+            proof: DeadCodeProof {
+                scope: DeadCodeProofScope::RuntimeRegistration,
+                source_files: vec![path.clone()],
+                missing_evidence: vec!["Computed registration, external consumers and intended replacement wiring are not disproved".into()],
+            },
             fingerprint: dead_code_fingerprint(DeadCodeCategory::OrphanModule, &path, &stem),
-            delete_verdict: String::from("probably_delete"),
+            delete_verdict: String::from("investigate"),
             delete_evidence: vec![
                 String::from("no inbound resolved edge from non-test sources"),
                 String::from("declares no framework contract (route/hook/registration)"),
@@ -1086,7 +1132,11 @@ fn import_name_used_lexically(source: &str, import_line: usize, name: &str) -> b
         return false;
     }
     source.lines().enumerate().any(|(index, line)| {
-        index + 1 != import_line && !is_import_like_line(line) && line_mentions_word(line, name)
+        if index + 1 == import_line || is_import_like_line(line) {
+            line.split_once(';').is_some_and(|(_, rest)| line_mentions_word(rest, name))
+        } else {
+            line_mentions_word(line, name)
+        }
     })
 }
 
@@ -1100,14 +1150,7 @@ fn is_import_like_line(line: &str) -> bool {
     trimmed.starts_with("import ") || trimmed.starts_with("from ")
 }
 
-/// A private function is only reachable from its own file (Rust module, PHP
-/// class, Python module), so if its name appears as a bare word anywhere else
-/// in that same file — outside its own signature line and comments — the graph
-/// simply missed the usage (a higher-order reference like `.map(func)`, a
-/// macro expansion, or an unresolved same-file call), and it is not dead.
-/// This mirrors the import lexical guard: a missing call edge is not proof.
-/// PHP maps `protected` onto the graph's two-level `Visibility::Private`, but
-/// protected methods are reachable via dynamic dispatch from ancestors and
+/// Protected methods are reachable via dynamic dispatch from ancestors and
 /// traits (`$this->handle()` in a base class template method, an abstract
 /// declaration satisfied by the override, a trait calling back into the using
 /// class). The graph cannot resolve those edges today, so any cross-file
@@ -1128,7 +1171,7 @@ fn suppress_inherited_dispatch_methods(
         .iter()
         .filter(|finding| finding.category == DeadCodeCategory::UnusedPrivateFunction)
         .filter_map(|finding| symbols_by_id.get(finding.symbol_id.as_str()))
-        .filter(|symbol| is_php_protected_method(symbol, parsed_sources))
+        .filter(|symbol| symbol.visibility == Visibility::Protected)
         .map(|symbol| symbol.name.clone())
         .collect::<HashSet<_>>();
     if protected_candidates.is_empty() {
@@ -1181,48 +1224,31 @@ fn suppress_inherited_dispatch_methods(
         }
         let protected = symbols_by_id
             .get(finding.symbol_id.as_str())
-            .is_some_and(|symbol| is_php_protected_method(symbol, parsed_sources));
+            .is_some_and(|symbol| symbol.visibility == Visibility::Protected);
         !(protected
             && (dispatched_names.contains(&finding.name)
                 || files_with_external_parent.contains(&finding.file_path)))
     });
 }
 
-/// True when the symbol's declaration line in a PHP source carries the
-/// `protected` modifier. Declaration-line inspection keeps the graph's
-/// deliberate two-level visibility model intact.
-fn is_php_protected_method(symbol: &SymbolNode, parsed_sources: &[(PathBuf, String)]) -> bool {
-    if !is_php_file(&symbol.file_path) {
-        return false;
-    }
-    let Some((_, source)) = parsed_sources
-        .iter()
-        .find(|(path, _)| path == &symbol.file_path)
-    else {
-        return false;
-    };
-    source
-        .lines()
-        .nth(symbol.start_line.saturating_sub(1))
-        .is_some_and(|line| {
-            line_mentions_word(line, "protected") && line_mentions_word(line, &symbol.name)
-        })
-}
-
-fn private_function_used_lexically_in_file(
+fn private_function_used_lexically_in_scope(
     symbol: &SymbolNode,
+    scope_files: &[PathBuf],
     sources_by_path: &HashMap<&Path, &str>,
 ) -> bool {
     if symbol.name.is_empty() {
         return false;
     }
-    let Some(source) = sources_by_path.get(symbol.file_path.as_path()) else {
-        return false;
-    };
-    source.lines().enumerate().any(|(index, line)| {
-        index + 1 != symbol.start_line
-            && !is_pure_comment_line(line)
-            && line_mentions_word(line, &symbol.name)
+    let name = if is_php_file(&symbol.file_path) { symbol.name.to_ascii_lowercase() } else { symbol.name.clone() };
+    scope_files.iter().any(|path| {
+        let Some(source) = sources_by_path.get(path.as_path()) else { return true; };
+        source.lines().enumerate().any(|(index, line)| {
+            !is_pure_comment_line(line) && if path == &symbol.file_path && index + 1 == symbol.start_line {
+                line.matches(name.as_str()).take(2).count() > 1
+            } else {
+                line_mentions_word(line, &name)
+            }
+        })
     })
 }
 
@@ -1309,10 +1335,9 @@ fn is_runtime_magic_method(file_path: &Path, name: &str) -> bool {
 }
 
 fn is_php_file(file_path: &Path) -> bool {
-    file_path
-        .extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extension == "php")
+    matches!(file_path.extension().and_then(|extension| extension.to_str())
+        .map(str::to_ascii_lowercase).as_deref(),
+        Some("php" | "phtml" | "php3" | "php4" | "php5" | "php8"))
 }
 
 fn is_package_export_surface(file_path: &Path) -> bool {
@@ -1482,6 +1507,48 @@ mod tests {
             std::fs::write(path, source).unwrap();
         }
         root
+    }
+
+    #[test]
+    fn unrelated_parse_gap_preserves_local_php_binding_and_private_scope() {
+        let sources = vec![
+            (PathBuf::from("app/Runner.php"), String::from("<?php\nnamespace Demo;\nuse Vendor\\Unused;\nuse Vendor\\Used; new used();\nclass Runner {\n private function idle(): void {}\n protected function inherited(): void {}\n}\n")),
+            (PathBuf::from("broken.js"), String::from("const broken = ;\n")),
+        ];
+        let root = source_fixture(&sources);
+        let analysis = crate::ingestion::pipeline::analyze_project(&root, &Default::default()).unwrap();
+        let result = &analysis.dead_code;
+        assert!(!analysis.semantic_graph.input_coverage().is_complete());
+        let unused = result.findings.iter().find(|finding| finding.name == "Unused").unwrap();
+        assert_eq!(unused.proof.scope, super::DeadCodeProofScope::LocalBinding);
+        assert!(!result.findings.iter().any(|finding| finding.name == "Used"));
+        let idle = result.findings.iter().find(|finding| finding.name == "idle").unwrap();
+        assert_eq!(idle.proof.scope, super::DeadCodeProofScope::ClassPrivateDispatch);
+        assert!(!result.findings.iter().any(|finding| finding.name == "inherited"));
+        assert!(!result.findings.iter().any(|finding| finding.category == DeadCodeCategory::OrphanModule));
+        assert_eq!(result.scope_coverage.complete_local_binding_files, 1);
+        assert_eq!(result.scope_coverage.deferred_local_binding_files, 1);
+        assert!(!result.scope_coverage.module_reachability_checked);
+        assert_eq!(result.backend_orphan_coverage.status, super::BackendOrphanStatus::DeferredInputCoverage);
+        assert!(analysis.semantic_graph.symbols.iter().any(|symbol| symbol.name == "inherited"
+            && symbol.visibility == crate::graph::Visibility::Protected));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn private_scope_includes_traits_and_defers_dynamic_dispatch() {
+        let sources = vec![
+            (PathBuf::from("app/Runner.php"), String::from("<?php\nnamespace Demo;\nclass Runner {\n use CallsBack;\n private function usedByTrait(): void {}\n private function idle(): void {}\n}\nclass Dynamic {\n private function callback(): void {}\n public function run(string $name): void { $this->$name(); }\n}\n")),
+            (PathBuf::from("app/CallsBack.php"), String::from("<?php\nnamespace Demo;\ntrait CallsBack {\n public function run(): void { $this->usedbytrait(); }\n}\n")),
+            (PathBuf::from("broken.js"), String::from("const broken = ;\n")),
+        ];
+        let root = source_fixture(&sources);
+        let analysis = crate::ingestion::pipeline::analyze_project(&root, &Default::default()).unwrap();
+        let idle = analysis.dead_code.findings.iter().find(|finding| finding.name == "idle").unwrap();
+        assert!(idle.proof.source_files.contains(&PathBuf::from("app/CallsBack.php")));
+        assert!(!analysis.dead_code.findings.iter().any(|finding| matches!(finding.name.as_str(), "usedByTrait" | "callback")));
+        assert!(analysis.dead_code.scope_coverage.deferred_private_dispatch_symbols > 0);
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
@@ -1660,7 +1727,7 @@ export { helper } from '@/utils/reExported'
         assert_eq!(orphans.len(), 1, "launch paths must keep scripts live");
         assert_eq!(orphans[0].file_path, Path::new("tools/unused.mjs"));
         assert_eq!(orphans[0].proof_tier, DeadCodeProofTier::Heuristic);
-        assert_eq!(orphans[0].delete_verdict, "probably_delete");
+        assert_eq!(orphans[0].delete_verdict, "investigate");
         assert!(orphans[0]
             .delete_evidence
             .iter()

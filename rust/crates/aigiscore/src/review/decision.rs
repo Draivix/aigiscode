@@ -23,6 +23,8 @@ pub enum ArchitecturalConcern {
 pub enum ArchitecturalConclusion {
     Violation,
     IntentionalVariation,
+    RuntimeEntry,
+    TestSupport,
     IncompleteMigration,
     UnreachableWithinScope,
     Unknown,

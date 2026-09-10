@@ -53,6 +53,8 @@ pub struct GraphPacketSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct GraphPacket {
     pub id: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dead_code_proofs: Vec<AgenticDeadCodeProof>,
     pub kind: GraphPacketKind,
     pub title: String,
     pub summary: String,
@@ -265,6 +267,8 @@ pub struct AgenticTaskPacket {
     pub id: String,
     #[serde(default)]
     pub finding_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dead_code_proofs: Vec<AgenticDeadCodeProof>,
     pub status: String,
     pub priority: String,
     pub focus: String,
@@ -285,6 +289,23 @@ pub struct AgenticTaskPacket {
     pub required_artifacts: Vec<String>,
     pub evidence_chain: AgenticEvidenceChain,
     pub review_radius_files: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct AgenticDeadCodeProof {
+    pub finding_id: String,
+    pub file_path: std::path::PathBuf,
+    pub line: usize,
+    pub proof: crate::detectors::dead_code::DeadCodeProof,
+}
+
+impl AgenticDeadCodeProof {
+    fn from_finding(finding: &crate::detectors::dead_code::DeadCodeFinding) -> Self {
+        Self {
+            finding_id: crate::surface::dead_code_finding_id(finding),
+            file_path: finding.file_path.clone(), line: finding.line, proof: finding.proof.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -803,6 +824,7 @@ pub fn build_graph_packet_artifact(
         .task_packets
         .iter()
         .map(|packet| GraphPacket {
+            dead_code_proofs: packet.dead_code_proofs.clone(),
             id: packet.id.clone(),
             kind: GraphPacketKind::GuardianTask,
             title: packet.title.clone(),
@@ -861,6 +883,9 @@ pub fn build_graph_packet_artifact(
             let (graph_traces, code_flows, source_sink_paths, semantic_state_flows) =
                 build_focus_file_graph_evidence_with_context(&context, &file_path, &neighbors);
             packets.push(GraphPacket {
+                dead_code_proofs: analysis.dead_code.findings.iter()
+                    .filter(|finding| finding.file_path == std::path::Path::new(&file_path))
+                    .map(AgenticDeadCodeProof::from_finding).collect(),
                 id: format!("focus-file:{file_path}"),
                 kind: GraphPacketKind::FocusFile,
                 title: format!("Focused graph packet for {file_path}"),
@@ -1346,12 +1371,14 @@ fn build_user_prompt(
 }
 
 fn build_task_packets(
-    _analysis: &ProjectAnalysis,
+    analysis: &ProjectAnalysis,
     handoff: &AgentHandoffArtifact,
     guard_decision: &GuardDecisionArtifact,
     convergence: &ConvergenceHistoryArtifact,
     context: &AgenticAnalysisContext<'_>,
 ) -> Vec<AgenticTaskPacket> {
+    let dead_code_proofs = analysis.dead_code.findings.iter().map(AgenticDeadCodeProof::from_finding)
+        .map(|proof| (proof.finding_id.clone(), proof)).collect::<HashMap<_, _>>();
     let mut packets = handoff
         .guardian_packets
         .iter()
@@ -1378,6 +1405,7 @@ fn build_task_packets(
             let task_packet = AgenticTaskPacket {
                 id: packet.id.clone(),
                 finding_ids: packet.finding_ids.clone(),
+                dead_code_proofs: packet.finding_ids.iter().filter_map(|id| dead_code_proofs.get(id)).cloned().collect(),
                 status,
                 priority: packet.priority.clone(),
                 focus: packet.focus.clone(),
@@ -5403,6 +5431,7 @@ class Consumer {
                 &[AgenticTaskPacket {
                     id: String::from("guardian:test"),
                     finding_ids: Vec::new(),
+                    dead_code_proofs: Vec::new(),
                     status: String::from("new"),
                     priority: String::from("high"),
                     focus: String::from("architecture"),
@@ -5463,6 +5492,7 @@ class Consumer {
             task_packets: vec![AgenticTaskPacket {
                 id: String::from("guardian:test"),
                 finding_ids: Vec::new(),
+                dead_code_proofs: Vec::new(),
                 status: String::from("new"),
                 priority: String::from("high"),
                 focus: String::from("architecture"),

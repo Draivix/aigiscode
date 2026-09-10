@@ -52,6 +52,12 @@ pub struct ParseOutcome {
     pub diagnostics_truncated: bool,
 }
 
+impl ParseOutcome {
+    pub fn is_complete_source(&self) -> bool {
+        self.scope == ParseScope::Source && !self.required_recovery && self.extraction_gap.is_none()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct UnsupportedSource {
     pub file_path: PathBuf,
@@ -114,9 +120,9 @@ impl InputCoverage {
             };
             coverage.parsed_source_files += 1;
             coverage.recovered_source_files += usize::from(outcome.required_recovery);
-            coverage.scope_limited_files += usize::from(outcome.scope != ParseScope::Source);
+            coverage.scope_limited_files += usize::from(outcome.scope != ParseScope::Source || outcome.extraction_gap.is_some());
             coverage.diagnostic_count += outcome.diagnostic_count;
-            if (outcome.required_recovery || outcome.scope != ParseScope::Source)
+            if !outcome.is_complete_source()
                 && coverage.parse_issues_preview.len() < 5
             {
                 let mut preview = (*outcome).clone();
@@ -139,8 +145,8 @@ impl InputCoverage {
         };
         if !coverage.is_complete() {
             coverage.deferred_checks = [
-                "unused_imports",
-                "unused_private_functions",
+                "unused_imports_in_incomplete_files",
+                "private_dispatch_requiring_incomplete_scope",
                 "orphan_modules",
                 "confirmed_orphan_files",
             ]

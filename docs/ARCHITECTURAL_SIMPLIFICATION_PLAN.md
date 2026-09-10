@@ -40,9 +40,11 @@ long files, many dependents and zero static callers are candidate signals.
   publication. Source-reviewed proposals and stale/invalid review records are
   represented in the review surface. Semantic acceptance and regression execution
   remain open; reference validation alone does not prove the proposed conclusion.
-- Dead-code coverage is still too coarse for some decisions. A gap elsewhere in
-  a repository should not erase an independently provable local conclusion;
-  conversely, a complete local parse cannot prove whole-application unreachability.
+- [Dead-code proof scopes](DEAD_CODE_PROOF_SCOPES.md) now separate local bindings,
+  PHP class/trait dispatch, module reachability and registration requirements.
+  The configured Draivix observation retained the four reviewed local candidates
+  while broader checks stayed deferred. Complete local parsing still does not
+  establish whole-application unreachability or runtime acceptance.
 
 ## Implementation sequence and acceptance
 
@@ -109,6 +111,8 @@ Confirmed security or data-integrity faults take priority over simplification.
 
 Tests and CI remain paused under the current instruction. The regression cases
 and runtime acceptance requirements stay explicit; source inspection does not
-turn them into executed checks. The next development unit is the evidence/action
-contract for dead-code and competing-path review, using the above positive and
-negative cases. Broader Q01–Q12 correctness obligations remain open.
+turn them into executed checks. The evidence/action contract and scoped dead-code
+unit are implemented with the verification limits documented above. Continue
+semantic business-rule comparison, competing-path wiring, abstraction necessity
+and reviewed policy/convergence feedback. Broader Q01–Q12 correctness obligations
+remain open.

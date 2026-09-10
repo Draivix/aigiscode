@@ -379,7 +379,7 @@ fn build_mcp_state_with_caches(
             disk_generation.map(|_| disk_identity.as_ref() == Some(&index_identity))
         },
     };
-    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context, baseline, artifact_generation)
+    McpState::new(analysis, artifact_paths, kuzu_path, prepared_context, baseline, artifact_generation, output_dir)
 }
 
 impl AigiscodeMcpServer {
@@ -2004,6 +2004,7 @@ impl McpState {
         prepared_context: Option<ArtifactContext>,
         baseline: Option<BaselineSnapshot>,
         artifact_generation: crate::artifacts::PublishedArtifactStatus,
+        review_output_dir: Option<&Path>,
     ) -> Result<Self, McpServerError> {
         let surface = analysis.architecture_surface();
         let layers = analysis.doctrine_registry().layers.clone();
@@ -2011,7 +2012,7 @@ impl McpState {
         let review_surface = prepared_context.as_ref().map(|context| context.review_surface.clone())
             .unwrap_or_else(|| {
                 let mut review = build_review_surface(&analysis, &surface, analysis.policy_bundle());
-                crate::artifacts::attach_architectural_review(&analysis, &mut review, None);
+                crate::artifacts::attach_architectural_review(&analysis, &mut review, review_output_dir);
                 review
             });
         let finding_summaries = review_surface
@@ -4087,6 +4088,7 @@ fn helper() {}"#,
                     top_anchor_files: vec![String::from("src/primary.rs")],
                 },
                 packets: vec![GraphPacket {
+                    dead_code_proofs: Vec::new(),
                     id: String::from("packet-1"),
                     kind: GraphPacketKind::FocusFile,
                     title: String::from("Packet"),

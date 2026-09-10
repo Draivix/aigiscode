@@ -52,8 +52,9 @@ fn validate_proposal(
         } else if decision.implementations.is_empty() || claim.evidence_locations.is_empty() {
             return Err("architectural conclusions require implementations and source evidence".into());
         }
-        if decision.conclusion == Conclusion::IntentionalVariation && decision.action != Action::Keep {
-            return Err("intentional variation must retain its justified implementation".into());
+        if matches!(decision.conclusion, Conclusion::IntentionalVariation | Conclusion::RuntimeEntry)
+            && decision.action != Action::Keep {
+            return Err("intentional variation and runtime entries must retain their justified implementation".into());
         }
         if let Some(owner) = decision.canonical_owner {
             if owner >= decision.implementations.len() {

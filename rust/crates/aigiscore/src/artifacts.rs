@@ -283,6 +283,7 @@ pub struct AigiscodeReportArtifact<'a> {
 #[derive(Debug, Serialize)]
 pub struct ReportSummary {
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
+    pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub baseline: BaselineAssessment,
@@ -673,6 +674,8 @@ pub struct RepositoryTopologyContractZone {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConvergenceHistoryArtifact {
+    #[serde(default)]
+    pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default)]
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default)]
@@ -1191,6 +1194,7 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
     let report = AigiscodeReportArtifact {
         root: &analysis.root,
         summary: ReportSummary {
+            dead_code_scope_coverage: analysis.dead_code.scope_coverage.clone(),
             backend_orphan_coverage: analysis.dead_code.backend_orphan_coverage.clone(),
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             baseline: convergence_history.baseline.clone(),
@@ -3468,6 +3472,7 @@ pub fn build_convergence_history_artifact(
     let current_overview = &current_architecture_surface.overview;
 
     ConvergenceHistoryArtifact {
+        dead_code_scope_coverage: current_overview.dead_code_scope_coverage.clone(),
         backend_orphan_coverage: current_overview.backend_orphan_coverage.clone(),
         root: root.display().to_string(),
         baseline: baseline.clone(),
@@ -3688,7 +3693,7 @@ pub fn build_guard_decision_artifact(
     }
 
     if !convergence.input_coverage.is_complete() {
-        reasons.push(String::from("Native input coverage is incomplete; absence-based checks are deferred."));
+        reasons.push(String::from("Native input coverage is incomplete; absence checks requiring incomplete scopes are deferred."));
         triggers.push(GuardDecisionTrigger {
             level: GuardTriggerLevel::Block,
             message: String::from("Parser recovery, limited extraction scope, unsupported sources or missing parse evidence prevent a complete audit."),
@@ -5905,6 +5910,26 @@ fn build_guardian_packets(
         }
     }
 
+    for finding in visible_findings.iter().filter(|finding| finding.family == crate::review::ReviewFindingFamily::DeadCode) {
+        let Some(file) = finding.file_paths.first() else { continue; };
+        let context_labels = finding.supporting_context.clone();
+        packets.push(GuardianPacket {
+            id: format!("guardian:dead-code:{}", finding.fingerprint),
+            priority: if finding.precision == "heuristic" { "medium" } else { "high" }.into(),
+            focus: "dead_code_proof".into(), primary_target_file: file.clone(),
+            precision: finding.precision.clone(), confidence_millis: finding.confidence_millis,
+            summary: format!("{}: establish the required binding, dispatch or registration scope before removal", finding.title),
+            target_files: finding.file_paths.clone(), primary_anchor: finding.primary_anchor.clone(),
+            evidence_anchors: finding.evidence_anchors.clone(), locations: finding.locations.clone(),
+            finding_ids: vec![finding.id.clone()], provenance: finding.provenance.clone(),
+            doctrine_refs: finding.doctrine_refs.clone(), preferred_mechanism: None,
+            obligations: guardian_packet_obligations("dead_code_proof", file, None, &context_labels),
+            suppressibility: guardian_packet_suppressibility("dead_code_proof"),
+            investigation_questions: guardian_packet_questions("dead_code_proof", file, &context_labels),
+            context_labels,
+        });
+    }
+
     for packet in &mut packets {
         if let Some(finding) = best_packet_supporting_finding(packet, visible_findings) {
             packet.primary_anchor = finding.primary_anchor.clone();
@@ -6333,6 +6358,7 @@ fn review_severity_rank(severity: crate::review::ReviewFindingSeverity) -> u8 {
 fn packet_focus_rank(focus: &str) -> u8 {
     match focus {
         "security_hotspot" => 6,
+        "dead_code_proof" => 5,
         "hand_rolled_parsing" => 5,
         "algorithmic_complexity_hotspot" => 5,
         "sanctioned_path_bypass" => 4,
@@ -6413,6 +6439,10 @@ fn guardian_packet_obligations(
     _context_labels: &[String],
 ) -> Vec<GuardianObligation> {
     match focus {
+        "dead_code_proof" => vec![GuardianObligation {
+            action: format!("Review the typed absence-proof scope for `{primary_file}` and identify the smallest justified removal or retention."),
+            acceptance: "Preserve required import effects, trait dispatch, framework discovery and intended replacements. Missing runtime proof remains explicit; zero callers alone does not authorize deletion.".into(),
+        }],
         "security_hotspot" => vec![
             GuardianObligation {
                 action: format!(
@@ -6604,6 +6634,11 @@ fn guardian_packet_questions(
     context_labels: &[String],
 ) -> Vec<String> {
     match focus {
+        "dead_code_proof" => vec![
+            format!("Which binding, class/trait, module or runtime-registration scope is complete for `{primary_file}`?"),
+            "Is this unreachable within that scope, a dynamic entry, test/support code, an unfinished replacement, or still unknown?".into(),
+            "Which consumers and required behavior must survive a removal, and what runtime evidence is still missing?".into(),
+        ],
         "security_hotspot" => {
             let externally_reachable = context_labels
                 .iter()
@@ -7491,6 +7526,7 @@ mod tests {
                 top_anchor_files: vec![String::from("Primary.php")],
             },
             packets: vec![GraphPacket {
+                dead_code_proofs: Vec::new(),
                 id: String::from("packet-1"),
                 kind: GraphPacketKind::GuardianTask,
                 title: String::from("Packet"),
@@ -7603,6 +7639,7 @@ mod tests {
                 top_anchor_files: vec![String::from("Primary.php")],
             },
             packets: vec![GraphPacket {
+                dead_code_proofs: Vec::new(),
                 id: String::from("packet-1"),
                 kind: GraphPacketKind::GuardianTask,
                 title: String::from("Packet"),
@@ -8359,6 +8396,7 @@ fn main() {
     #[test]
     fn guard_decision_promotes_architectonic_regressions_into_triggers() {
         let convergence = ConvergenceHistoryArtifact {
+            dead_code_scope_coverage: Default::default(),
             backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage {
                 status: crate::detectors::dead_code::BackendOrphanStatus::NotApplicable,
                 ..Default::default()
@@ -8481,6 +8519,7 @@ fn main() {
     #[test]
     fn guard_decision_surfaces_algorithmic_complexity_regressions() {
         let convergence = ConvergenceHistoryArtifact {
+            dead_code_scope_coverage: Default::default(),
             backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage {
                 status: crate::detectors::dead_code::BackendOrphanStatus::NotApplicable,
                 ..Default::default()

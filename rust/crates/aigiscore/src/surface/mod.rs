@@ -124,6 +124,8 @@ pub struct SurfaceOverview {
     pub input_coverage: crate::coverage::InputCoverage,
     #[serde(default)]
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
+    #[serde(default)]
+    pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub generated_path_prefixes: Vec<PathBuf>,
     pub scanned_files: usize,
@@ -502,6 +504,7 @@ pub fn build_architecture_surface(analysis: &ProjectAnalysis) -> ArchitectureSur
             ast_grep_coverage: analysis.ast_grep_scan.coverage.clone(),
             input_coverage: analysis.semantic_graph.input_coverage(),
             backend_orphan_coverage: analysis.dead_code.backend_orphan_coverage.clone(),
+            dead_code_scope_coverage: analysis.dead_code.scope_coverage.clone(),
             generated_path_prefixes: analysis.scan.scope.generated_path_prefixes.clone(),
             scanned_files: analysis.scan.files.len(),
             analyzed_files: analysis.semantic_graph.files.len(),
@@ -1931,6 +1934,10 @@ fn surface_finding_from_bottleneck(
     }
 }
 
+pub(crate) fn dead_code_finding_id(finding: &DeadCodeFinding) -> String {
+    format!("dead-code:{}:{}:{}", finding.file_path.display(), finding.line, finding.name)
+}
+
 fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
     let (precision, confidence_millis) = match finding.proof_tier {
         DeadCodeProofTier::Certain => ("exact", 980),
@@ -1940,12 +1947,7 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
     let primary_anchor = Some(anchor(&finding.file_path, Some(finding.line), "primary"));
     let locations = ordered_locations(primary_anchor.as_ref(), &[]);
     SurfaceFinding {
-        id: format!(
-            "dead-code:{}:{}:{}",
-            finding.file_path.display(),
-            finding.line,
-            finding.name
-        ),
+        id: dead_code_finding_id(finding),
         fingerprint: finding.fingerprint.clone(),
         family: SurfaceFindingFamily::DeadCode,
         phase: SurfaceFindingPhase::Implementation,
@@ -1976,7 +1978,10 @@ fn surface_finding_from_dead_code(finding: &DeadCodeFinding) -> SurfaceFinding {
         primary_anchor,
         evidence_anchors: Vec::new(),
         locations,
-        supporting_context: finding.delete_evidence.clone(),
+        supporting_context: finding.delete_evidence.iter().cloned()
+            .chain(std::iter::once(format!("Required absence-proof scope: {:?}", finding.proof.scope)))
+            .chain(finding.proof.missing_evidence.iter().map(|evidence| format!("Removal still requires: {evidence}")))
+            .collect(),
         provenance: vec![
             String::from("dead_code_detector"),
             String::from("graph_analysis"),

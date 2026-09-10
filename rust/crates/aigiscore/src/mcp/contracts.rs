@@ -1330,6 +1330,8 @@ pub struct OverviewOutput {
     #[serde(default)]
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default)]
+    pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
+    #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     #[serde(default)]
     pub input_coverage: crate::coverage::InputCoverage,
@@ -1390,6 +1392,7 @@ impl OverviewOutput {
             input_coverage: surface.overview.input_coverage.clone(),
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             backend_orphan_coverage: surface.overview.backend_orphan_coverage.clone(),
+            dead_code_scope_coverage: surface.overview.dead_code_scope_coverage.clone(),
             generated_path_prefixes: surface.overview.generated_path_prefixes.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
@@ -2012,6 +2015,8 @@ pub struct QualityEvaluationOutput {
     #[serde(default)]
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
     #[serde(default)]
+    pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
+    #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub root: String,
     #[serde(default)]
@@ -2174,7 +2179,7 @@ impl QualityEvaluationOutput {
             }
         }
         if !surface.overview.input_coverage.is_complete() {
-            recommendations.push(String::from("Review input_coverage before drawing clean-code conclusions; absence-based checks are deferred."));
+            recommendations.push(String::from("Review input_coverage and dead_code_scope_coverage before drawing clean-code conclusions; absence checks are deferred only for affected proof scopes."));
             for dimension in &mut dimensions {
                 if dimension.key == "dead_code" || dimension.count == 0 {
                     dimension.severity = String::from("unknown");
@@ -2222,6 +2227,7 @@ impl QualityEvaluationOutput {
             input_coverage: surface.overview.input_coverage.clone(),
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             backend_orphan_coverage: surface.overview.backend_orphan_coverage.clone(),
+            dead_code_scope_coverage: surface.overview.dead_code_scope_coverage.clone(),
             summary: format!(
                 "{}{} visible findings across {} dimensions; {} remain unreviewed.",
                 if surface.overview.input_coverage.is_complete() && surface.overview.ast_grep_coverage.is_complete() && surface.overview.backend_orphan_coverage.is_complete() { "" } else { "Partial evidence: " },
@@ -2345,6 +2351,8 @@ pub struct AtlasEdgeOutput {
 pub struct CoverageReportOutput {
     #[serde(default)]
     pub backend_orphan_coverage: crate::detectors::dead_code::BackendOrphanCoverage,
+    #[serde(default)]
+    pub dead_code_scope_coverage: crate::detectors::dead_code::DeadCodeScopeCoverage,
     #[serde(default)]
     pub ast_grep_coverage: crate::scanners::coverage::SecondaryCoverage,
     pub root: String,
@@ -2537,7 +2545,7 @@ impl CoverageReportOutput {
         notes.push(surface.overview.ast_grep_coverage.summary());
         notes.push(surface.overview.backend_orphan_coverage.summary());
         if !surface.overview.input_coverage.is_complete() {
-            notes.push(String::from("Native input coverage is incomplete. Parser diagnostics and unsupported inputs are explicit; absence-based checks are deferred."));
+            notes.push(String::from("Native input coverage is incomplete. Absence checks run only where their required proof scope is complete; local bindings can still be reviewed while module reachability is deferred."));
         }
         if surface
             .languages
@@ -2567,6 +2575,7 @@ impl CoverageReportOutput {
             input_coverage: surface.overview.input_coverage.clone(),
             ast_grep_coverage: surface.overview.ast_grep_coverage.clone(),
             backend_orphan_coverage: surface.overview.backend_orphan_coverage.clone(),
+            dead_code_scope_coverage: surface.overview.dead_code_scope_coverage.clone(),
             scanned_files: surface.overview.scanned_files,
             analyzed_files: surface.overview.analyzed_files,
             unresolved_reference_sites: surface.overview.unresolved_reference_sites,
