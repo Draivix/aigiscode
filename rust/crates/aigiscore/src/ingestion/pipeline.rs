@@ -2,16 +2,17 @@ use crate::assessment::{build_architectural_assessment_full, ArchitecturalAssess
 use crate::contracts::{build_contract_inventory, ContractInventory};
 use crate::detectors::dead_code::{analyze_dead_code_scoped, DeadCodeResult};
 use crate::detectors::hardwiring::{analyze_hardwiring_with_contracts, HardwiringResult};
-use crate::doctrine::{load_doctrine_registry, DoctrineLoadError, DoctrineRegistry};
+use crate::doctrine::{load_doctrine_registry_with_inputs, DoctrineLoadError, DoctrineRegistry};
 use crate::external::ExternalAnalysisResult;
 use crate::graph::analysis::{analyze_semantic_graph, GraphAnalysis};
 use crate::graph::SemanticGraph;
-use crate::ingestion::scan::{scan_repository, ScanConfig, ScanError, ScanResult, ScannedFile};
+use crate::ingestion::inputs::InputCapture;
+use crate::ingestion::scan::{scan_repository, scan_repository_with_inputs, ScanConfig, ScanError, ScanResult, ScannedFile};
 use crate::ingestion::structure::{build_structure_graph, StructureGraph};
 use crate::parsing::{is_supported_source_file, parse_source_file, ParseFileError};
 use crate::plugins::{apply_runtime_plugins, RepoContext};
 use crate::policy::{PolicyBundle, PolicyLoadError};
-use crate::resolve::{load_resolve_config, resolve_graph_with_config, ResolveConfigError, ResolutionCache, ResolutionWork};
+use crate::resolve::{load_resolve_config_with_inputs, resolve_graph_with_config, ResolveConfigError, ResolutionCache, ResolutionWork};
 use crate::scanners::ast_grep::{run_ast_grep_scan_with_cache, AstGrepScanCache, AstGrepScanResult, AstGrepScanWork};
 use crate::security::{analyze_security_findings_with_ast_grep_and_graph, SecurityAnalysisResult};
 use crate::surface::{build_architecture_surface, ArchitectureSurface};
@@ -34,6 +35,7 @@ pub enum IngestionPhase {
     Analyze,
     LoadGraph,
     LoadAnalysis,
+    VerifyInputs,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -63,6 +65,8 @@ pub struct SemanticGraphProject {
     pub resolution_work: Option<ResolutionWork>,
     #[serde(skip)]
     pub parsed_sources: Vec<(PathBuf, String)>,
+    #[serde(skip)]
+    capture: InputCapture,
 }
 
 #[derive(Debug, Serialize)]
@@ -77,6 +81,8 @@ pub struct ProjectAnalysis {
     doctrine_registry: DoctrineRegistry,
     #[serde(skip)]
     policy_bundle: PolicyBundle,
+    #[serde(skip)]
+    capture: InputCapture,
     #[serde(skip)]
     pub(crate) resolve_config_xxh3: String,
     pub contract_inventory: ContractInventory,
@@ -98,6 +104,10 @@ pub struct ProjectAnalysis {
 }
 
 impl ProjectAnalysis {
+    pub(crate) fn verify_inputs(&self) -> Result<(), ProjectAnalysisError> {
+        self.capture.verify(&self.scan)
+    }
+
     pub fn doctrine_registry(&self) -> &DoctrineRegistry {
         &self.doctrine_registry
     }
@@ -260,7 +270,8 @@ fn try_fast_load_graph_project(
         return Ok(None);
     }
 
-    let scan = scan_repository(root, scan_config)?;
+    let mut capture = InputCapture::new(scan_config);
+    let scan = scan_repository_with_inputs(root, scan_config, &mut capture.files)?;
     if manifest.snapshot_identity.as_ref().is_none_or(|identity| {
         identity.scope_fingerprint != scan.scope_fingerprint
             || identity.root != scan.root.display().to_string()
@@ -278,9 +289,10 @@ fn try_fast_load_graph_project(
     if supported.len() != manifest.files.len() {
         return Ok(None);
     }
-    let resolve_config = load_resolve_config(
+    let resolve_config = load_resolve_config_with_inputs(
         root,
         &supported.iter().map(|file| file.relative_path.clone()).collect::<Vec<_>>(),
+        &mut capture.files,
     )?;
     if manifest.resolve_config_xxh3 != resolve_config.fingerprint {
         return Ok(None);
@@ -346,6 +358,7 @@ fn try_fast_load_graph_project(
         resolve_config_xxh3: resolve_config.fingerprint,
         resolution_work: None,
         parsed_sources,
+        capture,
         timings: vec![
             PhaseTiming {
                 phase: IngestionPhase::Scan,
@@ -364,13 +377,13 @@ fn try_fast_load_graph_project(
 }
 
 fn finish_project_analysis(
-    graph_project: SemanticGraphProject,
+    mut graph_project: SemanticGraphProject,
     scanner: Option<&mut AstGrepScanCache>,
     cached: Option<(&Path, &crate::artifacts::ScanManifest)>,
 ) -> Result<ProjectAnalysis, ProjectAnalysisError> {
     let analyze_started = Instant::now();
-    let doctrine_registry = load_doctrine_registry(&graph_project.root)?;
-    let policy_bundle = PolicyBundle::load(&graph_project.root)?;
+    let doctrine_registry = load_doctrine_registry_with_inputs(&graph_project.scan.root, &mut graph_project.capture.files)?;
+    let policy_bundle = PolicyBundle::load_with_inputs(&graph_project.scan.root, &mut graph_project.capture.files)?;
     if let Some((directory, manifest)) = cached {
         let configuration_matches = manifest.snapshot_identity.as_ref().is_some_and(|identity| {
             identity.external_tools.is_empty() && identity.external_checks_complete
@@ -390,6 +403,7 @@ fn finish_project_analysis(
                 let elapsed_ms = analyze_started.elapsed().as_millis();
                 timings.push(PhaseTiming { phase: IngestionPhase::LoadAnalysis, elapsed_ms });
                 trace(&format!("fast_load.native_analysis restored elapsed_ms={elapsed_ms}"));
+                verify_capture(&graph_project.capture, &graph_project.scan, &mut timings)?;
                 return Ok(ProjectAnalysis {
                     root: graph_project.root,
                     scan: graph_project.scan,
@@ -409,6 +423,7 @@ fn finish_project_analysis(
                     ast_grep_work: None,
                     doctrine_registry,
                     policy_bundle,
+                    capture: graph_project.capture,
                     timings,
                 });
             }
@@ -424,6 +439,7 @@ fn finish_project_analysis(
         resolution_work,
         mut timings,
         parsed_sources,
+        capture,
     } = graph_project;
 
     trace("analyze start");
@@ -517,6 +533,7 @@ fn finish_project_analysis(
         elapsed_ms: analyze_elapsed,
     });
 
+    verify_capture(&capture, &scan, &mut timings)?;
     Ok(ProjectAnalysis {
         root,
         scan,
@@ -526,6 +543,7 @@ fn finish_project_analysis(
         architectural_assessment,
         doctrine_registry,
         policy_bundle,
+        capture,
         resolve_config_xxh3,
         contract_inventory,
         dead_code,
@@ -551,7 +569,9 @@ pub fn build_semantic_graph_project(
     root: impl Into<PathBuf>,
     scan_config: &ScanConfig,
 ) -> Result<SemanticGraphProject, ProjectAnalysisError> {
-    build_semantic_graph_project_with_resolver(root, scan_config, None)
+    let mut project = build_semantic_graph_project_with_resolver(root, scan_config, None)?;
+    verify_capture(&project.capture, &project.scan, &mut project.timings)?;
+    Ok(project)
 }
 
 pub(crate) fn build_semantic_graph_project_with_resolver(
@@ -563,7 +583,8 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
     trace(&format!("analyze_project start {}", root.display()));
 
     let scan_started = Instant::now();
-    let scan = scan_repository(&root, scan_config)?;
+    let mut capture = InputCapture::new(scan_config);
+    let scan = scan_repository_with_inputs(&root, scan_config, &mut capture.files)?;
     let scan_elapsed = scan_started.elapsed().as_millis();
     trace(&format!(
         "scan complete files={} elapsed_ms={scan_elapsed}",
@@ -619,9 +640,10 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
     ));
 
     let resolve_started = Instant::now();
-    let resolve_config = load_resolve_config(
+    let resolve_config = load_resolve_config_with_inputs(
         &root,
         &semantic_graph.files.iter().map(|file| file.path.clone()).collect::<Vec<_>>(),
+        &mut capture.files,
     )?;
     trace("resolve start");
     let resolution_work = match resolver {
@@ -645,6 +667,12 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
         plugins_started.elapsed().as_millis()
     ));
 
+    let timings = vec![
+        PhaseTiming { phase: IngestionPhase::Scan, elapsed_ms: scan_elapsed },
+        PhaseTiming { phase: IngestionPhase::Structure, elapsed_ms: structure_elapsed },
+        PhaseTiming { phase: IngestionPhase::Parse, elapsed_ms: parse_elapsed },
+        PhaseTiming { phase: IngestionPhase::Resolve, elapsed_ms: resolve_elapsed },
+    ];
     Ok(SemanticGraphProject {
         root,
         scan,
@@ -653,25 +681,18 @@ pub(crate) fn build_semantic_graph_project_with_resolver(
         resolve_config_xxh3: resolve_config.fingerprint,
         resolution_work,
         parsed_sources,
-        timings: vec![
-            PhaseTiming {
-                phase: IngestionPhase::Scan,
-                elapsed_ms: scan_elapsed,
-            },
-            PhaseTiming {
-                phase: IngestionPhase::Structure,
-                elapsed_ms: structure_elapsed,
-            },
-            PhaseTiming {
-                phase: IngestionPhase::Parse,
-                elapsed_ms: parse_elapsed,
-            },
-            PhaseTiming {
-                phase: IngestionPhase::Resolve,
-                elapsed_ms: resolve_elapsed,
-            },
-        ],
+        capture,
+        timings,
     })
+}
+
+fn verify_capture(capture: &InputCapture, scan: &ScanResult, timings: &mut Vec<PhaseTiming>) -> Result<(), ProjectAnalysisError> {
+    let started = Instant::now();
+    capture.verify(scan)?;
+    let elapsed_ms = started.elapsed().as_millis();
+    trace(&format!("capture verified elapsed_ms={elapsed_ms}"));
+    timings.push(PhaseTiming { phase: IngestionPhase::VerifyInputs, elapsed_ms });
+    Ok(())
 }
 
 fn read_scanned_source(root: &Path, file: &ScannedFile) -> Result<String, ProjectAnalysisError> {
@@ -715,6 +736,74 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn resolver_uses_the_configuration_bytes_captured_by_scan() {
+        let fixture = create_fixture();
+        for directory in ["src/v1", "src/v2"] {
+            fs::create_dir_all(fixture.join(directory)).unwrap();
+        }
+        let old = r#"{"compilerOptions":{"paths":{"@api/*":["src/v1/*"]}}}"#;
+        let new = r#"{"compilerOptions":{"paths":{"@api/*":["src/v2/*"]}}}"#;
+        fs::write(fixture.join("tsconfig.json"), old).unwrap();
+        let sources = [
+            ("src/main.ts", "import { User } from '@api/user'; export const user = new User();"),
+            ("src/v1/user.ts", "export class User {}"),
+            ("src/v2/user.ts", "export class User {}"),
+        ];
+        let mut graph = crate::graph::SemanticGraph::default();
+        for (path, source) in sources {
+            fs::write(fixture.join(path), source).unwrap();
+            graph.append(crate::parsing::parse_source_file(PathBuf::from(path), source).unwrap());
+        }
+        let files = sources.iter().map(|(path, _)| PathBuf::from(path)).collect::<Vec<_>>();
+        let mut capture = super::InputCapture::new(&ScanConfig::default());
+        let scan = super::scan_repository_with_inputs(&fixture, &ScanConfig::default(), &mut capture.files).unwrap();
+        // The first resolver read happens after the edit, but the scan already
+        // captured this configuration for the semantic environment.
+        fs::write(fixture.join("tsconfig.json"), new).unwrap();
+        let captured = crate::resolve::load_resolve_config_with_inputs(&fixture, &files, &mut capture.files).unwrap();
+        crate::resolve::resolve_graph_with_config(&mut graph, &captured);
+        let constructor_target = |graph: &crate::graph::SemanticGraph| graph.resolved_edges.iter()
+            .find(|edge| edge.source_file_path == Path::new("src/main.ts")
+                && edge.kind == crate::graph::ReferenceKind::Call)
+            .map(|edge| edge.target_file_path.clone());
+        assert_eq!(constructor_target(&graph), Some(PathBuf::from("src/v1/user.ts")));
+        assert!(matches!(capture.verify(&scan), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        let current = crate::resolve::load_resolve_config(&fixture, &files).unwrap();
+        crate::resolve::resolve_graph_with_config(&mut graph, &current);
+        assert_eq!(constructor_target(&graph), Some(PathBuf::from("src/v2/user.ts")));
+        assert_ne!(captured.fingerprint, current.fingerprint);
+    }
+
+    #[test]
+    fn completed_capture_rejects_data_inventory_and_absent_configuration_changes() {
+        let fixture = create_fixture();
+        fs::write(fixture.join("main.rs"), "fn main() {}\n").unwrap();
+        fs::write(fixture.join("data.json"), "{\"value\":1}\n").unwrap();
+        let analysis = analyze_project(&fixture, &ScanConfig::default()).unwrap();
+        analysis.verify_inputs().unwrap();
+        fs::write(fixture.join("data.json"), "{\"value\":2}\n").unwrap();
+        assert!(matches!(analysis.verify_inputs(), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        fs::write(fixture.join("data.json"), "{\"value\":1}\n").unwrap();
+        fs::write(fixture.join("new.rs"), "pub fn new() {}\n").unwrap();
+        assert!(matches!(analysis.verify_inputs(), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        fs::remove_file(fixture.join("new.rs")).unwrap();
+        fs::remove_file(fixture.join("data.json")).unwrap();
+        assert!(matches!(analysis.verify_inputs(), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        fs::write(fixture.join("data.json"), "{\"value\":1}\n").unwrap();
+        fs::create_dir_all(fixture.join(".aigiscode")).unwrap();
+        fs::write(fixture.join(".aigiscode/policy.json"), "{}").unwrap();
+        assert!(matches!(analysis.verify_inputs(), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        fs::remove_file(fixture.join(".aigiscode/policy.json")).unwrap();
+        // An empty resolver root changes meaning without adding an admitted file.
+        fs::create_dir(fixture.join("lib")).unwrap();
+        assert!(matches!(analysis.verify_inputs(), Err(super::ProjectAnalysisError::InputChanged { .. })));
+        fs::remove_dir(fixture.join("lib")).unwrap();
+        fs::create_dir(fixture.join("target")).unwrap();
+        fs::write(fixture.join("target/generated.rs"), "fn ignored() {}\n").unwrap();
+        analysis.verify_inputs().unwrap();
+    }
 
     #[test]
     fn source_reads_reject_changes_since_scan_including_same_size_edits_and_removal() {
@@ -780,6 +869,11 @@ mod tests {
             .cloned()
             .collect::<Vec<_>>();
         assert_eq!(before.len(), 1);
+        let doctrine_path = fixture.join(".aigiscode/doctrine.json");
+        let captured_doctrine = fs::read(&doctrine_path).unwrap();
+        crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
+        let publication_path = fixture.join(".aigiscode/current-generation.json");
+        let publication_before = fs::read(&publication_path).unwrap();
         // A run uses its captured doctrine even if the file changes afterward.
         fs::write(fixture.join(".aigiscode/doctrine.json"), "{}").unwrap();
         let external = crate::external::collect_external_analysis(
@@ -799,6 +893,11 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(before, after);
         assert_eq!(analysis.external_analysis.tool_runs.len(), 1);
+        let error = crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap_err();
+        assert!(matches!(error.get_ref().and_then(|error| error.downcast_ref::<super::ProjectAnalysisError>()),
+            Some(super::ProjectAnalysisError::InputChanged { .. })));
+        assert_eq!(fs::read(publication_path).unwrap(), publication_before);
+        fs::write(doctrine_path, captured_doctrine).unwrap();
         let paths = crate::artifacts::write_project_analysis_artifacts(&analysis, None).unwrap();
         let manifest: crate::artifacts::ScanManifest = serde_json::from_slice(&fs::read(paths.scan_manifest).unwrap()).unwrap();
         assert!(manifest.deterministic_findings_xxh3.is_none());
@@ -1116,10 +1215,11 @@ fn main() {
             .findings
             .iter()
             .any(|finding| finding.value == "https://api.example.com"));
-        assert_eq!(result.timings.len(), 5);
+        assert_eq!(result.timings.len(), 6);
         assert_eq!(result.timings[2].phase, IngestionPhase::Parse);
         assert_eq!(result.timings[3].phase, IngestionPhase::Resolve);
         assert_eq!(result.timings[4].phase, IngestionPhase::Analyze);
+        assert_eq!(result.timings[5].phase, IngestionPhase::VerifyInputs);
     }
 
     #[test]
@@ -1201,7 +1301,7 @@ end
         assert!(count_edges_to(&result, Path::new("app/models.py")) >= 1);
         assert!(count_edges_to(&result, Path::new("app/Models/User.php")) >= 1);
         assert!(count_edges_to(&result, Path::new("app/models/user.rb")) >= 1);
-        assert_eq!(result.timings.len(), 5);
+        assert_eq!(result.timings.len(), 6);
     }
 
     #[test]

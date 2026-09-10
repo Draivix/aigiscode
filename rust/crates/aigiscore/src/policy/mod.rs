@@ -72,10 +72,17 @@ impl PolicyBundle {
     pub(crate) fn fingerprint(&self) -> u64 { self.fingerprint }
 
     pub fn load(root: &Path) -> Result<Self, PolicyLoadError> {
+        Self::load_with_inputs(root, &mut crate::ingestion::inputs::InputFiles::default())
+    }
+
+    pub(crate) fn load_with_inputs(
+        root: &Path,
+        inputs: &mut crate::ingestion::inputs::InputFiles,
+    ) -> Result<Self, PolicyLoadError> {
         let policy_path = root.join(POLICY_FILE);
         let rules_path = root.join(RULES_FILE);
-        let policy = load_optional_json::<PolicyFile>(&policy_path)?;
-        let rules = load_optional_rules(&rules_path)?;
+        let policy = load_optional_json::<PolicyFile>(&policy_path, inputs)?;
+        let rules = load_optional_rules(&rules_path, inputs)?;
         let mut fingerprint = std::collections::hash_map::DefaultHasher::new();
         policy.hash(&mut fingerprint);
         rules.hash(&mut fingerprint);
@@ -490,16 +497,16 @@ impl CompiledExclusionRule {
     }
 }
 
-fn load_optional_json<T>(path: &Path) -> Result<T, PolicyLoadError>
+fn load_optional_json<T>(path: &Path, inputs: &mut crate::ingestion::inputs::InputFiles) -> Result<T, PolicyLoadError>
 where
     T: Default + for<'de> Deserialize<'de>,
 {
-    match fs::read_to_string(path) {
-        Ok(content) => serde_json::from_str(&content).map_err(|source| PolicyLoadError::Parse {
+    match inputs.read(path) {
+        Ok(Some(content)) => serde_json::from_slice(&content).map_err(|source| PolicyLoadError::Parse {
             path: path.to_path_buf(),
             source,
         }),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(T::default()),
+        Ok(None) => Ok(T::default()),
         Err(source) => Err(PolicyLoadError::Read {
             path: path.to_path_buf(),
             source,
@@ -507,8 +514,8 @@ where
     }
 }
 
-fn load_optional_rules(path: &Path) -> Result<Vec<ExclusionRule>, PolicyLoadError> {
-    let parsed = load_optional_json::<Option<RulesFile>>(path)?;
+fn load_optional_rules(path: &Path, inputs: &mut crate::ingestion::inputs::InputFiles) -> Result<Vec<ExclusionRule>, PolicyLoadError> {
+    let parsed = load_optional_json::<Option<RulesFile>>(path, inputs)?;
     Ok(match parsed {
         None => Vec::new(),
         Some(RulesFile::Bare(rules)) => rules,

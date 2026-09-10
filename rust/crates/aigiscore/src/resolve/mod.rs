@@ -6,7 +6,8 @@ use regex::Regex;
 use serde_json::Value;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ffi::OsStr;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
+use crate::ingestion::inputs::normalize_relative_path;
 use std::sync::OnceLock;
 
 mod tsconfig;
@@ -370,10 +371,18 @@ impl ResolutionContext {
 }
 
 pub fn load_resolve_config(root: &Path, files: &[PathBuf]) -> Result<ResolveConfig, ResolveConfigError> {
+    load_resolve_config_with_inputs(root, files, &mut crate::ingestion::inputs::InputFiles::default())
+}
+
+pub(crate) fn load_resolve_config_with_inputs(
+    root: &Path,
+    files: &[PathBuf],
+    inputs: &mut crate::ingestion::inputs::InputFiles,
+) -> Result<ResolveConfig, ResolveConfigError> {
     let root = root.canonicalize().map_err(|error| ResolveConfigError {
         path: root.to_path_buf(), message: error.to_string(),
     })?;
-    let mut reader = tsconfig::ConfigReader::default();
+    let mut reader = tsconfig::ConfigReader::new(inputs);
     let mut config = ResolveConfig::default();
     config.ts_projects = reader.load_projects(&root, files)?;
     let composer_path = root.join("composer.json");
@@ -383,8 +392,10 @@ pub fn load_resolve_config(root: &Path, files: &[PathBuf]) -> Result<ResolveConf
         })?;
         config.composer_psr4 = load_composer_psr4(&root, &composer_path, &json);
     }
-    config.python_roots = discover_python_roots(&root);
-    config.ruby_load_paths = discover_ruby_load_paths(&root);
+    config.python_roots = discover_roots(&root, &["src", "app"], &mut reader)?;
+    config.python_roots.insert(0, PathBuf::new());
+    config.python_roots.sort();
+    config.ruby_load_paths = discover_roots(&root, &["lib", "app"], &mut reader)?;
     config.fingerprint = reader.fingerprint();
     config.input_paths = reader.input_paths();
     Ok(config)
@@ -1815,25 +1826,6 @@ fn rust_module_segments_for_file(file_path: &Path) -> Vec<String> {
     segments
 }
 
-fn normalize_relative_path(path: &Path) -> PathBuf {
-    let mut normalized = PathBuf::new();
-    for component in path.components() {
-        match component {
-            Component::CurDir => {}
-            Component::ParentDir => {
-                if matches!(normalized.components().next_back(), Some(Component::Normal(_))) {
-                    normalized.pop();
-                } else if !normalized.has_root() {
-                    normalized.push("..");
-                }
-            }
-            Component::Normal(segment) => normalized.push(segment),
-            Component::RootDir | Component::Prefix(_) => normalized.push(component.as_os_str()),
-        }
-    }
-    normalized
-}
-
 fn relativize_to_root(path: &Path, root: &Path) -> PathBuf {
     let relative = path.strip_prefix(root).unwrap_or(path);
     normalize_relative_path(relative)
@@ -1991,26 +1983,18 @@ fn resolve_composer_psr4_import(
     HashSet::new()
 }
 
-fn discover_python_roots(root: &Path) -> Vec<PathBuf> {
-    let mut roots = vec![PathBuf::new()];
-    for candidate in ["src", "app"] {
-        if root.join(candidate).is_dir() {
-            roots.push(PathBuf::from(candidate));
-        }
-    }
-    roots.sort();
-    roots.dedup();
-    roots
-}
-
-fn discover_ruby_load_paths(root: &Path) -> Vec<PathBuf> {
+fn discover_roots(
+    root: &Path,
+    candidates: &[&str],
+    reader: &mut tsconfig::ConfigReader<'_>,
+) -> Result<Vec<PathBuf>, ResolveConfigError> {
     let mut paths = Vec::new();
-    for candidate in ["lib", "app"] {
-        if root.join(candidate).is_dir() {
+    for candidate in candidates {
+        if reader.is_dir(&root.join(candidate))? {
             paths.push(PathBuf::from(candidate));
         }
     }
-    paths
+    Ok(paths)
 }
 
 fn infer_language(path: &Path) -> Option<Language> {

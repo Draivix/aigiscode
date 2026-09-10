@@ -207,6 +207,14 @@ pub fn scan_repository(
     root: impl Into<PathBuf>,
     config: &ScanConfig,
 ) -> Result<ScanResult, ScanError> {
+    scan_repository_with_inputs(root, config, &mut super::inputs::InputFiles::default())
+}
+
+pub(crate) fn scan_repository_with_inputs(
+    root: impl Into<PathBuf>,
+    config: &ScanConfig,
+    inputs: &mut super::inputs::InputFiles,
+) -> Result<ScanResult, ScanError> {
     let root = root.into();
     if !root.exists() {
         return Err(ScanError::MissingRoot(root));
@@ -217,7 +225,7 @@ pub fn scan_repository(
     let root = root.canonicalize().map_err(|source| ScanError::Canonicalize {
         path: root.clone(), source,
     })?;
-    let effective_config = effective_scan_config(&root, config)?;
+    let effective_config = effective_scan_config_with_inputs(&root, config, inputs)?;
 
     let mut files = Vec::new();
     let skipped_dirs = Cell::new(0usize);
@@ -280,7 +288,7 @@ pub fn scan_repository(
         skipped_hidden_dirs: skipped_hidden_dirs.get(),
     };
     let scope = build_analysis_scope(&root, &effective_config);
-    let semantic_env = compute_semantic_env(&root)?;
+    let semantic_env = compute_semantic_env_with_inputs(&root, inputs)?;
 
     Ok(ScanResult {
         root,
@@ -294,6 +302,7 @@ pub fn scan_repository(
 
 fn scan_scope_fingerprint(config: &ScanConfig) -> String {
     let mut hash = Xxh3::new();
+    hash.update(&[u8::from(config.skip_hidden)]);
     hash.update(&[u8::from(config.skip_hidden)]);
     let paths = |paths: &[PathBuf]| paths.iter().map(|path| path.to_string_lossy().into_owned()).collect::<Vec<_>>();
     for mut values in [
@@ -342,27 +351,32 @@ pub(crate) const SEMANTIC_ENV_CANDIDATES: &[&str] = &[
 /// existence, size, and content hash into one xxh3-128 digest. Deterministic and ordered;
 /// mtimes are deliberately excluded (they are not identity).
 pub fn compute_semantic_env(root: &Path) -> Result<SemanticEnvSnapshot, ScanError> {
+    compute_semantic_env_with_inputs(root, &mut super::inputs::InputFiles::default())
+}
+
+fn compute_semantic_env_with_inputs(
+    root: &Path,
+    captured: &mut super::inputs::InputFiles,
+) -> Result<SemanticEnvSnapshot, ScanError> {
     let mut hasher = Xxh3::new();
     let mut inputs = Vec::with_capacity(SEMANTIC_ENV_CANDIDATES.len());
     for rel in SEMANTIC_ENV_CANDIDATES {
         let abs = root.join(rel);
         hasher.update(rel.as_bytes());
-        match fs::metadata(&abs) {
-            Ok(meta) if meta.is_file() => {
-                let hash = hash_file_xxh3(&abs).map_err(|source| ScanError::SemanticConfig {
-                    path: abs.clone(), source,
-                })?;
+        match captured.read(&abs) {
+            Ok(Some(bytes)) => {
+                let hash = super::hash::hash_bytes_xxh3(&bytes);
                 hasher.update(&[1]);
-                hasher.update(&meta.len().to_le_bytes());
+                hasher.update(&(bytes.len() as u64).to_le_bytes());
                 hasher.update(&hash.0.to_le_bytes());
                 inputs.push(SemanticEnvInput {
                     relative_path: PathBuf::from(rel),
                     exists: true,
-                    size_bytes: Some(meta.len()),
+                    size_bytes: Some(bytes.len() as u64),
                     content_hash: Some(hash),
                 });
             }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Ok(None) => {
                 hasher.update(&[0]);
                 inputs.push(SemanticEnvInput {
                     relative_path: PathBuf::from(rel),
@@ -371,15 +385,9 @@ pub fn compute_semantic_env(root: &Path) -> Result<SemanticEnvSnapshot, ScanErro
                     content_hash: None,
                 });
             }
-            result => return Err(ScanError::SemanticConfig {
+            Err(source) => return Err(ScanError::SemanticConfig {
                 path: abs,
-                source: match result {
-                    Err(error) => error,
-                    Ok(_) => std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "semantic configuration is not a regular file",
-                    ),
-                },
+                source,
             }),
         }
     }
@@ -521,7 +529,15 @@ pub(crate) fn effective_scan_config(
     root: &Path,
     config: &ScanConfig,
 ) -> Result<ScanConfig, ScanError> {
-    let mut effective_config = load_scan_config(root, config)?;
+    effective_scan_config_with_inputs(root, config, &mut super::inputs::InputFiles::default())
+}
+
+fn effective_scan_config_with_inputs(
+    root: &Path,
+    config: &ScanConfig,
+    inputs: &mut super::inputs::InputFiles,
+) -> Result<ScanConfig, ScanError> {
+    let mut effective_config = load_scan_config(root, config, inputs)?;
     for prefix in &mut effective_config.generated_path_prefixes {
         if prefix.components().all(|part| part == Component::CurDir)
             || prefix.components().any(|part| {
@@ -545,17 +561,17 @@ pub(crate) fn effective_scan_config(
     Ok(effective_config)
 }
 
-fn load_scan_config(root: &Path, base: &ScanConfig) -> Result<ScanConfig, ScanError> {
+fn load_scan_config(root: &Path, base: &ScanConfig, inputs: &mut super::inputs::InputFiles) -> Result<ScanConfig, ScanError> {
     let path = root.join(SCAN_FILE);
     let mut config = base.clone();
-    let file = match fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str::<ScanConfigFile>(&content).map_err(|source| {
+    let file = match inputs.read(&path) {
+        Ok(Some(content)) => serde_json::from_slice::<ScanConfigFile>(&content).map_err(|source| {
             ScanError::ParseConfig {
                 path: path.clone(),
                 source,
             }
         })?,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(config),
+        Ok(None) => return Ok(config),
         Err(source) => {
             return Err(ScanError::ReadConfig {
                 path: path.clone(),

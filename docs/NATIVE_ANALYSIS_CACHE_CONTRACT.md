@@ -36,14 +36,16 @@ is preserved and still affects guard and CLI behavior.
 and validation, and `Structure` measures structural assembly. A successful native
 restore adds `LoadAnalysis`, which includes current configuration loading,
 findings decoding and dead-code verification. A fallback adds `Analyze` instead.
-Prior run timings are never substituted for current work. MCP trace output
+`VerifyInputs` now measures the final admitted-input/configuration validation
+after either path. Prior run timings are never substituted for current work. MCP trace output
 states whether native analysis was restored.
 
 This is unchanged-snapshot reuse, not incremental parsing or global analysis.
 The per-file secondary scanner cache is not seeded by this restoration; a later
 changed scan may need to warm it. Full graph decoding and MCP surfaces still
-consume time and memory. The existing configuration/end-of-capture consistency
-limits in [input capture](INPUT_CAPTURE_CONTRACT.md) remain open.
+consume time and memory. Shared configuration capture and final validation are
+described in [input capture](INPUT_CAPTURE_CONTRACT.md), including the remaining
+non-atomic filesystem and supplemental-reader limits.
 
 The existing graph round-trip regression now checks all native fields and a
 logically unrelated findings payload with an updated hash; the external-evidence

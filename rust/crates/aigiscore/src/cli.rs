@@ -50,6 +50,7 @@ fn build_agent_context(result: &ProjectAnalysis, output_dir: Option<&Path>) -> R
         build_guard_decision_artifact(&result.root, &convergence, &result.external_analysis);
     let handoff = build_agent_handoff_artifact(result, &review_surface, doctrine);
     let review = build_agentic_review_artifact(result, doctrine, &handoff, &guard, &convergence);
+    result.verify_inputs().map_err(|error| { eprintln!("{error}"); 1 })?;
     Ok(AgentContext { review })
 }
 

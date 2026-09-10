@@ -2131,6 +2131,7 @@ impl McpState {
 
         repo_overview.resolution_work = analysis.resolution_work.clone();
         repo_overview.ast_grep_work = analysis.ast_grep_work.clone();
+        analysis.verify_inputs()?;
         Ok(Self {
             artifact_generation,
             root,

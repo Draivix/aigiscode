@@ -83,7 +83,9 @@ it can restore native analysis after rechecking supplemental dead-code evidence.
 Guard and convergence are still computed for the current request context. See
 `docs/NATIVE_ANALYSIS_CACHE_CONTRACT.md` for eligibility and fallback rules.
 A damaged committed generation is an explicit integrity error. Source bytes must
-also agree with the scan before parsing or fast loading; see
+also agree with the scan before parsing or fast loading. Configuration readers
+share captured bytes/absence, and final input validation gates analysis and
+publication; see
 `docs/INPUT_CAPTURE_CONTRACT.md` for the remaining capture limits.
 
 `semantic-graph.json` also carries parser-owned JS/TS `lexical_bindings` for

@@ -272,9 +272,15 @@ pub(super) fn start_indexer(
                     build_resolver.as_mut(),
                     build_scanner.as_mut(),
                 ).map_err(|error| {
-                    let input_changed = matches!(&error, super::McpServerError::Analysis(
-                        crate::ingestion::pipeline::ProjectAnalysisError::InputChanged { .. }
-                    ));
+                    let analysis_error = match &error {
+                        super::McpServerError::Analysis(error) => Some(error),
+                        super::McpServerError::WriteArtifacts(error) => error.get_ref()
+                            .and_then(|error| error.downcast_ref::<crate::ingestion::pipeline::ProjectAnalysisError>()),
+                        _ => None,
+                    };
+                    let input_changed = matches!(analysis_error,
+                        Some(crate::ingestion::pipeline::ProjectAnalysisError::InputChanged { .. })
+                    );
                     (input_changed, error.to_string())
                 });
                 (result, build_resolver, build_scanner)

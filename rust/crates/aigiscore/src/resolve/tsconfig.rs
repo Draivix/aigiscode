@@ -4,8 +4,8 @@ use super::{normalize_relative_path, relativize_to_root, TsPathAlias};
 use globset::{GlobBuilder, GlobMatcher};
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -106,33 +106,48 @@ impl TsProject {
     }
 }
 
-#[derive(Default)]
-pub(super) struct ConfigReader {
+pub(super) struct ConfigReader<'a> {
+    captured: &'a mut crate::ingestion::inputs::InputFiles,
     // Absence is an input too: adding a closer tsconfig must invalidate fast load.
-    inputs: BTreeMap<PathBuf, Option<Vec<u8>>>,
+    inputs: BTreeMap<PathBuf, Option<Arc<[u8]>>>,
+    directories: BTreeMap<PathBuf, bool>,
     effective: BTreeMap<PathBuf, EffectiveConfig>,
     active: BTreeSet<PathBuf>,
     active_projects: BTreeSet<PathBuf>,
     projects: BTreeMap<PathBuf, TsProject>,
 }
 
-impl ConfigReader {
-    pub fn input_paths(&self) -> Vec<PathBuf> {
-        self.inputs.keys().cloned().collect()
+impl<'a> ConfigReader<'a> {
+    pub fn new(captured: &'a mut crate::ingestion::inputs::InputFiles) -> Self {
+        Self {
+            captured,
+            inputs: BTreeMap::new(),
+            directories: BTreeMap::new(),
+            effective: BTreeMap::new(),
+            active: BTreeSet::new(),
+            active_projects: BTreeSet::new(),
+            projects: BTreeMap::new(),
+        }
     }
 
-    pub fn read(&mut self, path: &Path) -> Result<Option<Vec<u8>>, ResolveConfigError> {
+    pub fn input_paths(&self) -> Vec<PathBuf> {
+        self.inputs.keys().chain(self.directories.keys()).cloned().collect()
+    }
+
+    pub fn read(&mut self, path: &Path) -> Result<Option<Arc<[u8]>>, ResolveConfigError> {
         let path = normalize_relative_path(path);
         if let Some(bytes) = self.inputs.get(&path) {
             return Ok(bytes.clone());
         }
-        let bytes = match fs::read(&path) {
-            Ok(bytes) => Some(bytes),
-            Err(failure) if failure.kind() == std::io::ErrorKind::NotFound => None,
-            Err(failure) => return Err(error(&path, failure)),
-        };
+        let bytes = self.captured.read(&path).map_err(|failure| error(&path, failure))?;
         self.inputs.insert(path, bytes.clone());
         Ok(bytes)
+    }
+
+    pub fn is_dir(&mut self, path: &Path) -> Result<bool, ResolveConfigError> {
+        let present = self.captured.is_dir(path).map_err(|failure| error(path, failure))?;
+        self.directories.insert(path.to_path_buf(), present);
+        Ok(present)
     }
 
     pub fn fingerprint(&self) -> String {
@@ -146,6 +161,13 @@ impl ConfigReader {
                 hash.update(&(bytes.len() as u64).to_le_bytes());
                 hash.update(bytes);
             }
+        }
+        for (path, present) in &self.directories {
+            hash.update(b"directory");
+            let name = path.to_string_lossy();
+            hash.update(&(name.len() as u64).to_le_bytes());
+            hash.update(name.as_bytes());
+            hash.update(&[u8::from(*present)]);
         }
         format!("{:016x}", hash.digest())
     }
@@ -259,30 +281,24 @@ impl ConfigReader {
         let candidate = normalize_relative_path(candidate);
         // Check directories separately so a directory read is not confused with a
         // missing file; package.json's tsconfig entry can name a non-default file.
-        match fs::metadata(&candidate) {
-            Ok(metadata) if metadata.is_dir() => {
-                let package = candidate.join("package.json");
-                if let Some(bytes) = self.read(&package)? {
-                    let json: serde_json::Value = serde_json::from_slice(&bytes)
-                        .map_err(|failure| error(&package, failure))?;
-                    if let Some(target) = json.get("tsconfig") {
-                        let target = target
-                            .as_str()
-                            .ok_or_else(|| error(&package, "tsconfig must be a string"))?;
-                        let target = normalize_relative_path(&candidate.join(target));
-                        if self.read(&target)?.is_some() {
-                            return Ok(Some(target));
-                        }
-                        return Err(error(&target, "package tsconfig entry not found"));
+        if self.is_dir(&candidate)? {
+            let package = candidate.join("package.json");
+            if let Some(bytes) = self.read(&package)? {
+                let json: serde_json::Value = serde_json::from_slice(&bytes)
+                    .map_err(|failure| error(&package, failure))?;
+                if let Some(target) = json.get("tsconfig") {
+                    let target = target
+                        .as_str()
+                        .ok_or_else(|| error(&package, "tsconfig must be a string"))?;
+                    let target = normalize_relative_path(&candidate.join(target));
+                    if self.read(&target)?.is_some() {
+                        return Ok(Some(target));
                     }
+                    return Err(error(&target, "package tsconfig entry not found"));
                 }
-                let path = candidate.join("tsconfig.json");
-                return Ok(self.read(&path)?.map(|_| path));
             }
-            Err(failure) if failure.kind() != std::io::ErrorKind::NotFound => {
-                return Err(error(&candidate, failure))
-            }
-            _ => {}
+            let path = candidate.join("tsconfig.json");
+            return Ok(self.read(&path)?.map(|_| path));
         }
         if self.read(&candidate)?.is_some() {
             return Ok(Some(candidate));

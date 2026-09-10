@@ -1,7 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
@@ -442,11 +441,18 @@ pub fn doctrine_clause(id: &str) -> Option<DoctrineClause> {
 }
 
 pub fn load_doctrine_registry(root: &Path) -> Result<DoctrineRegistry, DoctrineLoadError> {
+    load_doctrine_registry_with_inputs(root, &mut crate::ingestion::inputs::InputFiles::default())
+}
+
+pub(crate) fn load_doctrine_registry_with_inputs(
+    root: &Path,
+    inputs: &mut crate::ingestion::inputs::InputFiles,
+) -> Result<DoctrineRegistry, DoctrineLoadError> {
     let path = root.join(DOCTRINE_FILE);
     let mut registry = built_in_doctrine_registry();
-    let payload = match fs::read(&path) {
-        Ok(payload) => payload,
-        Err(source) if source.kind() == std::io::ErrorKind::NotFound => return Ok(registry),
+    let payload = match inputs.read(&path) {
+        Ok(Some(payload)) => payload,
+        Ok(None) => return Ok(registry),
         Err(source) => return Err(DoctrineLoadError::Read { path, source }),
     };
     let overrides: DoctrineOverrideFile =

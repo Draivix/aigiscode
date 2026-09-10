@@ -286,8 +286,9 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
   from the current analysis and prior baseline inputs; cached guard/convergence
   files are never reused as current results. Artifact-writing startup hands its
   computed context directly to MCP. Invalid/unreadable baseline JSON fails the
-  build instead of silently falling back. Missing baseline semantics and atomic
-  publication of the entire artifact family still require further work.
+  build instead of silently falling back. The baseline contract distinguishes
+  missing, partial, unverified and inconsistent inputs; sealed generations
+  publish the complete artifact family through one selected-generation pointer.
 - Kuzu is exposed only when materialized for the current snapshot. A database
   left on disk by an earlier revision is unavailable after a live rebuild.
 - Input coverage is independent of freshness. `repo_overview`, coverage and
@@ -309,6 +310,12 @@ and CI are stopped at the user's request. Runtime race behavior remains unverifi
 
 ### Phase 2 — Incremental core
 
+- Scan, resolver and assessment configuration now share captured bytes/absence.
+  Final inventory/configuration validation gates analysis completion, generation
+  publication and MCP-state construction, including fast-loaded state. Resolver
+  directory inputs are tracked too. This detects changes at the check boundaries;
+  it does not make filesystem walks atomic. See the [capture contract](INPUT_CAPTURE_CONTRACT.md)
+  and [stable-corpus observation](2026-09-10-input-stability.md); race/error CI is pending.
 - Opt-in `AIGISCORE_FAST_LOAD=1` can now restore native analysis from the existing
   `deterministic-findings.json`, after validating the graph/input identity, its
   manifest checksum and current policy/doctrine fingerprint. External evidence

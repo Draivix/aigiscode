@@ -44,6 +44,13 @@ aktuální guard a konvergence se dále přepočítávají. Skutečný přechod 
 sestaveními cache správně odmítl. Jde o načtení nezměněného snapshotu;
 inkrementalita změn, souběžné/chybové scénáře a schválené CI zůstávají otevřené.
 
+[Sdílené zachycení vstupů](2026-09-10-input-stability.md) sjednocuje čtení
+konfigurace a přidává kontrolu inventáře, konfigurace a adresářových vstupů
+před dokončením analýzy i publikací. Stabilní audit za 85,33 s zachoval celé
+grafy a věcné nálezy; validace analýzy trvala 305 ms. Chybové regrese nejsou
+spuštěné. Atomický filesystem snapshot, doplňkoví čtenáři a souběžná akceptace
+zůstávají otevřené; nezaměňovat kontrolu stabilního korpusu za důkaz závodů.
+
 [Potvrzení editací z 10. září](2026-09-10-edit-receipts.md) nyní přiděluje revizi
 ještě před doručením filesystemové události; `verify_change` umí počkat na tuto
 revizi a zveřejňuje skutečný stav baseline. Reálný MCP běh potvrdil chování při
@@ -82,7 +89,7 @@ příslib čerstvosti živého repozitáře. Původní Draivix byl pouze čten.
 | Q02 — skutečný kód a kotvy nálezů | V témže vlastním auditu jsou nulové původní `SplitIdentityModel` a `CompatibilityScar` nálezy vlastněné `artifacts.rs`. Sdílený lexikální masker a kotvy detektoru nahrazují původní textový odhad. | Nové kombinace rozsahů a zachování produkčních pozitiv potřebují současnou regresní akceptaci. |
 | Q03 — pravdivý stav externích scannerů | Implementovány typované chyby, validace reportů, individuální exit semantics a přenos neúplných externích kontrol do výsledku a guardu. | Tento nový audit externí nástroje nespouštěl (`not_requested`). Reálné procesní a formátové regrese po opravě nemají běh CI. |
 | Q04 — výstupy a životní cyklus procesů | `external/process.rs` vlastní oddělené úplné raw soubory, omezený náhled a unixový úklid skupiny procesů. | Velké oba výstupy, timeout, selhání zápisu a potomci nejsou v současné verzi runtime ověřeni. Mimo Unix kontrakt zaručuje pouze přímé dítě. |
-| Q05 — watcher a čerstvost vstupů | Watcher se armuje před analýzou, sdílí definici vstupů, zaznamenává změnu v callbacku a zveřejňuje svůj stav. Dřívější skutečné změny metadat a hooku Mitel vyvolaly nové revize. | Závody při startu/rebuildu, rename, konfigurace a degradace watcheru čekají na regresní ověření. Čerstvý MCP zde běžel jednorázově s `watcher: disabled`. |
+| Q05 — watcher a čerstvost vstupů | Watcher se armuje před analýzou, zaznamenává změnu v callbacku a zveřejňuje svůj stav. Dřívější změny metadat a hooku Mitel vyvolaly nové revize. Nová sdílená konfigurace a kontrola inventáře před publikací zachovaly na stabilním korpusu úplné výsledky; viz [doklad](2026-09-10-input-stability.md). | Závody při startu/rebuildu, odmítnutí změněné konfigurace, rollback publikace, rename a degradace watcheru čekají na regresní ověření. Poslední MCP běžel jednorázově s `watcher: disabled`; nejde o atomický filesystem snapshot. |
 | Q06 — počáteční stav MCP | Skutečný pomalý start vrátil po 30,01 s explicitní `indexing`, `retryable: true`, revision 0; použitelný přehled následoval po 45,75 s s revision 1. Implementace rozlišuje pending/ready/failed a probouzí čekající při chybě. | Tento běh nedokládá vynucené selhání prvotní analýzy ani všechny deadline scénáře. |
 | Q07 — neúplné parsování | CLI a všechny odpovědi MCP zveřejňují 80 zotavených zdrojů, 792 skriptově omezených Vue souborů a 146 nepodporovaných zdrojů. Kontroly založené na absenci jsou odložené, guard je `Block`, analytické CLI končí 1. | Úplné parsování tohoto korpusu dosaženo není; uvedení mezery samo neřeší chybějící jazykovou či šablonovou sémantiku. |
 | Q08 — zachování doctrine při externí analýze | `ProjectAnalysis` uchovává načtený kontext a oba CLI toky používají společné `set_external_analysis`. Chyba požadované konfigurace se propaguje. V nové kopii je původní doctrine zachována. | Přítomnost validní doctrine neověřuje současnou kombinaci externího selhání, neplatné doctrine a analýzy bez zápisu; integrační regrese zůstávají nespouštěné. |

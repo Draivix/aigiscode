@@ -1302,6 +1302,9 @@ pub(crate) fn write_project_analysis_artifacts_with_context(
         contract_inventory: contract_inventory_xxh3,
     });
     write_json("scan_manifest", &paths.scan_manifest, &manifest)?;
+    // Validate after staging, before the generation becomes visible. A failed
+    // capture leaves the previously published family intact.
+    analysis.verify_inputs().map_err(io::Error::other)?;
     publication.publish(&paths)?;
 
     Ok((
