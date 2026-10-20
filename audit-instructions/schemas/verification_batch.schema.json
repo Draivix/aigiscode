@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LeanAuditVerificationBatch",
+  "type": "object",
+  "required": [
+    "batch_id",
+    "verifications"
+  ],
+  "properties": {
+    "batch_id": {
+      "type": "string"
+    },
+    "verifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "finding_id",
+          "claim_type",
+          "verdict",
+          "evidence",
+          "conditions",
+          "missing_material"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "claim_type": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "delete"
+            ]
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "safe",
+              "safe_with_adapter",
+              "unsafe",
+              "dead",
+              "alive",
+              "undecidable"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "file",
+                "line_start",
+                "line_end",
+                "quote",
+                "meaning"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line_start": {
+                  "type": "integer"
+                },
+                "line_end": {
+                  "type": "integer"
+                },
+                "quote": {
+                  "type": "string",
+                  "maxLength": 600
+                },
+                "meaning": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "differences_found": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "input",
+                "a_gives",
+                "b_gives",
+                "any_caller_depends"
+              ],
+              "properties": {
+                "input": {
+                  "type": "string"
+                },
+                "a_gives": {
+                  "type": "string"
+                },
+                "b_gives": {
+                  "type": "string"
+                },
+                "any_caller_depends": {
+                  "type": "boolean"
+                },
+                "caller": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "invocation_patterns": {
+            "description": "delete claims only",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "pattern",
+                "result"
+              ],
+              "properties": {
+                "pattern": {
+                  "type": "string"
+                },
+                "result": {
+                  "type": "string",
+                  "enum": [
+                    "checked_not_found",
+                    "checked_found",
+                    "could_not_check"
+                  ]
+                },
+                "location": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missing_material": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "_comment": "Read-only profil pro Gemini CLI / Antigravity CLI, kdyby se G pouštěl jako agent s nástroji (ne přes API). Umístit do <repo>/.gemini/settings.json NEBO předat přes --sandbox. Preferovaná cesta je ale scripts/run_gemini.py (API, žádné nástroje) – tam G fyzicky nemůže nic změnit.",
+  "tools": {
+    "core": ["read_file", "read_many_files", "glob", "grep_search", "list_directory"],
+    "exclude": ["write_file", "edit", "replace", "run_shell_command", "web_fetch", "save_memory"]
+  },
+  "sandbox": true,
+  "autoAccept": false,
+  "checkpointing": { "enabled": false },
+  "telemetry": { "enabled": false }
+}

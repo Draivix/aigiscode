@@ -1,0 +1,401 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LeanAuditBatchResult",
+  "type": "object",
+  "required": [
+    "batch_id",
+    "pass",
+    "findings",
+    "files_fully_read",
+    "files_skimmed",
+    "open_questions"
+  ],
+  "properties": {
+    "batch_id": {
+      "type": "string"
+    },
+    "pass": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 4
+    },
+    "files_fully_read": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files_skimmed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "path_summaries": {
+      "description": "Pass 2 only: one per entry point",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "entry_point",
+          "summary",
+          "layers_traversed"
+        ],
+        "properties": {
+          "entry_point": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "layers_traversed": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "group_verdict": {
+      "description": "Pass 3, legacy single-cluster batches only; packed batches use group_verdicts[]",
+      "type": "string",
+      "enum": [
+        "duplicate_exact",
+        "duplicate_semantic",
+        "variant_mergeable",
+        "distinct",
+        "mixed",
+        "n/a"
+      ]
+    },
+    "subgroups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "symbols",
+          "verdict"
+        ],
+        "properties": {
+          "symbols": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verdict": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "singleton_answers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "symbol",
+          "has_twin_in_registry"
+        ],
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "has_twin_in_registry": {
+            "type": "string",
+            "enum": [
+              "true",
+              "false",
+              "unsure"
+            ]
+          },
+          "registry_match": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "description": "Pass 4 (and new_capabilities in pass 3)",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "implementations",
+          "is_double_path"
+        ],
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "description": "existing id from known_registry, or empty for new"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "implementations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "entry_points": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "is_double_path": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "new_capabilities": {
+      "$ref": "#/properties/capabilities"
+    },
+    "merge_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "capability_ids",
+          "reason"
+        ],
+        "properties": {
+          "capability_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "title",
+          "symbols",
+          "evidence",
+          "rationale",
+          "estimated_loc_saved",
+          "confidence",
+          "checks_done"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "clone_exact",
+              "clone_semantic",
+              "variant_mergeable",
+              "dead_symbol",
+              "dead_branch",
+              "unused_param",
+              "redundant_layer",
+              "repeated_validation",
+              "double_path",
+              "unused_dependency",
+              "suspicious"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "symbols": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "file",
+                "line_start",
+                "line_end",
+                "quote"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line_start": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "line_end": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "quote": {
+                  "type": "string",
+                  "maxLength": 600
+                }
+              }
+            }
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "behavior_differences": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "input",
+                "a_gives",
+                "b_gives"
+              ],
+              "properties": {
+                "input": {
+                  "type": "string"
+                },
+                "a_gives": {
+                  "type": "string"
+                },
+                "b_gives": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "estimated_loc_saved": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "checks_done": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "canonical_candidate": {
+            "type": "string"
+          },
+          "caller_impact": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "symbol": {
+                  "type": "string"
+                },
+                "caller_count": {
+                  "type": "integer"
+                },
+                "callers_depending_on_difference": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "capability_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "question",
+          "would_be_settled_by"
+        ],
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "would_be_settled_by": {
+            "type": "string"
+          },
+          "related_symbols": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "group_verdicts": {
+      "description": "Pass 3 only: one entry per cluster in batch groups[] (the batch packs several clusters)",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "cluster_id",
+          "verdict"
+        ],
+        "properties": {
+          "cluster_id": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "duplicate_exact",
+              "duplicate_semantic",
+              "variant_mergeable",
+              "distinct",
+              "mixed",
+              "n/a"
+            ]
+          },
+          "canonical_candidate": {
+            "type": "string",
+            "description": "fqn of the implementation that should survive, or 'none'"
+          },
+          "subgroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "symbols",
+                "verdict"
+              ],
+              "properties": {
+                "symbols": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "verdict": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
