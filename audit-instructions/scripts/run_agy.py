@@ -42,8 +42,8 @@ CHARS_PER_TOKEN = 2.6  # measured on batch 0000: 561k real input tokens for 1.3 
 AGY_SYSTEM_OVERHEAD = 32_000  # measured: an empty prompt costs ~31k input tokens
 
 PROMPTS, SCHEMAS = ROOT / "prompts", ROOT / "schemas"
-PASS_PROMPT = {2: "pass2_vertical.md", 3: "pass3_horizontal.md", 4: "pass4_domain.md", 5: "verify_independent.md"}
-PASS_SCHEMA = {2: "findings.schema.json", 3: "findings.schema.json", 4: "findings.schema.json", 5: "verification_batch.schema.json"}
+PASS_PROMPT = {2: "pass2_vertical.md", 3: "pass3_horizontal.md", 4: "pass4_domain.md", 5: "verify_independent.md", 6: "verify_independent.md"}
+PASS_SCHEMA = {2: "findings.schema.json", 3: "findings.schema.json", 4: "findings.schema.json", 5: "verification_batch.schema.json", 6: "verification_batch.schema.json"}
 
 TOOL_RULES = """
 ## Tool use in this session

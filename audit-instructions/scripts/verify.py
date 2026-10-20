@@ -206,6 +206,41 @@ def spot_check(fraction):
 PASS5_STATUS = {"delete": {"dead": "confirmed", "alive": "rejected", "undecidable": "needs_human"},
                 "merge": {"safe": "confirmed", "safe_with_adapter": "confirmed", "unsafe": "rejected", "undecidable": "needs_human"}}
 
+DECISION = {"safe": "ok", "safe_with_adapter": "ok", "dead": "ok", "unsafe": "no", "alive": "no", "undecidable": "undecidable"}
+
+def apply_pass6():
+    """Second independent verifier (results/pass6, agy) against the first (pass5_verifier in verification[]):
+    same decision → status stands (agreement recorded); different decision → needs_human; a row without a decisive first
+    verdict (needs_human) gets a decisive second verdict as `candidate` (one verifier is one source, not two)."""
+    by_id = {}
+    for r in load_registry(): by_id[r["id"]] = r
+    stats = collections.Counter(); accepted = []
+    for m in sorted((OUT / "results/pass6").glob("*.verified")):
+        try: names = json.loads(m.read_text())["accepted"]
+        except (json.JSONDecodeError, KeyError, TypeError): names = [m.stem + ".json"]
+        accepted += [OUT / "results/pass6" / n for n in names]
+    for p in accepted:
+        for v in json.loads(p.read_text())["result"].get("verifications", []):
+            f = by_id.get(v.get("finding_id"))
+            if not f: stats["unknown_finding_id"] += 1; continue
+            mine = DECISION.get(v.get("verdict"), "undecidable")
+            bad = [e for e in v.get("evidence", []) if not quote_matches(e)]
+            if mine != "undecidable" and (bad or not v.get("evidence")): mine = "undecidable"; stats["evidence_missing_or_mismatch"] += 1
+            prior = next((c for c in reversed(f.get("verification", [])) if isinstance(c, dict) and c.get("check") in ("pass5_verifier", "agy_crosscheck_verifier")), None)
+            theirs = DECISION.get((prior or {}).get("verdict"), "undecidable")
+            if mine == "undecidable": status, outcome = f["status"], "second_undecidable"
+            elif theirs == "undecidable": status, outcome = ("candidate" if f["status"] == "needs_human" else f["status"]), "single_decisive_verdict"
+            elif mine == theirs: status, outcome = f["status"], "agree"
+            else: status, outcome = "needs_human", "disagree"
+            if status == "confirmed" and f["kind"] == "dead_symbol":
+                reach = next((c.get("result") for c in f.get("verification", []) if c.get("check") == "aigiscode_reachable"), None)
+                if reach == 1: status = "rejected"
+            rec = dict(f, status=status, verification=f.get("verification", []) + [{"check": "pass6_verifier", "verdict": v.get("verdict"), "first_verdict": (prior or {}).get("verdict"), "outcome": outcome, "confidence": v.get("confidence"), "conditions": v.get("conditions", [])[:3], "evidence": v.get("evidence", [])[:4]}],
+                       source=f"pass6/{p.stem}", history=f.get("history", []) + [{"ts": now(), "status": status, "by": "verify.py --apply-pass6", "verdict": v.get("verdict"), "outcome": outcome}])
+            append_registry(rec); stats[outcome] += 1; stats[f"status:{status}"] += 1
+    print(json.dumps(stats, indent=1))
+
+
 def apply_pass5():
     """Independent verifier verdicts (results/pass5/*.json) → new registry records with the final status and history."""
     by_id = {}
@@ -238,6 +273,7 @@ def apply_pass5():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply-pass5", action="store_true")
+    ap.add_argument("--apply-pass6", action="store_true", help="second verifier (agy) verdicts in results/pass6 → agreement / needs_human")
     ap.add_argument("--recheck-dead", action="store_true", help="re-decide every dead_symbol candidate with the two-source rule (bulk rg)")
     ap.add_argument("--pass", dest="pass_no", type=int)
     ap.add_argument("--result", help="verify this one result file instead of the whole pass directory")
@@ -246,6 +282,7 @@ def main():
     ap.add_argument("--db", default=str(OUT / "symbols.sqlite"))
     a = ap.parse_args()
     if a.apply_pass5: return apply_pass5()
+    if a.apply_pass6: return apply_pass6()
     if a.spot_check: return spot_check(a.spot_check)
     db = sqlite3.connect(a.db)
     if a.recheck_dead: return recheck_dead(db, a.roots)

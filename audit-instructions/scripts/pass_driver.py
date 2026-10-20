@@ -164,7 +164,7 @@ def drive(pass_no, batch):
             rate3, _rej, n3 = check_result(fill, db); left = len(verdict_gaps(fill))
             log(pass_no, f"{batch} fill: findings={n3} mismatch={rate3:.1%} gaps_left={left}")
             if rate3 <= TAINT_RATE: results.append(fill)
-    if pass_no == 5:   # verifier: coverage instead of thinness – every claim needs a verdict; the uncovered ones stay at their status and are listed
+    if pass_no in (5, 6):   # verifier: coverage instead of thinness – every claim needs a verdict; the uncovered ones stay at their status and are listed
         want = {c["finding_id"] for c in json.loads(batch_path.read_text()).get("claims", [])}
         got = {v.get("finding_id") for r in results for v in json.loads(r.read_text())["result"].get("verifications", [])}
         missing = sorted(want - got)
@@ -172,7 +172,7 @@ def drive(pass_no, batch):
         log(pass_no, f"{batch} coverage: claims={len(want)} verified={len(want & got)} missing={len(missing)}")
     # thinness → second look
     n = len(json.loads(chosen.read_text())["result"].get("findings", []))
-    if pass_no != 5 and tokens > THIN_MIN_TOKENS and n < lines / THIN_LINES:
+    if pass_no not in (5, 6) and tokens > THIN_MIN_TOKENS and n < lines / THIN_LINES:
         look = res_dir / f"{batch}_look2.json"
         if not look.exists():
             if not (res_dir / f"{batch}_empty.json").exists(): (res_dir / f"{batch}_empty.json").write_text("[]")  # must exist before the run (rc=1 otherwise)
