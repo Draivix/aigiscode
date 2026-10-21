@@ -6,6 +6,7 @@
 # the MR with a file → finding table, arms auto-merge and prints the MR iid. The insertion report
 # is kept at lean-audit/out/tombstones/insert-<slug>.json for tombstone_record.py.
 set -euo pipefail
+trap 'echo "tombstone_mr.sh: failed at line $LINENO: $BASH_COMMAND" >&2' ERR
 SLUG="${1:?slug}"; FILTER="${2:?group regex}"
 SHARED="${DRAIVIX_SHARED:-/home/david/Work/Programming/draivix}"
 KIT="$(cd "$(dirname "$0")" && pwd)"
@@ -16,8 +17,14 @@ REPORT="$OUT/insert-$SLUG.json"
 
 cd "$SHARED" && git fetch -q origin
 [ -d "$WT" ] || bash scripts/wt.sh new "$BRANCH" >/dev/null
-php -d memory_limit=2G "$KIT/tombstone_insert.php" --root="$WT" --targets="$OUT/targets.jsonl" \
-    --filter="$FILTER" --write --report="$REPORT" > "$OUT/insert-$SLUG.summary.json"
+# Resume: a worktree that already carries the insertions (dirty or committed ahead of main) keeps
+# its report; only a clean worktree at main gets the inserter run.
+if [ -z "$(git -C "$WT" status --short)" ] && [ "$(git -C "$WT" rev-parse HEAD)" = "$(git -C "$WT" rev-parse origin/main)" ]; then
+    php -d memory_limit=2G "$KIT/tombstone_insert.php" --root="$WT" --targets="$OUT/targets.jsonl" \
+        --filter="$FILTER" --write --report="$REPORT" > "$OUT/insert-$SLUG.summary.json"
+else
+    echo "resuming $SLUG from existing worktree state"
+fi
 python3 -I - "$REPORT" <<'EOF' > "$OUT/insert-$SLUG.files"
 import json, sys
 rows = [r for r in json.load(open(sys.argv[1])) if r["action"] == "inserted"]
@@ -26,11 +33,13 @@ EOF
 FILES_N=$(grep -c . "$OUT/insert-$SLUG.files" || true)
 [ "$FILES_N" -gt 0 ] || { echo "nothing inserted for $FILTER"; exit 1; }
 INS_N=$(python3 -I -c "import json,sys;print(sum(r['action']=='inserted' for r in json.load(open(sys.argv[1]))))" "$REPORT")
-GROUPS=$(python3 -I -c "import json,sys;print(', '.join(sorted({r['group'] for r in json.load(open(sys.argv[1])) if r['action']=='inserted'})))" "$REPORT")
+GROUP_LIST=$(python3 -I -c "import json,sys;print(', '.join(sorted({r['group'] for r in json.load(open(sys.argv[1])) if r['action']=='inserted'})))" "$REPORT")
 
-cd "$WT"
-xargs -a "$OUT/insert-$SLUG.files" git add --
-git commit -q -F - <<EOF
+# No bare `cd` from here on: the workstation profile wraps cd in a function whose non-zero
+# status kills a `set -e` script silently; every command names the worktree instead.
+if [ -n "$(git -C "$WT" status --short)" ]; then
+xargs -a "$OUT/insert-$SLUG.files" git -C "$WT" add --
+git -C "$WT" commit -q -F - <<EOF
 chore(lean-audit): tombstones for $INS_N dead symbols ($SLUG)
 
 One added line per method the lean audit (docs/lean-audit-2026-10, registry
@@ -38,13 +47,19 @@ rows of kind dead_symbol with status confirmed/candidate/needs_human) could not
 reach from any static source: \\App\\Support\\Tombstone::hit(__METHOD__) tagged
 with the finding id. No behaviour change; a hit in production rejects the
 finding, no hit after the observation window deletes the method with its marker
-(lean-audit/out/TOMBSTONES.md). Groups: $GROUPS. $FILES_N files.
+(lean-audit/out/TOMBSTONES.md). Groups: $GROUP_LIST. $FILES_N files.
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 EOF
-git push -q -u origin "$BRANCH" 2>/dev/null
+fi
+git -C "$WT" push -q -u origin "$BRANCH" 2>/dev/null
+EXISTING=$(glab mr list --repo draivix/draivix --source-branch "$BRANCH" 2>/dev/null | grep -oE '^!?[0-9]+' | head -1 | tr -d '!' || true)
+if [ -n "$EXISTING" ]; then
+    echo "MR $EXISTING $BRANCH already open"
+    exit 0
+fi
 
-DESC="$(python3 -I - "$REPORT" "$SLUG" "$INS_N" "$FILES_N" "$GROUPS" <<'EOF'
+DESC="$(python3 -I - "$REPORT" "$SLUG" "$INS_N" "$FILES_N" "$GROUP_LIST" <<'EOF'
 import json, sys
 from collections import defaultdict
 report, slug, ins, files, groups = sys.argv[1:6]
@@ -80,10 +95,10 @@ print("""
 🤖 Generated with [Claude Code](https://claude.com/claude-code)""")
 EOF
 )"
-URL=$(glab mr create --source-branch "$BRANCH" --target-branch main \
+URL=$(glab mr create --repo draivix/draivix --source-branch "$BRANCH" --target-branch main \
     --title "chore(lean-audit): tombstones for $INS_N dead symbols ($SLUG)" \
     --description "$DESC" --remove-source-branch --yes 2>&1 | grep -oE 'merge_requests/[0-9]+' | tail -1)
 IID="${URL##*/}"
 [ -n "$IID" ] || { echo "MR creation failed"; exit 1; }
-glab mr merge "$IID" --auto-merge --remove-source-branch --yes >/dev/null 2>&1 || true
+glab mr merge "$IID" --repo draivix/draivix --auto-merge --remove-source-branch --yes >/dev/null 2>&1 || true
 echo "MR $IID $BRANCH $INS_N insertions $FILES_N files report=$REPORT"
