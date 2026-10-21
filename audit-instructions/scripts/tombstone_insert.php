@@ -115,7 +115,11 @@ $planInsert = static function (Node\FunctionLike $fn, string $source, string $ta
 
     if ($stmts !== []) {
         $first = $stmts[0];
-        $pos = $first->getStartFilePos();
+        // Insert above the first statement's own comments: an inline @var docblock
+        // must stay directly on the statement it types.
+        $comments = $first->getComments();
+        $anchor = $comments !== [] ? $comments[0] : $first;
+        $pos = $anchor->getStartFilePos();
         $prevNl = strrpos(substr($source, 0, $pos), "\n");
         if ($prevNl === false) {
             return ['skip' => 'inline_body'];
@@ -125,7 +129,7 @@ $planInsert = static function (Node\FunctionLike $fn, string $source, string $ta
             return ['skip' => 'inline_body'];
         }
 
-        return ['pos' => $pos, 'text' => $stmt."\n".$prefix, 'replaceLen' => 0, 'line' => $first->getStartLine()];
+        return ['pos' => $pos, 'text' => $stmt."\n".$prefix, 'replaceLen' => 0, 'line' => $anchor->getStartLine()];
     }
 
     // Empty body: `{}` or `{\n}` – rewrite the braces.
